@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Forever Sim</title>
-  <meta name="description" content="Try World of Warcraft: Forever character builds in thousands of simulated fights and compare them in plain English.">
+  <meta name="description" content="Try World of Warcraft: Forever builds in thousands of simulated fights and compare them in plain English.">
   <meta name="theme-color" content="#0e0c0a">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preload" href="fonts/UncutSans-Variable.woff2" as="font" type="font/woff2" crossorigin>
@@ -19,7 +19,7 @@
   <header class="masthead">
     <div class="mark">
       <h1>Forever Sim</h1>
-      <p>Try a build in thousands of simulated fights before you pay for a respec.</p>
+      <p>Try builds in thousands of simulated fights before you pay for a respec.</p>
     </div>
     <nav aria-label="Site">
       <button class="quiet" id="about-btn" type="button">How it works</button>
@@ -31,15 +31,12 @@
     <p>Getting the simulator ready…</p>
   </div>
 
-  <main id="app" class="layout" hidden>
-    <section class="panel" id="builder" aria-label="Your character">
-      <div id="builder-body"></div>
-    </section>
-    <section class="panel" id="tester" aria-labelledby="tester-title">
-      <h2 class="panel-title" id="tester-title">Run a test</h2>
-      <div id="tester-body"></div>
-      <div id="results-box"></div>
-    </section>
+  <main id="app" class="page" hidden>
+    <section id="builds" class="builds" aria-label="Your builds"></section>
+    <div id="run-options" class="run-options"></div>
+    <div id="runbar" class="runbar"></div>
+    <section id="editor" class="editor" aria-labelledby="editor-title" hidden></section>
+    <section id="results" class="results-area" aria-label="Results"></section>
   </main>
 
   <footer class="colophon">
@@ -52,18 +49,19 @@
     <h2 class="panel-title" id="about-title">How it works</h2>
     <div class="dialog-body prose">
       <h3>What it does</h3>
-      <p>Forever Sim plays your character through the same fight thousands of times. Every swing, spell, critical hit, dodge and proc is a dice roll, just as in the game, so no two fights go quite the same way. Averaging them shows what the build really does.</p>
-      <p>Pick a class, race and level, start from a ready-made build or spend your own talent points, then choose a test and press Simulate. Everything runs on your own computer; nothing is uploaded.</p>
+      <p>Forever Sim plays your character through the same fights thousands of times. Every swing, spell, critical hit, dodge and proc is a dice roll, just as in the game, so no two fights go quite the same way. Averaging them shows what a build really does.</p>
+      <p>Set up one to three builds, press Simulate, and each build plays through every test: leveling with one, two or three mobs at a time, a dungeon boss, two world PvP ambushes, and duels between your builds. Everything runs on your own computer; nothing is uploaded.</p>
       <h3>Reading the results</h3>
       <ul>
-        <li><b>The headline number</b> is the average over every simulated fight.</li>
-        <li><b>“Likely between”</b> is a 95% confidence interval: if you ran the test again, the average would almost always land inside it.</li>
-        <li><b>Comparisons are fair.</b> Every build faces exactly the same dice rolls, so a gap between builds comes from the builds, not luck. When a gap is smaller than the margin of error, the result says the builds are too close to call.</li>
+        <li><b>The scorecard</b> has one row per test and one column per build. Open a row to see that test in detail.</li>
+        <li><b>The baseline</b> is the build the others are measured against. Any build can be the baseline; use its card’s menu.</li>
+        <li><b>“About the same”</b> means the gap is smaller than the simulation’s margin of error. Every build faces exactly the same dice rolls, so a clear gap comes from the builds, not luck.</li>
+        <li><b>Ranges</b> are 95% confidence intervals: if you ran the test again, the average would almost always land inside them.</li>
       </ul>
+      <h3>Trying a change</h3>
+      <p>Press “Add a build to compare” to copy a build, change something in the copy, and simulate. After you change a build and simulate again, the results say what your change did, measured on the same fights as before.</p>
       <h3>What it cannot tell you</h3>
       <p>Talents marked with a grey corner are not simulated yet and change nothing. A few numbers the game does not publish are guesses; you can change them under Assumptions. The simulated player follows its play style perfectly, so real results are usually a little lower.</p>
-      <h3>Comparing builds</h3>
-      <p>Press “Compare with another build” to copy the current build, change something in the copy, and simulate. You can compare up to three builds. “Share these builds” copies a link with all of them.</p>
       <h3>Credits</h3>
       <p>Talent, class and race icons are the game’s own artwork, © Blizzard Entertainment, from <a href="https://github.com/Gethe/wow-ui-textures" target="_blank" rel="noopener">wow-ui-textures</a>. Talent data and icon choices follow <a href="https://wowforevertalents.com" target="_blank" rel="noopener">wowforevertalents.com</a>.</p>
       <p>Type: Ortica by Benedetta Bovani (Collletttivo) and Uncut Sans by Kasper Nordkvist, both under the SIL Open Font License, found through <a href="https://uncut.wtf" target="_blank" rel="noopener">uncut.wtf</a>. Stand-in icons by Lorc, Delapouite and contributors from <a href="https://game-icons.net" target="_blank" rel="noopener">game-icons.net</a> (<a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>).</p>
@@ -71,6 +69,14 @@
     </div>
     <div class="dialog-actions">
       <button class="btn" id="about-close" type="button">Close</button>
+    </div>
+  </dialog>
+
+  <dialog id="assumptions" class="panel" aria-labelledby="assumptions-title">
+    <h2 class="panel-title" id="assumptions-title">Assumptions</h2>
+    <div class="dialog-body" id="assumptions-body"></div>
+    <div class="dialog-actions">
+      <button class="btn" id="assumptions-close" type="button">Done</button>
     </div>
   </dialog>
 </body>

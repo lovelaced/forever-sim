@@ -67,6 +67,12 @@ for (const scenario of ['boss', 'solo_2', 'pressure']) {
   for (const chunk of chunks.reverse()) st = call({ op: 'add', id: keeper, chunk });
   if (!st.finished) fail('split run did not finish');
   if (JSON.stringify(call({ op: 'result', id: keeper })) !== expect) fail('split run differs from one engine stepping through');
+  const swapped = call({ op: 'result', id: keeper, pairs: [[1, 0]] }).paired.filter((p) => p.metric === 'breakeven');
+  if (swapped.length !== 1 || swapped[0].a !== 1 || swapped[0].b !== 0) fail('result ignored the pairs it was asked for');
+  const all = call({ op: 'result', id: keeper, pairs: 'all', columns: ['breakeven'] });
+  const ab = all.paired.find((p) => p.metric === 'breakeven' && p.a === 0 && p.b === 1);
+  const kept = call({ op: 'pair', metric: 'breakeven', a: all.variants[0].columns.breakeven, b: all.variants[1].columns.breakeven });
+  if (kept.diff !== ab.diff || kept.lo !== ab.lo || kept.hi !== ab.hi) fail('pairing stored values differs from comparing in one run');
   for (const id of [one, keeper, worker]) call({ op: 'drop', id });
   console.log(`split     ${String(st.reps).padStart(4)} reps  same result as one engine`);
 }

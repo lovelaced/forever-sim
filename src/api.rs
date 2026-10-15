@@ -18,7 +18,15 @@
 //! Convergence is checked at fixed replication counts (`min_reps`, then
 //! every 16), so a session stops at the same point however the work was
 //! split between workers, and gives the same result.
-//! * `result` {id} - summaries, intervals and paired comparisons.
+//! * `result` {id, pairs?, columns?} - summaries, intervals and paired
+//!   comparisons: build `b` against build `a` for each `[a, b]` in `pairs`
+//!   (indices into `builds`), every ordered pair for `pairs: "all"`, or every
+//!   build against the first when absent. `columns: [metric]` adds each
+//!   build's per-replication values of those metrics.
+//! * `pair` {metric, a: [values], b: [values]} - the same-seed difference
+//!   b - a over the replications both have. Replication r of a build always
+//!   gives the same values (same build, settings and seed), so columns kept
+//!   from an earlier run pair exactly with a new run's.
 //! * `drop` {id} - forget a session.
 //! Every request may carry `patches: [{name, text}]` (TOML overlays) to test
 //! data changes; the world is rebuilt when they change.
@@ -91,6 +99,7 @@ pub fn handle(req: &str) -> String {
         "run" => run_chunk(st, &v),
         "add" => add(st, &v),
         "result" => result(st, &v),
+        "pair" => pair(&v),
         "drop" => {
             if let Some(id) = v.get("id").and_then(|x| x.as_u64()) {
                 st.sessions.remove(&id);
@@ -470,25 +479,66 @@ fn result(st: &mut State, v: &J) -> Result<J, String> {
         return Err("no replications yet".into());
     }
     let res = McResult { reps, converged: s.converged, values: s.values.clone() };
+    let columns: Vec<&str> = v.get("columns").and_then(|c| c.as_array()).map(|a| a.iter().filter_map(|x| x.as_str()).collect()).unwrap_or_default();
     let mut variants = Vec::new();
     for (vi, var) in s.variants.iter().enumerate() {
         let sums = mc::summarise(&res.values[vi], s.cfg.conf);
-        variants.push(json!({
+        let mut out = json!({
             "build": describe(w, &var.build),
             "opponent": var.opponent.as_ref().map(|o| describe(w, o)),
             "metrics": sums,
-        }));
+        });
+        if !columns.is_empty() {
+            let cols: Map<String, J> = columns.iter().map(|m| (m.to_string(), J::from(mc::column(&res.values[vi], m)))).collect();
+            out["columns"] = J::Object(cols);
+        }
+        variants.push(out);
     }
     let names: Vec<String> = s.variants.iter().map(|v| v.name.clone()).collect();
     let mut metrics = vec![sc.primary.clone()];
     for m in mc::summarise(&res.values[0], s.cfg.conf).iter().filter(|m| !m.name.contains(':') && m.name != sc.primary) {
         metrics.push(m.name.clone());
     }
-    let paired = if names.len() > 1 { serde_json::to_value(mc::compare(&names, &res, &metrics, s.cfg.conf)).unwrap_or(J::Null) } else { J::Array(vec![]) };
+    let n = names.len();
+    let pairs: Vec<(usize, usize)> = match v.get("pairs") {
+        None | Some(J::Null) => (1..n).map(|b| (0, b)).collect(),
+        Some(J::String(all)) if all == "all" => (0..n).flat_map(|a| (0..n).filter(move |&b| b != a).map(move |b| (a, b))).collect(),
+        Some(p) => p
+            .as_array()
+            .ok_or("pairs must be a list of [a, b]")?
+            .iter()
+            .map(|x| match x.as_array().map(|ab| ab.iter().map(|i| i.as_u64()).collect::<Vec<_>>()).as_deref() {
+                Some([Some(a), Some(b)]) if a != b && (*a as usize) < names.len() && (*b as usize) < names.len() => Ok((*a as usize, *b as usize)),
+                _ => Err(format!("bad pair {x}: give two different build indices below {}", names.len())),
+            })
+            .collect::<Result<_, _>>()?,
+    };
+    let paired = serde_json::to_value(mc::compare_pairs(&names, &res, &metrics, &pairs, s.cfg.conf)).unwrap_or(J::Null);
     Ok(json!({
         "scenario": { "id": sc.id, "desc": sc.desc, "primary": sc.primary },
         "reps": reps, "converged": s.converged, "seed": s.cfg.seed, "data_build": w.meta.data_build,
         "variants": variants, "paired": paired,
+    }))
+}
+
+fn pair(v: &J) -> Result<J, String> {
+    let metric = v.get("metric").and_then(|x| x.as_str()).ok_or("pair needs a metric")?;
+    let read = |k: &str| -> Result<Vec<f64>, String> {
+        let a = v.get(k).and_then(|x| x.as_array()).ok_or_else(|| format!("pair needs {k}: a list of values"))?;
+        // non-finite values come back from `columns` as null
+        a.iter().map(|x| if x.is_null() { Ok(f64::NAN) } else { x.as_f64().ok_or_else(|| format!("{k} holds something that is not a number")) }).collect()
+    };
+    let (a, b) = (read("a")?, read("b")?);
+    let n = a.len().min(b.len());
+    if n < 2 {
+        return Err("pair needs at least two replications in common".into());
+    }
+    let conf = v.get("conf").and_then(|x| x.as_f64()).unwrap_or(0.95);
+    let (diff, lo, hi, vr) = mc::pair_stats(metric, &a[..n], &b[..n], conf);
+    let num = |x: f64| if x.is_finite() { J::from(x) } else { J::Null };
+    Ok(json!({
+        "metric": metric, "n": n, "diff": num(diff), "lo": num(lo), "hi": num(hi),
+        "significant": lo > 0.0 || hi < 0.0, "variance_reduction": num(vr),
     }))
 }
 
@@ -567,6 +617,60 @@ mod tests {
             let got = call(json!({ "op": "result", "id": keeper }));
             assert_eq!(got, expect, "{scenario}");
         }
+    }
+
+    #[test]
+    fn results_compare_the_pairs_asked_for() {
+        let c = call(json!({ "op": "catalog" }));
+        let pick = |f: &str| c["presets"].as_array().unwrap().iter().find(|p| p["file"] == f).unwrap().clone();
+        let builds = json!([pick("warrior/vampire_v2.toml"), pick("warrior/conventional_fury.toml"), pick("warrior/vampire_v2.toml")]);
+        let id = call(json!({ "op": "start", "scenario": "boss", "builds": builds, "precision": 0.05, "max_reps": 64 }))["id"].as_u64().unwrap();
+        while !call(json!({ "op": "step", "id": id, "reps": 32 }))["finished"].as_bool().unwrap() {}
+        let primary = |r: &J| r["paired"].as_array().unwrap().iter().filter(|p| p["metric"] == "dps").cloned().collect::<Vec<_>>();
+        let default = primary(&call(json!({ "op": "result", "id": id })));
+        assert_eq!(default.iter().map(|p| (p["a"].as_u64().unwrap(), p["b"].as_u64().unwrap())).collect::<Vec<_>>(), vec![(0, 1), (0, 2)]);
+        let asked = primary(&call(json!({ "op": "result", "id": id, "pairs": [[1, 2], [2, 0]] })));
+        assert_eq!(asked.iter().map(|p| (p["a"].as_u64().unwrap(), p["b"].as_u64().unwrap())).collect::<Vec<_>>(), vec![(1, 2), (2, 0)]);
+        // builds 0 and 2 are identical, so on the same dice their difference is exactly zero
+        assert_eq!(asked[1]["diff"].as_f64().unwrap(), 0.0);
+        // and 1 -> 2 is the mirror of 0 -> 1
+        assert_eq!(asked[0]["diff"].as_f64().unwrap(), -default[0]["diff"].as_f64().unwrap());
+        for bad in [json!([[0, 0]]), json!([[0, 3]]), json!([[1]]), json!("some")] {
+            assert!(call(json!({ "op": "result", "id": id, "pairs": bad }))["error"].is_string(), "{bad}");
+        }
+    }
+
+    /// Columns kept from separate runs pair exactly like builds run together,
+    /// and every ordered pair is the mirror of its reverse.
+    #[test]
+    fn stored_columns_pair_like_a_joint_run() {
+        let c = call(json!({ "op": "catalog" }));
+        let pick = |f: &str| c["presets"].as_array().unwrap().iter().find(|p| p["file"] == f).unwrap().clone();
+        let (a, b) = (pick("warrior/vampire_v2.toml"), pick("warrior/conventional_fury.toml"));
+        for (scenario, metric) in [("boss", "dps"), ("pressure", "breakeven")] {
+            let run = |builds: J| {
+                let id = call(json!({ "op": "start", "scenario": scenario, "builds": builds, "precision": 0.0, "min_reps": 48, "max_reps": 48 }))["id"].as_u64().unwrap();
+                while !call(json!({ "op": "step", "id": id, "reps": 16 }))["finished"].as_bool().unwrap() {}
+                call(json!({ "op": "result", "id": id, "pairs": "all", "columns": [metric] }))
+            };
+            let joint = run(json!([a.clone(), b.clone()]));
+            let alone_a = run(json!([a.clone()]));
+            let alone_b = run(json!([b.clone()]));
+            let col = |r: &J, i: usize| r["variants"][i]["columns"][metric].clone();
+            assert_eq!(col(&alone_a, 0), col(&joint, 0), "{scenario}: same build, same values");
+            assert_eq!(col(&alone_b, 0), col(&joint, 1));
+            let paired: Vec<J> = joint["paired"].as_array().unwrap().iter().filter(|p| p["metric"] == metric).cloned().collect();
+            assert_eq!(paired.len(), 2);
+            let ab = paired.iter().find(|p| p["a"] == 0 && p["b"] == 1).unwrap();
+            let ba = paired.iter().find(|p| p["a"] == 1 && p["b"] == 0).unwrap();
+            assert_eq!(ab["diff"].as_f64().unwrap(), -ba["diff"].as_f64().unwrap());
+            let p = call(json!({ "op": "pair", "metric": metric, "a": col(&alone_a, 0), "b": col(&alone_b, 0) }));
+            for k in ["diff", "lo", "hi", "significant"] {
+                assert_eq!(p[k], ab[k], "{scenario} {k}");
+            }
+        }
+        assert!(call(json!({ "op": "pair", "metric": "dps", "a": [1.0], "b": [2.0] }))["error"].is_string());
+        assert!(call(json!({ "op": "pair", "metric": "dps", "a": "x", "b": [2.0] }))["error"].is_string());
     }
 
     #[test]

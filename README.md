@@ -39,11 +39,16 @@ and every paired difference). Global flags: `--data DIR`, `--patch FILE`
 
 ## The website (for people who don't use a terminal)
 
-`web/` is a static site that runs the same engine in the visitor's browser:
-pick a class, race and level, start from one of the builds in `builds/` or
-spend talent points in WoW-style talent trees, choose a test, and press
-Simulate. Up to three builds can be compared on the same dice rolls, results
-come with plain-English verdicts, and "Share these builds" copies a link.
+`web/` is a static site that runs the same engine in the visitor's browser.
+Set up one to three builds (start from one in `builds/` or spend talent
+points in WoW-style talent trees), press Simulate, and every build plays
+through every test. The results come first: a scorecard with one row per
+test and one column per build, a one-line summary of who wins what, and each
+test's detail (verdicts, every measure, where the damage comes from) opening
+under its row. One build is the baseline the others are measured against.
+After you change a build and simulate again, the page says what the change
+did in each test, measured on the same fights as before. "Share these builds"
+copies a link.
 
 Each run is split between Web Workers, one per spare core: the heaviest
 test (three builds, "Precise", two tough mobs) takes about 6 s on an
@@ -72,10 +77,14 @@ How the pieces fit:
 
 | File | Role |
 |---|---|
-| `src/api.rs` | JSON requests (`catalog`, `sheet`, `start`, `step`, `run`, `add`, `result`, `drop`); `fsim api '<json>'` answers one from the shell |
+| `src/api.rs` | JSON requests (`catalog`, `sheet`, `start`, `step`, `run`, `add`, `result`, `pair`, `drop`); `fsim api '<json>'` answers one from the shell |
 | `src/ffi.rs` | four C-ABI exports the browser calls (`fsim_alloc`, `fsim_call`, `fsim_out_ptr`, `fsim_out_len`) |
 | `web/worker.js`, `web/engine.js` | compile `fsim.wasm` once, run it in a pool of Web Workers that each simulate a range of fights (`run`) while one collects them in order (`add`); fall back to `POST /api` |
-| `web/app.js`, `talents.js`, `results.js` | the page; talent rules mirror `build.rs` (the engine re-validates everything) |
+| `web/app.js` | boot, the run bar, sharing |
+| `web/state.js` | page state, build helpers, saving (builds and the last results are kept in the browser) |
+| `web/runner.js` | runs the scorecard and keeps each test's results; "what your change did" pairs a build's per-fight results with its previous version's |
+| `web/cards.js`, `editor.js`, `scorecard.js`, `results.js` | the build cards, the build editor, the scorecard, one test in detail |
+| `web/talents.js` | talent trees; the rules mirror `build.rs` (the engine re-validates everything) |
 | `web/meta.js` | every label, icon rule and plain-English phrase, in one place |
 | `tools/fetch_icons.mjs` | downloads the game icons the site uses into `web/icons/` |
 | `tools/build_icons.mjs` | draws a stand-in for every icon (used when a game icon is missing) into `web/icons.js` |
@@ -317,6 +326,10 @@ pet scaling from the owner's stats, and whether druids get Omen of Clarity.
   auras. Pet focus is not modelled (fixed ability cadence).
 * Gear kits are generic stat totals, the same for every build of a role, so
   results compare talents and rotations, not items.
+* In a `duel` the challenger opens first, which is worth several percentage
+  points of win rate (Mutilate beats Vampire v2 76% of the time as the
+  challenger, 63% as the opponent). The website runs every duel both ways
+  round and averages them; `fsim run duel` reports one direction.
 * Enemy players in `pressure` are scripted (two stuns, no trinkets, no
   defensive cooldowns). Builds with long crowd control or immunities
   (paladins, bears) get very high breakevens there; read it as "this build

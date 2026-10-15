@@ -23,7 +23,7 @@ export const CLASS_BLURB = {
   rogue: 'Stealth, combo points, poisons and stuns.',
   shaman: 'Totems, shocks, weapon enchants and heals.',
   warlock: 'Curses, drains and a demon at your side.',
-  warrior: 'Rage-fuelled melee in plate.',
+  warrior: 'Rage-fueled melee in plate.',
 };
 
 export const RACE_ICONS = {
@@ -59,39 +59,55 @@ export const TREE_STYLE = {
   warrior: [['#33251a', 'dripping-blade', 'ability_warrior_savageblow'], ['#3b1411', 'enrage', 'ability_warrior_innerrage'], ['#1a2432', 'checked-shield', 'ability_warrior_defensivestance']],
 };
 
-// Order and wording for the scenario picker.
+// Order and wording for the tests. `short` and `per` label the scorecard,
+// `group` lets the summary say "the world PvP tests".
 export const SCENARIOS = [
-  { id: 'solo_1', icon: 'broadsword', wow: 'inv_sword_05', title: 'Levelling: one mob at a time', unit: 'hour',
+  { id: 'solo_1', phrase: 'leveling one mob at a time', abbr: 'kills/h', icon: 'broadsword', wow: 'inv_sword_05', title: 'Leveling: one mob at a time', short: 'One mob', group: 'leveling', unit: 'hour', per: 'kills per hour',
     help: 'An hour of killing same-level mobs one by one, with travel, eating, drinking and deaths counted.' },
-  { id: 'solo_2', icon: 'crossed-swords', wow: 'ability_dualwield', title: 'Levelling: two mobs at a time', unit: 'hour',
+  { id: 'solo_2', phrase: 'leveling two mobs at a time', abbr: 'kills/h', icon: 'crossed-swords', wow: 'ability_dualwield', title: 'Leveling: two mobs at a time', short: 'Two mobs', group: 'leveling', unit: 'hour', per: 'kills per hour',
     help: 'The same hour, pulling two mobs together.' },
-  { id: 'solo_2_hard', icon: 'crowned-skull', wow: 'spell_shadow_deathscream', title: 'Levelling: two tough mobs', unit: 'hour',
+  { id: 'solo_2_hard', phrase: 'tough pulls', abbr: 'kills/h', icon: 'crowned-skull', wow: 'spell_shadow_deathscream', title: 'Leveling: two tough mobs', short: 'Tough pulls', group: 'leveling', unit: 'hour', per: 'kills per hour',
     help: 'Two mobs that hit 40% harder. Shows which builds survive greedy pulls.' },
-  { id: 'solo_3', icon: 'sword-array', wow: 'ability_whirlwind', title: 'Levelling: three mobs at a time', unit: 'hour',
+  { id: 'solo_3', phrase: 'leveling three mobs at a time', abbr: 'kills/h', icon: 'sword-array', wow: 'ability_whirlwind', title: 'Leveling: three mobs at a time', short: 'Three mobs', group: 'leveling', unit: 'hour', per: 'kills per hour',
     help: 'Three mobs per pull. Area damage and self-healing shine here.' },
-  { id: 'boss', icon: 'dragon-head', wow: 'inv_misc_head_dragon_black', title: 'Dungeon boss', unit: 'fight',
+  { id: 'boss', phrase: 'the dungeon boss', abbr: 'DPS', icon: 'dragon-head', wow: 'inv_misc_head_dragon_black', title: 'Dungeon boss', short: 'Boss', group: 'boss', unit: 'fight', per: 'damage per second',
     help: 'Two minutes on a boss two levels above you. A tank holds it and you hit it from behind.' },
-  { id: 'pressure', icon: 'hooded-assassin', wow: 'ability_stealth', title: 'World PvP: ambushed', unit: 'ambush',
+  { id: 'pressure', phrase: 'the ambush', abbr: 'attacker DPS', icon: 'hooded-assassin', wow: 'ability_stealth', title: 'World PvP: ambushed', short: 'Ambushed', group: 'pvp', unit: 'ambush', per: 'attacker DPS you survive',
     help: 'A geared melee player opens with a stun. How hard can they hit before you lose?' },
-  { id: 'pressure_2v1', icon: 'two-shadows', wow: 'ability_rogue_ambush', title: 'World PvP: two attackers', unit: 'ambush',
+  { id: 'pressure_2v1', phrase: 'the two-attacker ambush', abbr: 'attacker DPS', icon: 'two-shadows', wow: 'ability_rogue_ambush', title: 'World PvP: two attackers', short: 'Two attackers', group: 'pvp', unit: 'ambush', per: 'attacker DPS you survive',
     help: 'The same ambush with two attackers at once.' },
-  { id: 'duel', icon: 'fencer', wow: 'ability_parry', title: 'Duel another build', unit: 'duel',
-    help: 'Stand and fight another build until one of you dies, with a three-minute limit.' },
+  { id: 'duel', phrase: 'the duel', abbr: 'pts', icon: 'fencer', wow: 'ability_parry', title: 'Duel', short: 'Duel', group: 'duel', unit: 'duel', per: 'duels won',
+    help: 'Stand and fight until one of you dies, with a three-minute limit.' },
+];
+
+// Tests run in this order, quickest first, so the scorecard starts filling
+// at once. The scorecard itself keeps the order above.
+export const RUN_ORDER = ['boss', 'pressure', 'pressure_2v1', 'duel', 'solo_1', 'solo_2', 'solo_2_hard', 'solo_3'];
+
+export const GROUP_NAMES = { leveling: 'leveling', boss: 'the dungeon boss', pvp: 'world PvP', duel: 'duels' };
+
+// Builds are told apart by slot (A, B, C) in every chart and table; the class
+// colour stays on the portrait. Chosen to stay distinct from each other and
+// readable on the dark background.
+export const SLOTS = [
+  { letter: 'A', color: '#e0b35a' },
+  { letter: 'B', color: '#67b6e6' },
+  { letter: 'C', color: '#d58ad0' },
 ];
 
 export const UNIT_PLURAL = { hour: 'hours', fight: 'fights', ambush: 'ambushes', duel: 'duels' };
 
 export const ACCURACY = [
-  { id: 'quick', title: 'Quick', note: 'Within about 3%', precision: 0.03, max_reps: 400 },
-  { id: 'standard', title: 'Standard', note: 'Within about 1.5%', precision: 0.015, max_reps: 1500 },
-  { id: 'precise', title: 'Precise', note: 'Within about 0.5%', precision: 0.005, max_reps: 6000 },
+  { id: 'quick', title: 'Quick', short: '±3%', note: 'Within about 3%', precision: 0.03, max_reps: 400 },
+  { id: 'standard', title: 'Standard', short: '±1.5%', note: 'Within about 1.5%', precision: 0.015, max_reps: 1500 },
+  { id: 'precise', title: 'Precise', short: '±0.5%', note: 'Within about 0.5%', precision: 0.005, max_reps: 6000 },
 ];
 
 // What the headline number means, in one sentence.
 export const PRIMARY_HELP = {
-  kills_per_hour: 'Mobs killed in an hour of solo levelling, with resting, travelling and deaths included.',
+  kills_per_hour: 'Mobs killed in an hour of solo leveling, with resting, traveling and deaths included.',
   dps: 'Average damage per second over the two-minute boss fight.',
-  breakeven: 'How much damage per second (before your armour) the attacker needs to beat you half the time. Higher means you survive harder ambushes.',
+  breakeven: 'How much damage per second (before your armor) the attacker needs to beat you half the time. Higher means you survive harder ambushes.',
   win: 'Share of duels won against the chosen opponent.',
 };
 
@@ -145,7 +161,7 @@ export const SHEET = [
   ['Melee', ['attack power', 'melee crit %', 'hit %', 'main hand dps', 'main hand speed', 'off hand dps', 'off hand speed', 'melee haste x']],
   ['Ranged', ['ranged attack power', 'ranged crit %', 'ranged dps']],
   ['Spells', ['spell power', 'healing power', 'spell crit %', 'spell hit %', 'mp5', 'cast haste x']],
-  ['Defence', ['armor', 'dodge %', 'parry %', 'block %', 'block value', 'defense (bonus)', 'damage taken x']],
+  ['Defense', ['armor', 'dodge %', 'parry %', 'block %', 'block value', 'defense (bonus)', 'damage taken x']],
   ['Damage', ['damage done x', 'physical damage x']],
 ];
 
@@ -154,8 +170,8 @@ export const STAT_LABELS = {
   'stamina': 'Stamina', 'intellect': 'Intellect', 'spirit': 'Spirit', 'attack power': 'Attack power',
   'ranged attack power': 'Ranged attack power', 'melee crit %': 'Critical strike', 'ranged crit %': 'Critical strike',
   'spell crit %': 'Critical strike', 'hit %': 'Hit chance bonus', 'spell hit %': 'Hit chance bonus', 'spell power': 'Spell damage',
-  'healing power': 'Bonus healing', 'armor': 'Armour', 'dodge %': 'Dodge', 'parry %': 'Parry', 'block %': 'Block',
-  'block value': 'Block value', 'mp5': 'Mana every 5 seconds', 'defense (bonus)': 'Defence skill bonus',
+  'healing power': 'Bonus healing', 'armor': 'Armor', 'dodge %': 'Dodge', 'parry %': 'Parry', 'block %': 'Block',
+  'block value': 'Block value', 'mp5': 'Mana every 5 seconds', 'defense (bonus)': 'Defense skill bonus',
   'main hand dps': 'Main hand damage per second', 'main hand speed': 'Main hand speed',
   'off hand dps': 'Off hand damage per second', 'off hand speed': 'Off hand speed', 'ranged dps': 'Weapon damage per second',
   'melee haste x': 'Attack speed', 'cast haste x': 'Casting speed', 'damage done x': 'All damage done',

@@ -63,7 +63,7 @@ pub fn rep_seed(cfg: &McCfg, sc: &ScenarioDef, r: usize) -> u64 {
     derive_seed(cfg.seed, &[hash_str(&sc.id), r as u64])
 }
 
-fn column(vals: &[Values], k: &str) -> Vec<f64> {
+pub fn column(vals: &[Values], k: &str) -> Vec<f64> {
     vals.iter().map(|v| v.get(k).copied().unwrap_or(0.0)).collect()
 }
 
@@ -213,6 +213,9 @@ pub struct PairedSummary {
     pub metric: String,
     pub baseline: String,
     pub variant: String,
+    /// Indices of `baseline` and `variant` among the compared variants.
+    pub a: usize,
+    pub b: usize,
     pub diff: f64,
     pub lo: f64,
     pub hi: f64,
@@ -220,33 +223,47 @@ pub struct PairedSummary {
     pub variance_reduction: f64,
 }
 
+/// Every variant against the first.
 pub fn compare(names: &[String], res: &McResult, metrics: &[String], conf: f64) -> Vec<PairedSummary> {
+    let pairs: Vec<(usize, usize)> = (1..res.values.len()).map(|v| (0, v)).collect();
+    compare_pairs(names, res, metrics, &pairs, conf)
+}
+
+/// Variant `b` against variant `a` for each pair, on the same replications.
+pub fn compare_pairs(names: &[String], res: &McResult, metrics: &[String], pairs: &[(usize, usize)], conf: f64) -> Vec<PairedSummary> {
     let mut out = Vec::new();
     for m in metrics {
-        let base = column(&res.values[0], m);
-        for vi in 1..res.values.len() {
-            let col = column(&res.values[vi], m);
-            let p = paired(&base, &col, conf);
-            // Metrics summarised by their median are compared the same way:
-            // the median of the paired (same-seed) differences, with a
-            // distribution-free interval. Everything else: mean difference.
-            let (diff, lo, hi) = if is_median(m) {
-                let d: Vec<f64> = base.iter().zip(&col).map(|(a, b)| b - a).collect();
-                median_ci(&d, conf)
-            } else {
-                (p.mean_diff, p.mean_diff - p.half_width, p.mean_diff + p.half_width)
-            };
+        for &(a, b) in pairs {
+            let (diff, lo, hi, variance_reduction) = pair_stats(m, &column(&res.values[a], m), &column(&res.values[b], m), conf);
             out.push(PairedSummary {
                 metric: m.clone(),
-                baseline: names[0].clone(),
-                variant: names[vi].clone(),
+                baseline: names[a].clone(),
+                variant: names[b].clone(),
+                a,
+                b,
                 diff,
                 lo,
                 hi,
                 significant: lo > 0.0 || hi < 0.0,
-                variance_reduction: p.variance_reduction,
+                variance_reduction,
             });
         }
     }
     out
+}
+
+/// Difference `col - base` of metric `m` over replications run on the same
+/// seeds: (difference, interval low, interval high, variance reduction).
+/// Metrics summarised by their median are compared the same way: the median
+/// of the paired differences, with a distribution-free interval. Everything
+/// else: the mean difference.
+pub fn pair_stats(m: &str, base: &[f64], col: &[f64], conf: f64) -> (f64, f64, f64, f64) {
+    let p = paired(base, col, conf);
+    if is_median(m) {
+        let d: Vec<f64> = base.iter().zip(col).map(|(a, b)| b - a).collect();
+        let (diff, lo, hi) = median_ci(&d, conf);
+        (diff, lo, hi, p.variance_reduction)
+    } else {
+        (p.mean_diff, p.mean_diff - p.half_width, p.mean_diff + p.half_width, p.variance_reduction)
+    }
 }

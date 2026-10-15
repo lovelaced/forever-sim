@@ -63,7 +63,7 @@ function poolSize() {
 
 // One session stepped through on one engine: the local server, or a
 // browser with too few cores to split the work.
-async function stepThrough(engine, req, onProgress, cancelled) {
+async function stepThrough(engine, req, onProgress, cancelled, resultOpts = {}) {
   const s = await engine.call(req);
   if (s.error) throw new Error(s.error);
   try {
@@ -78,7 +78,7 @@ async function stepThrough(engine, req, onProgress, cancelled) {
       const per = (performance.now() - t) / batch;
       batch = Math.max(1, Math.min(4000, Math.round(160 / Math.max(per, 0.01))));
     }
-    const res = await engine.call({ op: 'result', id: s.id });
+    const res = await engine.call({ ...resultOpts, op: 'result', id: s.id });
     if (res.error) throw new Error(res.error);
     return res;
   } finally {
@@ -99,10 +99,11 @@ class WasmEngine {
   // Runs `req` (a `start` request) to a result. Every worker opens the same
   // session; each then asks for the next unclaimed range of fights, sized to
   // take about CHUNK_MS, and the main Thread collects them in order until
-  // the result is precise enough. Resolves with null when cancelled.
-  async simulate(req, onProgress, cancelled) {
+  // the result is precise enough. `resultOpts` go with the final `result`
+  // request (pairs, columns). Resolves with null when cancelled.
+  async simulate(req, onProgress, cancelled, resultOpts = {}) {
     const n = poolSize();
-    if (n < 2) return stepThrough(this, req, onProgress, cancelled);
+    if (n < 2) return stepThrough(this, req, onProgress, cancelled, resultOpts);
     while (this.pool.length < n) this.pool.push(new Thread(this.module));
     const threads = [this.main, ...this.pool.slice(0, n)];
     const text = JSON.stringify(req);
@@ -146,7 +147,7 @@ class WasmEngine {
     try {
       if (failure) throw failure;
       if (cancelled()) return null;
-      const res = await this.main.call({ op: 'result', id });
+      const res = await this.main.call({ ...resultOpts, op: 'result', id });
       if (res.error) throw new Error(res.error);
       return res;
     } finally {
@@ -167,8 +168,8 @@ class HttpEngine {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.json();
   }
-  simulate(req, onProgress, cancelled) {
-    return stepThrough(this, req, onProgress, cancelled);
+  simulate(req, onProgress, cancelled, resultOpts) {
+    return stepThrough(this, req, onProgress, cancelled, resultOpts);
   }
 }
 
