@@ -1,0 +1,26 @@
+# Beast Mastery ranged with a cat, 31/20/0.
+name = "BM Ranged (31/20)"
+class = "hunter"
+race = "troll"
+level = 60
+gear = "mail_hunter"
+rotation = "ranged_pet"
+
+[talents]
+endurance_training = 5
+focused_fire = 2
+improved_aspect_of_the_monkey = 3
+unleashed_fury = 5
+ferocity = 5
+summon_hawk = 1
+spirit_bond = 2
+intimidation = 1
+bestial_discipline = 2
+frenzy = 4
+bestial_wrath = 1
+lethal_attacks = 5
+careful_aim = 5
+improved_arcane_shot = 5
+rapid_killing = 2
+trueshot_aura = 1
+mortal_shots = 2

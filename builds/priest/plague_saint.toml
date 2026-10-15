@@ -1,0 +1,32 @@
+# "Plague Saint": Undead Discipline/Holy damage priest, 31/20/0. Holy Fire,
+# Pain, Devouring Plague, Penance and Smite with Shield/Divine Aegis/Blessed
+# Recovery and Touch of the Grave keeping you up.
+name = "Plague Saint (31/20)"
+class = "priest"
+race = "undead"
+level = 60
+gear = "cloth_caster"
+rotation = "smite"
+
+[talents]
+power_in_light = 5
+twin_disciplines = 5
+improved_power_word_shield = 3
+holy_precision = 2
+meditation = 3
+inner_focus = 1
+mental_agility = 1
+soul_warding = 1
+mental_strength = 4
+penance = 1
+renewed_hope = 3
+divine_aegis = 1
+power_infusion = 1
+holy_specialization = 5
+divine_fury = 5
+holy_nova = 1
+blessed_recovery = 3
+inspiration = 1
+searing_light = 2
+improved_healing = 2
+binding_heal = 1

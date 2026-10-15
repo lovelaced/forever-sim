@@ -1,0 +1,917 @@
+# Paladin. Talents and spell ranks: Forever client 1.60.1.70338
+# (wowforevertalents.com/paladin and /abilities/paladin, checked 2026-10-15).
+# Seal proc rates and spell coefficients are Classic approximations; the
+# client tooltips do not show them. Base stats are Classic 1.12.
+name = "Paladin"
+icon = "classicon_paladin"
+resources = ["mana"]
+can_parry = true
+can_block = true
+source = "forever-70338"
+
+base = [
+  { level = 1, str = 22, agi = 20, sta = 22, int = 20, spi = 21, hp = 28, mana = 60 },
+  { level = 40, str = 74, agi = 50, sta = 70, int = 52, spi = 55, hp = 787, mana = 900 },
+  { level = 60, str = 105, agi = 69, sta = 100, int = 74, spi = 77, hp = 1381, mana = 1512 },
+]
+
+[formulas]
+ap = "str * 2 + level * 3 - 20"
+rap = "agi - 10"
+melee_crit = "agi / interp(level, 1,4, 40,14, 60,20)"
+ranged_crit = "agi / interp(level, 1,4, 40,14, 60,20)"
+spell_crit = "3.5 + int / interp(level, 1,10, 40,36, 60,54)"
+dodge = "0.65 + agi / interp(level, 1,4, 40,14, 60,20)"
+parry = "5"
+block = "5"
+mana_regen = "15 + spi / 5"
+hp_regen = "spi * 0.25 + 3"
+
+# ------------------------------------------------------------------ talents
+[talents.divine_strength]
+icon = "ability_golemthunderclap"
+tree = "Holy"
+points = 0
+ranks = 5
+text = "Strength +10%."
+mods = [{ stat = "str_pct", add = "0.02 * rank" }]
+[talents.divine_intellect]
+icon = "spell_nature_sleep"
+tree = "Holy"
+points = 0
+ranks = 5
+text = "Intellect +10%."
+mods = [{ stat = "int_pct", add = "0.02 * rank" }]
+[talents.healing_light]
+icon = "spell_holy_holybolt"
+tree = "Holy"
+points = 5
+ranks = 3
+text = "Holy Light, Flash of Light and Holy Shock heal 12% more."
+spell_mods = [{ spells = ["holy_light", "flash_of_light", "holy_shock_heal", "lights_vigil_heal"], prop = "heal", mul = "1 + 0.04 * rank" }]
+[talents.spiritual_focus]
+icon = "spell_arcane_blink"
+tree = "Holy"
+points = 5
+ranks = 2
+text = "70% chance to avoid pushback on heals (applied to all casts here)."
+mods = [{ stat = "pushback_resist", add = "0.35 * rank" }]
+[talents.improved_seals]
+icon = "ability_thunderbolt"
+tree = "Holy"
+points = 5
+ranks = 3
+text = "Seal and Judgement damage +15%."
+[talents.unyielding_faith]
+icon = "spell_holy_unyieldingfaith"
+tree = "Holy"
+points = 5
+ranks = 2
+text = "Fear duration -30%."
+mods = [{ stat = "fear_duration", mul = "1 - 0.15 * rank" }]
+[talents.voice_of_truth]
+icon = "inv_misc_horn_03"
+tree = "Holy"
+points = 10
+ranks = 1
+text = "Silence/interrupt immunity (not simulated)."
+[talents.reverence]
+icon = "spell_holy_divineillumination"
+tree = "Holy"
+points = 10
+ranks = 3
+text = "30% of mana regeneration continues while casting."
+mods = [{ stat = "casting_regen", add = "0.1 * rank" }]
+[talents.purifying_power]
+icon = "spell_holy_purifyingpower"
+tree = "Holy"
+points = 10
+ranks = 2
+text = "Exorcism cooldown -33%."
+spell_mods = [{ spells = ["exorcism"], prop = "cooldown", mul = "1 - rank / 6" }]
+[talents.infusion_of_light]
+icon = "ability_paladin_infusionoflight"
+tree = "Holy"
+points = 15
+ranks = 2
+text = "Holy Shock and Flash of Light crits cut the next Holy Light by 1 sec."
+procs = [{ on = "heal_crit", if = "spell.holy_shock_heal || spell.flash_of_light", effects = [{ type = "aura", aura = "infusion_of_light" }] }]
+[talents.illumination]
+icon = "spell_holy_greaterheal"
+tree = "Holy"
+points = 15
+ranks = 5
+text = "Critical heals refund 50% of the base cost (refund sized from a typical heal of your level)."
+procs = [{ on = "heal_crit", if = "!event.periodic", chance = "0.2 * rank", effects = [{ type = "resource", res = "mana", amount = "0.5 * interp(level, 1,35, 20,190, 40,365, 60,660)" }] }]
+[talents.divine_favor]
+icon = "spell_holy_heal"
+tree = "Holy"
+points = 15
+ranks = 1
+text = "Next Flash of Light, Holy Light or Holy Shock is a guaranteed crit. 2 min cooldown."
+[talents.divine_precision]
+icon = "spell_holy_healingfocus"
+tree = "Holy"
+points = 20
+ranks = 3
+text = "Holy spell hit +18% (applied to all spells here)."
+mods = [{ stat = "spell_hit", add = "6 * rank" }]
+[talents.holy_shock]
+icon = "spell_holy_searinglight"
+tree = "Holy"
+points = 20
+ranks = 1
+text = "Holy Shock: instant Holy damage or healing, 10 sec cooldown."
+[talents.consecrated_ground]
+icon = "spell_holy_innerfire"
+tree = "Holy"
+points = 20
+ranks = 2
+text = "Holy spells deal 10% more to enemies in your Consecration."
+spell_mods = [{ school = "holy", prop = "damage", mul = "target.aura.consecration.up ? 1 + 0.05 * rank : 1" }]
+[talents.holy_power]
+icon = "spell_holy_power"
+tree = "Holy"
+points = 25
+ranks = 5
+text = "Holy Shock and Holy Strike crit +15%, other spells +5%."
+spell_mods = [{ spells = ["holy_shock", "holy_shock_heal", "holy_strike"], prop = "crit", add = "2 * rank" }, { prop = "crit", add = "rank" }]
+[talents.lights_vigil]
+icon = "ability_paladin_judgementofthepure"
+tree = "Holy"
+points = 30
+ranks = 1
+text = "Light's Vigil: a follow-up Holy Shock."
+
+[talents.toughness]
+icon = "spell_holy_devotion"
+tree = "Protection"
+points = 0
+ranks = 5
+text = "Armour from items +10%."
+mods = [{ stat = "armor_mult", mul = "1 + 0.02 * rank" }]
+[talents.redoubt]
+icon = "ability_defend"
+tree = "Protection"
+points = 0
+ranks = 5
+text = "Melee hits on you have a 10% chance to give +20% block for 10 sec or 5 blocks."
+procs = [{ on = "struck_melee", chance = 0.1, effects = [{ type = "aura", aura = "redoubt", stacks = "rank" }] }]
+[talents.precision]
+icon = "ability_rogue_ambush"
+tree = "Protection"
+points = 5
+ranks = 3
+text = "+3% hit."
+mods = [{ stat = "hit", add = "rank" }]
+[talents.guardians_favor]
+icon = "spell_holy_sealofprotection"
+tree = "Protection"
+points = 5
+ranks = 2
+text = "Blessing cooldowns (not simulated)."
+[talents.anticipation]
+icon = "spell_magic_lesserinvisibilty"
+tree = "Protection"
+points = 5
+ranks = 5
+text = "+20 defense."
+mods = [{ stat = "defense", add = "4 * rank" }]
+[talents.improved_seal_of_fury]
+icon = "spell_holy_righteousnessaura"
+tree = "Protection"
+points = 10
+ranks = 1
+text = "Mana from Seal of Fury's shield (the shield is not on the Seal of Fury tooltip; not simulated)."
+[talents.improved_righteous_fury]
+icon = "spell_holy_sealoffury"
+tree = "Protection"
+points = 10
+ranks = 3
+text = "Damage taken -6% while Righteous Fury is active."
+mods = [{ stat = "dmg_taken", mul = "aura.righteous_fury.up ? 1 - 0.02 * rank : 1" }]
+[talents.shield_specialization]
+icon = "inv_shield_06"
+tree = "Protection"
+points = 10
+ranks = 3
+text = "Shield block value +30%; blocks restore 6% of maximum mana (once per 3 sec)."
+mods = [{ stat = "block_value", mul = "1 + 0.1 * rank" }]
+procs = [{ on = "block", chance = "rank / 3", icd = 3, effects = [{ type = "resource", res = "mana", amount = "0.06 * max_mana" }] }]
+[talents.sacred_duty]
+icon = "spell_holy_divineintervention"
+tree = "Protection"
+points = 10
+ranks = 2
+text = "Stamina +4%; Divine Shield, Divine Protection and Templar's Bulwark cooldowns -60 sec."
+mods = [{ stat = "sta_pct", add = "0.02 * rank" }]
+spell_mods = [{ spells = ["divine_shield", "divine_protection", "templars_bulwark"], prop = "cooldown", add = "-30 * rank" }]
+[talents.swift_judgement]
+icon = "ability_paladin_judgementred"
+tree = "Protection"
+points = 15
+ranks = 1
+text = "Reset Judgement's cooldown and make the next one free. 1 min cooldown."
+[talents.one_handed_weapon_specialization]
+icon = "inv_sword_20"
+tree = "Protection"
+points = 15
+ranks = 3
+text = "One-handed melee damage +10%."
+mods = [{ stat = "dmg_done", mul = "two_hand ? 1 : 1 + rank / 30" }]
+[talents.improved_hammer_of_justice]
+icon = "spell_holy_sealofmight"
+tree = "Protection"
+points = 15
+ranks = 3
+text = "Hammer of Justice cooldown -15 sec."
+spell_mods = [{ spells = ["hammer_of_justice"], prop = "cooldown", add = "-5 * rank" }]
+[talents.templars_bulwark]
+icon = "ability_paladin_shieldofthetemplar"
+tree = "Protection"
+points = 20
+ranks = 1
+text = "Absorb 100% of maximum health for 8 sec. 5 min cooldown."
+[talents.reckoning]
+icon = "spell_holy_blessingofstrength"
+tree = "Protection"
+points = 20
+ranks = 5
+text = "Extra attack: 40% after a block, 100% after a non-periodic crit (once per 1.5 sec)."
+procs = [
+  { on = "block", chance = "0.08 * rank", icd = 1.5, effects = [{ type = "extra_attack", hand = "mh" }] },
+  { on = "melee_crit", if = "!event.extra", chance = "0.2 * rank", icd = 1.5, effects = [{ type = "extra_attack", hand = "mh" }] },
+]
+[talents.iron_creed]
+icon = "spell_holy_improvedresistanceauras"
+tree = "Protection"
+points = 25
+ranks = 5
+text = "Holy Strike threat +25%; with Righteous Fury it cuts damage taken by 10% for 6 sec."
+procs = [{ on = "cast:holy_strike", if = "aura.righteous_fury.up", effects = [{ type = "aura", aura = "iron_creed", stacks = "rank" }] }]
+[talents.holy_shield]
+icon = "spell_holy_blessingofprotection"
+tree = "Protection"
+points = 30
+ranks = 1
+text = "Holy Shield: +30% block and Holy damage on block, 10 sec, 4 charges."
+
+[talents.deflection]
+icon = "ability_parry"
+tree = "Retribution"
+points = 0
+ranks = 5
+text = "+5% parry."
+mods = [{ stat = "parry", add = "rank" }]
+[talents.benediction]
+icon = "spell_frost_windwalkon"
+tree = "Retribution"
+points = 0
+ranks = 5
+text = "Instant spells and abilities cost 10% less."
+spell_mods = [{ spells = ["judgement", "holy_strike", "consecration", "seal_of_righteousness", "seal_of_command", "seal_of_light", "seal_of_wisdom", "seal_of_fury", "exorcism", "holy_shock", "holy_shock_heal", "hammer_of_the_righteous", "hammer_of_justice"], prop = "cost", mul = "1 - 0.02 * rank" }]
+[talents.improved_judgement]
+icon = "spell_holy_righteousfury"
+tree = "Retribution"
+points = 5
+ranks = 2
+text = "Judgement cooldown -2 sec."
+spell_mods = [{ spells = ["judgement"], prop = "cooldown", add = "-rank" }]
+[talents.holy_conduit]
+icon = "spell_holy_devineaegis"
+tree = "Retribution"
+points = 5
+ranks = 2
+text = "Consecration, Exorcism and Hammer of Wrath cost 40% less."
+spell_mods = [{ spells = ["consecration", "exorcism", "hammer_of_wrath"], prop = "cost", mul = "1 - 0.2 * rank" }]
+[talents.conviction]
+icon = "spell_holy_retributionaura"
+tree = "Retribution"
+points = 5
+ranks = 5
+text = "+5% melee crit."
+mods = [{ stat = "melee_crit", add = "rank" }]
+[talents.vindication]
+icon = "spell_holy_vindication"
+tree = "Retribution"
+points = 10
+ranks = 3
+text = "Hits may sap the target's Strength and Agility (PvP; not simulated)."
+[talents.sanctified_judgement]
+icon = "ability_paladin_judgementblue"
+tree = "Retribution"
+points = 10
+ranks = 3
+text = "Judgement returns up to 60% of the judged seal's cost (sized from a typical seal of your level)."
+procs = [{ on = "cast:judgement", chance = "rank / 3", effects = [{ type = "resource", res = "mana", amount = "0.2 * rank * interp(level, 1,20, 20,65, 40,140, 60,210)" }] }]
+[talents.seal_of_command]
+icon = "ability_warrior_innerrage"
+tree = "Retribution"
+points = 10
+ranks = 1
+text = "Seal of Command: melee hits may deal 70% weapon damage as Holy; judged for more against stunned targets."
+[talents.pursuit_of_justice]
+icon = "spell_holy_persuitofjustice"
+tree = "Retribution"
+points = 10
+ranks = 2
+text = "Movement speed (not simulated)."
+[talents.eye_for_an_eye]
+icon = "spell_holy_eyeforaneye"
+tree = "Retribution"
+points = 15
+ranks = 2
+text = "Crits against you reflect 10% of the damage."
+procs = [{ on = "struck_crit", effects = [{ type = "damage", school = "holy", target = "target", hit = "auto", can_crit = false, no_proc = true, amount = "min(event.amount * 0.05 * rank, 0.5 * max_hp)", tag = "Eye for an Eye" }] }]
+[talents.sacred_arbiter]
+icon = "inv_sword_08"
+tree = "Retribution"
+points = 15
+ranks = 1
+text = "Holy Strike damage +20%."
+spell_mods = [{ spells = ["holy_strike"], prop = "damage", mul = 1.2 }]
+[talents.two_handed_weapon_specialization]
+icon = "inv_hammer_04"
+tree = "Retribution"
+points = 20
+ranks = 3
+text = "Two-handed damage +6%."
+mods = [{ stat = "dmg_done", mul = "two_hand ? 1 + 0.02 * rank : 1" }]
+[talents.vengeance]
+icon = "ability_racial_avatar"
+tree = "Retribution"
+points = 20
+ranks = 3
+text = "After a non-periodic crit: Physical and Holy damage +3% per stack, 3 stacks, 30 sec."
+procs = [
+  { on = "melee_crit", effects = [{ type = "aura", aura = "vengeance" }] },
+  { on = "spell_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "vengeance" }] },
+]
+[talents.repentance]
+icon = "spell_holy_prayerofhealing"
+tree = "Retribution"
+points = 20
+ranks = 1
+text = "Incapacitate a humanoid for 6 sec. 1 min cooldown."
+[talents.champion_of_the_light]
+icon = "ability_paladin_enlightenedjudgements"
+tree = "Retribution"
+points = 25
+ranks = 3
+text = "Spell damage +60% of Intellect."
+mods = [{ stat = "sp", add = "0.2 * rank * int" }]
+[talents.instrument_of_law]
+icon = "spell_holy_divinepurpose"
+tree = "Retribution"
+points = 25
+ranks = 2
+text = "Hammer of Wrath cast -1 sec."
+spell_mods = [{ spells = ["hammer_of_wrath"], prop = "cast_time", add = "-0.5 * rank" }]
+[talents.twist_of_light]
+icon = "spell_holy_blessedresillience"
+tree = "Retribution"
+points = 30
+ranks = 1
+text = "Seals cost 20% less (the Echo is not simulated)."
+spell_mods = [{ spells = ["seal_of_righteousness", "seal_of_command", "seal_of_light", "seal_of_wisdom", "seal_of_fury"], prop = "cost", mul = 0.8 }]
+
+# ------------------------------------------------------------------ auras
+[auras.devotion_aura]
+name = "Devotion Aura"
+group = "paladin_aura"
+mods = [{ stat = "armor", add = "r.armor" }]
+[auras.retribution_aura]
+name = "Retribution Aura"
+group = "paladin_aura"
+procs = [{ on = "struck_melee", effects = [{ type = "damage", school = "holy", target = "target", hit = "auto", can_crit = false, no_proc = true, amount = "r.dmg", tag = "Retribution Aura" }] }]
+[auras.blessing_of_might]
+name = "Blessing of Might"
+group = "blessing"
+mods = [{ stat = "ap", add = "r.ap" }]
+[auras.blessing_of_wisdom]
+name = "Blessing of Wisdom"
+group = "blessing"
+mods = [{ stat = "mp5", add = "r.mp5" }]
+[auras.blessing_of_kings]
+name = "Blessing of Kings"
+group = "blessing"
+mods = [{ stat = "all_stats_pct", add = 0.1 }]
+[auras.righteous_fury]
+name = "Righteous Fury"
+mods = [{ stat = "threat", mul = 1.6 }]
+
+[auras.seal_of_righteousness]
+name = "Seal of Righteousness"
+group = "seal"
+duration = 30
+procs = [{ on = "melee_landed", if = "event.mh", effects = [{ type = "damage", school = "holy", target = "target", hit = "auto", no_proc = true, tag = "Seal of Righteousness", amount = "r.lo + (r.hi - r.lo) * clamp((mh.speed - 1.5) / 2.5, 0, 1)", coef = "0.1 * mh.speed / 3.5", mult = "1 + 0.05 * t.improved_seals" }] }]
+[auras.seal_of_command]
+name = "Seal of Command"
+group = "seal"
+duration = 30
+procs = [{ on = "melee_landed", if = "event.mh && !event.extra", ppm = 7, effects = [{ type = "damage", school = "holy", target = "target", weapon = "mh", weapon_mult = 0.7, hit = "auto", no_proc = true, tag = "Seal of Command", coef = 0.2, mult = "1 + 0.05 * t.improved_seals" }] }]
+[auras.seal_of_light]
+name = "Seal of Light"
+group = "seal"
+duration = 30
+procs = [{ on = "melee_landed", if = "event.mh", chance = "opt.seal_on_hit_chance", effects = [{ type = "heal", target = "self", amount = "r.heal", coef = 0.1, tag = "Seal of Light" }] }]
+[auras.seal_of_wisdom]
+name = "Seal of Wisdom"
+group = "seal"
+duration = 30
+procs = [{ on = "melee_landed", if = "event.mh", chance = "opt.seal_on_hit_chance", effects = [{ type = "resource", res = "mana", amount = "r.mana_back" }] }]
+[auras.seal_of_fury]
+name = "Seal of Fury"
+group = "seal"
+duration = 30
+procs = [{ on = "melee_landed", if = "event.mh", effects = [{ type = "damage", school = "holy", target = "target", hit = "auto", no_proc = true, can_crit = false, tag = "Seal of Fury", amount = "r.dmg", coef = 0.03, mult = "1 + 0.05 * t.improved_seals", threat = 1.5 }] }]
+[auras.judgement_of_light]
+name = "Judgement of Light"
+debuff = true
+duration = 10
+procs = [{ on = "struck_melee", effects = [{ type = "heal", target = "target", amount = "r.jheal", tag = "Judgement of Light" }] }]
+[auras.consecration]
+name = "Consecration"
+debuff = true
+duration = 8
+tick = { interval = 1, effects = [{ type = "damage", school = "holy", periodic = true, tag = "Consecration", amount = "(r.dot + r.bonus) / 8", coef = "0.33 / 8" }] }
+[auras.redoubt]
+name = "Redoubt"
+duration = 10
+charges = 5
+max_stacks = 5
+refresh = "replace"
+mods = [{ stat = "block", add = "4 * stacks" }]
+procs = [{ on = "block", effects = [{ type = "consume" }] }]
+[auras.holy_shield]
+name = "Holy Shield"
+duration = 10
+charges = 4
+mods = [{ stat = "block", add = 30 }]
+procs = [{ on = "block", effects = [{ type = "damage", school = "holy", target = "target", hit = "auto", no_proc = true, tag = "Holy Shield", amount = "r.dmg", coef = 0.05, threat = 1.2 }, { type = "consume" }] }]
+[auras.iron_creed]
+name = "Iron Creed"
+duration = 6
+max_stacks = 5
+refresh = "replace"
+mods = [{ stat = "dmg_taken", mul = "1 - 0.02 * stacks" }]
+[auras.vengeance]
+name = "Vengeance"
+duration = 30
+max_stacks = 3
+mods = [{ stat = "phys_dmg_done", mul = "1 + 0.01 * t.vengeance * stacks" }, { stat = "holy_dmg_done", mul = "1 + 0.01 * t.vengeance * stacks" }]
+[auras.infusion_of_light]
+name = "Infusion of Light"
+duration = 15
+consume_on_cast = true
+spell_mods = [{ spells = ["holy_light"], prop = "cast_time", add = "-0.5 * t.infusion_of_light" }]
+[auras.divine_favor]
+name = "Divine Favor"
+consume_on_cast = true
+spell_mods = [{ spells = ["holy_light", "flash_of_light", "holy_shock", "holy_shock_heal"], prop = "crit", add = 100 }]
+[auras.forbearance]
+name = "Forbearance"
+debuff = true
+per_source = false
+duration = 60
+[auras.divine_protection]
+name = "Divine Protection"
+duration = "r.dur"
+mods = [{ stat = "phys_dmg_taken", mul = 0 }]
+[auras.divine_shield]
+name = "Divine Shield"
+duration = "r.dur"
+mods = [{ stat = "dmg_taken", mul = 0 }, { stat = "dmg_done", mul = 0.5 }, { stat = "immune_stun", add = 1 }, { stat = "immune_fear", add = 1 }, { stat = "immune_incap", add = 1 }]
+[auras.templars_bulwark]
+name = "Templar's Bulwark"
+duration = 8
+absorb = "max_hp"
+
+# ------------------------------------------------------------------ spells
+[spells.devotion_aura]
+name = "Devotion Aura"
+target = "self"
+requires = "!aura.devotion_aura.up"
+ranks = [{ level = 1, armor = 55 }, { level = 10, armor = 160 }, { level = 20, armor = 275 }, { level = 30, armor = 390 }, { level = 40, armor = 505 }, { level = 50, armor = 620 }, { level = 60, armor = 735 }]
+effects = [{ type = "aura", aura = "devotion_aura" }]
+[spells.retribution_aura]
+name = "Retribution Aura"
+target = "self"
+requires = "!aura.retribution_aura.up"
+ranks = [{ level = 16, dmg = 5 }, { level = 26, dmg = 8 }, { level = 36, dmg = 12 }, { level = 46, dmg = 16 }, { level = 56, dmg = 20 }]
+effects = [{ type = "aura", aura = "retribution_aura" }]
+[spells.blessing_of_might]
+name = "Blessing of Might"
+target = "self"
+requires = "!aura.blessing_of_might.up"
+ranks = [{ level = 4, ap = 14, mana = 20 }, { level = 12, ap = 25, mana = 30 }, { level = 22, ap = 40, mana = 45 }, { level = 32, ap = 61, mana = 60 }, { level = 42, ap = 83, mana = 85 }, { level = 52, ap = 112, mana = 110 }, { level = 60, ap = 133, mana = 130 }]
+effects = [{ type = "aura", aura = "blessing_of_might" }]
+[spells.blessing_of_wisdom]
+name = "Blessing of Wisdom"
+target = "self"
+requires = "!aura.blessing_of_wisdom.up"
+ranks = [{ level = 14, mp5 = 12, mana = 30 }, { level = 24, mp5 = 18, mana = 45 }, { level = 34, mp5 = 24, mana = 65 }, { level = 44, mp5 = 30, mana = 90 }, { level = 54, mp5 = 36, mana = 115 }, { level = 60, mp5 = 40, mana = 125 }]
+effects = [{ type = "aura", aura = "blessing_of_wisdom" }]
+[spells.blessing_of_kings]
+name = "Greater Blessing of Kings"
+level = 60
+target = "self"
+cost = { mana = 150 }
+requires = "!aura.blessing_of_kings.up"
+effects = [{ type = "aura", aura = "blessing_of_kings" }]
+[spells.righteous_fury]
+name = "Righteous Fury"
+level = 16
+target = "self"
+requires = "!aura.righteous_fury.up"
+cost = { mana = "0.3 * base_mana" }
+effects = [{ type = "aura", aura = "righteous_fury" }]
+
+[spells.seal_of_righteousness]
+name = "Seal of Righteousness"
+school = "holy"
+target = "self"
+ranks = [
+  { level = 1, lo = 2.48, hi = 8.64, jlo = 25, jhi = 27, mana = 20 }, { level = 10, lo = 3.66, hi = 12.72, jlo = 36, jhi = 39, mana = 40 },
+  { level = 18, lo = 5.63, hi = 19.6, jlo = 53, jhi = 58, mana = 60 }, { level = 26, lo = 8.36, hi = 29.08, jlo = 73, jhi = 81, mana = 90 },
+  { level = 34, lo = 11.57, hi = 40.28, jlo = 96, jhi = 106, mana = 120 }, { level = 42, lo = 15.26, hi = 53.12, jlo = 124, jhi = 136, mana = 140 },
+  { level = 50, lo = 19.41, hi = 67.56, jlo = 155, jhi = 169, mana = 170 }, { level = 58, lo = 21.61, hi = 75.2, jlo = 170, jhi = 187, mana = 200 },
+]
+effects = [{ type = "aura", aura = "seal_of_righteousness" }]
+[spells.seal_of_command]
+name = "Seal of Command"
+talent = "seal_of_command"
+school = "holy"
+target = "self"
+ranks = [
+  { level = 20, judge = 74, jstun = 142, mana = 65 }, { level = 30, judge = 105.5, jstun = 202, mana = 110 }, { level = 40, judge = 135.5, jstun = 259, mana = 140 },
+  { level = 50, judge = 169, jstun = 322.5, mana = 180 }, { level = 60, judge = 186.5, jstun = 356, mana = 210 },
+]
+effects = [{ type = "aura", aura = "seal_of_command" }]
+[spells.seal_of_light]
+name = "Seal of Light"
+school = "holy"
+target = "self"
+ranks = [{ level = 30, heal = 39, jheal = 25, mana = 110 }, { level = 40, heal = 53, jheal = 34, mana = 140 }, { level = 50, heal = 76, jheal = 49, mana = 180 }, { level = 60, heal = 94, jheal = 61, mana = 210 }]
+effects = [{ type = "aura", aura = "seal_of_light" }]
+[spells.seal_of_wisdom]
+name = "Seal of Wisdom"
+school = "holy"
+target = "self"
+ranks = [{ level = 38, mana_back = 50, jmana = 33, mana = 135 }, { level = 48, mana_back = 71, jmana = 46, mana = 170 }, { level = 58, mana_back = 90, jmana = 59, mana = 200 }]
+effects = [{ type = "aura", aura = "seal_of_wisdom" }]
+[spells.seal_of_fury]
+name = "Seal of Fury"
+school = "holy"
+target = "self"
+ranks = [
+  { level = 10, dmg = 6, jlo = 32, jhi = 35, mana = 40 }, { level = 18, dmg = 9, jlo = 47, jhi = 52, mana = 60 }, { level = 25, dmg = 14, jlo = 66, jhi = 73, mana = 90 },
+  { level = 34, dmg = 19, jlo = 86, jhi = 95, mana = 120 }, { level = 42, dmg = 25, jlo = 111, jhi = 122, mana = 140 }, { level = 50, dmg = 32, jlo = 139, jhi = 151, mana = 170 },
+  { level = 58, dmg = 35, jlo = 153, jhi = 167, mana = 200 },
+]
+effects = [{ type = "aura", aura = "seal_of_fury" }]
+
+[spells.judgement]
+name = "Judgement"
+school = "holy"
+level = 4
+cooldown = 10
+off_gcd = true
+cost = { mana = "0.06 * base_mana" }
+requires = "aura.seal_of_righteousness.up || aura.seal_of_command.up || aura.seal_of_light.up || aura.seal_of_wisdom.up || aura.seal_of_fury.up"
+text = "Unleashes the active seal (seal ranks are read from your highest known rank) and consumes it."
+effects = [
+  { type = "if", cond = "aura.seal_of_righteousness.up", then = [{ type = "cast", spell = "judgement_of_righteousness" }] },
+  { type = "if", cond = "aura.seal_of_command.up", then = [{ type = "cast", spell = "judgement_of_command" }] },
+  { type = "if", cond = "aura.seal_of_light.up", then = [{ type = "cast", spell = "judgement_of_light_cast" }] },
+  { type = "if", cond = "aura.seal_of_wisdom.up", then = [{ type = "cast", spell = "judgement_of_wisdom" }] },
+  { type = "if", cond = "aura.seal_of_fury.up", then = [{ type = "cast", spell = "judgement_of_fury" }] },
+  { type = "remove_aura", aura = "seal_of_righteousness" },
+  { type = "remove_aura", aura = "seal_of_command" },
+  { type = "remove_aura", aura = "seal_of_light" },
+  { type = "remove_aura", aura = "seal_of_wisdom" },
+  { type = "remove_aura", aura = "seal_of_fury" },
+]
+# The judgement payloads borrow the seal's rank table.
+[spells.judgement_of_righteousness]
+name = "Judgement of Righteousness"
+school = "holy"
+off_gcd = true
+ranks = [
+  { level = 1, jlo = 25, jhi = 27 }, { level = 10, jlo = 36, jhi = 39 }, { level = 18, jlo = 53, jhi = 58 }, { level = 26, jlo = 73, jhi = 81 },
+  { level = 34, jlo = 96, jhi = 106 }, { level = 42, jlo = 124, jhi = 136 }, { level = 50, jlo = 155, jhi = 169 }, { level = 58, jlo = 170, jhi = 187 },
+]
+effects = [{ type = "damage", school = "holy", min = "r.jlo", max = "r.jhi", coef = 0.5, mult = "1 + 0.05 * t.improved_seals" }]
+[spells.judgement_of_command]
+name = "Judgement of Command"
+school = "holy"
+off_gcd = true
+ranks = [{ level = 20, judge = 74, jstun = 142 }, { level = 30, judge = 105.5, jstun = 202 }, { level = 40, judge = 135.5, jstun = 259 }, { level = 50, judge = 169, jstun = 322.5 }, { level = 60, judge = 186.5, jstun = 356 }]
+effects = [{ type = "damage", school = "holy", amount = "(target.stunned || target.incapacitated) ? r.jstun : r.judge", coef = 0.43, mult = "1 + 0.05 * t.improved_seals" }]
+[spells.judgement_of_light_cast]
+name = "Judgement of Light"
+school = "holy"
+off_gcd = true
+ranks = [{ level = 30, jheal = 25 }, { level = 40, jheal = 34 }, { level = 50, jheal = 49 }, { level = 60, jheal = 61 }]
+effects = [{ type = "aura", aura = "judgement_of_light", target = "target" }]
+[spells.judgement_of_wisdom]
+name = "Judgement of Wisdom"
+school = "holy"
+off_gcd = true
+ranks = [{ level = 38, jmana = 33 }, { level = 48, jmana = 46 }, { level = 58, jmana = 59 }]
+effects = [{ type = "resource", res = "mana", target = "self", amount = "r.jmana * 4" }]
+[spells.judgement_of_fury]
+name = "Judgement of Fury"
+school = "holy"
+off_gcd = true
+ranks = [
+  { level = 10, jlo = 32, jhi = 35 }, { level = 18, jlo = 47, jhi = 52 }, { level = 25, jlo = 66, jhi = 73 }, { level = 34, jlo = 86, jhi = 95 },
+  { level = 42, jlo = 111, jhi = 122 }, { level = 50, jlo = 139, jhi = 151 }, { level = 58, jlo = 153, jhi = 167 },
+]
+effects = [{ type = "damage", school = "holy", min = "r.jlo", max = "r.jhi", coef = 0.3, mult = "1 + 0.05 * t.improved_seals", threat = 2, on_hit = [{ type = "taunt", duration = 4 }] }]
+
+[spells.holy_strike]
+name = "Holy Strike"
+school = "holy"
+cooldown = 10
+ranks = [
+  { level = 6, wm = 0.25, lo = 11, hi = 14, mana = 5 }, { level = 12, wm = 0.29, lo = 15, hi = 20, mana = 9 }, { level = 20, wm = 0.32, lo = 18, hi = 23, mana = 12 },
+  { level = 28, wm = 0.36, lo = 22, hi = 29, mana = 14 }, { level = 36, wm = 0.39, lo = 32, hi = 41, mana = 16 }, { level = 44, wm = 0.43, lo = 53, hi = 68, mana = 17 },
+  { level = 52, wm = 0.46, lo = 72, hi = 92, mana = 19 }, { level = 60, wm = 0.5, lo = 81, hi = 105, mana = 20 },
+]
+text = "Weapon part and Holy bonus dealt as one Holy hit on the melee table."
+effects = [{ type = "damage", school = "holy", hit = "melee", weapon = "mh", weapon_mult = "r.wm", min = "r.lo", max = "r.hi", threat = "1 + 0.05 * t.iron_creed" }]
+
+[spells.hammer_of_the_righteous]
+name = "Hammer of the Righteous"
+school = "holy"
+level = 40
+cooldown = 6
+cost = { mana = "0.06 * base_mana" }
+effects = [{ type = "damage", school = "holy", hit = "melee", amount = "3 * mh.dps", target = "enemies", max_targets = 4 }]
+
+[spells.consecration]
+name = "Consecration"
+school = "holy"
+cooldown = 8
+ranks = [{ level = 20, dot = 16, bonus = 32, mana = 135 }, { level = 30, dot = 24, bonus = 56, mana = 235 }, { level = 40, dot = 48, bonus = 88, mana = 320 }, { level = 50, dot = 64, bonus = 160, mana = 435 }, { level = 60, dot = 96, bonus = 216, mana = 565 }]
+effects = [{ type = "aura", aura = "consecration", target = "enemies", max_targets = 4 }]
+
+[spells.exorcism]
+name = "Exorcism"
+school = "holy"
+cooldown = 15
+requires = "target.undead || target.demon"
+ranks = [{ level = 20, lo = 79, hi = 91, mana = 85 }, { level = 28, lo = 140, hi = 158, mana = 135 }, { level = 36, lo = 199, hi = 225, mana = 180 }, { level = 44, lo = 285, hi = 321, mana = 235 }, { level = 52, lo = 376, hi = 420, mana = 285 }, { level = 60, lo = 475, hi = 529, mana = 345 }]
+effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef = 0.4286 }]
+
+[spells.hammer_of_wrath]
+name = "Hammer of Wrath"
+school = "holy"
+cooldown = 6
+cast_time = 1
+requires = "target.hp_pct <= 0.2"
+ranks = [{ level = 44, lo = 285, hi = 315, mana = 295 }, { level = 52, lo = 381, hi = 422, mana = 360 }, { level = 60, lo = 474, hi = 522, mana = 425 }]
+effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef = 0.4286 }]
+
+[spells.hammer_of_justice]
+name = "Hammer of Justice"
+school = "holy"
+cooldown = 60
+requires = "target.is_player || hp_pct < 0.5"
+ranks = [{ level = 8, dur = 3, mana = 30 }, { level = 24, dur = 4, mana = 50 }, { level = 40, dur = 5, mana = 75 }, { level = 54, dur = 6, mana = 100 }]
+effects = [{ type = "aura", aura = "stun", target = "target", duration = "r.dur" }]
+
+[spells.holy_shock]
+name = "Holy Shock"
+talent = "holy_shock"
+school = "holy"
+cooldown = 10
+cd_group = "holy_shock"
+ranks = [{ level = 30, lo = 129, hi = 139, hlo = 110, hhi = 118, mana = 160 }, { level = 40, lo = 175, hi = 189, hlo = 150, hhi = 162, mana = 225 }, { level = 48, lo = 248, hi = 268, hlo = 221, hhi = 239, mana = 275 }, { level = 56, lo = 334, hi = 362, hlo = 307, hhi = 333, mana = 325 }]
+effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef = 0.4286 }]
+[spells.holy_shock_heal]
+name = "Holy Shock (heal)"
+talent = "holy_shock"
+school = "holy"
+cooldown = 10
+cd_group = "holy_shock"
+target = "self"
+ranks = [{ level = 30, lo = 129, hi = 139, hlo = 110, hhi = 118, mana = 160 }, { level = 40, lo = 175, hi = 189, hlo = 150, hhi = 162, mana = 225 }, { level = 48, lo = 248, hi = 268, hlo = 221, hhi = 239, mana = 275 }, { level = 56, lo = 334, hi = 362, hlo = 307, hhi = 333, mana = 325 }]
+effects = [{ type = "heal", target = "self", min = "r.hlo", max = "r.hhi", coef = 0.4286, tag = "Holy Shock" }]
+
+[spells.lights_vigil]
+name = "Light's Vigil"
+talent = "lights_vigil"
+school = "holy"
+cooldown = 6
+cd_group = "lights_vigil"
+cast_time = 1.5
+requires = "!cd.holy_shock.ready"
+text = "A follow-up to Holy Shock; refunds 75% of its mana cost."
+ranks = [{ level = 40, lo = 175, hi = 189, hlo = 325, hhi = 344, mana = 730 }, { level = 50, lo = 268, hi = 288, hlo = 486, hhi = 515, mana = 1000 }, { level = 60, lo = 380, hi = 410, hlo = 684, hhi = 724, mana = 1340 }]
+effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef = 0.4286 }, { type = "resource", res = "mana", amount = "0.75 * r.mana" }]
+[spells.lights_vigil_heal]
+name = "Light's Vigil (heal)"
+talent = "lights_vigil"
+school = "holy"
+cooldown = 6
+cd_group = "lights_vigil"
+cast_time = 1.5
+target = "self"
+requires = "!cd.holy_shock.ready"
+ranks = [{ level = 40, lo = 175, hi = 189, hlo = 325, hhi = 344, mana = 730 }, { level = 50, lo = 268, hi = 288, hlo = 486, hhi = 515, mana = 1000 }, { level = 60, lo = 380, hi = 410, hlo = 684, hhi = 724, mana = 1340 }]
+effects = [{ type = "heal", target = "self", min = "r.hlo", max = "r.hhi", coef = 0.4286, tag = "Light's Vigil" }, { type = "resource", res = "mana", amount = "0.75 * r.mana" }]
+
+[spells.holy_light]
+name = "Holy Light"
+school = "holy"
+target = "self"
+cast_time = 2.5
+ranks = [
+  { level = 1, lo = 42, hi = 50, mana = 35 }, { level = 6, lo = 81, hi = 96, mana = 60 }, { level = 14, lo = 150, hi = 177, mana = 110 },
+  { level = 22, lo = 278, hi = 320, mana = 190 }, { level = 30, lo = 440, hi = 495, mana = 275 }, { level = 38, lo = 628, hi = 702, mana = 365 },
+  { level = 46, lo = 872, hi = 972, mana = 465 }, { level = 54, lo = 1176, hi = 1310, mana = 580 }, { level = 60, lo = 1495, hi = 1665, mana = 660 },
+]
+effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 0.714, tag = "Holy Light" }]
+
+[spells.flash_of_light]
+name = "Flash of Light"
+school = "holy"
+target = "self"
+cast_time = 1.5
+ranks = [{ level = 20, lo = 47, hi = 55, mana = 35 }, { level = 26, lo = 68, hi = 77, mana = 50 }, { level = 34, lo = 103, hi = 115, mana = 70 }, { level = 42, lo = 151, hi = 170, mana = 90 }, { level = 50, lo = 221, hi = 247, mana = 115 }, { level = 58, lo = 291, hi = 325, mana = 140 }]
+effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 0.4286, tag = "Flash of Light" }]
+
+[spells.lay_on_hands]
+name = "Lay on Hands"
+school = "holy"
+level = 10
+cooldown = 1200
+target = "self"
+requires = "!aura.forbearance.up"
+effects = [{ type = "heal", target = "self", amount = "max_hp", can_crit = false, tag = "Lay on Hands" }, { type = "resource", res = "mana", amount = 0, set = true }]
+
+[spells.divine_protection]
+name = "Divine Protection"
+school = "holy"
+off_gcd = true
+cooldown = 300
+target = "self"
+requires = "!aura.forbearance.up"
+ranks = [{ level = 6, dur = 6, mana = 15 }, { level = 18, dur = 8, mana = 35 }]
+effects = [{ type = "aura", aura = "divine_protection" }, { type = "aura", aura = "forbearance", target = "self" }]
+[spells.divine_shield]
+name = "Divine Shield"
+school = "holy"
+off_gcd = true
+cooldown = 300
+cd_group = "divine_protection"
+target = "self"
+requires = "!aura.forbearance.up"
+usable_while = ["stun", "fear", "incap"]
+ranks = [{ level = 34, dur = 10, mana = 75 }, { level = 50, dur = 12, mana = 110 }]
+effects = [{ type = "dispel", mechanics = ["stun", "fear", "incap"] }, { type = "aura", aura = "divine_shield" }, { type = "aura", aura = "forbearance", target = "self" }]
+[spells.templars_bulwark]
+name = "Templar's Bulwark"
+talent = "templars_bulwark"
+off_gcd = true
+cooldown = 300
+target = "self"
+requires = "!aura.forbearance.up"
+effects = [{ type = "aura", aura = "templars_bulwark" }, { type = "aura", aura = "forbearance", target = "self" }]
+[spells.holy_shield]
+name = "Holy Shield"
+talent = "holy_shield"
+school = "holy"
+cooldown = 10
+target = "self"
+requires = "has_shield"
+ranks = [{ level = 40, dmg = 110, mana = 150 }, { level = 50, dmg = 153, mana = 195 }, { level = 60, dmg = 221, mana = 240 }]
+effects = [{ type = "aura", aura = "holy_shield" }]
+[spells.divine_favor]
+name = "Divine Favor"
+talent = "divine_favor"
+off_gcd = true
+cooldown = 120
+target = "self"
+effects = [{ type = "aura", aura = "divine_favor" }]
+[spells.swift_judgement]
+name = "Swift Judgement"
+talent = "swift_judgement"
+off_gcd = true
+cooldown = 60
+target = "self"
+effects = [{ type = "cooldown", spell = "judgement", op = "reset" }]
+[spells.repentance]
+name = "Repentance"
+talent = "repentance"
+school = "holy"
+cooldown = 60
+cost = { mana = 60 }
+requires = "target.is_player"
+effects = [{ type = "aura", aura = "incap", target = "target", duration = 6 }]
+
+# ------------------------------------------------------------------ rotations
+[rotations.retribution]
+desc = "Retribution two-hander: Seal of Command (Righteousness before it), Judgement, Holy Strike, Consecration, Hammer of Wrath; Flash of Light when hurt"
+precombat = ["devotion_aura", "blessing_of_might", "seal_of_command", { cast = "seal_of_righteousness", if = "!known.seal_of_command" }]
+opener = []
+actions = [
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "divine_shield", if = "hp_pct < 0.15" },
+  { cast = "lay_on_hands", if = "hp_pct < 0.15" },
+  { cast = "hammer_of_justice", if = "target.is_player && !target.stunned" },
+  { cast = "repentance", if = "hp_pct < 0.4" },
+  { cast = "flash_of_light", if = "hp_pct < 0.4 && !target.is_player" },
+  { cast = "holy_light", if = "hp_pct < 0.4 && target.stunned" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "judgement", if = "target.stunned || !known.seal_of_command" },
+  { cast = "seal_of_command", if = "!aura.seal_of_command.up" },
+  { cast = "seal_of_righteousness", if = "!known.seal_of_command && !aura.seal_of_righteousness.up" },
+  { cast = "judgement", if = "cd.holy_strike.remains > 1" },
+  { cast = "hammer_of_wrath" },
+  { cast = "holy_strike" },
+  { cast = "exorcism" },
+  { cast = "hammer_of_the_righteous", if = "enemies >= 2" },
+  { cast = "consecration", if = "mana_pct > 0.5 || enemies >= 2" },
+]
+rest = [
+  { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+  { cast = "holy_light", if = "hp_pct < 0.6 && mana_pct > 0.5" },
+  { cast = "devotion_aura" },
+  { cast = "blessing_of_might" },
+]
+eat_below = 0.5
+drink_below = 0.35
+
+[rotations.protection]
+desc = "Protection with a shield: Righteous Fury, Seal of Fury, Holy Shield, Judgement, Holy Strike, Hammer of the Righteous, Consecration"
+precombat = ["devotion_aura", "blessing_of_kings", { cast = "blessing_of_wisdom", if = "!known.blessing_of_kings" }, "righteous_fury", "seal_of_fury"]
+opener = []
+actions = [
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "templars_bulwark", if = "hp_pct < 0.3" },
+  { cast = "divine_shield", if = "hp_pct < 0.12" },
+  { cast = "lay_on_hands", if = "hp_pct < 0.15" },
+  { cast = "hammer_of_justice", if = "target.is_player && !target.stunned" },
+  { cast = "flash_of_light", if = "hp_pct < 0.35 && !target.is_player" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "holy_shield", if = "!aura.holy_shield.up" },
+  { cast = "seal_of_fury", if = "!aura.seal_of_fury.up" },
+  { cast = "judgement" },
+  { cast = "swift_judgement" },
+  { cast = "holy_strike" },
+  { cast = "hammer_of_the_righteous" },
+  { cast = "hammer_of_wrath" },
+  { cast = "exorcism" },
+  { cast = "consecration", if = "mana_pct > 0.3" },
+]
+rest = [
+  { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+  { cast = "holy_light", if = "hp_pct < 0.6 && mana_pct > 0.5" },
+  { cast = "devotion_aura" },
+  { cast = "righteous_fury" },
+]
+eat_below = 0.5
+drink_below = 0.35
+
+[rotations.holy_shock]
+desc = "Holy/Shockadin: Seal of Righteousness, Judgement, Holy Strike, Holy Shock damage, Consecration; heals itself with Holy Shock and Flash of Light"
+precombat = ["devotion_aura", "blessing_of_wisdom", "seal_of_righteousness"]
+opener = []
+actions = [
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "divine_shield", if = "hp_pct < 0.15" },
+  { cast = "lay_on_hands", if = "hp_pct < 0.15" },
+  { cast = "divine_favor", if = "hp_pct < 0.5" },
+  { cast = "holy_shock_heal", if = "hp_pct < 0.5" },
+  { cast = "flash_of_light", if = "hp_pct < 0.45" },
+  { cast = "hammer_of_justice", if = "target.is_player && !target.stunned" },
+  { cast = "holy_light", if = "hp_pct < 0.5 && target.stunned" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "seal_of_righteousness", if = "!aura.seal_of_righteousness.up" },
+  { cast = "judgement" },
+  { cast = "holy_strike" },
+  { cast = "hammer_of_wrath" },
+  { cast = "holy_shock" },
+  { cast = "lights_vigil_heal", if = "hp_pct < 0.6" },
+  { cast = "lights_vigil" },
+  { cast = "exorcism" },
+  { cast = "consecration", if = "mana_pct > 0.6 || enemies >= 2" },
+]
+rest = [
+  { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+  { cast = "holy_light", if = "hp_pct < 0.6 && mana_pct > 0.4" },
+  { cast = "devotion_aura" },
+  { cast = "blessing_of_wisdom" },
+]
+eat_below = 0.4
+drink_below = 0.35

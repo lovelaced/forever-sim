@@ -1,0 +1,25 @@
+# Elemental, 31/20/0: Lava Burst, Lightning Overload, Elemental Fury.
+name = "Elemental (31/20/0)"
+class = "shaman"
+race = "troll"
+level = 60
+gear = "mail_caster"
+rotation = "elemental"
+
+[talents]
+convection = 5
+concussion = 5
+reverberation = 5
+call_of_flame = 3
+elemental_focus = 1
+elemental_alacrity = 3
+lightning_overload = 3
+elemental_fury = 5
+lava_burst = 1
+thundering_strikes = 5
+ancestral_knowledge = 5
+improved_lightning_shield = 3
+improved_ghost_wolf = 2
+shamanistic_focus = 1
+anticipation = 3
+elemental_weapons = 1

@@ -1,0 +1,524 @@
+# Standardised gear kits: typical quest/dungeon gear totals at each level,
+# so builds are compared on equal footing. Stats are summed item stats
+# (crit and hit in percent). Levels between anchors are interpolated.
+# Forever reworked item stats, so these are deliberately generic.
+# Weapon: min, max, speed, type (sword axe mace dagger fist polearm staff
+# sword2h axe2h mace2h bow gun crossbow thrown wand).
+
+[gear.plate_dw]
+# Levels 40 and 60 match the gear of the earlier Python sim.
+desc = "Dual-wield melee in plate (Fury warrior)."
+[[gear.plate_dw.levels]]
+level = 20
+str = 22
+agi = 14
+sta = 22
+armor = 750
+mh = { min = 16, max = 30, speed = 2.6, type = "sword" }
+oh = { min = 13, max = 25, speed = 2.4, type = "sword" }
+[[gear.plate_dw.levels]]
+level = 40
+str = 60
+agi = 40
+sta = 60
+crit = 1
+hit = 1
+armor = 2100
+mh = { min = 38, max = 71, speed = 2.6, type = "sword" }
+oh = { min = 32, max = 60, speed = 2.4, type = "sword" }
+[[gear.plate_dw.levels]]
+level = 60
+str = 170
+agi = 120
+sta = 170
+crit = 3
+hit = 4
+armor = 3600
+mh = { min = 66, max = 123, speed = 2.6, type = "sword" }
+oh = { min = 57, max = 107, speed = 2.5, type = "sword" }
+
+[gear.plate_2h]
+desc = "Two-handed melee in plate (Arms warrior, Retribution paladin without Intellect)."
+[[gear.plate_2h.levels]]
+level = 20
+str = 24
+agi = 12
+sta = 22
+armor = 750
+mh = { min = 38, max = 57, speed = 3.5, type = "axe2h" }
+[[gear.plate_2h.levels]]
+level = 40
+str = 66
+agi = 34
+sta = 60
+crit = 1
+hit = 1
+armor = 2100
+mh = { min = 82, max = 124, speed = 3.5, type = "axe2h" }
+[[gear.plate_2h.levels]]
+level = 60
+str = 185
+agi = 100
+sta = 170
+crit = 3
+hit = 3
+armor = 3600
+mh = { min = 140, max = 210, speed = 3.6, type = "axe2h" }
+
+[gear.plate_tank]
+desc = "Plate tank: stamina, defense, one-hander and shield."
+[[gear.plate_tank.levels]]
+level = 20
+str = 18
+agi = 10
+sta = 30
+defense = 2
+armor = 900
+mh = { min = 16, max = 30, speed = 2.6, type = "sword" }
+shield = { armor = 450, block_value = 12 }
+[[gear.plate_tank.levels]]
+level = 40
+str = 45
+agi = 30
+sta = 95
+defense = 10
+armor = 2600
+hit = 1
+mh = { min = 38, max = 71, speed = 2.6, type = "sword" }
+shield = { armor = 1300, block_value = 30 }
+[[gear.plate_tank.levels]]
+level = 60
+str = 120
+agi = 80
+sta = 260
+defense = 25
+armor = 5200
+hit = 2
+mh = { min = 66, max = 123, speed = 2.6, type = "sword" }
+shield = { armor = 2300, block_value = 60 }
+
+[gear.plate_holy]
+desc = "Plate healer/hybrid with a shield (Holy or Holy/Prot paladin)."
+[[gear.plate_holy.levels]]
+level = 20
+str = 12
+sta = 22
+int = 22
+spi = 10
+heal_power = 20
+armor = 800
+mh = { min = 14, max = 27, speed = 2.6, type = "mace" }
+shield = { armor = 450, block_value = 12 }
+[[gear.plate_holy.levels]]
+level = 40
+str = 30
+sta = 65
+int = 65
+spi = 30
+heal_power = 90
+mp5 = 4
+armor = 2300
+mh = { min = 34, max = 64, speed = 2.6, type = "mace" }
+shield = { armor = 1300, block_value = 30 }
+[[gear.plate_holy.levels]]
+level = 60
+str = 60
+sta = 170
+int = 170
+spi = 70
+heal_power = 300
+mp5 = 12
+crit = 2
+armor = 4200
+mh = { min = 60, max = 112, speed = 2.6, type = "mace" }
+shield = { armor = 2300, block_value = 50 }
+
+[gear.plate_ret]
+desc = "Plate two-hander with Intellect (Retribution paladin)."
+[[gear.plate_ret.levels]]
+level = 20
+str = 22
+agi = 8
+sta = 22
+int = 10
+armor = 750
+mh = { min = 38, max = 57, speed = 3.5, type = "mace2h" }
+[[gear.plate_ret.levels]]
+level = 40
+str = 60
+agi = 25
+sta = 60
+int = 30
+crit = 1
+hit = 1
+armor = 2100
+mh = { min = 82, max = 124, speed = 3.5, type = "mace2h" }
+[[gear.plate_ret.levels]]
+level = 60
+str = 165
+agi = 70
+sta = 165
+int = 70
+crit = 3
+hit = 3
+sp = 20
+armor = 3600
+mh = { min = 140, max = 210, speed = 3.6, type = "mace2h" }
+
+[gear.leather_agi]
+desc = "Agility leather, dual wield (rogue)."
+[[gear.leather_agi.levels]]
+level = 20
+str = 10
+agi = 26
+sta = 18
+armor = 300
+mh = { min = 16, max = 30, speed = 2.6, type = "sword" }
+oh = { min = 12, max = 22, speed = 1.8, type = "dagger" }
+[[gear.leather_agi.levels]]
+level = 40
+str = 25
+agi = 70
+sta = 50
+crit = 1
+hit = 1
+armor = 850
+mh = { min = 38, max = 71, speed = 2.6, type = "sword" }
+oh = { min = 28, max = 52, speed = 1.8, type = "dagger" }
+[[gear.leather_agi.levels]]
+level = 60
+str = 60
+agi = 200
+sta = 140
+crit = 3
+hit = 4
+armor = 1600
+mh = { min = 66, max = 123, speed = 2.6, type = "sword" }
+oh = { min = 50, max = 94, speed = 1.8, type = "dagger" }
+
+[gear.leather_feral]
+desc = "Feral druid leather with a two-hander (weapon DPS matters in Forever forms)."
+[[gear.leather_feral.levels]]
+level = 20
+str = 14
+agi = 20
+sta = 18
+int = 8
+armor = 320
+mh = { min = 33, max = 50, speed = 3.0, type = "staff" }
+[[gear.leather_feral.levels]]
+level = 40
+str = 40
+agi = 60
+sta = 55
+int = 25
+crit = 1
+hit = 1
+armor = 900
+mh = { min = 75, max = 113, speed = 3.2, type = "staff" }
+[[gear.leather_feral.levels]]
+level = 60
+str = 110
+agi = 160
+sta = 150
+int = 60
+crit = 3
+hit = 3
+armor = 1700
+mh = { min = 130, max = 195, speed = 3.4, type = "staff" }
+
+[gear.leather_caster]
+desc = "Caster leather (Balance or Restoration druid)."
+[[gear.leather_caster.levels]]
+level = 20
+sta = 16
+int = 24
+spi = 16
+sp = 12
+heal_power = 12
+armor = 280
+mh = { min = 30, max = 46, speed = 3.0, type = "staff" }
+[[gear.leather_caster.levels]]
+level = 40
+sta = 50
+int = 75
+spi = 45
+sp = 60
+heal_power = 70
+mp5 = 3
+armor = 800
+mh = { min = 70, max = 106, speed = 3.2, type = "staff" }
+[[gear.leather_caster.levels]]
+level = 60
+sta = 130
+int = 190
+spi = 110
+sp = 180
+heal_power = 220
+mp5 = 8
+crit = 2
+hit = 2
+armor = 1400
+mh = { min = 120, max = 180, speed = 3.4, type = "staff" }
+
+[gear.mail_hunter]
+desc = "Agility mail with a bow and a two-handed polearm (hunter)."
+[[gear.mail_hunter.levels]]
+level = 20
+str = 8
+agi = 26
+sta = 18
+int = 12
+armor = 500
+mh = { min = 38, max = 57, speed = 3.5, type = "polearm" }
+ranged = { min = 15, max = 28, speed = 2.6, type = "bow" }
+[[gear.mail_hunter.levels]]
+level = 40
+str = 20
+agi = 72
+sta = 55
+int = 30
+crit = 1
+hit = 1
+armor = 1500
+mh = { min = 82, max = 124, speed = 3.5, type = "polearm" }
+ranged = { min = 36, max = 67, speed = 2.8, type = "bow" }
+[[gear.mail_hunter.levels]]
+level = 60
+str = 50
+agi = 200
+sta = 150
+int = 75
+crit = 3
+hit = 4
+armor = 2700
+mh = { min = 140, max = 210, speed = 3.6, type = "polearm" }
+ranged = { min = 70, max = 130, speed = 3.0, type = "bow" }
+
+[gear.mail_enh]
+desc = "Enhancement shaman mail: two-hander, Strength, Agility and Intellect."
+[[gear.mail_enh.levels]]
+level = 20
+str = 20
+agi = 12
+sta = 20
+int = 14
+armor = 500
+mh = { min = 38, max = 57, speed = 3.5, type = "axe2h" }
+[[gear.mail_enh.levels]]
+level = 40
+str = 55
+agi = 35
+sta = 58
+int = 40
+crit = 1
+hit = 1
+armor = 1500
+mh = { min = 82, max = 124, speed = 3.5, type = "axe2h" }
+[[gear.mail_enh.levels]]
+level = 60
+str = 150
+agi = 90
+sta = 160
+int = 110
+crit = 3
+hit = 3
+armor = 2700
+mh = { min = 140, max = 210, speed = 3.6, type = "axe2h" }
+
+[gear.mail_shield]
+desc = "Shaman mail with a one-hander and a shield (Stormwarden, Restoration)."
+[[gear.mail_shield.levels]]
+level = 20
+str = 14
+agi = 10
+sta = 22
+int = 20
+spi = 6
+heal_power = 10
+armor = 600
+mh = { min = 16, max = 30, speed = 2.6, type = "mace" }
+shield = { armor = 450, block_value = 12 }
+[[gear.mail_shield.levels]]
+level = 40
+str = 40
+agi = 28
+sta = 70
+int = 55
+spi = 20
+heal_power = 50
+mp5 = 3
+armor = 1800
+mh = { min = 38, max = 71, speed = 2.6, type = "mace" }
+shield = { armor = 1300, block_value = 30 }
+[[gear.mail_shield.levels]]
+level = 60
+str = 110
+agi = 70
+sta = 190
+int = 150
+spi = 50
+heal_power = 160
+mp5 = 8
+crit = 2
+hit = 2
+armor = 3200
+mh = { min = 66, max = 123, speed = 2.6, type = "mace" }
+shield = { armor = 2300, block_value = 50 }
+
+[gear.mail_caster]
+desc = "Elemental shaman mail."
+[[gear.mail_caster.levels]]
+level = 20
+sta = 18
+int = 26
+spi = 12
+sp = 14
+armor = 450
+mh = { min = 16, max = 30, speed = 2.6, type = "mace" }
+shield = { armor = 450, block_value = 12 }
+[[gear.mail_caster.levels]]
+level = 40
+sta = 55
+int = 80
+spi = 35
+sp = 70
+crit = 1
+hit = 1
+armor = 1500
+mh = { min = 38, max = 71, speed = 2.6, type = "mace" }
+shield = { armor = 1300, block_value = 30 }
+[[gear.mail_caster.levels]]
+level = 60
+sta = 140
+int = 200
+spi = 80
+sp = 220
+crit = 3
+hit = 3
+armor = 2700
+mh = { min = 66, max = 123, speed = 2.6, type = "mace" }
+shield = { armor = 2300, block_value = 50 }
+
+[gear.cloth_caster]
+desc = "Caster cloth with a staff and wand slot (mage, warlock, shadow priest)."
+[[gear.cloth_caster.levels]]
+level = 20
+sta = 16
+int = 28
+spi = 18
+sp = 15
+armor = 120
+mh = { min = 30, max = 46, speed = 3.0, type = "staff" }
+[[gear.cloth_caster.levels]]
+level = 40
+sta = 50
+int = 85
+spi = 50
+sp = 80
+crit = 1
+hit = 1
+armor = 350
+mh = { min = 70, max = 106, speed = 3.2, type = "staff" }
+[[gear.cloth_caster.levels]]
+level = 60
+sta = 130
+int = 210
+spi = 110
+sp = 250
+crit = 3
+hit = 4
+armor = 650
+mh = { min = 120, max = 180, speed = 3.4, type = "staff" }
+
+[gear.cloth_healer]
+desc = "Healer cloth (Holy/Discipline priest)."
+[[gear.cloth_healer.levels]]
+level = 20
+sta = 18
+int = 26
+spi = 24
+heal_power = 25
+armor = 120
+mh = { min = 30, max = 46, speed = 3.0, type = "staff" }
+[[gear.cloth_healer.levels]]
+level = 40
+sta = 55
+int = 80
+spi = 70
+heal_power = 120
+mp5 = 4
+armor = 350
+mh = { min = 70, max = 106, speed = 3.2, type = "staff" }
+[[gear.cloth_healer.levels]]
+level = 60
+sta = 140
+int = 200
+spi = 150
+heal_power = 380
+mp5 = 10
+crit = 2
+armor = 650
+mh = { min = 120, max = 180, speed = 3.4, type = "staff" }
+
+[gear.cloth_battlemage]
+desc = "Caster cloth with a sword (mage battlemage: Coldflame Saber line)."
+[[gear.cloth_battlemage.levels]]
+level = 21
+sta = 18
+int = 30
+spi = 16
+sp = 32
+armor = 130
+mh = { min = 17, max = 32, speed = 2.0, type = "sword" }
+[[gear.cloth_battlemage.levels]]
+level = 40
+sta = 50
+int = 80
+spi = 45
+sp = 90
+crit = 1
+hit = 1
+armor = 350
+mh = { min = 32, max = 60, speed = 2.0, type = "sword" }
+[[gear.cloth_battlemage.levels]]
+level = 60
+sta = 130
+int = 200
+spi = 100
+sp = 260
+crit = 3
+hit = 4
+armor = 650
+mh = { min = 60, max = 110, speed = 2.0, type = "sword" }
+
+[gear.leather_daggers]
+desc = "Agility leather with two daggers (Backstab/Mutilate/Ambush rogue)."
+[[gear.leather_daggers.levels]]
+level = 20
+str = 10
+agi = 26
+sta = 18
+armor = 300
+mh = { min = 14, max = 26, speed = 1.8, type = "dagger" }
+oh = { min = 12, max = 22, speed = 1.8, type = "dagger" }
+[[gear.leather_daggers.levels]]
+level = 40
+str = 25
+agi = 70
+sta = 50
+crit = 1
+hit = 1
+armor = 850
+mh = { min = 32, max = 60, speed = 1.8, type = "dagger" }
+oh = { min = 28, max = 52, speed = 1.8, type = "dagger" }
+[[gear.leather_daggers.levels]]
+level = 60
+str = 60
+agi = 200
+sta = 140
+crit = 3
+hit = 4
+armor = 1600
+mh = { min = 55, max = 102, speed = 1.8, type = "dagger" }
+oh = { min = 50, max = 94, speed = 1.8, type = "dagger" }

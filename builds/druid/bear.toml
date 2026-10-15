@@ -1,0 +1,27 @@
+# Bear tank (Feral 35 / Restoration 16) with Swiftmend for emergencies.
+name = "Bear (35/0/16)"
+class = "druid"
+race = "tauren"
+level = 60
+gear = "leather_feral"
+rotation = "bear"
+
+[talents]
+ferocity = 5
+heart_of_the_wild = 5
+thick_hide = 3
+feral_instinct = 3
+sharpened_claws = 2
+savage_fury = 2
+primal_bite = 1
+blood_frenzy = 2
+predatory_strikes = 3
+natural_instinct = 2
+leader_of_the_pack = 1
+natural_reaction = 5
+berserk = 1
+furor = 5
+naturalist = 5
+gift_of_the_earthmother = 1
+gift_of_nature = 4
+swiftmend = 1

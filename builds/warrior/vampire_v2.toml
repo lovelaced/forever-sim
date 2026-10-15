@@ -1,0 +1,45 @@
+# Vampire Fury v2 — Undead warrior, Fury 36 / Protection 15.
+# Self-healing from Gore Drinker, Victory Rush, Touch of the Grave and Blood Craze.
+name = "Vampire v2 (36/15)"
+class = "warrior"
+race = "undead"
+level = 60
+gear = "plate_dw"
+rotation = "fury_dw"
+
+# Levelling order: one entry per level from 10. Used when you run at a lower
+# level (--level 40) or scan levels (fsim scan).
+order = [
+  "cruelty", "cruelty", "cruelty", "cruelty", "cruelty",                       # 10-14
+  "unbridled_wrath", "unbridled_wrath", "unbridled_wrath", "unbridled_wrath", "unbridled_wrath",  # 15-19
+  "blood_craze", "blood_craze", "blood_craze", "furious_precision", "furious_precision",          # 20-24
+  "enrage", "enrage", "enrage", "enrage", "enrage",                             # 25-29
+  "dual_wield_specialization", "dual_wield_specialization", "dual_wield_specialization",
+  "dual_wield_specialization", "dual_wield_specialization",                     # 30-34
+  "death_wish", "gore_drinker", "gore_drinker",                                 # 35-37
+  "improved_berserker_rage", "improved_berserker_rage", "furious_precision",    # 38-40
+  "flurry", "flurry", "flurry", "piercing_howl", "bloodthirst",                 # 41-45
+  "iron_will", "iron_will", "iron_will", "iron_will", "iron_will",              # 46-50
+  "improved_bloodrage", "improved_bloodrage",                                   # 51-52
+  "anticipation", "anticipation", "anticipation", "anticipation", "anticipation",  # 53-57
+  "last_stand", "improved_disarm", "improved_disarm",                           # 58-60
+]
+
+[talents]
+cruelty = 5
+unbridled_wrath = 5
+furious_precision = 3
+blood_craze = 3
+piercing_howl = 1
+enrage = 5
+dual_wield_specialization = 5
+death_wish = 1
+improved_berserker_rage = 2
+gore_drinker = 2
+flurry = 3
+bloodthirst = 1
+improved_bloodrage = 2
+iron_will = 5
+anticipation = 5
+last_stand = 1
+improved_disarm = 2

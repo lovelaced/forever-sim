@@ -1,0 +1,765 @@
+# Shaman. Talents and spell ranks: Forever client 1.60.1.70338
+# (wowforevertalents.com/shaman and /abilities/shaman, checked 2026-10-15).
+# Totems are modelled as buffs on the shaman (no placement or range).
+# Spell coefficients are Classic/TBC approximations. Base stats Classic 1.12.
+name = "Shaman"
+icon = "classicon_shaman"
+resources = ["mana"]
+can_block = true
+source = "forever-70338"
+
+base = [
+  { level = 1, str = 22, agi = 20, sta = 22, int = 21, spi = 22, hp = 40, mana = 55 },
+  { level = 40, str = 61, agi = 39, sta = 68, int = 62, spi = 70, hp = 820, mana = 900 },
+  { level = 60, str = 85, agi = 52, sta = 95, int = 85, spi = 97, hp = 1423, mana = 1520 },
+]
+
+[formulas]
+ap = "str * 2 + level * 2 - 20"
+rap = "agi - 10"
+melee_crit = "agi / interp(level, 1,4, 40,14, 60,20)"
+ranged_crit = "agi / interp(level, 1,4, 40,14, 60,20)"
+spell_crit = "2.2 + int / interp(level, 1,10, 40,40, 60,59.5)"
+dodge = "1.7 + agi / interp(level, 1,4, 40,14, 60,20)"
+parry = "0"
+block = "5"
+mana_regen = "15 + spi / 5"
+hp_regen = "spi * 0.2 + 3"
+
+# ------------------------------------------------------------------ talents
+[talents.convection]
+icon = "spell_nature_wispsplode"
+tree = "Elemental Combat"
+points = 0
+ranks = 5
+text = "Shocks, Lightning Bolt, Lava Burst and Chain Lightning cost 10% less."
+spell_mods = [{ spells = ["earth_shock", "flame_shock", "frost_shock", "lightning_bolt", "lava_burst", "chain_lightning"], prop = "cost", mul = "1 - 0.02 * rank" }]
+[talents.concussion]
+icon = "spell_nature_earthshock"
+tree = "Elemental Combat"
+points = 0
+ranks = 5
+text = "Lightning Bolt, Chain Lightning and Earth Shock +5%."
+spell_mods = [{ spells = ["lightning_bolt", "chain_lightning", "earth_shock"], prop = "damage", mul = "1 + 0.01 * rank" }]
+[talents.elemental_warding]
+icon = "spell_nature_spiritarmor"
+tree = "Elemental Combat"
+points = 5
+ranks = 3
+text = "Fire, Frost and Nature damage taken -10% (applied to all spell damage here)."
+mods = [{ stat = "spell_dmg_taken", mul = "1 - rank / 30" }]
+[talents.reverberation]
+icon = "spell_frost_frostward"
+tree = "Elemental Combat"
+points = 5
+ranks = 5
+text = "Shock cooldown -1 sec."
+spell_mods = [{ spells = ["earth_shock", "flame_shock", "frost_shock"], prop = "cooldown", add = "-0.2 * rank" }]
+[talents.call_of_flame]
+icon = "spell_fire_immolation"
+tree = "Elemental Combat"
+points = 5
+ranks = 3
+text = "Fire totems, Flame Shock, Fire Nova and Lava Burst +15%."
+spell_mods = [{ spells = ["flame_shock", "fire_nova", "lava_burst"], prop = "damage", mul = "1 + 0.05 * rank" }]
+[talents.elemental_devastation]
+icon = "spell_fire_elementaldevastation"
+tree = "Elemental Combat"
+points = 5
+ranks = 3
+text = "Spell crits give +9% melee crit for 10 sec."
+procs = [{ on = "spell_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "elemental_devastation" }] }]
+[talents.elemental_focus]
+icon = "spell_shadow_manaburn"
+tree = "Elemental Combat"
+points = 10
+ranks = 1
+text = "10% chance after a damage spell: next damage spell is free."
+procs = [{ on = "spell_landed", if = "!event.periodic && (spell.lightning_bolt || spell.chain_lightning || spell.earth_shock || spell.flame_shock || spell.frost_shock || spell.lava_burst || spell.fire_nova)", chance = 0.1, effects = [{ type = "aura", aura = "clearcasting" }] }]
+[talents.elemental_alacrity]
+icon = "spell_lightning_lightningbolt01"
+tree = "Elemental Combat"
+points = 10
+ranks = 3
+text = "Lightning Bolt, Chain Lightning and Lava Burst cast -0.5 sec."
+spell_mods = [{ spells = ["lightning_bolt", "chain_lightning", "lava_burst"], prop = "cast_time", add = "-rank / 6" }]
+[talents.improved_fire_nova]
+icon = "spell_fire_sealoffire"
+tree = "Elemental Combat"
+points = 15
+ranks = 2
+text = "Fire Nova +20%, cooldown -4 sec."
+spell_mods = [{ spells = ["fire_nova"], prop = "damage", mul = "1 + 0.1 * rank" }, { spells = ["fire_nova"], prop = "cooldown", add = "-2 * rank" }]
+[talents.eye_of_the_storm]
+icon = "spell_nature_eyeofthestorm"
+tree = "Elemental Combat"
+points = 15
+ranks = 3
+text = "70% pushback reduction on Lightning Bolt, Chain Lightning and Lava Burst (applied to all casts here)."
+mods = [{ stat = "pushback_resist", add = "0.2333 * rank" }]
+[talents.call_of_thunder]
+icon = "spell_nature_callstorm"
+tree = "Elemental Combat"
+points = 15
+ranks = 1
+text = "No Forever tooltip text on the site (not simulated)."
+[talents.elemental_reach]
+icon = "spell_nature_stormreach"
+tree = "Elemental Combat"
+points = 20
+ranks = 2
+text = "Range (not simulated)."
+[talents.lightning_overload]
+icon = "spell_nature_lightningoverload"
+tree = "Elemental Combat"
+points = 20
+ranks = 3
+text = "10% chance to cast a free half-damage copy of Lightning Bolt or Chain Lightning."
+procs = [{ on = "spell_landed", if = "!event.periodic && (spell.lightning_bolt || spell.chain_lightning)", chance = "rank / 30", effects = [{ type = "damage", school = "nature", target = "target", amount = "event.amount * 0.5", hit = "auto", can_crit = false, no_proc = true, tag = "Lightning Overload" }] }]
+[talents.earthbound]
+icon = "spell_nature_stranglevines"
+tree = "Elemental Combat"
+points = 20
+ranks = 1
+text = "Earthbind roots (not simulated)."
+[talents.elemental_fury]
+icon = "spell_fire_volcano"
+tree = "Elemental Combat"
+points = 25
+ranks = 5
+text = "Fire, Frost and Nature spell crit damage bonus +100% (the site also lists +20% at rank 5; +100% is used)."
+spell_mods = [{ school = "fire", prop = "crit_bonus", add = "0.2 * rank" }, { school = "frost", prop = "crit_bonus", add = "0.2 * rank" }, { school = "nature", prop = "crit_bonus", add = "0.2 * rank" }]
+[talents.lava_burst]
+icon = "spell_shaman_lavaburst"
+tree = "Elemental Combat"
+points = 30
+ranks = 1
+text = "Lava Burst: Fire damage, +20% with your Flame Shock on the target."
+
+[talents.earths_grasp]
+icon = "spell_nature_stoneclawtotem"
+tree = "Enhancement"
+points = 0
+ranks = 2
+text = "Totem health (not simulated)."
+[talents.thundering_strikes]
+icon = "ability_thunderbolt"
+tree = "Enhancement"
+points = 0
+ranks = 5
+text = "+5% crit with spells and attacks."
+mods = [{ stat = "crit", add = "rank" }]
+[talents.ancestral_knowledge]
+icon = "spell_shadow_grimward"
+tree = "Enhancement"
+points = 0
+ranks = 5
+text = "Intellect +10%."
+mods = [{ stat = "int_pct", add = "0.02 * rank" }]
+[talents.guardian_totems]
+icon = "spell_nature_stoneskintotem"
+tree = "Enhancement"
+points = 5
+ranks = 2
+text = "Stoneskin and Windwall (not simulated)."
+[talents.mental_dexterity]
+icon = "spell_nature_mentalquickness"
+tree = "Enhancement"
+points = 5
+ranks = 3
+text = "Attack Power +100% of Intellect."
+mods = [{ stat = "ap", add = "rank / 3 * int" }]
+[talents.improved_ghost_wolf]
+icon = "spell_nature_spiritwolf"
+tree = "Enhancement"
+points = 5
+ranks = 2
+text = "Ghost Wolf (not simulated)."
+[talents.improved_lightning_shield]
+icon = "spell_nature_lightningshield"
+tree = "Enhancement"
+points = 5
+ranks = 3
+text = "Lightning Shield orbs +15%."
+[talents.elemental_weapons]
+icon = "spell_fire_flametounge"
+tree = "Enhancement"
+points = 10
+ranks = 3
+text = "Rockbiter +20%, Windfury +40%, Flametongue and Frostbrand +15%."
+[talents.shamanistic_focus]
+icon = "spell_nature_elementalabsorption"
+tree = "Enhancement"
+points = 10
+ranks = 1
+text = "Shocks and Lightning Shield cost 45% less."
+spell_mods = [{ spells = ["earth_shock", "flame_shock", "frost_shock", "lightning_shield"], prop = "cost", mul = 0.55 }]
+[talents.anticipation]
+icon = "spell_nature_mirrorimage"
+tree = "Enhancement"
+points = 10
+ranks = 3
+text = "+6% dodge."
+mods = [{ stat = "dodge", add = "2 * rank" }]
+[talents.toughness]
+icon = "spell_holy_devotion"
+tree = "Enhancement"
+points = 15
+ranks = 5
+text = "Stamina +10%."
+mods = [{ stat = "sta_pct", add = "0.02 * rank" }]
+[talents.flurry]
+icon = "ability_ghoulfrenzy"
+tree = "Enhancement"
+points = 15
+ranks = 5
+text = "+25% attack speed for 3 swings after a melee crit."
+procs = [{ on = "melee_crit", effects = [{ type = "aura", aura = "flurry" }] }]
+[talents.stormstrike]
+icon = "ability_shaman_stormstrike"
+tree = "Enhancement"
+points = 15
+ranks = 1
+text = "Stormstrike: instant weapon strike; the next Lightning Bolt, Chain Lightning or Earth Shock deals 20% more within 12 sec. 125 mana, 8 sec cooldown."
+[talents.spirit_weapons]
+icon = "ability_parry"
+tree = "Enhancement"
+points = 20
+ranks = 1
+text = "Gives a parry chance; threat -30% (+30% with Rockbiter)."
+mods = [{ stat = "parry", add = 5 }, { stat = "threat", mul = "aura.rockbiter_weapon.up ? 1.3 : 0.7" }]
+[talents.mental_quickness]
+icon = "spell_nature_sleep"
+tree = "Enhancement"
+points = 20
+ranks = 2
+text = "Spell damage and healing +30% of Intellect."
+mods = [{ stat = "sp", add = "0.15 * rank * int" }, { stat = "heal_power", add = "0.15 * rank * int" }]
+[talents.improved_stormstrike]
+icon = "spell_shaman_improvedstormstrike"
+tree = "Enhancement"
+points = 20
+ranks = 2
+text = "Stormstrike may give 50% mana regeneration while casting for 15 sec; dodges and parries may reset it."
+procs = [
+  { on = "cast:stormstrike", chance = "0.5 * rank", effects = [{ type = "aura", aura = "stormstrike_regen" }] },
+  { on = "attack_dodged", chance = "0.5 * rank", effects = [{ type = "cooldown", spell = "stormstrike", op = "reset" }] },
+  { on = "attack_parried", chance = "0.5 * rank", effects = [{ type = "cooldown", spell = "stormstrike", op = "reset" }] },
+]
+[talents.maelstrom_weapon]
+icon = "spell_shaman_maelstromweapon"
+tree = "Enhancement"
+points = 25
+ranks = 5
+text = "Melee hits build Maelstrom: each stack cuts the next Lightning Bolt's cast and cost by 20% (5 stacks, 30 sec). Stack chance per hit is opt.maelstrom_chance (not on the tooltip)."
+procs = [{ on = "melee_landed", chance = "opt.maelstrom_chance", effects = [{ type = "aura", aura = "maelstrom_weapon" }] }]
+[talents.rage_of_the_farseer]
+icon = "spell_nature_bloodlust"
+tree = "Enhancement"
+points = 30
+ranks = 1
+text = "+30% attack speed for 25 sec. 3 min cooldown."
+
+[talents.improved_healing_wave]
+icon = "spell_nature_magicimmunity"
+tree = "Restoration"
+points = 0
+ranks = 5
+text = "Healing Wave cast -0.5 sec."
+spell_mods = [{ spells = ["healing_wave"], prop = "cast_time", add = "-0.1 * rank" }]
+[talents.totemic_focus]
+icon = "spell_nature_moonglow"
+tree = "Restoration"
+points = 0
+ranks = 5
+text = "Totems cost 25% less."
+spell_mods = [{ spells = ["searing_totem", "strength_of_earth_totem", "grace_of_air_totem", "windfury_totem", "mana_spring_totem", "mana_tide_totem"], prop = "cost", mul = "1 - 0.05 * rank" }]
+[talents.mindfulness]
+icon = "spell_nature_sleep"
+tree = "Restoration"
+points = 5
+ranks = 3
+text = "50% of mana regeneration continues while casting."
+mods = [{ stat = "casting_regen", add = "rank / 6" }]
+[talents.natural_grace]
+icon = "spell_nature_healingtouch"
+tree = "Restoration"
+points = 5
+ranks = 3
+text = "Spell threat -15% (not simulated)."
+[talents.tidal_focus]
+icon = "spell_frost_manarecharge"
+tree = "Restoration"
+points = 5
+ranks = 5
+text = "Heals cost 5% less; +5% hit."
+spell_mods = [{ spells = ["healing_wave", "lesser_healing_wave", "chain_heal", "riptide"], prop = "cost", mul = "1 - 0.01 * rank" }]
+mods = [{ stat = "spell_hit", add = "rank" }]
+[talents.improved_reincarnation]
+icon = "spell_nature_reincarnation"
+tree = "Restoration"
+points = 5
+ranks = 2
+text = "Maximum health +4% (Reincarnation is not simulated)."
+mods = [{ stat = "max_hp_mult", mul = "1 + 0.02 * rank" }]
+[talents.ancestral_healing]
+icon = "spell_nature_undyingstrength"
+tree = "Restoration"
+points = 10
+ranks = 3
+text = "Heal crits give the target +25% armour for 15 sec."
+procs = [{ on = "heal_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "ancestral_fortitude", stacks = "rank" }] }]
+[talents.healing_focus]
+icon = "spell_nature_healingwavelesser"
+tree = "Restoration"
+points = 10
+ranks = 3
+text = "70% chance to avoid heal pushback (applied to all casts here)."
+mods = [{ stat = "pushback_resist", add = "0.2333 * rank" }]
+[talents.water_shield]
+icon = "ability_shaman_watershield"
+tree = "Restoration"
+points = 10
+ranks = 1
+text = "Water Shield: three globes restore 2% of maximum mana when you are hit."
+[talents.tidal_mastery]
+icon = "spell_nature_tranquility"
+tree = "Restoration"
+points = 15
+ranks = 5
+text = "Healing crit +5%."
+spell_mods = [{ spells = ["healing_wave", "lesser_healing_wave", "chain_heal", "riptide"], prop = "crit", add = "rank" }]
+[talents.restorative_totems]
+icon = "spell_nature_manaregentotem"
+tree = "Restoration"
+points = 15
+ranks = 5
+text = "Mana Spring +25%."
+[talents.mana_tide_totem]
+icon = "spell_frost_summonwaterelemental"
+tree = "Restoration"
+points = 15
+ranks = 1
+text = "Mana Tide Totem: 88 mana every 3 sec for 12 sec."
+[talents.healing_way]
+icon = "spell_nature_healingway"
+tree = "Restoration"
+points = 20
+ranks = 3
+text = "Healing Wave +25%."
+spell_mods = [{ spells = ["healing_wave"], prop = "heal", mul = "1 + rank / 12" }]
+[talents.natures_swiftness]
+icon = "spell_nature_ravenform"
+tree = "Restoration"
+points = 20
+ranks = 1
+text = "Next Nature spell under 10 sec is instant. 3 min cooldown."
+[talents.purification]
+icon = "spell_frost_wizardmark"
+tree = "Restoration"
+points = 25
+ranks = 5
+text = "Healing +10%."
+mods = [{ stat = "heal_done", mul = "1 + 0.02 * rank" }]
+[talents.riptide]
+icon = "spell_nature_riptide"
+tree = "Restoration"
+points = 30
+ranks = 1
+text = "Riptide: instant heal plus a heal over time."
+
+# ------------------------------------------------------------------ auras
+[auras.rockbiter_weapon]
+name = "Rockbiter Weapon"
+group = "imbue_mh"
+mods = [{ stat = "ap", add = "r.ap * (1 + t.elemental_weapons / 15)" }]
+[auras.flametongue_weapon]
+name = "Flametongue Weapon"
+group = "imbue_mh"
+procs = [{ on = "melee_landed", if = "event.mh", effects = [{ type = "damage", school = "fire", target = "target", hit = "auto", no_proc = true, tag = "Flametongue", amount = "r.lo + (r.hi - r.lo) * clamp((mh.speed - 1.5) / 2.5, 0, 1)", coef = "0.1 * mh.speed / 3.5", mult = "1 + 0.05 * t.elemental_weapons" }] }]
+[auras.windfury_weapon]
+name = "Windfury Weapon"
+group = "imbue_mh"
+procs = [{ on = "melee_landed", if = "event.mh && !event.extra", chance = "opt.windfury_chance", effects = [{ type = "extra_attack", hand = "mh", count = 2, ap_bonus = "r.ap * (1 + 0.1333 * t.elemental_weapons)" }] }]
+[auras.lightning_shield]
+name = "Lightning Shield"
+group = "elemental_shield"
+duration = 600
+charges = 3
+procs = [{ on = "struck_melee", effects = [{ type = "damage", school = "nature", target = "target", hit = "auto", no_proc = true, tag = "Lightning Shield", amount = "r.dmg", coef = 0.267, mult = "1 + 0.05 * t.improved_lightning_shield" }, { type = "consume" }] }]
+[auras.water_shield]
+name = "Water Shield"
+group = "elemental_shield"
+duration = 600
+charges = 3
+procs = [{ on = "struck", icd = 3, effects = [{ type = "resource", res = "mana", amount = "0.02 * max_mana" }, { type = "consume" }] }]
+[auras.searing_totem]
+name = "Searing Totem"
+group = "fire_totem"
+duration = "r.dur"
+tick = { interval = 2.5, effects = [{ type = "damage", school = "fire", target = "my_target", min = "r.lo", max = "r.hi", coef = 0.083, mult = "1 + 0.05 * t.call_of_flame", tag = "Searing Totem" }] }
+[auras.strength_of_earth_totem]
+name = "Strength of Earth Totem"
+group = "earth_totem"
+duration = 300
+mods = [{ stat = "str", add = "r.str" }]
+[auras.grace_of_air_totem]
+name = "Grace of Air Totem"
+group = "air_totem"
+duration = 300
+mods = [{ stat = "agi", add = "r.agi" }]
+[auras.windfury_totem]
+name = "Windfury Totem"
+group = "air_totem"
+duration = 300
+procs = [{ on = "melee_landed", if = "event.mh && !event.extra && !aura.windfury_weapon.up", chance = 0.2, effects = [{ type = "extra_attack", hand = "mh", count = 1, ap_bonus = "r.ap" }] }]
+[auras.mana_spring_totem]
+name = "Mana Spring Totem"
+group = "water_totem"
+duration = 300
+mods = [{ stat = "mp5", add = "r.mana * 2.5 * (1 + 0.05 * t.restorative_totems)" }]
+[auras.mana_tide_totem]
+name = "Mana Tide Totem"
+group = "water_totem"
+duration = 12
+tick = { interval = 3, effects = [{ type = "resource", res = "mana", amount = 88 }] }
+[auras.flame_shock]
+name = "Flame Shock"
+debuff = true
+duration = 12
+tick = { interval = 3, effects = [{ type = "damage", school = "fire", periodic = true, tag = "Flame Shock (burn)", amount = "r.dot / 4", coef = "0.1", mult = "1 + 0.05 * t.call_of_flame" }] }
+[auras.stormstrike]
+name = "Stormstrike"
+duration = 12
+consume_on_cast = true
+spell_mods = [{ spells = ["lightning_bolt", "chain_lightning", "earth_shock"], prop = "damage", mul = 1.2 }]
+[auras.stormstrike_regen]
+name = "Stormstrike (regeneration)"
+duration = 15
+mods = [{ stat = "casting_regen", add = 0.5 }]
+[auras.maelstrom_weapon]
+name = "Maelstrom Weapon"
+duration = 30
+max_stacks = 5
+consume_on_cast = true
+spell_mods = [{ spells = ["lightning_bolt"], prop = "cast_time", mul = "max(0, 1 - 0.04 * t.maelstrom_weapon * stacks)" }, { spells = ["lightning_bolt"], prop = "cost", mul = "max(0, 1 - 0.04 * t.maelstrom_weapon * stacks)" }]
+[auras.flurry]
+name = "Flurry"
+duration = 15
+charges = 3
+mods = [{ stat = "melee_haste", mul = "1 + 0.05 * t.flurry" }]
+procs = [{ on = "melee_swing", effects = [{ type = "consume" }] }]
+[auras.elemental_devastation]
+name = "Elemental Devastation"
+duration = 10
+mods = [{ stat = "melee_crit", add = "3 * t.elemental_devastation" }]
+[auras.clearcasting]
+name = "Clearcasting"
+duration = 15
+consume_on_cast = true
+spell_mods = [{ spells = ["lightning_bolt", "chain_lightning", "earth_shock", "flame_shock", "frost_shock", "lava_burst", "fire_nova"], prop = "cost", mul = 0 }]
+[auras.rage_of_the_farseer]
+name = "Rage of the Farseer"
+duration = 25
+mods = [{ stat = "melee_haste", mul = 1.3 }]
+[auras.natures_swiftness]
+name = "Nature's Swiftness"
+consume_on_cast = true
+spell_mods = [{ spells = ["healing_wave", "lesser_healing_wave", "chain_heal", "lightning_bolt", "chain_lightning"], prop = "cast_time", mul = 0 }]
+[auras.ancestral_fortitude]
+name = "Ancestral Fortitude"
+duration = 15
+max_stacks = 3
+refresh = "replace"
+mods = [{ stat = "armor_mult", mul = "1 + (stacks == 3 ? 0.25 : 0.08 * stacks)" }]
+[auras.riptide]
+name = "Riptide"
+duration = 15
+tick = { interval = 3, effects = [{ type = "heal", target = "target", amount = "r.hot / 5", coef = 0.1, periodic = true, tag = "Riptide" }] }
+
+# ------------------------------------------------------------------ spells
+[spells.rockbiter_weapon]
+name = "Rockbiter Weapon"
+target = "self"
+requires = "!aura.rockbiter_weapon.up"
+ranks = [{ level = 1, ap = 49, mana = 15 }, { level = 8, ap = 79, mana = 25 }, { level = 16, ap = 118, mana = 50 }, { level = 24, ap = 194, mana = 75 }, { level = 34, ap = 355, mana = 100 }, { level = 44, ap = 522, mana = 125 }, { level = 54, ap = 653, mana = 150 }]
+effects = [{ type = "aura", aura = "rockbiter_weapon" }]
+[spells.flametongue_weapon]
+name = "Flametongue Weapon"
+target = "self"
+requires = "!aura.flametongue_weapon.up"
+ranks = [{ level = 10, lo = 4.71, hi = 17.6, mana = 30 }, { level = 18, lo = 7.48, hi = 26.12, mana = 55 }, { level = 26, lo = 12.66, hi = 42.08, mana = 80 }, { level = 36, lo = 21.44, hi = 69.12, mana = 105 }, { level = 46, lo = 29.81, hi = 94.88, mana = 130 }, { level = 56, lo = 35.49, hi = 112.4, mana = 155 }]
+effects = [{ type = "aura", aura = "flametongue_weapon" }]
+[spells.windfury_weapon]
+name = "Windfury Weapon"
+target = "self"
+requires = "!aura.windfury_weapon.up"
+ranks = [{ level = 30, ap = 104, mana = 90 }, { level = 40, ap = 221, mana = 115 }, { level = 50, ap = 315, mana = 140 }, { level = 60, ap = 333, mana = 165 }]
+effects = [{ type = "aura", aura = "windfury_weapon" }]
+[spells.lightning_shield]
+name = "Lightning Shield"
+school = "nature"
+target = "self"
+requires = "!aura.lightning_shield.up && !aura.water_shield.up"
+ranks = [{ level = 8, dmg = 13, mana = 45 }, { level = 16, dmg = 24, mana = 80 }, { level = 24, dmg = 40, mana = 125 }, { level = 32, dmg = 64, mana = 180 }, { level = 40, dmg = 96, mana = 240 }, { level = 48, dmg = 134, mana = 305 }, { level = 56, dmg = 178, mana = 370 }]
+effects = [{ type = "aura", aura = "lightning_shield" }]
+[spells.water_shield]
+name = "Water Shield"
+talent = "water_shield"
+target = "self"
+requires = "!aura.water_shield.up"
+effects = [{ type = "aura", aura = "water_shield" }]
+
+[spells.searing_totem]
+name = "Searing Totem"
+school = "fire"
+target = "self"
+requires = "!aura.searing_totem.up"
+ranks = [{ level = 10, lo = 9, hi = 11, dur = 30, mana = 25 }, { level = 20, lo = 13, hi = 17, dur = 35, mana = 45 }, { level = 30, lo = 19, hi = 25, dur = 40, mana = 75 }, { level = 40, lo = 26, hi = 34, dur = 45, mana = 110 }, { level = 50, lo = 33, hi = 45, dur = 50, mana = 145 }, { level = 60, lo = 40, hi = 54, dur = 55, mana = 170 }]
+effects = [{ type = "aura", aura = "searing_totem" }]
+[spells.strength_of_earth_totem]
+name = "Strength of Earth Totem"
+target = "self"
+requires = "!aura.strength_of_earth_totem.up"
+ranks = [{ level = 10, str = 7, mana = 25 }, { level = 24, str = 14, mana = 65 }, { level = 38, str = 25, mana = 125 }, { level = 52, str = 42, mana = 225 }, { level = 60, str = 53, mana = 275 }]
+effects = [{ type = "aura", aura = "strength_of_earth_totem" }]
+[spells.grace_of_air_totem]
+name = "Grace of Air Totem"
+target = "self"
+requires = "!aura.grace_of_air_totem.up && !aura.windfury_totem.up"
+ranks = [{ level = 42, agi = 49, mana = 155 }, { level = 56, agi = 77, mana = 250 }, { level = 60, agi = 89, mana = 310 }]
+effects = [{ type = "aura", aura = "grace_of_air_totem" }]
+[spells.windfury_totem]
+name = "Windfury Totem"
+target = "self"
+requires = "!aura.windfury_totem.up && !aura.grace_of_air_totem.up"
+ranks = [{ level = 32, ap = 95, mana = 115 }, { level = 42, ap = 179, mana = 175 }, { level = 52, ap = 246, mana = 250 }]
+effects = [{ type = "aura", aura = "windfury_totem" }]
+[spells.mana_spring_totem]
+name = "Mana Spring Totem"
+target = "self"
+requires = "!aura.mana_spring_totem.up && !aura.mana_tide_totem.up"
+ranks = [{ level = 26, mana = 40 }, { level = 36, mana = 60 }, { level = 46, mana = 80 }, { level = 56, mana = 100 }]
+text = "Restores the rank's number every 2 sec (the same number is used as its mana cost)."
+effects = [{ type = "aura", aura = "mana_spring_totem" }]
+[spells.mana_tide_totem]
+name = "Mana Tide Totem"
+talent = "mana_tide_totem"
+cooldown = 300
+target = "self"
+cost = { mana = 40 }
+effects = [{ type = "aura", aura = "mana_tide_totem" }]
+[spells.fire_nova]
+name = "Fire Nova"
+school = "fire"
+cooldown = 10
+requires = "aura.searing_totem.up"
+ranks = [{ level = 12, lo = 53, hi = 62, mana = 95 }, { level = 22, lo = 109, hi = 125, mana = 170 }, { level = 32, lo = 194, hi = 220, mana = 280 }, { level = 42, lo = 294, hi = 332, mana = 395 }, { level = 52, lo = 412, hi = 460, mana = 520 }]
+effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = 0.214, target = "enemies", max_targets = 10 }]
+
+[spells.lightning_bolt]
+name = "Lightning Bolt"
+school = "nature"
+ranks = [
+  { level = 1, lo = 14, hi = 17, mana = 15, cast = 1.5 }, { level = 8, lo = 26, hi = 29, mana = 30, cast = 2 },
+  { level = 14, lo = 43, hi = 50, mana = 45, cast = 2.5 }, { level = 20, lo = 59, hi = 67, mana = 60, cast = 2.5 },
+  { level = 26, lo = 79, hi = 90, mana = 85, cast = 2.5 }, { level = 32, lo = 108, hi = 122, mana = 110, cast = 2.5 },
+  { level = 38, lo = 142, hi = 160, mana = 135, cast = 2.5 }, { level = 44, lo = 158, hi = 176, mana = 160, cast = 2.5 },
+  { level = 50, lo = 173, hi = 193, mana = 190, cast = 2.5 }, { level = 56, lo = 190, hi = 212, mana = 220, cast = 2.5 },
+]
+effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = "r.cast / 3.5" }]
+[spells.chain_lightning]
+name = "Chain Lightning"
+school = "nature"
+cooldown = 6
+cast_time = 2
+ranks = [{ level = 32, lo = 85, hi = 97, mana = 225 }, { level = 40, lo = 97, hi = 109, mana = 305 }, { level = 48, lo = 109, hi = 122, mana = 390 }, { level = 56, lo = 119, hi = 133, mana = 485 }]
+text = "Primary target only (the jumps are not simulated)."
+effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = 0.571 }]
+[spells.lava_burst]
+name = "Lava Burst"
+talent = "lava_burst"
+school = "fire"
+cooldown = 10
+cast_time = 2.5
+ranks = [{ level = 40, lo = 150, hi = 193, mana = 165 }, { level = 50, lo = 179, hi = 231, mana = 230 }, { level = 60, lo = 192, hi = 248, mana = 265 }]
+effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = 0.571, mult = "target.aura.flame_shock.up ? 1.2 : 1" }]
+[spells.earth_shock]
+name = "Earth Shock"
+school = "nature"
+cooldown = 6
+cd_group = "shock"
+ranks = [{ level = 4, lo = 19, hi = 22, mana = 30 }, { level = 8, lo = 35, hi = 38, mana = 50 }, { level = 14, lo = 52, hi = 55, mana = 85 }, { level = 24, lo = 84, hi = 89, mana = 145 }, { level = 36, lo = 134, hi = 143, mana = 240 }, { level = 48, lo = 207, hi = 219, mana = 345 }, { level = 60, lo = 293, hi = 309, mana = 450 }]
+effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = 0.386, on_hit = [{ type = "interrupt", lockout = 2 }] }]
+[spells.flame_shock]
+name = "Flame Shock"
+school = "fire"
+cooldown = 6
+cd_group = "shock"
+ranks = [{ level = 10, direct = 24, dot = 28, mana = 55 }, { level = 18, direct = 38, dot = 32, mana = 95 }, { level = 28, direct = 49, dot = 56, mana = 160 }, { level = 40, direct = 89, dot = 84, mana = 250 }, { level = 52, direct = 137, dot = 136, mana = 345 }, { level = 60, direct = 166, dot = 176, mana = 410 }]
+effects = [{ type = "damage", school = "fire", amount = "r.direct", coef = 0.15, on_hit = [{ type = "aura", aura = "flame_shock", target = "target" }] }]
+[spells.frost_shock]
+name = "Frost Shock"
+school = "frost"
+cooldown = 6
+cd_group = "shock"
+ranks = [{ level = 20, lo = 68, hi = 73, mana = 115 }, { level = 34, lo = 126, hi = 135, mana = 225 }, { level = 46, lo = 190, hi = 201, mana = 325 }, { level = 58, lo = 279, hi = 295, mana = 430 }]
+effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = 0.386 }]
+
+[spells.stormstrike]
+name = "Stormstrike"
+talent = "stormstrike"
+school = "nature"
+cooldown = 8
+cost = { mana = 125 }
+effects = [{ type = "damage", weapon = "mh", school = "physical" }, { type = "aura", aura = "stormstrike", target = "self" }]
+
+[spells.healing_wave]
+name = "Healing Wave"
+school = "nature"
+target = "self"
+ranks = [
+  { level = 1, lo = 36, hi = 47, mana = 25, cast = 1.5 }, { level = 6, lo = 69, hi = 83, mana = 45, cast = 2 },
+  { level = 12, lo = 126, hi = 151, mana = 80, cast = 2.5 }, { level = 18, lo = 246, hi = 289, mana = 155, cast = 3 },
+  { level = 24, lo = 328, hi = 383, mana = 200, cast = 3 }, { level = 32, lo = 463, hi = 538, mana = 265, cast = 3 },
+  { level = 40, lo = 654, hi = 755, mana = 340, cast = 3 }, { level = 48, lo = 927, hi = 1064, mana = 440, cast = 3 },
+  { level = 56, lo = 1275, hi = 1457, mana = 560, cast = 3 }, { level = 60, lo = 1508, hi = 1722, mana = 620, cast = 3 },
+]
+effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.cast / 3.5", tag = "Healing Wave" }]
+[spells.lesser_healing_wave]
+name = "Lesser Healing Wave"
+school = "nature"
+target = "self"
+cast_time = 1.5
+ranks = [{ level = 20, lo = 150, hi = 173, mana = 105 }, { level = 28, lo = 219, hi = 250, mana = 145 }, { level = 36, lo = 297, hi = 336, mana = 185 }, { level = 44, lo = 416, hi = 466, mana = 235 }, { level = 52, lo = 591, hi = 661, mana = 305 }, { level = 60, lo = 775, hi = 865, mana = 380 }]
+effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 0.4286, tag = "Lesser Healing Wave" }]
+[spells.chain_heal]
+name = "Chain Heal"
+school = "nature"
+target = "self"
+cast_time = 2.5
+ranks = [{ level = 40, lo = 245, hi = 282, mana = 260 }, { level = 46, lo = 325, hi = 373, mana = 315 }, { level = 54, lo = 473, hi = 540, mana = 405 }]
+effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 0.714, mult = "aura.riptide.up ? 1.25 : 1", tag = "Chain Heal" }]
+[spells.riptide]
+name = "Riptide"
+talent = "riptide"
+school = "nature"
+cooldown = 6
+target = "self"
+ranks = [{ level = 40, lo = 484, hi = 535, hot = 445, mana = 245 }, { level = 50, lo = 613, hi = 678, hot = 575, mana = 300 }, { level = 60, lo = 799, hi = 883, hot = 805, mana = 385 }]
+effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 0.3, tag = "Riptide" }, { type = "aura", aura = "riptide", target = "self" }]
+[spells.natures_swiftness]
+name = "Nature's Swiftness"
+talent = "natures_swiftness"
+off_gcd = true
+cooldown = 180
+target = "self"
+effects = [{ type = "aura", aura = "natures_swiftness" }]
+[spells.rage_of_the_farseer]
+name = "Rage of the Farseer"
+talent = "rage_of_the_farseer"
+off_gcd = true
+cooldown = 180
+target = "self"
+effects = [{ type = "aura", aura = "rage_of_the_farseer" }]
+
+# ------------------------------------------------------------------ rotations
+[rotations.enhancement]
+desc = "Enhancement two-hander: Windfury Weapon, Stormstrike, shocks, instant Lightning Bolt at five Maelstrom stacks, totems; Lesser Healing Wave when hurt"
+precombat = ["lightning_shield", "windfury_weapon", { cast = "rockbiter_weapon", if = "!known.windfury_weapon" }, "strength_of_earth_totem", "grace_of_air_totem"]
+opener = []
+actions = [
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "natures_swiftness", if = "hp_pct < 0.3" },
+  { cast = "healing_wave", if = "hp_pct < 0.3 && aura.natures_swiftness.up" },
+  { cast = "lightning_bolt", if = "aura.maelstrom_weapon.stacks >= 5 && hp_pct >= 0.4" },
+  { cast = "lesser_healing_wave", if = "hp_pct < 0.4" },
+  { cast = "healing_wave", if = "hp_pct < 0.4 && !known.lesser_healing_wave" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "rage_of_the_farseer" },
+  { cast = "stormstrike" },
+  { cast = "flame_shock", if = "!target.aura.flame_shock.up && target.hp_pct > 0.4" },
+  { cast = "earth_shock" },
+  { cast = "searing_totem", if = "target.hp_pct > 0.4 || target.boss" },
+  { cast = "fire_nova", if = "enemies >= 2" },
+  { cast = "lightning_shield" },
+  { cast = "strength_of_earth_totem", if = "target.boss || target.hp_pct > 0.5" },
+  { cast = "grace_of_air_totem", if = "target.boss || target.hp_pct > 0.5" },
+]
+rest = [
+  { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+  { cast = "healing_wave", if = "hp_pct < 0.6 && mana_pct > 0.5" },
+  { cast = "lightning_shield" },
+  { cast = "windfury_weapon" },
+  { cast = "rockbiter_weapon", if = "!known.windfury_weapon" },
+]
+eat_below = 0.5
+drink_below = 0.35
+
+[rotations.elemental]
+desc = "Elemental: Flame Shock, Lava Burst, Earth Shock, Chain Lightning, Lightning Bolt, Searing Totem; heals when hurt"
+auto_melee = false
+precombat = ["lightning_shield", "flametongue_weapon", { cast = "rockbiter_weapon", if = "!known.flametongue_weapon" }, "mana_spring_totem"]
+opener = []
+actions = [
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "natures_swiftness", if = "hp_pct < 0.3" },
+  { cast = "healing_wave", if = "hp_pct < 0.3 && aura.natures_swiftness.up" },
+  { cast = "lesser_healing_wave", if = "hp_pct < 0.35" },
+  { cast = "healing_wave", if = "hp_pct < 0.35 && !known.lesser_healing_wave" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "flame_shock", if = "!target.aura.flame_shock.up && (target.hp_pct > 0.35 || target.boss)" },
+  { cast = "lava_burst" },
+  { cast = "earth_shock", if = "target.hp_pct < 0.35 || !known.flame_shock" },
+  { cast = "chain_lightning" },
+  { cast = "searing_totem", if = "target.hp_pct > 0.4 || target.boss" },
+  { cast = "fire_nova", if = "enemies >= 2" },
+  { cast = "lightning_bolt" },
+]
+rest = [
+  { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+  { cast = "healing_wave", if = "hp_pct < 0.6 && mana_pct > 0.5" },
+  { cast = "lightning_shield" },
+]
+eat_below = 0.5
+drink_below = 0.4
+
+[rotations.stormwarden]
+desc = "Stormwarden: one-hander and shield, Water Shield (Lightning Shield before it), Flametongue, Stormstrike, shocks, Maelstrom Lightning Bolts or heals"
+precombat = ["water_shield", "lightning_shield", "flametongue_weapon", { cast = "rockbiter_weapon", if = "!known.flametongue_weapon" }, "strength_of_earth_totem"]
+opener = []
+actions = [
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "natures_swiftness", if = "hp_pct < 0.3" },
+  { cast = "healing_wave", if = "hp_pct < 0.3 && aura.natures_swiftness.up" },
+  { cast = "riptide", if = "hp_pct < 0.6" },
+  { cast = "lesser_healing_wave", if = "hp_pct < 0.4" },
+  { cast = "healing_wave", if = "hp_pct < 0.4 && !known.lesser_healing_wave" },
+  { cast = "lightning_bolt", if = "aura.maelstrom_weapon.stacks >= 5" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "rage_of_the_farseer" },
+  { cast = "stormstrike" },
+  { cast = "flame_shock", if = "!target.aura.flame_shock.up && target.hp_pct > 0.4" },
+  { cast = "earth_shock" },
+  { cast = "searing_totem", if = "target.hp_pct > 0.4 || target.boss" },
+  { cast = "fire_nova", if = "enemies >= 2" },
+  { cast = "water_shield" },
+  { cast = "lightning_shield" },
+  { cast = "strength_of_earth_totem", if = "target.boss || target.hp_pct > 0.5" },
+]
+rest = [
+  { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+  { cast = "healing_wave", if = "hp_pct < 0.6 && mana_pct > 0.5" },
+  { cast = "water_shield" },
+  { cast = "lightning_shield" },
+  { cast = "flametongue_weapon" },
+]
+eat_below = 0.45
+drink_below = 0.35

@@ -1,0 +1,816 @@
+# Warrior. Talents and spell ranks: Forever client 1.60.1.70338 (Fury and
+# Protection rework included). Stances use Classic values.
+name = "Warrior"
+icon = "classicon_warrior"
+resources = ["rage"]
+can_parry = true
+can_block = true
+can_dual_wield = true
+source = "forever-70338"
+
+base = [
+  { level = 1, str = 23, agi = 20, sta = 22, int = 20, spi = 20, hp = 20, mana = 0 },
+  { level = 40, str = 86, agi = 58, sta = 80, int = 25, spi = 35, hp = 1029, mana = 0 },
+  { level = 60, str = 119, agi = 78, sta = 110, int = 30, spi = 45, hp = 1689, mana = 0 },
+]
+
+[formulas]
+ap = "str * 2 + level * 3 - 20"
+rap = "agi + level - 10"
+melee_crit = "agi / interp(level, 1,4, 40,14.5, 60,20)"
+ranged_crit = "agi / interp(level, 1,4, 40,14.5, 60,20)"
+spell_crit = "0"
+dodge = "0.75 + agi / interp(level, 1,4, 40,14.5, 60,20)"
+parry = "5"
+block = "5"
+mana_regen = "0"
+hp_regen = "spi * 0.6"
+
+# ------------------------------------------------------------------ talents
+[talents.improved_heroic_strike]
+icon = "ability_rogue_ambush"
+tree = "Arms"
+points = 0
+ranks = 3
+text = "Heroic Strike costs 3 less Rage."
+spell_mods = [{ spells = ["heroic_strike"], prop = "cost", add = "-rank" }]
+[talents.deflection]
+icon = "ability_parry"
+tree = "Arms"
+points = 0
+ranks = 5
+text = "+5% parry."
+mods = [{ stat = "parry", add = "rank" }]
+[talents.improved_rend]
+icon = "ability_gouge"
+tree = "Arms"
+points = 0
+ranks = 3
+text = "Rend bleed damage +35%."
+spell_mods = [{ spells = ["rend"], prop = "damage", mul = "1 + 0.35 * rank / 3" }]
+[talents.improved_charge]
+icon = "ability_warrior_charge"
+tree = "Arms"
+points = 5
+ranks = 2
+text = "Charge generates 6 more Rage."
+[talents.improved_tactical_mastery]
+icon = "spell_nature_enchantarmor"
+tree = "Arms"
+points = 5
+ranks = 5
+text = "Keep up to 15 extra Rage when changing stance (stance dancing is not simulated)."
+[talents.improved_overpower]
+icon = "inv_sword_05"
+tree = "Arms"
+points = 5
+ranks = 2
+text = "Overpower crit chance +50%."
+spell_mods = [{ spells = ["overpower"], prop = "crit", add = "25 * rank" }]
+[talents.anger_management]
+icon = "spell_holy_blessingofstamina"
+tree = "Arms"
+points = 10
+ranks = 1
+text = "1 Rage every 3 sec in combat."
+procs = [{ on = "combat_start", effects = [{ type = "aura", aura = "anger_management" }] }]
+[talents.deep_wounds]
+icon = "ability_backstab"
+tree = "Arms"
+points = 10
+ranks = 3
+text = "Crits bleed for 60% of weapon damage over 12 sec."
+procs = [{ on = "melee_crit", effects = [{ type = "aura", aura = "deep_wounds", target = "target" }] }]
+[talents.spearing_strike]
+icon = "inv_spear_01"
+tree = "Arms"
+points = 15
+ranks = 1
+text = "40% weapon damage, +80% vs Giants, Dragonkin and mounted targets (not simulated)."
+[talents.two_handed_weapon_specialization]
+icon = "inv_axe_09"
+tree = "Arms"
+points = 15
+ranks = 3
+text = "Two-handed damage +3%."
+mods = [{ stat = "phys_dmg_done", mul = "two_hand ? 1 + 0.01 * rank : 1" }]
+[talents.impale]
+icon = "ability_searingarrow"
+tree = "Arms"
+points = 15
+ranks = 2
+requires = "deep_wounds"
+text = "Ability crit damage bonus +20%."
+spell_mods = [{ prop = "crit_bonus", add = "0.1 * rank" }]
+[talents.bloodthrill]
+icon = "inv_sword_01"
+tree = "Arms"
+points = 20
+ranks = 5
+text = "20% chance to allow Overpower after main-hand hits on Rend targets."
+procs = [{ on = "melee_landed", if = "event.mh && target.aura.rend.up", chance = "0.04 * rank", effects = [{ type = "aura", aura = "overpower_ready" }] }]
+[talents.sweeping_strikes]
+icon = "ability_rogue_slicedice"
+tree = "Arms"
+points = 20
+ranks = 1
+text = "Next 5 attacks also hit a nearby enemy (not simulated)."
+[talents.weaponmaster]
+icon = "garrison_weaponupgrade"
+tree = "Arms"
+points = 20
+ranks = 5
+text = "Weapon-dependent: crit, armour ignore or extra attack (exact values unpublished; not simulated)."
+[talents.improved_slam]
+icon = "ability_warrior_decisivestrike"
+tree = "Arms"
+points = 25
+ranks = 2
+text = "Slam cast and GCD -0.5 sec, cooldown -3 sec."
+spell_mods = [{ spells = ["slam"], prop = "cast_time", add = "-0.25 * rank" }, { spells = ["slam"], prop = "cooldown", add = "-1.5 * rank" }]
+[talents.improved_hamstring]
+icon = "ability_shockwave"
+tree = "Arms"
+points = 25
+ranks = 3
+text = "15% chance Hamstring immobilises (movement is not simulated)."
+[talents.mortal_strike]
+icon = "ability_warrior_savageblow"
+tree = "Arms"
+points = 30
+ranks = 1
+text = "Weapon damage +85..160, 50% healing reduction."
+
+[talents.booming_voice]
+icon = "spell_nature_purge"
+tree = "Fury"
+points = 0
+ranks = 5
+text = "Shout area +50%, cost -25%."
+spell_mods = [{ spells = ["battle_shout"], prop = "cost", mul = "1 - 0.05 * rank" }]
+[talents.cruelty]
+icon = "ability_rogue_eviscerate"
+tree = "Fury"
+points = 0
+ranks = 5
+text = "+5% melee crit."
+mods = [{ stat = "melee_crit", add = "rank" }]
+[talents.lingering_rage]
+icon = "ability_warrior_secondwind"
+tree = "Fury"
+points = 5
+ranks = 5
+text = "Rage decays 10 sec later after combat (between-pull rage is not carried over in the sim)."
+[talents.unbridled_wrath]
+icon = "spell_nature_stoneclawtotem"
+tree = "Fury"
+points = 5
+ranks = 5
+text = "60% chance for 1 extra Rage on weapon hits."
+procs = [{ on = "melee_landed", chance = "0.12 * rank", effects = [{ type = "resource", res = "rage", amount = 1 }] }]
+[talents.furious_precision]
+icon = "ability_warrior_incite"
+tree = "Fury"
+points = 10
+ranks = 3
+text = "Off-hand hit +4/7/10%."
+mods = [{ stat = "offhand_hit", add = "rank == 1 ? 4 : (rank == 2 ? 7 : 10)" }]
+[talents.piercing_howl]
+icon = "spell_shadow_deathscream"
+tree = "Fury"
+points = 10
+ranks = 1
+text = "Daze nearby enemies 50% for 6 sec (movement not simulated)."
+[talents.blood_craze]
+icon = "spell_shadow_summonimp"
+tree = "Fury"
+points = 10
+ranks = 3
+text = "Regenerate 3% of max health over 6 sec after being crit or taking a hit over 20% of max health."
+procs = [{ on = "struck", if = "event.crit || event.pct > 0.2", effects = [{ type = "aura", aura = "blood_craze" }] }]
+[talents.dual_wield_specialization]
+icon = "ability_dualwield"
+tree = "Fury"
+points = 15
+ranks = 5
+text = "Off-hand damage +25%, off-hand Rage +50%."
+mods = [{ stat = "offhand_mult", mul = "1 + 0.05 * rank" }, { stat = "offhand_rage", mul = "1 + 0.1 * rank" }]
+[talents.raging_blows]
+icon = "ability_whirlwind"
+tree = "Fury"
+points = 15
+ranks = 1
+text = "Cleave and Whirlwind cost 3 less Rage."
+spell_mods = [{ spells = ["cleave", "whirlwind"], prop = "cost", add = -3 }]
+[talents.enrage]
+icon = "spell_shadow_unholyfrenzy"
+tree = "Fury"
+points = 15
+ranks = 5
+text = "30% chance after being hit: +10% physical damage for 12 sec."
+procs = [{ on = "struck", chance = 0.30, effects = [{ type = "aura", aura = "enrage" }] }]
+[talents.improved_execute]
+icon = "inv_sword_48"
+tree = "Fury"
+points = 15
+ranks = 2
+text = "Execute costs 3/5 less Rage."
+spell_mods = [{ spells = ["execute"], prop = "cost", add = "rank == 1 ? -3 : -5" }]
+[talents.improved_berserker_rage]
+icon = "spell_nature_ancestralguardian"
+tree = "Fury"
+points = 20
+ranks = 2
+text = "Berserker Rage generates 10 Rage and frees from movement impairment."
+[talents.death_wish]
+icon = "spell_shadow_deathpact"
+tree = "Fury"
+points = 20
+ranks = 1
+text = "+20% physical damage, Fear immunity, +5% damage taken, 30 sec."
+[talents.improved_intercept]
+icon = "ability_rogue_sprint"
+tree = "Fury"
+points = 20
+ranks = 2
+text = "Intercept cooldown -10 sec (not simulated)."
+[talents.flurry]
+icon = "ability_ghoulfrenzy"
+tree = "Fury"
+points = 25
+ranks = 5
+requires = "death_wish"
+text = "+25% attack speed for 3 swings after a melee crit."
+procs = [{ on = "melee_crit", effects = [{ type = "aura", aura = "flurry" }] }]
+[talents.gore_drinker]
+icon = "racial_troll_berserk"
+tree = "Fury"
+points = 25
+ranks = 2
+requires = "enrage"
+text = "Enrage, Berserker Rage, Bloodrage, Death Wish and Bloodthirst make your next 3 melee attacks restore 0.5/1% of max health."
+procs = [{ on = "custom:gore_trigger", effects = [{ type = "aura", aura = "gore_drinker" }] }]
+[talents.bloodthirst]
+icon = "spell_nature_bloodlust"
+tree = "Fury"
+points = 30
+ranks = 1
+text = "45% of Attack Power + 30..48, +10% movement speed."
+
+[talents.improved_bloodrage]
+icon = "ability_racial_bloodrage"
+tree = "Protection"
+points = 0
+ranks = 2
+text = "Bloodrage Rage +50%."
+[talents.shield_specialization]
+icon = "inv_shield_06"
+tree = "Protection"
+points = 0
+ranks = 5
+text = "+5% block, 100% chance for 5 Rage on block."
+mods = [{ stat = "block", add = "rank" }]
+procs = [{ on = "block", chance = "0.2 * rank", effects = [{ type = "resource", res = "rage", amount = 5 }] }]
+[talents.iron_will]
+icon = "spell_magic_magearmor"
+tree = "Protection"
+points = 0
+ranks = 5
+text = "Stun and Fear durations -15%."
+mods = [{ stat = "stun_duration", mul = "1 - 0.03 * rank" }, { stat = "fear_duration", mul = "1 - 0.03 * rank" }]
+[talents.anticipation]
+icon = "spell_nature_mirrorimage"
+tree = "Protection"
+points = 5
+ranks = 5
+text = "+20 defense."
+mods = [{ stat = "defense", add = "4 * rank" }]
+[talents.improved_revenge]
+icon = "ability_warrior_revenge"
+tree = "Protection"
+points = 5
+ranks = 3
+text = "Revenge damage +60%."
+spell_mods = [{ spells = ["revenge"], prop = "damage", mul = "1 + 0.2 * rank" }]
+[talents.improved_thunder_clap]
+icon = "ability_thunderclap"
+tree = "Protection"
+points = 5
+ranks = 3
+text = "Thunder Clap costs 6 less Rage."
+spell_mods = [{ spells = ["thunder_clap"], prop = "cost", add = "-2 * rank" }]
+[talents.last_stand]
+icon = "spell_holy_ashestoashes"
+tree = "Protection"
+points = 10
+ranks = 1
+text = "+30% max health for 20 sec, then lost. 3 min cooldown."
+[talents.master_of_defense]
+icon = "ability_warrior_shieldguard"
+tree = "Protection"
+points = 10
+ranks = 2
+text = "5 Rage on dodge or parry with a shield."
+procs = [
+  { on = "dodge", if = "has_shield", chance = "0.5 * rank", effects = [{ type = "resource", res = "rage", amount = 5 }] },
+  { on = "parry", if = "has_shield", chance = "0.5 * rank", effects = [{ type = "resource", res = "rage", amount = 5 }] },
+]
+[talents.improved_disarm]
+icon = "ability_warrior_disarm"
+tree = "Protection"
+points = 10
+ranks = 3
+text = "Disarm cooldown -20 sec."
+spell_mods = [{ spells = ["disarm"], prop = "cooldown", add = "rank == 1 ? -7 : (rank == 2 ? -14 : -20)" }]
+[talents.defiance]
+icon = "ability_warrior_innerrage"
+tree = "Protection"
+points = 10
+ranks = 3
+text = "+15% threat in Defensive Stance with a shield."
+mods = [{ stat = "threat", mul = "(aura.defensive_stance.up && has_shield) ? 1 + 0.05 * rank : 1" }]
+[talents.improved_sunder_armor]
+icon = "ability_warrior_sunder"
+tree = "Protection"
+points = 15
+ranks = 3
+text = "Sunder Armor costs 3 less Rage."
+spell_mods = [{ spells = ["sunder_armor"], prop = "cost", add = "-rank" }]
+[talents.vanguard]
+icon = "ability_warrior_shieldcharge"
+tree = "Protection"
+points = 15
+ranks = 1
+text = "Charge usable in Defensive Stance (stances on pull are not simulated)."
+[talents.improved_shield_bash]
+icon = "ability_warrior_shieldbash"
+tree = "Protection"
+points = 15
+ranks = 2
+text = "Shield Bash silences 3 sec (not simulated)."
+[talents.improved_shield_wall]
+icon = "ability_warrior_shieldwall"
+tree = "Protection"
+points = 20
+ranks = 2
+text = "Shield Wall cooldown -11 min (not simulated)."
+[talents.concussion_blow]
+icon = "ability_thunderbolt"
+tree = "Protection"
+points = 20
+ranks = 1
+text = "Stun 5 sec, 45 sec cooldown."
+[talents.focused_rage]
+icon = "ability_warrior_focusedrage"
+tree = "Protection"
+points = 20
+ranks = 3
+text = "Offensive abilities cost 3 less Rage."
+spell_mods = [{ spells = ["heroic_strike", "bloodthirst", "mortal_strike", "whirlwind", "execute", "overpower", "rend", "cleave", "slam", "revenge", "shield_slam", "sunder_armor", "thunder_clap"], prop = "cost", add = "-rank" }]
+[talents.bastion]
+icon = "inv_shield_04"
+tree = "Protection"
+points = 25
+ranks = 5
+text = "+10% damage with a shield."
+mods = [{ stat = "dmg_done", mul = "has_shield ? 1 + 0.02 * rank : 1" }]
+[talents.shield_slam]
+icon = "inv_shield_05"
+tree = "Protection"
+points = 30
+ranks = 1
+text = "421..670 damage plus block value, very high threat."
+
+# ------------------------------------------------------------------ passives
+[[passives]]
+name = "Victory"
+procs = [{ on = "kill", effects = [{ type = "aura", aura = "victory_rush_ready" }] }]
+[[passives]]
+name = "Overpower window"
+procs = [{ on = "attack_dodged", effects = [{ type = "aura", aura = "overpower_ready" }] }]
+[[passives]]
+name = "Revenge window"
+procs = [
+  { on = "dodge", effects = [{ type = "aura", aura = "revenge_ready" }] },
+  { on = "parry", effects = [{ type = "aura", aura = "revenge_ready" }] },
+  { on = "block", effects = [{ type = "aura", aura = "revenge_ready" }] },
+]
+
+# ------------------------------------------------------------------ auras
+[auras.battle_stance]
+name = "Battle Stance"
+group = "stance"
+[auras.defensive_stance]
+name = "Defensive Stance"
+group = "stance"
+mods = [{ stat = "dmg_taken", mul = 0.9 }, { stat = "dmg_done", mul = 0.9 }, { stat = "threat", mul = 1.3 }]
+[auras.berserker_stance]
+name = "Berserker Stance"
+group = "stance"
+mods = [{ stat = "melee_crit", add = 3 }, { stat = "dmg_taken", mul = 1.1 }]
+[auras.battle_shout]
+name = "Battle Shout"
+duration = 120
+mods = [{ stat = "ap", add = "r.ap" }]
+[auras.victory_rush_ready]
+name = "Victory Rush window"
+duration = 20
+[auras.overpower_ready]
+name = "Overpower window"
+duration = 5
+[auras.revenge_ready]
+name = "Revenge window"
+duration = 5
+[auras.anger_management]
+name = "Anger Management"
+tick = { interval = 3, effects = [{ type = "resource", res = "rage", amount = 1 }] }
+[auras.deep_wounds]
+name = "Deep Wounds"
+debuff = true
+duration = 12
+tick = { interval = 3, effects = [{ type = "damage", school = "physical", periodic = true, amount = "0.2 * t.deep_wounds * (mh.min + mh.max) / 2 / 4", tag = "Deep Wounds" }] }
+[auras.rend]
+name = "Rend"
+debuff = true
+duration = "r.dur"
+tick = { interval = 3, effects = [{ type = "damage", school = "physical", periodic = true, amount = "r.total * 3 / r.dur", tag = "Rend" }] }
+[auras.sunder_armor]
+name = "Sunder Armor"
+debuff = true
+per_source = false
+duration = 30
+max_stacks = 5
+mods = [{ stat = "armor", add = "-r.armor * stacks" }]
+[auras.blood_craze]
+name = "Blood Craze"
+duration = 6
+tick = { interval = 1, effects = [{ type = "heal", target = "self", amount = "0.01 * t.blood_craze * max_hp / 6", tag = "Blood Craze" }] }
+[auras.enrage]
+name = "Enrage"
+duration = 12
+mods = [{ stat = "phys_dmg_done", mul = "1 + 0.02 * t.enrage" }]
+on_apply = [{ type = "emit", event = "gore_trigger" }]
+on_refresh = [{ type = "if", cond = "opt.gore_refresh_rearms", then = [{ type = "emit", event = "gore_trigger" }] }]
+[auras.flurry]
+name = "Flurry"
+duration = 15
+charges = 3
+mods = [{ stat = "melee_haste", mul = "1 + 0.05 * t.flurry" }]
+procs = [{ on = "melee_swing", effects = [{ type = "consume" }] }]
+[auras.gore_drinker]
+name = "Gore Drinker"
+duration = 30
+charges = 3
+text = "Duration is not on the tooltip; 30 sec assumed."
+procs = [{ on = "melee_landed", effects = [{ type = "heal", target = "self", amount = "0.005 * t.gore_drinker * max_hp", tag = "Gore Drinker" }, { type = "consume" }] }]
+[auras.death_wish]
+name = "Death Wish"
+duration = 30
+mods = [{ stat = "phys_dmg_done", mul = 1.2 }, { stat = "dmg_taken", mul = 1.05 }, { stat = "immune_fear", add = 1 }]
+[auras.berserker_rage]
+name = "Berserker Rage"
+duration = 10
+mods = [{ stat = "immune_fear", add = 1 }, { stat = "immune_incap", add = 1 }]
+[auras.bloodrage]
+name = "Bloodrage"
+duration = 10
+tick = { interval = 1, effects = [{ type = "resource", res = "rage", amount = "1 + 0.25 * t.improved_bloodrage" }] }
+[auras.last_stand]
+name = "Last Stand"
+duration = 20
+mods = [{ stat = "max_hp_mult", mul = 1.3 }]
+on_apply = [{ type = "resource", res = "hp", amount = "0" }]
+[auras.shield_block]
+name = "Shield Block"
+duration = 7
+charges = 2
+mods = [{ stat = "block", add = 75 }]
+procs = [{ on = "block", effects = [{ type = "consume" }] }]
+[auras.mortal_wound]
+name = "Mortal Strike"
+debuff = true
+per_source = false
+duration = 10
+mods = [{ stat = "heal_taken", mul = 0.5 }]
+
+# ------------------------------------------------------------------ spells
+[spells.battle_stance]
+name = "Battle Stance"
+level = 1
+off_gcd = true
+cooldown = 1
+target = "self"
+effects = [{ type = "aura", aura = "battle_stance" }]
+[spells.defensive_stance]
+name = "Defensive Stance"
+level = 10
+off_gcd = true
+cooldown = 1
+target = "self"
+effects = [{ type = "aura", aura = "defensive_stance" }]
+[spells.berserker_stance]
+name = "Berserker Stance"
+level = 30
+off_gcd = true
+cooldown = 1
+target = "self"
+effects = [{ type = "aura", aura = "berserker_stance" }]
+
+[spells.heroic_strike]
+name = "Heroic Strike"
+next_swing = true
+cost = { rage = 15 }
+ranks = [
+  { level = 1, bonus = 11 }, { level = 8, bonus = 21 }, { level = 16, bonus = 32 }, { level = 24, bonus = 44 },
+  { level = 32, bonus = 58 }, { level = 40, bonus = 80 }, { level = 48, bonus = 111 }, { level = 56, bonus = 138 },
+  { level = 60, bonus = 157 },
+]
+effects = [{ type = "damage", weapon = "mh", amount = "r.bonus", threat = 1.3 }]
+
+[spells.cleave]
+name = "Cleave"
+next_swing = true
+cost = { rage = 20 }
+ranks = [{ level = 20, bonus = 5 }, { level = 30, bonus = 10 }, { level = 40, bonus = 18 }, { level = 50, bonus = 32 }, { level = 60, bonus = 50 }]
+effects = [{ type = "damage", weapon = "mh", amount = "r.bonus", target = "enemies", max_targets = 2 }]
+
+[spells.bloodthirst]
+name = "Bloodthirst"
+talent = "bloodthirst"
+cost = { rage = 30 }
+cooldown = 6
+ranks = [{ level = 40, bonus = 30 }, { level = 48, bonus = 37 }, { level = 54, bonus = 43 }, { level = 60, bonus = 48 }]
+effects = [
+  { type = "damage", school = "physical", amount = "0.45 * ap + r.bonus" },
+  { type = "emit", event = "gore_trigger" },
+]
+
+[spells.mortal_strike]
+name = "Mortal Strike"
+talent = "mortal_strike"
+cost = { rage = 30 }
+cooldown = 6
+ranks = [{ level = 40, bonus = 85 }, { level = 48, bonus = 110 }, { level = 54, bonus = 135 }, { level = 60, bonus = 160 }]
+effects = [{ type = "damage", weapon = "mh", normalized = true, amount = "r.bonus", on_hit = [{ type = "aura", aura = "mortal_wound", target = "target" }] }]
+
+[spells.whirlwind]
+name = "Whirlwind"
+level = 36
+cost = { rage = 25 }
+cooldown = 10
+text = "Hits up to 4 enemies with both weapons (Forever)."
+effects = [
+  { type = "damage", weapon = "mh", normalized = true, target = "enemies", max_targets = 4 },
+  { type = "if", cond = "dual_wield", then = [{ type = "damage", weapon = "oh", normalized = true, weapon_mult = "offhand_mult", target = "enemies", max_targets = 4 }] },
+]
+
+[spells.execute]
+name = "Execute"
+cost = { rage = 15 }
+requires = "target.hp_pct < 0.2"
+ranks = [
+  { level = 24, base = 125, per = 3 }, { level = 32, base = 200, per = 6 }, { level = 40, base = 325, per = 9 },
+  { level = 48, base = 450, per = 12 }, { level = 56, base = 600, per = 15 },
+]
+effects = [
+  { type = "damage", school = "physical", amount = "r.base + r.per * rage" },
+  { type = "resource", res = "rage", amount = 0, set = true },
+]
+
+[spells.overpower]
+name = "Overpower"
+cost = { rage = 5 }
+cooldown = 5
+requires = "aura.overpower_ready.up && aura.battle_stance.up"
+ranks = [{ level = 12, bonus = 5 }, { level = 28, bonus = 15 }, { level = 44, bonus = 25 }, { level = 60, bonus = 35 }]
+effects = [
+  { type = "damage", weapon = "mh", normalized = true, amount = "r.bonus" },
+  { type = "remove_aura", aura = "overpower_ready" },
+]
+
+[spells.rend]
+name = "Rend"
+cost = { rage = 10 }
+ranks = [
+  { level = 4, total = 15, dur = 9 }, { level = 10, total = 28, dur = 12 }, { level = 20, total = 45, dur = 15 },
+  { level = 30, total = 66, dur = 18 }, { level = 40, total = 98, dur = 21 }, { level = 50, total = 126, dur = 21 },
+  { level = 60, total = 147, dur = 21 },
+]
+effects = [{ type = "aura", aura = "rend", target = "target" }]
+
+[spells.slam]
+name = "Slam"
+cost = { rage = 15 }
+cast_time = 1.5
+cooldown = 18
+ranks = [{ level = 20, bonus = 16 }, { level = 30, bonus = 32 }, { level = 38, bonus = 43 }, { level = 46, bonus = 68 }, { level = 54, bonus = 87 }]
+effects = [{ type = "damage", weapon = "mh", amount = "r.bonus" }]
+
+[spells.thunder_clap]
+name = "Thunder Clap"
+cost = { rage = 20 }
+cooldown = 6
+ranks = [{ level = 6, dmg = 10 }, { level = 18, dmg = 23 }, { level = 28, dmg = 37 }, { level = 38, dmg = 55 }, { level = 48, dmg = 82 }, { level = 58, dmg = 103 }]
+effects = [{ type = "damage", school = "physical", hit = "spell", amount = "r.dmg", target = "enemies", max_targets = 4, threat = 2.5 }]
+
+[spells.revenge]
+name = "Revenge"
+cost = { rage = 5 }
+cooldown = 5
+requires = "aura.revenge_ready.up"
+ranks = [
+  { level = 14, lo = 20, hi = 24 }, { level = 24, lo = 31, hi = 37 }, { level = 34, lo = 43, hi = 53 },
+  { level = 44, lo = 73, hi = 91 }, { level = 54, lo = 109, hi = 133 }, { level = 60, lo = 138, hi = 168 },
+]
+effects = [
+  { type = "damage", school = "physical", min = "r.lo", max = "r.hi", threat = 2.0 },
+  { type = "remove_aura", aura = "revenge_ready" },
+]
+
+[spells.shield_slam]
+name = "Shield Slam"
+talent = "shield_slam"
+cost = { rage = 20 }
+cooldown = 6
+requires = "has_shield"
+ranks = [{ level = 40, lo = 421, hi = 439 }, { level = 48, lo = 494, hi = 516 }, { level = 54, lo = 567, hi = 593 }, { level = 60, lo = 640, hi = 670 }]
+effects = [{ type = "damage", school = "physical", min = "r.lo + block_value", max = "r.hi + block_value", threat = 2.5 }]
+
+[spells.sunder_armor]
+name = "Sunder Armor"
+cost = { rage = 15 }
+ranks = [{ level = 10, armor = 90 }, { level = 22, armor = 180 }, { level = 34, armor = 270 }, { level = 46, armor = 360 }, { level = 58, armor = 450 }]
+effects = [{ type = "aura", aura = "sunder_armor", target = "target" }, { type = "threat", amount = "r.armor * 0.5 + 100" }]
+
+[spells.shield_block]
+name = "Shield Block"
+level = 16
+cost = { rage = 10 }
+cooldown = 5
+off_gcd = true
+requires = "has_shield"
+target = "self"
+effects = [{ type = "aura", aura = "shield_block" }]
+
+[spells.battle_shout]
+name = "Battle Shout"
+cost = { rage = 10 }
+target = "self"
+ranks = [
+  { level = 1, ap = 12 }, { level = 12, ap = 24 }, { level = 22, ap = 36 }, { level = 32, ap = 56 },
+  { level = 42, ap = 83 }, { level = 52, ap = 116 }, { level = 60, ap = 139 },
+]
+effects = [{ type = "aura", aura = "battle_shout" }]
+
+[spells.bloodrage]
+name = "Bloodrage"
+level = 10
+off_gcd = true
+cooldown = 60
+target = "self"
+cost = { hp = "opt.bloodrage_hp_cost * base_hp" }
+effects = [
+  { type = "resource", res = "rage", amount = "10 * (1 + 0.25 * t.improved_bloodrage)" },
+  { type = "aura", aura = "bloodrage" },
+  { type = "emit", event = "gore_trigger" },
+]
+
+[spells.berserker_rage]
+name = "Berserker Rage"
+level = 30
+off_gcd = true
+cooldown = 30
+target = "self"
+requires = "aura.berserker_stance.up"
+usable_while = ["fear", "incap"]
+effects = [
+  { type = "dispel", mechanics = ["fear", "incap"] },
+  { type = "aura", aura = "berserker_rage" },
+  { type = "resource", res = "rage", amount = "5 * t.improved_berserker_rage" },
+  { type = "emit", event = "gore_trigger" },
+]
+
+[spells.death_wish]
+name = "Death Wish"
+talent = "death_wish"
+cost = { rage = 10 }
+cooldown = 180
+target = "self"
+effects = [{ type = "aura", aura = "death_wish" }, { type = "emit", event = "gore_trigger" }]
+
+[spells.victory_rush]
+name = "Victory Rush"
+level = 20
+cooldown = 30
+requires = "aura.victory_rush_ready.up"
+text = "(1 + 15% AP) damage, heals 10% of max health, usable 20 sec after a kill, 30 sec cooldown."
+effects = [
+  { type = "damage", school = "physical", amount = "1 + 0.15 * ap" },
+  { type = "heal", target = "self", amount = "0.10 * max_hp", tag = "Victory Rush" },
+  { type = "remove_aura", aura = "victory_rush_ready" },
+]
+
+[spells.last_stand]
+name = "Last Stand"
+talent = "last_stand"
+off_gcd = true
+cooldown = 180
+target = "self"
+effects = [{ type = "aura", aura = "last_stand" }, { type = "resource", res = "hp", amount = "0.3 / 1.3 * max_hp" }]
+
+[spells.charge]
+name = "Charge"
+target = "enemy"
+ranks = [{ level = 4, rage = 9 }, { level = 26, rage = 12 }, { level = 46, rage = 15 }]
+effects = [
+  { type = "resource", res = "rage", amount = "r.rage + 3 * t.improved_charge" },
+  { type = "aura", aura = "stun", target = "target", duration = 1 },
+]
+
+[spells.disarm]
+name = "Disarm"
+level = 18
+cost = { rage = 20 }
+cooldown = 60
+requires = "aura.defensive_stance.up"
+effects = [{ type = "aura", aura = "disarm", target = "target", duration = 10 }]
+
+[spells.concussion_blow]
+name = "Concussion Blow"
+talent = "concussion_blow"
+cost = { rage = 10 }
+cooldown = 45
+effects = [{ type = "aura", aura = "stun", target = "target", duration = 5 }]
+
+# ------------------------------------------------------------------ rotations
+[rotations.fury_dw]
+# Same priority as the earlier Python sim.
+desc = "Fury dual wield: Bloodthirst > Whirlwind > Heroic Strike, cooldowns on use"
+precombat = ["battle_stance", "berserker_stance", "battle_shout"]
+opener = ["charge"]
+actions = [
+  { cast = "victory_rush" },
+  { cast = "last_stand", if = "hp_pct < 0.25" },
+  { cast = "bloodrage", if = "rage < 40" },
+  { cast = "berserker_rage", if = "rage < 80" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "death_wish" },
+  { cast = "execute", if = "target.hp_pct < 0.2" },
+  { cast = "bloodthirst" },
+  { cast = "whirlwind", if = "!known.bloodthirst || cd.bloodthirst.remains > 1.5 || rage >= 55" },
+  { cast = "heroic_strike", if = "rage >= 60 && target.hp_pct >= 0.2" },
+  { cast = "battle_shout", if = "!aura.battle_shout.up" },
+]
+rest = [
+  { cast = "cannibalize", if = "hp_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+]
+
+[rotations.arms_2h]
+desc = "Arms two-hander: Mortal Strike > Overpower > Whirlwind > Slam > Heroic Strike, Rend on long fights"
+precombat = ["battle_stance", "battle_shout"]
+opener = ["charge"]
+actions = [
+  { cast = "victory_rush" },
+  { cast = "last_stand", if = "hp_pct < 0.25" },
+  { cast = "bloodrage", if = "rage < 40" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "death_wish" },
+  { cast = "execute", if = "target.hp_pct < 0.2" },
+  { cast = "mortal_strike" },
+  { cast = "overpower" },
+  { cast = "rend", if = "!target.aura.rend.up && target.hp_pct > 0.5" },
+  { cast = "whirlwind", if = "rage >= 40" },
+  { cast = "slam", if = "rage >= 40" },
+  { cast = "heroic_strike", if = "rage >= 60 && target.hp_pct >= 0.2" },
+  { cast = "battle_shout", if = "!aura.battle_shout.up" },
+]
+rest = [
+  { cast = "cannibalize", if = "hp_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+]
+
+[rotations.prot_shield]
+desc = "Protection with a shield in Defensive Stance: Shield Slam > Revenge > Sunder > Heroic Strike"
+precombat = ["defensive_stance", "battle_shout"]
+opener = ["charge"]
+actions = [
+  { cast = "victory_rush" },
+  { cast = "last_stand", if = "hp_pct < 0.25" },
+  { cast = "bloodrage", if = "rage < 30" },
+  { cast = "shield_block", if = "rage >= 25" },
+  { cast = "concussion_blow", if = "target.is_player" },
+  { cast = "disarm", if = "target.is_player" },
+  { cast = "execute", if = "target.hp_pct < 0.2" },
+  { cast = "shield_slam" },
+  { cast = "revenge" },
+  { cast = "sunder_armor", if = "target.aura.sunder_armor.stacks < 5" },
+  { cast = "heroic_strike", if = "rage >= 45" },
+  { cast = "battle_shout", if = "!aura.battle_shout.up" },
+]
+rest = [
+  { cast = "cannibalize", if = "hp_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+]

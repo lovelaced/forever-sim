@@ -1,0 +1,28 @@
+# Destruction with the Imp, 0/20/31: Conflagrate, Shadowburn, Incinerate.
+name = "Destruction (0/20/31)"
+class = "warlock"
+race = "undead"
+level = 60
+gear = "cloth_caster"
+rotation = "destruction"
+
+[talents]
+demonic_embrace = 5
+improved_imp = 3
+unholy_power = 2
+fel_vitality = 3
+demonic_energies = 2
+demonic_sacrifice = 1
+master_summoner = 2
+improved_sayaad = 2
+improved_shadow_bolt = 5
+bane = 5
+cataclysm = 3
+aftermath = 2
+ruin = 5
+shadowburn = 1
+agonizing_flames = 3
+conflagrate = 1
+fire_and_brimstone = 3
+shadow_and_flame = 2
+incinerate = 1

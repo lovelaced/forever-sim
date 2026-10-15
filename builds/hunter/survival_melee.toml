@@ -1,0 +1,27 @@
+# Survival melee "Strider" hunter with a cat, 20/0/31: Mongoose, Counterattack,
+# Strider Kick and Lacerating Strikes, two-hander from the kit.
+name = "Survival Melee (20/0/31)"
+class = "hunter"
+race = "orc"
+level = 60
+gear = "mail_hunter"
+rotation = "survival_melee"
+
+[talents]
+endurance_training = 5
+focused_fire = 2
+improved_aspect_of_the_monkey = 3
+unleashed_fury = 5
+ferocity = 5
+deflection = 5
+savage_strikes = 2
+survivalist = 5
+surefooted = 3
+deterrence = 1
+predators_edge = 5
+counterattack = 1
+strider_kick = 1
+resourcefulness = 2
+expose_prey = 2
+lightning_reflexes = 3
+lacerating_strikes = 1

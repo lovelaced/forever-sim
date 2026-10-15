@@ -1,0 +1,50 @@
+# Enemy templates. Formulas use the enemy's own `level`.
+# dmg is the average hit before mitigation (+-dmg_spread).
+
+[enemies.humanoid]
+name = "Same-level humanoid"
+creature = "humanoid"
+hp = "interp(level, 1,45, 10,220, 20,600, 30,1050, 40,1650, 50,2600, 60,3800)"
+armor = "interp(level, 1,20, 10,300, 20,700, 30,1100, 40,1650, 50,2400, 60,3300)"
+dmg = "interp(level, 1,4, 10,14, 20,40, 30,70, 40,115, 50,160, 60,210)"
+speed = 2.0
+crit = 5.0
+attacks = true
+
+[enemies.humanoid_hard]
+name = "Same-level humanoid hitting 40% harder"
+creature = "humanoid"
+hp = "interp(level, 1,45, 10,220, 20,600, 30,1050, 40,1650, 50,2600, 60,3800)"
+armor = "interp(level, 1,20, 10,300, 20,700, 30,1100, 40,1650, 50,2400, 60,3300)"
+dmg = "1.4 * interp(level, 1,4, 10,14, 20,40, 30,70, 40,115, 50,160, 60,210)"
+speed = 2.0
+crit = 5.0
+
+[enemies.boss_plus2]
+name = "Dungeon boss (+2 levels, tanked, 5 Sunders on it)"
+creature = "humanoid"
+level_offset = 2
+boss = true
+attacks = false
+hp = "1e12"
+armor = "interp(level, 22,450, 42,900, 62,1500)"
+dmg = "0"
+crit = 0
+parry = 0
+dodge = "5.4"
+mods = [{ stat = "immune_stun", add = 1 }, { stat = "immune_root", add = 1 }, { stat = "immune_fear", add = 1 }, { stat = "immune_incap", add = 1 }]
+
+[enemies.pressure_rogue]
+name = "Geared melee player (rogue-like): attacks from behind, opener stun, second stun at 10 s"
+creature = "humanoid"
+player_like = true
+behind = true
+hp = "interp(level, 20,900, 30,1500, 40,2300, 50,3100, 60,4000)"
+armor = "interp(level, 20,600, 40,1200, 60,2000)"
+# at scale 1: 80 / 130 / 200 / 315 / 450 damage per second before mitigation at 20 / 30 / 40 / 50 / 60
+dmg = "interp(level, 20,57.6, 30,93.6, 40,144, 50,226.8, 60,324)"
+speed = 0.9
+crit = 25.0
+dodge = "interp(level, 20,8, 40,10, 60,12)"
+parry = 5.0
+stuns = [[0, 4], [10, 6]]

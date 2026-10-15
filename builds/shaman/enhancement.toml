@@ -1,0 +1,29 @@
+# Enhancement two-hander, 20/31/0: Windfury, Stormstrike, Maelstrom Lightning Bolts.
+name = "Enhancement (20/31/0)"
+class = "shaman"
+race = "orc"
+level = 60
+gear = "mail_enh"
+rotation = "enhancement"
+
+[talents]
+convection = 5
+concussion = 5
+call_of_flame = 3
+elemental_devastation = 2
+elemental_focus = 1
+elemental_alacrity = 3
+reverberation = 1
+thundering_strikes = 5
+ancestral_knowledge = 3
+mental_dexterity = 3
+improved_ghost_wolf = 2
+elemental_weapons = 3
+shamanistic_focus = 1
+anticipation = 1
+flurry = 5
+stormstrike = 1
+spirit_weapons = 1
+improved_stormstrike = 2
+maelstrom_weapon = 3
+rage_of_the_farseer = 1

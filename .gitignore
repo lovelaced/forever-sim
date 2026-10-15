@@ -1,0 +1,8 @@
+/target
+/web/fsim.wasm
+/_site
+/.icons
+node_modules/
+catalog.json
+/web/icons/
+/.textures

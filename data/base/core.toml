@@ -1,0 +1,56 @@
+# Core combat rules. Values are Classic 1.12 mechanics unless a Forever
+# change is known. Tables indexed by level difference use
+# [target level - attacker level = 0, 1, 2, 3+].
+
+[meta]
+data_build = "1.60.1.70338"
+data_date = "2026-10-10"
+notes = "Talents and spells from the Forever client build 1.60.1.70338 (same as 70291) via wowforevertalents.com; Classic 1.12 rules elsewhere."
+
+[combat]
+rage_conversion = [0.0091107836, 3.225598133, 4.2652911]  # a*L^2 + b*L + c
+rage_dealt = 7.5          # rage per (damage / conversion) dealt by white swings
+rage_taken = 2.5          # rage per (damage / conversion) taken
+melee_miss = [5.0, 5.5, 6.0, 8.0]       # player attacking a mob, before hit
+mob_dodge = [5.0, 5.2, 5.4, 5.6]
+mob_parry = [5.0, 5.5, 6.0, 14.0]       # only when attacking from the front
+glance_chance = [10.0, 20.0, 30.0, 40.0]
+glance_mult = [0.95, 0.95, 0.90, 0.75]
+crit_suppression = [0.0, 1.0, 2.0, 4.8]
+spell_hit = [96.0, 95.0, 94.0, 83.0]
+spell_hit_cap = 99.0
+dual_wield_miss = 19.0
+defense_per_point = 0.04   # % per defense point above attacker weapon skill
+gcd = 1.5
+energy_gcd = 1.0
+pushback = 0.5             # seconds added to a cast (removed from a channel) per hit
+max_pushbacks = 2
+heal_to_spell_damage = 0.3333   # Forever: bonus healing gives 1/3 as spell damage
+melee_crit_mult = 2.0
+spell_crit_mult = 1.5
+low_level_penalty_level = 20   # spells learned below this level get a reduced coefficient...
+low_level_penalty_per = 0.0375 # ...3.75% less per level below it
+downrank_offset = 11       # coefficient x min(1, (rank level + 11) / player level) when a higher rank exists
+armor_cap = 0.75
+dr_window = 15.0           # PvP diminishing returns on repeated stuns/fears/incapacitates/roots (0 = off)
+armor_k_per_level = 85.0   # damage reduction = armor / (armor + 85 x attacker level + 400)
+armor_k_base = 400.0
+tick = 2.0                 # resource / regeneration tick
+energy_per_tick = 20.0
+five_second_rule = 5.0
+normalized_1h = 2.4
+normalized_2h = 3.3
+normalized_dagger = 1.7
+normalized_ranged = 2.8
+
+[rest]
+# level, food health, drink mana, seconds to consume one
+table = [
+  [1, 61, 151, 18],
+  [5, 243, 437, 21],
+  [15, 552, 835, 24],
+  [25, 874, 1344, 27],
+  [35, 1392, 1992, 30],
+  [45, 2148, 2934, 30],
+  [55, 2148, 4200, 30],
+]

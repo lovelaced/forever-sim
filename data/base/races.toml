@@ -1,0 +1,209 @@
+# Races: stat offsets from the human baseline (Classic), class lists and
+# racials from the Forever client build 1.60.1.70338 (wowforevertalents.com/racials).
+# Racial actives are spells any rotation can list; a character without the
+# race simply skips them.
+
+[races.human]
+name = "Human"
+icon = "achievement_character_human_male"
+faction = "alliance"
+classes = ["warrior", "paladin", "hunter", "rogue", "priest", "mage", "warlock"]
+stats = { str = 0, agi = 0, sta = 0, int = 0, spi = 0 }
+source = "forever-70338"
+passives = [
+  { name = "Sword Specialization", if = "mh.sword", mods = [{ stat = "crit", add = 2 }] },
+  { name = "The Human Spirit", mods = [{ stat = "spi_pct", add = 0.05 }] },
+]
+[races.human.spells.will_to_survive]
+name = "Will to Survive"
+off_gcd = true
+cooldown = 180
+usable_while = ["stun"]
+target = "self"
+requires = "stunned"
+effects = [{ type = "dispel", mechanics = ["stun"] }]
+
+[races.dwarf]
+name = "Dwarf"
+icon = "achievement_character_dwarf_male"
+faction = "alliance"
+classes = ["warrior", "paladin", "hunter", "rogue", "priest", "shaman"]
+stats = { str = 2, agi = -4, sta = 3, int = -1, spi = -2 }
+source = "forever-70338"
+passives = [
+  { name = "Mace Specialization", if = "mh.mace", mods = [{ stat = "crit", add = 1 }] },
+]
+[races.dwarf.spells.stoneform]
+name = "Stoneform"
+off_gcd = true
+cooldown = 180
+target = "self"
+effects = [{ type = "aura", aura = "stoneform" }]
+[races.dwarf.auras.stoneform]
+name = "Stoneform"
+duration = 8
+mods = [{ stat = "phys_dmg_taken", mul = 0.9 }]
+
+[races.night_elf]
+name = "Night Elf"
+icon = "achievement_character_nightelf_male"
+faction = "alliance"
+classes = ["warrior", "hunter", "rogue", "priest", "druid"]
+stats = { str = -3, agi = 5, sta = -1, int = 0, spi = -1 }
+source = "forever-70338"
+passives = [{ name = "Quickness", mods = [{ stat = "dodge", add = 1 }] }]
+[races.night_elf.spells.elunes_light]
+name = "Elune's Light"
+off_gcd = true
+cooldown = 180
+target = "self"
+effects = [{ type = "aura", aura = "elunes_light" }]
+[races.night_elf.auras.elunes_light]
+name = "Elune's Light"
+duration = 15
+mods = [{ stat = "crit", add = 10 }]
+
+[races.gnome]
+name = "Gnome"
+icon = "achievement_character_gnome_male"
+faction = "alliance"
+classes = ["warrior", "rogue", "priest", "mage", "warlock"]
+stats = { str = -5, agi = 3, sta = -1, int = 4, spi = -1 }
+source = "forever-70338"
+passives = [{ name = "Expansive Mind", mods = [{ stat = "max_mana_mult", mul = 1.05 }, { stat = "max_energy_add", add = 5 }] }]
+[races.gnome.spells.eureka]
+name = "Eureka!"
+off_gcd = true
+cooldown = 120
+target = "self"
+effects = [{ type = "aura", aura = "eureka" }]
+[races.gnome.auras.eureka]
+name = "Eureka!"
+duration = 30
+charges = 3
+consume_on_cast = true
+spell_mods = [{ prop = "cost", mul = 0.9 }, { prop = "damage", mul = 1.1 }, { prop = "heal", mul = 1.1 }]
+
+[races.high_order]
+name = "High Order Skyborne"
+icon = "ability_druid_flightform"
+faction = "alliance"
+classes = ["warrior", "hunter", "rogue", "mage", "druid"]
+stats = { str = -3, agi = 4, sta = -1, int = 1, spi = 0 }   # assumption: no published stats
+source = "forever-70338 (stat offsets assumed)"
+passives = [{ name = "Wind Blessed", mods = [{ stat = "haste", mul = 1.01 }] }]
+
+[races.orc]
+name = "Orc"
+icon = "achievement_character_orc_male"
+faction = "horde"
+classes = ["warrior", "hunter", "rogue", "shaman", "mage", "warlock"]
+stats = { str = 3, agi = -3, sta = 2, int = -3, spi = 2 }
+source = "forever-70338"
+passives = [
+  { name = "Axe Specialization", if = "mh.axe", mods = [{ stat = "crit", add = 1 }] },
+  { name = "Hardiness", mods = [{ stat = "stun_duration", mul = 0.8 }] },
+]
+[races.orc.spells.blood_fury]
+name = "Blood Fury"
+off_gcd = true
+cooldown = 120
+target = "self"
+effects = [{ type = "aura", aura = "blood_fury" }]
+[races.orc.auras.blood_fury]
+name = "Blood Fury"
+duration = 15
+mods = [{ stat = "ap_mult", mul = 1.10 }, { stat = "sp", mul = 1.10 }, { stat = "heal_power", mul = 1.10 }]
+
+[races.undead]
+name = "Undead"
+icon = "achievement_character_undead_male"
+faction = "horde"
+classes = ["warrior", "paladin", "rogue", "priest", "mage", "warlock"]
+stats = { str = -1, agi = -2, sta = 1, int = -2, spi = 4 }
+source = "forever-70338"
+[[races.undead.passives]]
+name = "Touch of the Grave"
+text = "Your spells and attacks have a chance to drain health from the target, up to 5% of your maximum health. Beta testers report no internal cooldown and no procs from periodic damage or channel ticks."
+procs = [
+  { on = "melee_landed", chance = "(class.mage || class.priest || class.warlock) ? opt.tog_chance_caster : opt.tog_chance_melee", effects = [{ type = "damage", school = "shadow", hit = "auto", amount = "opt.tog_drain_pct / 100 * max_hp", can_crit = false, lifesteal = 1, no_proc = true, tag = "Touch of the Grave" }] },
+  { on = "ranged_landed", chance = "(class.mage || class.priest || class.warlock) ? opt.tog_chance_caster : opt.tog_chance_melee", effects = [{ type = "damage", school = "shadow", hit = "auto", amount = "opt.tog_drain_pct / 100 * max_hp", can_crit = false, lifesteal = 1, no_proc = true, tag = "Touch of the Grave" }] },
+  { on = "spell_landed", if = "!event.periodic", chance = "(class.mage || class.priest || class.warlock) ? opt.tog_chance_caster : opt.tog_chance_melee", effects = [{ type = "damage", school = "shadow", hit = "auto", amount = "opt.tog_drain_pct / 100 * max_hp", can_crit = false, lifesteal = 1, no_proc = true, tag = "Touch of the Grave" }] },
+]
+[races.undead.spells.will_of_the_forsaken]
+name = "Will of the Forsaken"
+off_gcd = true
+cooldown = 120
+usable_while = ["fear", "incap"]
+target = "self"
+requires = "feared || incapacitated"
+effects = [{ type = "dispel", mechanics = ["fear", "incap"] }]
+[races.undead.spells.cannibalize]
+name = "Cannibalize"
+cooldown = 120
+target = "self"
+text = "7% health and mana every 2 sec for 10 sec. Needs a humanoid or undead corpse (opt.corpse_chance)."
+effects = [{ type = "chance", p = "opt.corpse_chance", then = [{ type = "aura", aura = "cannibalize" }] }]
+[races.undead.auras.cannibalize]
+name = "Cannibalize"
+duration = 10
+break_on_damage = true
+tick = { interval = 2, effects = [
+  { type = "resource", res = "hp", amount = "0.07 * max_hp" },
+  { type = "resource", res = "mana", amount = "0.07 * max_mana" },
+] }
+
+[races.tauren]
+name = "Tauren"
+icon = "achievement_character_tauren_male"
+faction = "horde"
+classes = ["warrior", "hunter", "shaman", "druid"]
+stats = { str = 5, agi = -5, sta = 2, int = -5, spi = 1 }
+source = "forever-70338"
+passives = [{ name = "Endurance", mods = [{ stat = "max_hp_mult", mul = 1.05 }, { stat = "hit", add = 1 }] }]
+[races.tauren.spells.war_stomp]
+name = "War Stomp"
+cooldown = 120
+target = "enemy"
+effects = [{ type = "aura", aura = "stun", target = "enemies", max_targets = 5, duration = 2 }]
+
+[races.troll]
+name = "Troll"
+icon = "achievement_character_troll_male"
+faction = "horde"
+classes = ["warrior", "hunter", "rogue", "priest", "shaman", "mage", "warlock"]
+stats = { str = 1, agi = 2, sta = 1, int = -4, spi = 0 }
+source = "forever-70338"
+passives = [{ name = "Regeneration", mods = [{ stat = "combat_hp_regen", add = 0.10 }] }]
+[races.troll.spells.berserking]
+name = "Berserking"
+off_gcd = true
+cooldown = 180
+target = "self"
+effects = [{ type = "aura", aura = "berserking", stacks = "round(10 + 20 * clamp((1 - hp_pct) / 0.6, 0, 1))" }]
+[races.troll.auras.berserking]
+name = "Berserking"
+duration = 10
+max_stacks = 30
+refresh = "replace"
+text = "10% to 30% attack and casting speed (stacks = percent), more when hurt."
+mods = [{ stat = "haste", mul = "1 + stacks / 100" }]
+[races.troll.spells.rapid_regeneration]
+name = "Rapid Regeneration"
+cooldown = 180
+target = "self"
+effects = [{ type = "aura", aura = "rapid_regeneration" }]
+[races.troll.auras.rapid_regeneration]
+name = "Rapid Regeneration"
+duration = 6
+break_on_damage = true
+tick = { interval = 1, effects = [{ type = "resource", res = "hp", amount = "max_hp * 0.5 / 6" }] }
+
+[races.windshaper]
+name = "Windshaper Skyborne"
+icon = "spell_nature_cyclone"
+faction = "horde"
+classes = ["warrior", "hunter", "rogue", "shaman", "druid"]
+stats = { str = -3, agi = 4, sta = -1, int = 1, spi = 0 }   # assumption: no published stats
+source = "forever-70338 (stat offsets assumed)"
+passives = [{ name = "Wind Blessed", mods = [{ stat = "haste", mul = 1.01 }] }]

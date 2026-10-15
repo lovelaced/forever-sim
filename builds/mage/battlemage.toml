@@ -1,0 +1,27 @@
+# Battlemage: a sword in melee with instant Frost/Fire/Arcane spells, 10/0/41 Frost talents.
+name = "Battlemage (10/0/41)"
+class = "mage"
+race = "undead"
+level = 60
+gear = "cloth_battlemage"
+rotation = "battlemage"
+
+[talents]
+wand_specialization = 2
+arcane_focus = 3
+arcane_concentration = 5
+improved_frostbolt = 5
+elemental_precision = 3
+ice_shards = 5
+improved_frost_nova = 2
+frostbite = 3
+permafrost = 3
+piercing_ice = 3
+frost_channeling = 3
+ice_lance = 1
+shatter = 3
+ice_block = 1
+fingers_of_frost = 2
+cold_snap = 1
+winters_chill = 5
+ice_barrier = 1

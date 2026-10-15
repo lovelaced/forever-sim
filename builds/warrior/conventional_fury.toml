@@ -1,0 +1,45 @@
+# The usual 20/31 dual-wield Fury build, for comparison.
+name = "Conventional Fury (20/31)"
+class = "warrior"
+race = "undead"
+level = 60
+gear = "plate_dw"
+rotation = "fury_dw"
+
+order = [
+  "cruelty", "cruelty", "cruelty", "cruelty", "cruelty",
+  "unbridled_wrath", "unbridled_wrath", "unbridled_wrath", "unbridled_wrath", "unbridled_wrath",
+  "furious_precision", "furious_precision", "furious_precision", "piercing_howl", "booming_voice",
+  "dual_wield_specialization", "dual_wield_specialization", "dual_wield_specialization",
+  "dual_wield_specialization", "dual_wield_specialization",
+  "death_wish", "improved_execute", "improved_execute", "improved_intercept", "improved_intercept",
+  "flurry", "flurry", "flurry", "flurry", "flurry",
+  "bloodthirst",
+  "improved_heroic_strike", "improved_heroic_strike", "improved_heroic_strike",
+  "deflection", "deflection",
+  "improved_tactical_mastery", "improved_tactical_mastery", "improved_tactical_mastery",
+  "improved_tactical_mastery", "improved_tactical_mastery",
+  "improved_charge", "improved_charge", "improved_overpower", "improved_overpower",
+  "anger_management", "deep_wounds", "deep_wounds", "deep_wounds", "impale", "impale",
+]
+
+[talents]
+improved_heroic_strike = 3
+deflection = 2
+improved_tactical_mastery = 5
+improved_charge = 2
+improved_overpower = 2
+anger_management = 1
+deep_wounds = 3
+impale = 2
+cruelty = 5
+booming_voice = 1
+unbridled_wrath = 5
+furious_precision = 3
+piercing_howl = 1
+dual_wield_specialization = 5
+improved_execute = 2
+death_wish = 1
+improved_intercept = 2
+flurry = 5
+bloodthirst = 1

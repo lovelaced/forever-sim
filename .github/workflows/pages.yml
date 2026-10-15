@@ -1,0 +1,80 @@
+# Builds the simulator to WebAssembly and publishes web/ as a GitHub Pages
+# site. In the repository settings, set Pages > Source to "GitHub Actions".
+name: Deploy the web simulator
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Test the simulator
+        run: cargo test --release
+
+      - name: Build the command-line tool and the WebAssembly engine
+        run: |
+          cargo build --release
+          cargo build --release --lib --target wasm32-unknown-unknown
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the WebAssembly engine answers requests
+        run: node tools/wasm_smoke.mjs target/wasm32-unknown-unknown/release/forever_sim.wasm
+
+      # Game icons named in the data (talents, classes, races) and in
+      # web/meta.js: taken from the game's interface textures on GitHub
+      # (only the files needed are downloaded), with Wowhead's and Blizzard's
+      # image servers as a fallback. The drawn stand-ins (game-icons.net) are
+      # regenerated too, for any icon that is still missing.
+      - name: Collect the game icons and refresh the drawn stand-ins
+        run: |
+          ./target/release/fsim api '{"op":"catalog"}' > catalog.json
+          git clone --depth 1 --filter=blob:none --sparse --no-checkout https://github.com/Gethe/wow-ui-textures .textures
+          node tools/fetch_icons.mjs catalog.json --textures .textures
+          npm install --no-save --prefix .icons @iconify-json/game-icons@1
+          node tools/build_icons.mjs .icons/node_modules/@iconify-json/game-icons/icons.json catalog.json
+
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp -r web/. _site/
+          cp target/wasm32-unknown-unknown/release/forever_sim.wasm _site/fsim.wasm
+          ls -la _site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

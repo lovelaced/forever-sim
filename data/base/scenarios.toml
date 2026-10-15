@@ -1,0 +1,66 @@
+# Scenarios. kind = leveling | boss | duel | pressure.
+# `behind` = the simulated player attacks from behind (no parry/block).
+
+[scenarios.solo_1]
+kind = "leveling"
+desc = "Levelling for an hour: single pulls of same-level humanoids, 8 s between pulls"
+pull = 1
+minutes = 60
+enemy = "humanoid"
+travel = 8
+
+[scenarios.solo_2]
+kind = "leveling"
+desc = "Levelling for an hour: double pulls"
+pull = 2
+minutes = 60
+enemy = "humanoid"
+travel = 8
+
+[scenarios.solo_2_hard]
+kind = "leveling"
+desc = "Levelling for an hour: double pulls of mobs hitting 40% harder"
+pull = 2
+minutes = 60
+enemy = "humanoid_hard"
+travel = 8
+
+[scenarios.solo_3]
+kind = "leveling"
+desc = "Levelling for an hour: triple pulls"
+pull = 3
+minutes = 60
+enemy = "humanoid"
+travel = 8
+
+[scenarios.boss]
+kind = "boss"
+desc = "Dungeon boss for 120 s from behind, tank holds threat, health falls linearly (execute phase in the last 20%)"
+duration = 120
+enemy = "boss_plus2"
+behind = true
+
+[scenarios.pressure]
+kind = "pressure"
+desc = "World PvP pressure: one geared melee attacker with two stuns. Breakeven = attacker DPS (before your mitigation) at which you win half the time"
+attacker = "pressure_rogue"
+attackers = 1
+lo = 0.05
+hi = 8
+steps = 12
+max_time = 180
+
+[scenarios.pressure_2v1]
+kind = "pressure"
+desc = "World PvP pressure: two geared melee attackers. Breakeven is per attacker"
+attacker = "pressure_rogue"
+attackers = 2
+lo = 0.05
+hi = 8
+steps = 12
+max_time = 180
+
+[scenarios.duel]
+kind = "duel"
+desc = "Duel against another build (--vs), standing and trading, 180 s limit"
+max_time = 180

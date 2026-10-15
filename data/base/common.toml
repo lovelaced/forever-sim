@@ -1,0 +1,72 @@
+# Shared auras and spells any class can reference by plain name.
+
+[common.auras.stun]
+name = "Stunned"
+mechanic = "stun"
+debuff = true
+per_source = false
+
+[common.auras.fear]
+name = "Feared"
+mechanic = "fear"
+debuff = true
+per_source = false
+break_on_damage = 0.15   # fraction of max health taken before it breaks
+
+[common.auras.incap]
+name = "Incapacitated"
+mechanic = "incap"
+debuff = true
+per_source = false
+break_on_damage = true
+
+[common.auras.root]
+name = "Rooted"
+mechanic = "root"
+debuff = true
+
+[common.auras.frozen]
+name = "Frozen"
+mechanic = "freeze"
+debuff = true
+per_source = false
+break_on_damage = 0.25   # no distance in the sim: a frozen enemy cannot reach you until it breaks
+
+[common.auras.silence]
+name = "Silenced"
+mechanic = "silence"
+debuff = true
+
+[common.auras.disarm]
+name = "Disarmed"
+mechanic = "disarm"
+debuff = true
+per_source = false
+
+[common.auras.healthstone_cd]
+name = "Healthstone used"
+duration = 120
+
+[common.spells.healing_potion]
+name = "Healing Potion"
+off_gcd = true
+cd_group = "potion"
+cooldown = 120
+level = 1
+target = "self"
+text = "Classic potion by level: Minor 70-90 ... Major 1050-1750."
+effects = [
+  { type = "heal", min = "interp(level, 1,70, 12,140, 21,280, 35,455, 45,700, 55,1050)", max = "interp(level, 1,90, 12,180, 21,360, 35,585, 45,900, 55,1750)", can_crit = false, tag = "Healing Potion" },
+]
+
+[common.spells.mana_potion]
+name = "Mana Potion"
+off_gcd = true
+cd_group = "potion"
+cooldown = 120
+level = 5
+target = "self"
+text = "Classic potion by level: Minor 140-180 ... Major 1350-2250."
+effects = [
+  { type = "resource", res = "mana", amount = "interp(level, 5,160, 14,320, 22,520, 31,780, 41,1180, 49,1500, 55,1800)" },
+]

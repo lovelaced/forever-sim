@@ -1,0 +1,27 @@
+# "Pact" warlock, 20/31/0: sacrifice the Voidwalker for mana, keep it with
+# Demonic Pact, fight with the Felhunter, Soul Link, Demonic Knowledge.
+name = "Pact (20/31)"
+class = "warlock"
+race = "undead"
+level = 60
+gear = "cloth_caster"
+rotation = "pact"
+
+[talents]
+improved_corruption = 5
+suppression = 5
+improved_drains = 3
+malediction = 2
+improved_bane_of_agony = 2
+pandemic = 3
+demonic_embrace = 5
+unholy_power = 5
+fel_vitality = 3
+demonic_energies = 2
+demonic_sacrifice = 1
+master_summoner = 2
+demonic_brand = 3
+soul_link = 1
+demonic_knowledge = 3
+master_demonologist = 5
+demonic_pact = 1

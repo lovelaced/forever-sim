@@ -1,0 +1,578 @@
+//! JSON interface used by the web front end (through WebAssembly or the
+//! local `fsim serve` server). One entry point: `handle(request) -> response`,
+//! both JSON strings. Data files and example builds are embedded at build
+//! time, so this needs no file system.
+//!
+//! Requests (`op`):
+//! * `catalog` - everything the UI needs to draw pickers and talent trees.
+//! * `sheet` {build} - validate a build and return its character sheet.
+//! * `start` {scenario, builds, opponent?, level?, opts?, precision?, max_reps?, seed?}
+//!   -> {id, max_reps}. Starts a Monte Carlo session; nothing runs yet.
+//! * `step` {id, reps} - run up to `reps` more replications per build and
+//!   report progress; call until `finished`.
+//! * `run` {id, from, count} - run replications `from..from+count` and return
+//!   their raw values without keeping them. The page sends these to several
+//!   Web Workers at once, each holding the same session.
+//! * `add` {id, chunk} - hand a `run` response to the session that keeps the
+//!   results; it reports progress like `step`.
+//! Convergence is checked at fixed replication counts (`min_reps`, then
+//! every 16), so a session stops at the same point however the work was
+//! split between workers, and gives the same result.
+//! * `result` {id} - summaries, intervals and paired comparisons.
+//! * `drop` {id} - forget a session.
+//! Every request may carry `patches: [{name, text}]` (TOML overlays) to test
+//! data changes; the world is rebuilt when they change.
+
+use crate::build::{build_from_table, Build};
+use crate::engine::Sim;
+use crate::mc::{self, McCfg, McResult, Variant};
+use crate::model::*;
+use crate::scenario::{run_rep, RepInput, Values};
+use crate::validate::modelled_talents;
+use crate::world::{load_world_mem, MemData};
+use serde_json::{json, Map, Value as J};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::sync::{Arc, Mutex};
+
+mod embedded {
+    include!(concat!(env!("OUT_DIR"), "/embedded.rs"));
+}
+
+/// Replications for every variant: [variant][replication].
+type Chunk = Vec<Vec<Values>>;
+
+struct Session {
+    world: Arc<World>,
+    scenario: String,
+    variants: Vec<Variant>,
+    /// Replications 0..n, in order.
+    values: Chunk,
+    /// Chunks that arrived ahead of `values`, keyed by first replication.
+    pending: BTreeMap<usize, Chunk>,
+    /// Replication count at the last convergence check, and its precision.
+    checked: usize,
+    precision: Vec<f64>,
+    cfg: McCfg,
+    converged: bool,
+    finished: bool,
+}
+
+struct State {
+    world_key: String,
+    world: Option<Arc<World>>,
+    sessions: HashMap<u64, Session>,
+    next_id: u64,
+}
+
+static STATE: Mutex<Option<State>> = Mutex::new(None);
+
+fn err(msg: impl std::fmt::Display) -> String {
+    json!({ "error": msg.to_string() }).to_string()
+}
+
+/// Handle one request. Never panics on bad input; errors come back as {"error": ...}.
+pub fn handle(req: &str) -> String {
+    let v: J = match serde_json::from_str(req) {
+        Ok(v) => v,
+        Err(e) => return err(format!("bad request: {e}")),
+    };
+    let mut guard = STATE.lock().unwrap_or_else(|p| p.into_inner());
+    let st = guard.get_or_insert_with(|| State { world_key: String::new(), world: None, sessions: HashMap::new(), next_id: 1 });
+    let world = match world_for(st, &v) {
+        Ok(w) => w,
+        Err(e) => return err(e),
+    };
+    let op = v.get("op").and_then(|x| x.as_str()).unwrap_or("");
+    let out = match op {
+        "catalog" => Ok(catalog(&world)),
+        "sheet" => sheet(&world, &v),
+        "start" => start(st, world, &v),
+        "step" => step(st, &v),
+        "run" => run_chunk(st, &v),
+        "add" => add(st, &v),
+        "result" => result(st, &v),
+        "drop" => {
+            if let Some(id) = v.get("id").and_then(|x| x.as_u64()) {
+                st.sessions.remove(&id);
+            }
+            Ok(json!({ "ok": true }))
+        }
+        _ => Err(format!("unknown op '{op}'")),
+    };
+    match out {
+        Ok(j) => j.to_string(),
+        Err(e) => err(e),
+    }
+}
+
+fn world_for(st: &mut State, v: &J) -> Result<Arc<World>, String> {
+    let patches: Vec<(String, String)> = v
+        .get("patches")
+        .and_then(|p| p.as_array())
+        .map(|a| {
+            a.iter()
+                .filter_map(|p| Some((p.get("name")?.as_str()?.to_string(), p.get("text")?.as_str()?.to_string())))
+                .collect()
+        })
+        .unwrap_or_default();
+    let key = patches.iter().map(|(n, t)| format!("{n}\u{1}{t}")).collect::<Vec<_>>().join("\u{2}");
+    if let Some(w) = &st.world {
+        if st.world_key == key {
+            return Ok(w.clone());
+        }
+    }
+    let files: Vec<(String, String)> = embedded::DATA_FILES.iter().map(|(p, t)| (p.to_string(), t.to_string())).collect();
+    let w = load_world_mem(&MemData { files: &files, at_build: None, extra: &patches, skip_patches: false })?;
+    let w = Arc::new(w);
+    st.world = Some(w.clone());
+    st.world_key = key;
+    Ok(w)
+}
+
+// ---------------------------------------------------------------- catalog
+
+fn catalog(w: &World) -> J {
+    let classes: Vec<J> = w
+        .classes
+        .iter()
+        .enumerate()
+        .map(|(ci, c)| {
+            let modelled = modelled_talents(w, ci);
+            let talents: Vec<J> = c
+                .talents
+                .iter()
+                .enumerate()
+                .map(|(i, t)| {
+                    json!({
+                        "id": t.id, "name": t.name, "tree": t.tree, "points": t.points, "ranks": t.ranks,
+                        "requires": t.requires.map(|r| c.talents[r as usize].id.clone()),
+                        "text": t.text, "modelled": modelled[i], "icon": t.icon,
+                    })
+                })
+                .collect();
+            let rotations: Vec<J> = c.rotations.values().map(|r| json!({ "id": r.id, "desc": r.desc })).collect();
+            let races: Vec<&str> = w.races.iter().filter(|r| r.classes.is_empty() || r.classes.contains(&c.id)).map(|r| r.id.as_str()).collect();
+            json!({
+                "id": c.id, "name": c.name, "icon": c.icon, "trees": c.trees, "talents": talents, "rotations": rotations, "races": races,
+                "resources": c.resources.iter().map(|r| r.name()).collect::<Vec<_>>(),
+            })
+        })
+        .collect();
+    let races: Vec<J> = w
+        .races
+        .iter()
+        .map(|r| json!({ "id": r.id, "name": r.name, "icon": r.icon, "faction": r.faction, "classes": r.classes, "passives": r.passives.iter().map(|p| p.name.clone()).collect::<Vec<_>>() }))
+        .collect();
+    let gear: Vec<J> = w.gear.values().map(|g| json!({ "id": g.id, "desc": g.desc, "levels": g.anchors.iter().map(|a| a.0).collect::<Vec<_>>() })).collect();
+    let scenarios: Vec<J> = w
+        .scenarios
+        .values()
+        .map(|s| {
+            let kind = match s.kind {
+                ScenarioKind::Leveling { .. } => "leveling",
+                ScenarioKind::Boss { .. } => "boss",
+                ScenarioKind::Duel { .. } => "duel",
+                ScenarioKind::Pressure { .. } => "pressure",
+            };
+            json!({ "id": s.id, "desc": s.desc, "kind": kind, "primary": s.primary })
+        })
+        .collect();
+    let options: Vec<J> = w.opts.iter().map(|o| json!({ "name": o.name, "default": o.default, "desc": o.desc })).collect();
+    let presets: Vec<J> = embedded::BUILD_FILES
+        .iter()
+        .filter_map(|(path, text)| {
+            let t: toml::Table = toml::from_str(text).ok()?;
+            let mut b = serde_json::to_value(&t).ok()?;
+            let note: Vec<&str> = text.lines().take_while(|l| l.starts_with('#')).map(|l| l.trim_start_matches('#').trim()).collect();
+            b["file"] = J::from(*path);
+            b["note"] = J::from(note.join(" "));
+            Some(b)
+        })
+        .collect();
+    json!({
+        "data_build": w.meta.data_build,
+        "patches": w.meta.patches,
+        "classes": classes, "races": races, "gear": gear, "scenarios": scenarios, "options": options, "presets": presets,
+    })
+}
+
+// ---------------------------------------------------------------- builds
+
+fn parse_build(w: &World, b: &J, level: Option<u32>) -> Result<Build, String> {
+    let mut b = b.clone();
+    if let Some(o) = b.as_object_mut() {
+        o.remove("file");
+        o.remove("note");
+        o.retain(|_, v| !v.is_null());
+        if let Some(t) = o.get_mut("talents").and_then(|t| t.as_object_mut()) {
+            t.retain(|_, v| v.as_u64().map_or(false, |x| x > 0));
+        }
+    }
+    let table: toml::Table = serde_json::from_value(b).map_err(|e| format!("build: {e}"))?;
+    build_from_table(w, &table, "build", level)
+}
+
+fn default_opts(w: &World) -> Vec<f64> {
+    w.opts.iter().map(|o| o.default).collect()
+}
+
+fn opts_for(w: &World, b: &Build, sc: Option<&ScenarioDef>, over: Option<&J>) -> Result<Vec<f64>, String> {
+    let mut v = default_opts(w);
+    if let Some(sc) = sc {
+        for &(i, x) in &sc.opts {
+            v[i as usize] = x;
+        }
+    }
+    for &(i, x) in &b.opts {
+        v[i as usize] = x;
+    }
+    if let Some(o) = over.and_then(|o| o.as_object()) {
+        for (k, x) in o {
+            let i = w.opt_index(k).ok_or_else(|| format!("unknown option '{k}'"))?;
+            v[i as usize] = x.as_f64().ok_or_else(|| format!("option {k} must be a number"))?;
+        }
+    }
+    Ok(v)
+}
+
+fn describe(w: &World, b: &Build) -> J {
+    json!({
+        "name": b.name, "class": w.classes[b.class].id, "class_name": w.classes[b.class].name,
+        "race": w.races[b.race].id, "race_name": w.races[b.race].name, "level": b.level,
+        "split": b.tree_split(w), "gear": b.gear_id, "rotation": b.rotation, "warnings": b.warnings,
+    })
+}
+
+fn sheet(w: &World, v: &J) -> Result<J, String> {
+    let level = v.get("level").and_then(|x| x.as_u64()).map(|x| x as u32);
+    let b = parse_build(w, v.get("build").ok_or("sheet needs a build")?, level)?;
+    let opts = opts_for(w, &b, None, v.get("opts"))?;
+    let mut sim = Sim::new(w, 1, opts);
+    let p = sim.spawn_player(&b, 0, 0);
+    let before = sim.sheet(p);
+    sim.precombat(p);
+    let after = sim.sheet(p);
+    let rows: Vec<J> = before.iter().zip(after.iter()).map(|((k, a), (_, c))| json!({ "stat": k, "base": a, "buffed": c })).collect();
+    let auras: Vec<String> = sim.actors[p].auras.iter().map(|a| w.auras[a.def as usize].name.clone()).collect();
+    let modelled = modelled_talents(w, b.class);
+    let c = &w.classes[b.class];
+    let unmodelled: Vec<String> = c.talents.iter().enumerate().filter(|(i, _)| b.talents[*i] > 0 && !modelled[*i]).map(|(_, t)| t.name.clone()).collect();
+    let talents: Map<String, J> = c.talents.iter().enumerate().filter(|(i, _)| b.talents[*i] > 0).map(|(i, t)| (t.id.clone(), J::from(b.talents[i]))).collect();
+    Ok(json!({ "build": describe(w, &b), "rows": rows, "auras": auras, "unmodelled": unmodelled, "talents": talents }))
+}
+
+// ---------------------------------------------------------------- sessions
+
+fn start(st: &mut State, world: Arc<World>, v: &J) -> Result<J, String> {
+    let w = &*world;
+    let scenario = v.get("scenario").and_then(|x| x.as_str()).ok_or("start needs a scenario")?.to_string();
+    let sc = w.scenarios.get(&scenario).ok_or_else(|| format!("unknown scenario '{scenario}'"))?;
+    let level = v.get("level").and_then(|x| x.as_u64()).map(|x| x as u32);
+    let builds = v.get("builds").and_then(|x| x.as_array()).ok_or("start needs builds")?;
+    if builds.is_empty() {
+        return Err("give at least one build".into());
+    }
+    let opponent = match v.get("opponent") {
+        Some(o) if !o.is_null() => Some(parse_build(w, o, level).map_err(|e| format!("opponent: {e}"))?),
+        _ => None,
+    };
+    if matches!(sc.kind, ScenarioKind::Duel { .. }) && opponent.is_none() {
+        return Err("a duel needs an opponent".into());
+    }
+    let mut variants = Vec::new();
+    for (i, bj) in builds.iter().enumerate() {
+        let b = parse_build(w, bj, level).map_err(|e| format!("build {}: {e}", i + 1))?;
+        let opts = opts_for(w, &b, Some(sc), v.get("opts"))?;
+        variants.push(Variant { world: 0, name: b.name.clone(), build: b, opponent: opponent.clone(), opts });
+    }
+    let d = McCfg::default();
+    let cfg = McCfg {
+        seed: v.get("seed").and_then(|x| x.as_u64()).unwrap_or(d.seed),
+        min_reps: v.get("min_reps").and_then(|x| x.as_u64()).map(|x| x as usize).unwrap_or(32),
+        max_reps: v.get("max_reps").and_then(|x| x.as_u64()).map(|x| x as usize).unwrap_or(2000),
+        batch: 16,
+        precision: v.get("precision").and_then(|x| x.as_f64()).unwrap_or(0.02),
+        conf: 0.95,
+        threads: 1,
+    };
+    let id = st.next_id;
+    st.next_id += 1;
+    let n = variants.len();
+    let max_reps = cfg.max_reps;
+    st.sessions.insert(
+        id,
+        Session {
+            world,
+            scenario,
+            variants,
+            values: vec![Vec::new(); n],
+            pending: BTreeMap::new(),
+            checked: 0,
+            precision: vec![f64::INFINITY; n],
+            cfg,
+            converged: false,
+            finished: false,
+        },
+    );
+    Ok(json!({ "id": id, "max_reps": max_reps }))
+}
+
+fn session<'a>(st: &'a mut State, v: &J) -> Result<&'a mut Session, String> {
+    let id = v.get("id").and_then(|x| x.as_u64()).ok_or("missing session id")?;
+    st.sessions.get_mut(&id).ok_or_else(|| "unknown or expired session".to_string())
+}
+
+fn step(st: &mut State, v: &J) -> Result<J, String> {
+    let s = session(st, v)?;
+    let want = v.get("reps").and_then(|x| x.as_u64()).unwrap_or(8).max(1) as usize;
+    if !s.finished {
+        let from = s.values[0].len();
+        let chunk = run_range(s, from, want)?;
+        absorb(s, from, chunk)?;
+    }
+    Ok(progress(s))
+}
+
+/// Replications `from..from+count` (capped at `max_reps`) for every variant.
+fn run_range(s: &Session, from: usize, count: usize) -> Result<Chunk, String> {
+    let w = &*s.world;
+    let sc = w.scenarios.get(&s.scenario).ok_or("scenario vanished")?;
+    let to = from.saturating_add(count).min(s.cfg.max_reps);
+    let mut chunk: Chunk = vec![Vec::new(); s.variants.len()];
+    for r in from..to.max(from) {
+        let seed = mc::rep_seed(&s.cfg, sc, r);
+        for (vi, var) in s.variants.iter().enumerate() {
+            let (vals, _) = run_rep(&RepInput { w, sc, build: &var.build, opponent: var.opponent.as_ref(), opts: &var.opts, seed, log: false });
+            chunk[vi].push(vals);
+        }
+    }
+    Ok(chunk)
+}
+
+/// Store a chunk starting at replication `from`, then check convergence at
+/// every checkpoint the in-order results have reached.
+fn absorb(s: &mut Session, from: usize, chunk: Chunk) -> Result<(), String> {
+    if chunk.len() != s.variants.len() || chunk.iter().any(|c| c.len() != chunk[0].len()) {
+        return Err("chunk does not match the session".into());
+    }
+    if s.finished || from < s.values[0].len() {
+        return Ok(());
+    }
+    s.pending.insert(from, chunk);
+    while let Some(chunk) = s.pending.remove(&s.values[0].len()) {
+        for (vals, more) in s.values.iter_mut().zip(chunk) {
+            vals.extend(more);
+        }
+    }
+    let w = &*s.world;
+    let sc = w.scenarios.get(&s.scenario).ok_or("scenario vanished")?;
+    let every = s.cfg.batch.max(1);
+    let have = s.values[0].len();
+    while !s.finished {
+        let at = ((s.checked / every + 1) * every).max(s.cfg.min_reps).min(s.cfg.max_reps);
+        if at > have || at <= s.checked {
+            s.finished = at <= s.checked;
+            break;
+        }
+        s.checked = at;
+        s.precision = s.values.iter().map(|vals| mc::precision_of(&vals[..at], &sc.primary, s.cfg.conf)).collect();
+        if at >= s.cfg.min_reps && s.precision.iter().all(|&p| p <= s.cfg.precision) {
+            s.converged = true;
+            s.finished = true;
+            s.values.iter_mut().for_each(|vals| vals.truncate(at));
+        } else if at >= s.cfg.max_reps {
+            s.finished = true;
+        }
+    }
+    if s.finished {
+        s.pending.clear();
+    }
+    Ok(())
+}
+
+fn progress(s: &Session) -> J {
+    let precision: Vec<J> = s.precision.iter().map(|&p| if p.is_finite() { J::from(p) } else { J::Null }).collect();
+    json!({
+        "reps": s.values[0].len(), "max_reps": s.cfg.max_reps, "target": s.cfg.precision,
+        "precision": precision, "converged": s.converged, "finished": s.finished,
+    })
+}
+
+fn run_chunk(st: &mut State, v: &J) -> Result<J, String> {
+    let s = session(st, v)?;
+    let from = v.get("from").and_then(|x| x.as_u64()).ok_or("run needs from")? as usize;
+    let count = v.get("count").and_then(|x| x.as_u64()).ok_or("run needs count")? as usize;
+    let chunk = run_range(s, from, count)?;
+    Ok(json!({ "from": from, "values": chunk.iter().map(|reps| encode_reps(reps)).collect::<Vec<_>>() }))
+}
+
+fn add(st: &mut State, v: &J) -> Result<J, String> {
+    let s = session(st, v)?;
+    let c = v.get("chunk").ok_or("add needs a chunk")?;
+    if let Some(e) = c.get("error") {
+        return Err(format!("a worker failed: {e}"));
+    }
+    let from = c.get("from").and_then(|x| x.as_u64()).ok_or("chunk without from")? as usize;
+    let chunk = c.get("values").and_then(|x| x.as_array()).ok_or("chunk without values")?.iter().map(decode_reps).collect::<Result<Chunk, _>>()?;
+    absorb(s, from, chunk)?;
+    Ok(progress(s))
+}
+
+/// Replications as {k: [metric names], r: [[value per name]]}: a missing
+/// metric is null, a non-finite value a string, so decoding gives back
+/// exactly the same maps (serde_json's float_roundtrip keeps every bit).
+fn encode_reps(reps: &[Values]) -> J {
+    let keys: Vec<&String> = reps.iter().flat_map(|v| v.keys()).collect::<BTreeSet<_>>().into_iter().collect();
+    let rows: Vec<J> = reps
+        .iter()
+        .map(|v| {
+            J::Array(
+                keys.iter()
+                    .map(|k| match v.get(*k) {
+                        None => J::Null,
+                        Some(x) if x.is_finite() => J::from(*x),
+                        Some(x) => J::String(x.to_string()),
+                    })
+                    .collect(),
+            )
+        })
+        .collect();
+    json!({ "k": keys, "r": rows })
+}
+
+fn decode_reps(j: &J) -> Result<Vec<Values>, String> {
+    let bad = || "malformed chunk".to_string();
+    let keys: Vec<&str> = j.get("k").and_then(|x| x.as_array()).ok_or_else(bad)?.iter().map(|k| k.as_str().ok_or_else(bad)).collect::<Result<_, _>>()?;
+    let rows = j.get("r").and_then(|x| x.as_array()).ok_or_else(bad)?;
+    rows.iter()
+        .map(|row| {
+            let row = row.as_array().filter(|r| r.len() == keys.len()).ok_or_else(bad)?;
+            let mut out = Values::new();
+            for (k, x) in keys.iter().zip(row) {
+                let x = match x {
+                    J::Null => continue,
+                    J::String(t) => t.parse::<f64>().map_err(|_| bad())?,
+                    x => x.as_f64().ok_or_else(bad)?,
+                };
+                out.insert(k.to_string(), x);
+            }
+            Ok(out)
+        })
+        .collect()
+}
+
+fn result(st: &mut State, v: &J) -> Result<J, String> {
+    let s = session(st, v)?;
+    let w = &*s.world;
+    let sc = w.scenarios.get(&s.scenario).ok_or("scenario vanished")?;
+    let reps = s.values[0].len();
+    if reps == 0 {
+        return Err("no replications yet".into());
+    }
+    let res = McResult { reps, converged: s.converged, values: s.values.clone() };
+    let mut variants = Vec::new();
+    for (vi, var) in s.variants.iter().enumerate() {
+        let sums = mc::summarise(&res.values[vi], s.cfg.conf);
+        variants.push(json!({
+            "build": describe(w, &var.build),
+            "opponent": var.opponent.as_ref().map(|o| describe(w, o)),
+            "metrics": sums,
+        }));
+    }
+    let names: Vec<String> = s.variants.iter().map(|v| v.name.clone()).collect();
+    let mut metrics = vec![sc.primary.clone()];
+    for m in mc::summarise(&res.values[0], s.cfg.conf).iter().filter(|m| !m.name.contains(':') && m.name != sc.primary) {
+        metrics.push(m.name.clone());
+    }
+    let paired = if names.len() > 1 { serde_json::to_value(mc::compare(&names, &res, &metrics, s.cfg.conf)).unwrap_or(J::Null) } else { J::Array(vec![]) };
+    Ok(json!({
+        "scenario": { "id": sc.id, "desc": sc.desc, "primary": sc.primary },
+        "reps": reps, "converged": s.converged, "seed": s.cfg.seed, "data_build": w.meta.data_build,
+        "variants": variants, "paired": paired,
+    }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn call(j: J) -> J {
+        serde_json::from_str(&handle(&j.to_string())).unwrap()
+    }
+
+    #[test]
+    fn catalog_lists_everything() {
+        let c = call(json!({ "op": "catalog" }));
+        assert_eq!(c["classes"].as_array().unwrap().len(), 9);
+        assert!(c["presets"].as_array().unwrap().len() >= 9);
+        assert!(c["scenarios"].as_array().unwrap().iter().any(|s| s["id"] == "boss"));
+    }
+
+    #[test]
+    fn a_session_runs_to_a_result() {
+        let c = call(json!({ "op": "catalog" }));
+        let preset = c["presets"].as_array().unwrap().iter().find(|p| p["file"] == "warrior/vampire_v2.toml").unwrap().clone();
+        let s = call(json!({ "op": "sheet", "build": preset }));
+        assert!(s.get("error").is_none(), "{s}");
+        let id = call(json!({ "op": "start", "scenario": "boss", "builds": [preset.clone(), preset], "precision": 0.05 }))["id"].as_u64().unwrap();
+        let mut finished = false;
+        for _ in 0..200 {
+            let p = call(json!({ "op": "step", "id": id, "reps": 16 }));
+            assert!(p.get("error").is_none(), "{p}");
+            if p["finished"].as_bool().unwrap() {
+                finished = true;
+                break;
+            }
+        }
+        assert!(finished);
+        let r = call(json!({ "op": "result", "id": id }));
+        assert_eq!(r["variants"].as_array().unwrap().len(), 2);
+        // identical builds on common random numbers: the paired difference is exactly zero
+        assert_eq!(r["paired"][0]["diff"].as_f64().unwrap(), 0.0);
+    }
+
+    /// The page splits a run between Web Workers: chunks of any size, arriving
+    /// in any order, must give exactly what one worker stepping through gives.
+    #[test]
+    fn split_runs_match_one_worker() {
+        let c = call(json!({ "op": "catalog" }));
+        let pick = |f: &str| c["presets"].as_array().unwrap().iter().find(|p| p["file"] == f).unwrap().clone();
+        for (scenario, precision) in [("pressure", 0.04), ("boss", 0.01), ("solo_1", 0.03)] {
+            let start = json!({ "op": "start", "scenario": scenario, "builds": [pick("warrior/vampire_v2.toml"), pick("rogue/mutilate.toml")], "precision": precision, "max_reps": 400 });
+            let one = call(start.clone())["id"].as_u64().unwrap();
+            while !call(json!({ "op": "step", "id": one, "reps": 7 }))["finished"].as_bool().unwrap() {}
+            let expect = call(json!({ "op": "result", "id": one }));
+
+            let keeper = call(start.clone())["id"].as_u64().unwrap();
+            let worker = call(start)["id"].as_u64().unwrap();
+            let sizes = [3usize, 1, 9, 2, 16, 5, 30, 4];
+            let (mut from, mut chunks) = (0, Vec::new());
+            for i in 0.. {
+                if from >= 400 {
+                    break;
+                }
+                let n = sizes[i % sizes.len()];
+                chunks.push(call(json!({ "op": "run", "id": worker, "from": from, "count": n })));
+                from += n;
+            }
+            // deliver in a scrambled order: later chunks first within each group of three
+            let mut last = J::Null;
+            for group in chunks.chunks(3) {
+                for ch in group.iter().rev() {
+                    last = call(json!({ "op": "add", "id": keeper, "chunk": ch }));
+                    assert!(last.get("error").is_none(), "{last}");
+                }
+            }
+            assert!(last["finished"].as_bool().unwrap());
+            let got = call(json!({ "op": "result", "id": keeper }));
+            assert_eq!(got, expect, "{scenario}");
+        }
+    }
+
+    #[test]
+    fn bad_input_is_an_error_not_a_crash() {
+        assert!(call(json!({ "op": "start", "scenario": "boss", "builds": [{ "class": "warrior" }] }))["error"].is_string());
+        assert!(call(json!({ "op": "nope" }))["error"].is_string());
+        assert!(serde_json::from_str::<J>(&handle("not json")).unwrap()["error"].is_string());
+    }
+}

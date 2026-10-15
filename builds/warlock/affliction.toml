@@ -1,0 +1,29 @@
+# Affliction levelling with the Voidwalker, 31/20/0.
+name = "Affliction Drain (31/20)"
+class = "warlock"
+race = "undead"
+level = 60
+gear = "cloth_caster"
+rotation = "affliction_drain"
+
+[talents]
+improved_corruption = 5
+suppression = 5
+improved_drains = 3
+malediction = 5
+improved_bane_of_agony = 2
+pandemic = 3
+nightfall = 2
+malevolence = 2
+siphon_life = 1
+soul_siphon = 2
+wrack = 1
+demonic_embrace = 5
+fel_vitality = 3
+demonic_energies = 2
+demonic_sacrifice = 1
+master_summoner = 2
+improved_sayaad = 2
+demonic_brand = 3
+fel_domination = 1
+unholy_power = 1

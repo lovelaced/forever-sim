@@ -1,0 +1,30 @@
+# Shockadin, 31/0/20: Holy Shock and Light's Vigil for damage and self-healing, Seal of Righteousness.
+name = "Shockadin (31/0/20)"
+class = "paladin"
+race = "undead"
+level = 60
+gear = "plate_holy"
+rotation = "holy_shock"
+
+[talents]
+divine_intellect = 5
+divine_strength = 5
+healing_light = 3
+improved_seals = 2
+reverence = 3
+purifying_power = 2
+illumination = 4
+divine_favor = 1
+holy_shock = 1
+consecrated_ground = 2
+divine_precision = 1
+holy_power = 1
+lights_vigil = 1
+benediction = 5
+improved_judgement = 2
+conviction = 5
+seal_of_command = 1
+sanctified_judgement = 3
+sacred_arbiter = 1
+eye_for_an_eye = 2
+deflection = 1

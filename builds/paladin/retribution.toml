@@ -1,0 +1,28 @@
+# Retribution, 20/0/31: Seal of Command, Vengeance, Twist of Light.
+name = "Retribution (20/0/31)"
+class = "paladin"
+race = "undead"
+level = 60
+gear = "plate_ret"
+rotation = "retribution"
+
+[talents]
+divine_strength = 5
+divine_intellect = 5
+improved_seals = 3
+healing_light = 2
+reverence = 3
+purifying_power = 2
+benediction = 5
+improved_judgement = 2
+conviction = 5
+holy_conduit = 1
+seal_of_command = 1
+sanctified_judgement = 3
+sacred_arbiter = 1
+eye_for_an_eye = 2
+two_handed_weapon_specialization = 3
+vengeance = 3
+champion_of_the_light = 3
+instrument_of_law = 1
+twist_of_light = 1

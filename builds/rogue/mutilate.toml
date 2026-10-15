@@ -1,0 +1,27 @@
+# Mutilate daggers, 41/10/0 with Seal Fate and Venom.
+name = "Mutilate (41/10)"
+class = "rogue"
+race = "undead"
+level = 60
+gear = "leather_daggers"
+rotation = "daggers"
+
+[talents]
+remorseless_attacks = 2
+malice = 5
+ruthlessness = 3
+murder = 2
+improved_slice_and_dice = 3
+relentless_strikes = 1
+lethality = 5
+vile_poisons = 5
+cold_blood = 1
+improved_poisons = 5
+vigor = 2
+mutilate = 1
+seal_fate = 5
+venom = 1
+improved_sinister_strike = 2
+lightning_reflexes = 3
+precision = 3
+deflection = 2

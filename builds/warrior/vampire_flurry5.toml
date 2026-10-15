@@ -1,0 +1,25 @@
+# Vampire Fury with Flurry 5: Fury 38 / Protection 13 (drops Improved Disarm).
+name = "Vampire Flurry-5 (38/13)"
+class = "warrior"
+race = "undead"
+level = 60
+gear = "plate_dw"
+rotation = "fury_dw"
+
+[talents]
+cruelty = 5
+unbridled_wrath = 5
+furious_precision = 3
+blood_craze = 3
+piercing_howl = 1
+enrage = 5
+dual_wield_specialization = 5
+death_wish = 1
+improved_berserker_rage = 2
+gore_drinker = 2
+flurry = 5
+bloodthirst = 1
+improved_bloodrage = 2
+iron_will = 5
+anticipation = 5
+last_stand = 1

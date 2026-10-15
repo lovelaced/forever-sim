@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Forever Sim</title>
+  <meta name="description" content="Try World of Warcraft: Forever character builds in thousands of simulated fights and compare them in plain English.">
+  <meta name="theme-color" content="#0e0c0a">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="fonts/UncutSans-Variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/OrticaAngular-Bold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div id="errors" role="status" aria-live="polite"></div>
+  <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+
+  <header class="masthead">
+    <div class="mark">
+      <h1>Forever Sim</h1>
+      <p>Try a build in thousands of simulated fights before you pay for a respec.</p>
+    </div>
+    <nav aria-label="Site">
+      <button class="quiet" id="about-btn" type="button">How it works</button>
+      <button class="quiet" id="share-btn" type="button">Share these builds</button>
+    </nav>
+  </header>
+
+  <div id="boot" class="boot">
+    <p>Getting the simulator ready…</p>
+  </div>
+
+  <main id="app" class="layout" hidden>
+    <section class="panel" id="builder" aria-label="Your character">
+      <div id="builder-body"></div>
+    </section>
+    <section class="panel" id="tester" aria-labelledby="tester-title">
+      <h2 class="panel-title" id="tester-title">Run a test</h2>
+      <div id="tester-body"></div>
+      <div id="results-box"></div>
+    </section>
+  </main>
+
+  <footer class="colophon">
+    <p>Game data from client build <span id="data-build">…</span>. The simulator runs <span id="engine-kind">in your browser</span>.</p>
+    <p>An unofficial fan project, not affiliated with Blizzard Entertainment. Game icons © Blizzard Entertainment.</p>
+    <p><button type="button" class="link" id="about-link">Credits and how it works</button></p>
+  </footer>
+
+  <dialog id="about" class="panel" aria-labelledby="about-title">
+    <h2 class="panel-title" id="about-title">How it works</h2>
+    <div class="dialog-body prose">
+      <h3>What it does</h3>
+      <p>Forever Sim plays your character through the same fight thousands of times. Every swing, spell, critical hit, dodge and proc is a dice roll, just as in the game, so no two fights go quite the same way. Averaging them shows what the build really does.</p>
+      <p>Pick a class, race and level, start from a ready-made build or spend your own talent points, then choose a test and press Simulate. Everything runs on your own computer; nothing is uploaded.</p>
+      <h3>Reading the results</h3>
+      <ul>
+        <li><b>The headline number</b> is the average over every simulated fight.</li>
+        <li><b>“Likely between”</b> is a 95% confidence interval: if you ran the test again, the average would almost always land inside it.</li>
+        <li><b>Comparisons are fair.</b> Every build faces exactly the same dice rolls, so a gap between builds comes from the builds, not luck. When a gap is smaller than the margin of error, the result says the builds are too close to call.</li>
+      </ul>
+      <h3>What it cannot tell you</h3>
+      <p>Talents marked with a grey corner are not simulated yet and change nothing. A few numbers the game does not publish are guesses; you can change them under Assumptions. The simulated player follows its play style perfectly, so real results are usually a little lower.</p>
+      <h3>Comparing builds</h3>
+      <p>Press “Compare with another build” to copy the current build, change something in the copy, and simulate. You can compare up to three builds. “Share these builds” copies a link with all of them.</p>
+      <h3>Credits</h3>
+      <p>Talent, class and race icons are the game’s own artwork, © Blizzard Entertainment, from <a href="https://github.com/Gethe/wow-ui-textures" target="_blank" rel="noopener">wow-ui-textures</a>. Talent data and icon choices follow <a href="https://wowforevertalents.com" target="_blank" rel="noopener">wowforevertalents.com</a>.</p>
+      <p>Type: Ortica by Benedetta Bovani (Collletttivo) and Uncut Sans by Kasper Nordkvist, both under the SIL Open Font License, found through <a href="https://uncut.wtf" target="_blank" rel="noopener">uncut.wtf</a>. Stand-in icons by Lorc, Delapouite and contributors from <a href="https://game-icons.net" target="_blank" rel="noopener">game-icons.net</a> (<a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>).</p>
+      <p>World of Warcraft and its artwork are trademarks and copyright of Blizzard Entertainment. This is an unofficial fan project and is not affiliated with or endorsed by Blizzard.</p>
+    </div>
+    <div class="dialog-actions">
+      <button class="btn" id="about-close" type="button">Close</button>
+    </div>
+  </dialog>
+</body>
+</html>

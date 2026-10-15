@@ -1,0 +1,22 @@
+# What-if overlay that reproduces the assumptions of the earlier Python
+# prototype (vampire_fury_sim.py), used only to cross-check the engine:
+#   fsim --patch data/whatif/python_parity.toml run boss builds/warrior/vampire_v2.toml
+[meta]
+name = "Python prototype assumptions"
+
+[combat]
+crit_suppression = [0.0, 0.0, 0.0, 0.0]
+
+[classes.warrior.spells.battle_shout]
+ranks = [{ level = 1, ap = 12 }, { level = 40, ap = 85 }, { level = 60, ap = 232 }]
+
+[classes.warrior.spells.bloodthirst]
+ranks = [{ level = 40, bonus = 30 }]
+
+[classes.warrior.spells.victory_rush]
+cooldown = 0
+effects = [
+  { type = "damage", school = "physical", amount = "0.45 * ap" },
+  { type = "heal", target = "self", amount = "0.10 * max_hp", tag = "Victory Rush" },
+  { type = "remove_aura", aura = "victory_rush_ready" },
+]

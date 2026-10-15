@@ -1,0 +1,28 @@
+# "Shield Battery" protection paladin, 20/31/0: blocks refill mana through
+# Shield Specialization, Redoubt and Holy Shield keep blocking, Iron Creed and
+# Templar's Bulwark for survival. Undead for Touch of the Grave.
+name = "Shield Battery (20/31/0)"
+class = "paladin"
+race = "undead"
+level = 60
+gear = "plate_holy"
+rotation = "protection"
+
+[talents]
+divine_strength = 5
+divine_intellect = 5
+improved_seals = 3
+healing_light = 2
+reverence = 3
+purifying_power = 2
+toughness = 5
+redoubt = 5
+precision = 3
+anticipation = 2
+improved_righteous_fury = 3
+shield_specialization = 3
+one_handed_weapon_specialization = 3
+swift_judgement = 1
+templars_bulwark = 1
+iron_creed = 4
+holy_shield = 1

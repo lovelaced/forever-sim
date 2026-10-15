@@ -1,0 +1,18 @@
+# Example of a what-if / hotfix overlay. Copy this into data/patches/ with the
+# real client build number once a change is live, or keep it here and test it:
+#   fsim whatif boss builds/warrior/vampire_v2.toml --with data/whatif/example_hotfix.toml
+[meta]
+build = "1.60.2.00000"
+name = "Example: Gore Drinker heals 1%/2% per hit, Victory Rush heals 15%"
+
+# Change a talent's effect: replace the aura's proc list.
+[classes.warrior.auras.gore_drinker]
+procs = [{ on = "melee_landed", effects = [{ type = "heal", target = "self", amount = "0.01 * t.gore_drinker * max_hp", tag = "Gore Drinker" }, { type = "consume" }] }]
+
+# Change one effect of a spell: arrays are replaced whole, so restate the list.
+[classes.warrior.spells.victory_rush]
+effects = [
+  { type = "damage", school = "physical", amount = "1 + 0.15 * ap" },
+  { type = "heal", target = "self", amount = "0.15 * max_hp", tag = "Victory Rush" },
+  { type = "remove_aura", aura = "victory_rush_ready" },
+]

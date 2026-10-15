@@ -1,0 +1,75 @@
+# Assumptions: numbers the game has not published (or that can't be tested
+# on the beta yet). Formulas read them as `opt.<name>`. Override per run
+# with `--opt name=value`, per build under [opts], or per scenario.
+
+[options.gore_refresh_rearms]
+default = 1
+desc = "1 = a refreshed Enrage re-arms Gore Drinker (untested beyond level 30)"
+
+[options.tog_drain_pct]
+default = 3.75
+desc = "Touch of the Grave drain, % of max health ('up to 5%'; 3.75 = average if uniform 2.5-5)"
+
+[options.tog_chance_melee]
+default = 0.05
+desc = "Touch of the Grave proc chance for weapon users (client ships 5% and 10% versions)"
+
+[options.tog_chance_caster]
+default = 0.10
+desc = "Touch of the Grave proc chance for casters"
+
+[options.corpse_chance]
+default = 0.6
+desc = "Chance a humanoid/undead corpse is available for Cannibalize after a pull"
+
+[options.bloodrage_hp_cost]
+default = 0
+desc = "Bloodrage health cost as a fraction of base health (patch notes removed it; the spell row still lists 20%)"
+
+[options.maelstrom_chance]
+default = 0.2
+desc = "Maelstrom Weapon stack chance per melee hit (tooltip only says 'a chance')"
+
+[options.windfury_chance]
+default = 0.2
+desc = "Windfury Weapon proc chance (tooltip: 20%)"
+
+[options.omen_ppm]
+default = 3.5
+desc = "Omen of Clarity procs per minute (Classic value)"
+
+[options.water_shield_icd]
+default = 3
+desc = "Seconds between Water Shield globes ('only one globe every few seconds')"
+
+[options.pet_owner_ap]
+default = 0.22
+desc = "Share of the hunter's ranged attack power given to the pet (Forever: pets scale with hunter gear)"
+
+[options.pet_owner_sta]
+default = 0.3
+desc = "Share of the owner's stamina given to pets"
+
+[options.demon_owner_sp]
+default = 0.15
+desc = "Share of the warlock's spell power given to demons"
+
+[options.nightfall_chance]
+default = 0.02
+desc = "Nightfall chance per talent rank"
+
+[options.healthstone_in_fight]
+default = 1
+desc = "1 = warlocks use a healthstone in fights below 30% health"
+
+[options.hawk_dive_interval]
+default = 6
+desc = "Seconds between a Summon Hawk hawk's dive-bombs (not on the tooltip; 6 s makes two hawks roughly match the Arcane Shot they replace)"
+
+[options.seal_on_hit_chance]
+default = 1.0
+desc = "Chance per main-hand hit for Seal of Light / Seal of Wisdom to trigger. The Forever tooltip says 'on hit'; Classic used about 0.2"
+
+[options.druid_omen]
+default = 0
+desc = "1 = druids have Omen of Clarity (Moonkin Form's tooltip mentions it, but it is not on the Forever trainer or talent list)"

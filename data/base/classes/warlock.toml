@@ -1,0 +1,937 @@
+# Warlock. Talents and spell ranks: Forever client 1.60.1.70338
+# (wowforevertalents.com/warlock and /abilities/warlock, checked 2026-10-15).
+# Spell coefficients and demon stats are Classic approximations (the client
+# tooltips do not show them). Base stats are Classic 1.12.
+name = "Warlock"
+icon = "classicon_warlock"
+resources = ["mana"]
+source = "forever-70338"
+
+base = [
+  { level = 1, str = 20, agi = 20, sta = 21, int = 22, spi = 23, hp = 23, mana = 90 },
+  { level = 40, str = 37, agi = 41, sta = 49, int = 80, spi = 85, hp = 820, mana = 840 },
+  { level = 60, str = 47, agi = 52, sta = 64, int = 108, spi = 113, hp = 1414, mana = 1373 },
+]
+
+[formulas]
+ap = "str - 10"
+rap = "agi - 10"
+melee_crit = "agi / 20"
+ranged_crit = "agi / 20"
+spell_crit = "1.7 + int / interp(level, 1,10, 40,40, 60,60.6)"
+dodge = "agi / 20"
+mana_regen = "8 + spi / 4"
+hp_regen = "spi * 0.1 + 2"
+
+# ------------------------------------------------------------------ talents
+[talents.improved_life_tap]
+icon = "spell_shadow_burningspirit"
+tree = "Affliction"
+points = 0
+ranks = 2
+text = "Life Tap gives 20% more mana."
+[talents.suppression]
+icon = "spell_shadow_unsummonbuilding"
+tree = "Affliction"
+points = 0
+ranks = 5
+text = "+5% hit with Affliction spells (applied to all spells here), -20% threat."
+mods = [{ stat = "spell_hit", add = "rank" }]
+[talents.improved_corruption]
+icon = "spell_shadow_abominationexplosion"
+tree = "Affliction"
+points = 0
+ranks = 5
+text = "Corruption cast time -2 sec (instant at 5), damage +10%."
+spell_mods = [{ spells = ["corruption"], prop = "cast_time", add = "-0.4 * rank" }]
+[talents.malediction]
+icon = "spell_shadow_curseofachimonde"
+tree = "Affliction"
+points = 5
+ranks = 5
+text = "Periodic damage +5%."
+[talents.soul_harvest]
+icon = "inv_elemental_primal_shadow"
+tree = "Affliction"
+points = 5
+ranks = 2
+text = "Mana regeneration after killing a Drain Soul target (not simulated)."
+[talents.improved_drains]
+icon = "spell_shadow_haunting"
+tree = "Affliction"
+points = 5
+ranks = 3
+text = "Drain Life, Drain Soul and Wrack +20%."
+[talents.improved_bane_of_agony]
+icon = "spell_shadow_curseofsargeras"
+tree = "Affliction"
+points = 10
+ranks = 2
+text = "Bane of Agony damage +10%."
+[talents.fel_concentration]
+icon = "spell_shadow_fingerofdeath"
+tree = "Affliction"
+points = 10
+ranks = 3
+text = "70% chance to avoid pushback on Drain spells (applied to all casts here)."
+mods = [{ stat = "pushback_resist", add = "0.2333 * rank" }]
+[talents.amplify_curse]
+icon = "spell_shadow_contagion"
+tree = "Affliction"
+points = 10
+ranks = 1
+text = "Next Curse of Weakness or Bane of Agony +50% (not simulated)."
+[talents.pandemic]
+icon = "spell_shadow_unstableaffliction_2"
+tree = "Affliction"
+points = 10
+ranks = 3
+text = "Corruption, Bane of Agony, Drain Life, Drain Soul, Siphon Life and Wrack can crit, for +100% crit damage bonus."
+[talents.malevolence]
+icon = "spell_shadow_focusedpower"
+tree = "Affliction"
+points = 15
+ranks = 5
+text = "Shadow spell crit +5%."
+spell_mods = [{ school = "shadow", prop = "crit", add = "rank" }]
+[talents.nightfall]
+icon = "spell_shadow_twilight"
+tree = "Affliction"
+points = 15
+ranks = 2
+text = "Corruption, Drain Life, Drain Soul and Wrack ticks have a 4% chance to make the next Shadow Bolt instant."
+[talents.curse_of_exhaustion]
+icon = "spell_shadow_grimward"
+tree = "Affliction"
+points = 15
+ranks = 1
+text = "Movement slow (not simulated)."
+[talents.siphon_life]
+icon = "spell_shadow_requiem"
+tree = "Affliction"
+points = 20
+ranks = 1
+text = "Siphon Life: drains health every 3 sec for 30 sec."
+[talents.soul_siphon]
+icon = "spell_shadow_lifedrain02"
+tree = "Affliction"
+points = 20
+ranks = 3
+text = "Drains deal 12% more per Affliction effect on the target, up to 36%."
+[talents.shadow_mastery]
+icon = "spell_shadow_shadetruesight"
+tree = "Affliction"
+points = 25
+ranks = 5
+text = "Shadow damage +5%."
+mods = [{ stat = "shadow_dmg_done", mul = "1 + 0.01 * rank" }]
+[talents.wrack]
+icon = "ability_deathknight_hemorrhagicfever"
+tree = "Affliction"
+points = 30
+ranks = 1
+text = "Wrack: 36 Shadow per sec for 6 sec and +10% damage from your other Shadow DoTs."
+
+[talents.improved_health_funnel]
+icon = "spell_shadow_lifedrain"
+tree = "Demonology"
+points = 0
+ranks = 2
+text = "Health Funnel (not simulated)."
+[talents.improved_imp]
+icon = "spell_shadow_summonimp"
+tree = "Demonology"
+points = 0
+ranks = 3
+text = "Imp Firebolt +30%."
+[talents.demonic_embrace]
+icon = "spell_shadow_metamorphosis"
+tree = "Demonology"
+points = 0
+ranks = 5
+text = "Stamina +15%."
+mods = [{ stat = "sta_pct", add = "0.03 * rank" }]
+[talents.unholy_power]
+icon = "spell_shadow_shadowworddominate"
+tree = "Demonology"
+points = 0
+ranks = 5
+text = "Demon damage +10%."
+[talents.demonic_aegis]
+icon = "spell_shadow_ragingscream"
+tree = "Demonology"
+points = 5
+ranks = 2
+text = "Demon Skin and Demon Armor +30%."
+[talents.improved_voidwalker]
+icon = "spell_shadow_summonvoidwalker"
+tree = "Demonology"
+points = 5
+ranks = 3
+text = "Voidwalker abilities +30% (Torment threat only here)."
+[talents.fel_vitality]
+icon = "spell_shadow_demonictactics"
+tree = "Demonology"
+points = 5
+ranks = 3
+text = "Demon health and mana +15%, your maximum mana +15%."
+mods = [{ stat = "max_mana_mult", mul = "1 + 0.05 * rank" }]
+[talents.demonic_energies]
+icon = "spell_shadow_felmending"
+tree = "Demonology"
+points = 5
+ranks = 2
+text = "Your spells heal your demon for 15% of their damage; Life Tap gives it mana."
+procs = [{ on = "spell_landed", if = "pet.active", effects = [{ type = "heal", target = "pet", amount = "event.amount * (rank == 1 ? 0.08 : 0.15)", tag = "Demonic Energies" }] }]
+[talents.improved_sayaad]
+icon = "ability_warlock_randomizesuccubusincubus"
+tree = "Demonology"
+points = 10
+ranks = 3
+text = "Lash of Pain +30%."
+[talents.demonic_sacrifice]
+icon = "spell_shadow_psychicscream"
+tree = "Demonology"
+points = 10
+ranks = 1
+text = "Sacrifice your demon for 2 hours: Imp +15% Shadow, Voidwalker 2% mana per 4 sec, Succubus +15% Fire, Felhunter 3% health per 4 sec."
+[talents.master_summoner]
+icon = "spell_shadow_impphaseshift"
+tree = "Demonology"
+points = 10
+ranks = 2
+text = "Summon cast time (summons happen out of combat here)."
+[talents.decimation]
+icon = "spell_fire_fireball02"
+tree = "Demonology"
+points = 15
+ranks = 2
+text = "Soul Fire cooldown -90%; below 35% the target takes 6% more and Soul Fire casts 40% faster."
+spell_mods = [
+  { spells = ["soul_fire"], prop = "cooldown", mul = "1 - 0.45 * rank" },
+  { spells = ["soul_fire"], prop = "cast_time", mul = "target.hp_pct < 0.35 ? 1 - 0.2 * rank : 1" },
+  { prop = "damage", mul = "target.hp_pct < 0.35 ? 1 + 0.03 * rank : 1" },
+]
+[talents.fel_domination]
+icon = "spell_nature_removecurse"
+tree = "Demonology"
+points = 15
+ranks = 1
+text = "Faster summon (not simulated)."
+[talents.demonic_brand]
+icon = "ability_demonhunter_chaoticimprint_fire"
+tree = "Demonology"
+points = 15
+ranks = 3
+text = "Searing Pain brands the target: your demon's next 2/4/6 attacks deal 65-68 + 7.8% of your spell power extra Fire damage."
+procs = [{ on = "cast:searing_pain", if = "pet.active", effects = [{ type = "aura", aura = "demonic_brand", target = "pet" }] }]
+[talents.improved_felhunter]
+icon = "spell_shadow_summonfelhunter"
+tree = "Demonology"
+points = 20
+ranks = 3
+text = "Felhunter abilities (not simulated)."
+[talents.soul_link]
+icon = "spell_shadow_gathershadows"
+tree = "Demonology"
+points = 20
+ranks = 1
+text = "30% of damage you take goes to your demon; both deal 3% more while it is out."
+[talents.demonic_knowledge]
+icon = "spell_shadow_improvedvampiricembrace"
+tree = "Demonology"
+points = 20
+ranks = 3
+text = "You and your demon gain spell damage up to 100% of your level while it is out."
+mods = [{ stat = "sp", add = "pet.active ? level * rank / 3 : 0" }]
+[talents.master_demonologist]
+icon = "spell_shadow_shadowpact"
+tree = "Demonology"
+points = 25
+ranks = 5
+text = "Imp: +10% Fire damage. Voidwalker: -10% physical damage taken. Succubus: +10% Shadow damage. Felhunter: -10% spell damage taken."
+mods = [
+  { stat = "fire_dmg_done", mul = "pet.imp.active ? 1 + 0.02 * rank : 1" },
+  { stat = "phys_dmg_taken", mul = "pet.voidwalker.active ? 1 - 0.02 * rank : 1" },
+  { stat = "shadow_dmg_done", mul = "pet.succubus.active ? 1 + 0.02 * rank : 1" },
+  { stat = "spell_dmg_taken", mul = "pet.felhunter.active ? 1 - 0.02 * rank : 1" },
+]
+[talents.demonic_pact]
+icon = "inv_ability_soulharvesterwarlock_demonicsoul"
+tree = "Demonology"
+points = 30
+ranks = 1
+text = "Demonic Sacrifice survives summoning a different demon."
+
+[talents.destructive_reach]
+icon = "spell_shadow_corpseexplode"
+tree = "Destruction"
+points = 0
+ranks = 2
+text = "Range (not simulated)."
+[talents.improved_shadow_bolt]
+icon = "spell_shadow_shadowbolt"
+tree = "Destruction"
+points = 0
+ranks = 5
+text = "Shadow Bolt crits make the target take 20% more Shadow damage from you for 12 sec."
+procs = [{ on = "spell_crit", if = "spell.shadow_bolt", effects = [{ type = "aura", aura = "shadow_vulnerability", target = "target", stacks = "rank" }] }]
+[talents.bane]
+icon = "spell_shadow_deathpact"
+tree = "Destruction"
+points = 0
+ranks = 5
+text = "Shadow Bolt, Immolate and Incinerate cast -0.5 sec, Soul Fire -2 sec."
+spell_mods = [
+  { spells = ["shadow_bolt", "immolate", "incinerate"], prop = "cast_time", add = "-0.1 * rank" },
+  { spells = ["soul_fire"], prop = "cast_time", add = "-0.4 * rank" },
+]
+[talents.molten_skin]
+icon = "ability_mage_moltenarmor"
+tree = "Destruction"
+points = 0
+ranks = 5
+text = "Damage taken -10%."
+mods = [{ stat = "dmg_taken", mul = "1 - 0.02 * rank" }]
+[talents.cataclysm]
+icon = "spell_fire_windsofwoe"
+tree = "Destruction"
+points = 5
+ranks = 3
+text = "Destruction spells cost 10% less."
+spell_mods = [{ spells = ["shadow_bolt", "immolate", "searing_pain", "soul_fire", "shadowburn", "conflagrate", "incinerate", "hellfire", "rain_of_fire"], prop = "cost", mul = "1 - rank / 30" }]
+[talents.aftermath]
+icon = "spell_fire_fire"
+tree = "Destruction"
+points = 5
+ranks = 5
+text = "Immolate's initial damage +50%."
+[talents.ruin]
+icon = "spell_shadow_shadowwordpain"
+tree = "Destruction"
+points = 10
+ranks = 5
+text = "Destruction crit damage bonus +100%."
+spell_mods = [{ spells = ["shadow_bolt", "immolate", "searing_pain", "soul_fire", "shadowburn", "conflagrate", "incinerate"], prop = "crit_bonus", add = "0.2 * rank" }]
+[talents.shadowburn]
+icon = "spell_shadow_scourgebuild"
+tree = "Destruction"
+points = 10
+ranks = 1
+text = "Shadowburn: instant Shadow damage, 15 sec cooldown."
+[talents.intensity]
+icon = "spell_fire_lavaspawn"
+tree = "Destruction"
+points = 15
+ranks = 3
+text = "70% chance to avoid pushback on Destruction spells (applied to all casts here)."
+mods = [{ stat = "pushback_resist", add = "0.2333 * rank" }]
+[talents.agonizing_flames]
+icon = "spell_fire_soulburn"
+tree = "Destruction"
+points = 15
+ranks = 3
+text = "Searing Pain crit +10%, Destruction damage +10%."
+spell_mods = [
+  { spells = ["searing_pain"], prop = "crit", add = "rank * 10 / 3" },
+  { spells = ["shadow_bolt", "immolate", "searing_pain", "soul_fire", "shadowburn", "conflagrate", "incinerate", "hellfire", "rain_of_fire"], prop = "damage", mul = "1 + rank / 30" },
+]
+[talents.conflagrate]
+icon = "spell_fire_fireball"
+tree = "Destruction"
+points = 15
+ranks = 1
+text = "Conflagrate: consumes your Immolate for instant Fire damage, 10 sec cooldown."
+[talents.pyroclasm]
+icon = "spell_fire_volcano"
+tree = "Destruction"
+points = 20
+ranks = 2
+text = "Stun chance on Soul Fire, Rain of Fire and Hellfire (not simulated)."
+[talents.bane_of_havoc]
+icon = "ability_warlock_baneofhavoc"
+tree = "Destruction"
+points = 20
+ranks = 1
+text = "Cleave damage onto a second target (not simulated)."
+[talents.fire_and_brimstone]
+icon = "spell_fire_meteorstorm"
+tree = "Destruction"
+points = 20
+ranks = 3
+text = "Conflagrate crit +25%."
+spell_mods = [{ spells = ["conflagrate"], prop = "crit", add = "rank * 25 / 3" }]
+[talents.shadow_and_flame]
+icon = "spell_fire_playingwithfire"
+tree = "Destruction"
+points = 25
+ranks = 5
+text = "Conflagrate gives +10% Shadow damage and Shadowburn +10% Fire damage for 20 sec; Conflagrate has a 100% chance to keep Immolate."
+procs = [
+  { on = "cast:conflagrate", effects = [{ type = "aura", aura = "shadow_and_flame_shadow", stacks = "rank" }] },
+  { on = "cast:shadowburn", effects = [{ type = "aura", aura = "shadow_and_flame_fire", stacks = "rank" }] },
+]
+[talents.incinerate]
+icon = "spell_fire_burnout"
+tree = "Destruction"
+points = 30
+ranks = 1
+text = "Incinerate: Fire damage, +25% on targets with your Immolate."
+
+# ------------------------------------------------------------------ passives
+
+# ------------------------------------------------------------------ pets
+[pets.imp]
+name = "Imp"
+creature = "demon"
+speed = 2.0
+hp = "interp(level, 1,40, 20,300, 40,720, 60,1350) * (1 + 0.05 * t.fel_vitality)"
+armor = "interp(level, 1,20, 60,1100)"
+mana = "interp(level, 1,80, 20,400, 40,900, 60,1600) * (1 + 0.05 * t.fel_vitality)"
+dmg_min = "interp(level, 1,2, 60,20)"
+dmg_max = "interp(level, 1,3, 60,30)"
+crit = 5
+auto_melee = false
+mods = [
+  { stat = "sp", add = "owner.sp * opt.demon_owner_sp" },
+  { stat = "dmg_done", mul = "(1 + 0.02 * t.unholy_power) * (owner.aura.soul_link_buff.up ? 1.03 : 1)" },
+]
+[pets.imp.rotation]
+actions = [{ cast = "firebolt" }]
+
+[pets.voidwalker]
+name = "Voidwalker"
+creature = "demon"
+speed = 2.0
+hp = "interp(level, 10,450, 20,900, 40,2200, 60,4200) * (1 + 0.05 * t.fel_vitality)"
+armor = "interp(level, 10,500, 60,3800)"
+dmg_min = "interp(level, 10,10, 60,45)"
+dmg_max = "interp(level, 10,14, 60,62)"
+ap = "interp(level, 10,20, 60,100)"
+crit = 5
+dodge = 5
+mods = [{ stat = "dmg_done", mul = "(1 + 0.02 * t.unholy_power) * (owner.aura.soul_link_buff.up ? 1.03 : 1)" }]
+[pets.voidwalker.rotation]
+actions = [{ cast = "torment", if = "!target.is_player && !target.boss" }]
+
+[pets.succubus]
+name = "Succubus"
+creature = "demon"
+speed = 2.0
+hp = "interp(level, 20,700, 40,1700, 60,3100) * (1 + 0.05 * t.fel_vitality)"
+armor = "interp(level, 20,500, 60,1800)"
+dmg_min = "interp(level, 20,20, 60,62)"
+dmg_max = "interp(level, 20,28, 60,86)"
+ap = "interp(level, 20,40, 60,180)"
+crit = 5
+dodge = 5
+mods = [
+  { stat = "sp", add = "owner.sp * opt.demon_owner_sp" },
+  { stat = "dmg_done", mul = "(1 + 0.02 * t.unholy_power) * (owner.aura.soul_link_buff.up ? 1.03 : 1)" },
+]
+[pets.succubus.rotation]
+actions = [{ cast = "lash_of_pain" }]
+
+[pets.felhunter]
+name = "Felhunter"
+creature = "demon"
+speed = 2.0
+hp = "interp(level, 30,1300, 40,1800, 60,3300) * (1 + 0.05 * t.fel_vitality)"
+armor = "interp(level, 30,1200, 60,2600)"
+dmg_min = "interp(level, 30,30, 60,58)"
+dmg_max = "interp(level, 30,42, 60,80)"
+ap = "interp(level, 30,80, 60,170)"
+crit = 5
+dodge = 5
+mods = [{ stat = "dmg_done", mul = "(1 + 0.02 * t.unholy_power) * (owner.aura.soul_link_buff.up ? 1.03 : 1)" }]
+
+# ------------------------------------------------------------------ auras
+[auras.demon_armor]
+name = "Demon Armor"
+mods = [{ stat = "armor", add = "r.armor * (1 + 0.15 * t.demonic_aegis)" }, { stat = "hp5", add = "r.hp5 * (1 + 0.15 * t.demonic_aegis)" }]
+[auras.corruption]
+name = "Corruption"
+debuff = true
+duration = "r.dur"
+[auras.corruption.tick]
+interval = 3
+effects = [
+  { type = "damage", school = "shadow", periodic = true, tag = "Corruption", amount = "r.total * 3 / r.dur", coef = "3 / r.dur", mult = "(1 + 0.02 * t.improved_corruption) * (1 + 0.01 * t.malediction) * (target.aura.wrack.up ? 1.1 : 1)", can_crit = true, crit = "t.pandemic > 0 ? 0 : -100", crit_bonus = "t.pandemic / 3" },
+  { type = "chance", p = "0.02 * t.nightfall", then = [{ type = "aura", aura = "shadow_trance", target = "self" }] },
+]
+[auras.bane_of_agony]
+name = "Bane of Agony"
+debuff = true
+duration = 24
+text = "Classic ramp: the first ticks are weaker, the last stronger (12 ticks of 1/24, 1/12 and 1/8 of the total)."
+[auras.bane_of_agony.tick]
+interval = 2
+effects = [
+  { type = "damage", school = "shadow", periodic = true, tag = "Bane of Agony", amount = "r.total / 12", coef = "1 / 12", mult = "(1 + 0.05 * t.improved_bane_of_agony) * (1 + 0.01 * t.malediction) * (target.aura.wrack.up ? 1.1 : 1)", can_crit = true, crit = "t.pandemic > 0 ? 0 : -100", crit_bonus = "t.pandemic / 3" },
+]
+[auras.immolate]
+name = "Immolate"
+debuff = true
+duration = 15
+tick = { interval = 3, effects = [{ type = "damage", school = "fire", periodic = true, tag = "Immolate (burn)", amount = "r.dot / 5", coef = "0.13", mult = "1 + 0.01 * t.malediction" }] }
+[auras.siphon_life]
+name = "Siphon Life"
+debuff = true
+duration = 30
+tick = { interval = 3, effects = [{ type = "damage", school = "shadow", periodic = true, tag = "Siphon Life", amount = "r.tick", coef = "0.05", lifesteal = 1, mult = "(1 + 0.01 * t.malediction) * (target.aura.wrack.up ? 1.1 : 1)", can_crit = true, crit = "t.pandemic > 0 ? 0 : -100", crit_bonus = "t.pandemic / 3" }] }
+[auras.wrack]
+name = "Wrack"
+debuff = true
+duration = 6
+[auras.wrack.tick]
+interval = 1
+effects = [
+  { type = "damage", school = "shadow", periodic = true, tag = "Wrack", amount = 36, coef = "0.05", mult = "(1 + 0.0667 * t.improved_drains) * (1 + 0.01 * t.malediction)", can_crit = true, crit = "t.pandemic > 0 ? 0 : -100", crit_bonus = "t.pandemic / 3" },
+  { type = "chance", p = "0.02 * t.nightfall", then = [{ type = "aura", aura = "shadow_trance", target = "self" }] },
+]
+[auras.shadow_trance]
+name = "Shadow Trance"
+duration = 10
+consume_on_cast = true
+spell_mods = [{ spells = ["shadow_bolt"], prop = "cast_time", mul = 0 }]
+[auras.shadow_vulnerability]
+name = "Improved Shadow Bolt"
+debuff = true
+duration = 12
+max_stacks = 5
+refresh = "replace"
+text = "Stacks = talent rank: +4% Shadow (all spell) damage taken per rank."
+mods = [{ stat = "spell_dmg_taken", mul = "1 + 0.04 * stacks" }]
+[auras.shadow_and_flame_shadow]
+name = "Shadow and Flame (Shadow)"
+duration = 20
+max_stacks = 5
+refresh = "replace"
+mods = [{ stat = "shadow_dmg_done", mul = "1 + 0.02 * stacks" }]
+[auras.shadow_and_flame_fire]
+name = "Shadow and Flame (Fire)"
+duration = 20
+max_stacks = 5
+refresh = "replace"
+mods = [{ stat = "fire_dmg_done", mul = "1 + 0.02 * stacks" }]
+[auras.sacrifice_imp]
+name = "Touch of Shadow"
+duration = 7200
+group = "sacrifice"
+mods = [{ stat = "shadow_dmg_done", mul = 1.15 }]
+[auras.sacrifice_voidwalker]
+name = "Fel Stamina"
+duration = 7200
+group = "sacrifice"
+tick = { interval = 4, effects = [{ type = "resource", res = "mana", amount = "0.02 * max_mana" }] }
+[auras.sacrifice_succubus]
+name = "Burning Wish"
+duration = 7200
+group = "sacrifice"
+mods = [{ stat = "fire_dmg_done", mul = 1.15 }]
+[auras.sacrifice_felhunter]
+name = "Fel Energy"
+duration = 7200
+group = "sacrifice"
+tick = { interval = 4, effects = [{ type = "heal", target = "self", amount = "0.03 * max_hp", tag = "Fel Energy" }] }
+[auras.soul_link_buff]
+name = "Soul Link"
+mods = [{ stat = "redirect_to_pet", add = "pet.active ? 0.3 : 0" }, { stat = "dmg_done", mul = "pet.active ? 1.03 : 1" }]
+[auras.demonic_brand]
+name = "Demonic Brand"
+duration = 10
+max_stacks = 6
+text = "On the demon: stacks are the attacks left."
+charges = "2 * t.demonic_brand"
+procs = [{ on = "melee_landed", effects = [{ type = "damage", school = "fire", hit = "auto", no_proc = true, tag = "Demonic Brand", min = "65 + 0.078 * owner.sp", max = "68 + 0.078 * owner.sp" }, { type = "consume" }] }]
+[auras.healthstone_cd_lock]
+name = "Healthstone used"
+duration = 120
+
+# ------------------------------------------------------------------ spells
+[spells.demon_armor]
+name = "Demon Armor"
+target = "self"
+requires = "!aura.demon_armor.up"
+ranks = [
+  { level = 1, armor = 40, hp5 = 3, mana = 50 }, { level = 10, armor = 120, hp5 = 5, mana = 120 },
+  { level = 20, armor = 210, hp5 = 7, mana = 275 }, { level = 30, armor = 300, hp5 = 9, mana = 520 },
+  { level = 40, armor = 390, hp5 = 11, mana = 800 }, { level = 50, armor = 480, hp5 = 13, mana = 1150 },
+  { level = 60, armor = 570, hp5 = 15, mana = 1580 },
+]
+text = "Demon Skin ranks 1-2 and Demon Armor ranks 1-5 as one spell."
+effects = [{ type = "aura", aura = "demon_armor" }]
+
+[spells.summon_imp]
+name = "Summon Imp"
+target = "self"
+cast_time = 10
+requires = "!pet.imp.active && !in_combat"
+cost = { mana = "0.8 * base_mana" }
+effects = [
+  { type = "remove_aura", aura = "sacrifice_imp" },
+  { type = "if", cond = "t.demonic_pact == 0", then = [{ type = "remove_aura", aura = "sacrifice_voidwalker" }, { type = "remove_aura", aura = "sacrifice_succubus" }, { type = "remove_aura", aura = "sacrifice_felhunter" }] },
+  { type = "summon", pet = "imp" },
+]
+[spells.summon_voidwalker]
+name = "Summon Voidwalker"
+level = 10
+target = "self"
+cast_time = 10
+requires = "!pet.voidwalker.active && !in_combat"
+cost = { mana = "base_mana" }
+effects = [
+  { type = "remove_aura", aura = "sacrifice_voidwalker" },
+  { type = "if", cond = "t.demonic_pact == 0", then = [{ type = "remove_aura", aura = "sacrifice_imp" }, { type = "remove_aura", aura = "sacrifice_succubus" }, { type = "remove_aura", aura = "sacrifice_felhunter" }] },
+  { type = "summon", pet = "voidwalker" },
+]
+[spells.summon_succubus]
+name = "Summon Succubus"
+level = 20
+target = "self"
+cast_time = 10
+requires = "!pet.succubus.active && !in_combat"
+cost = { mana = "base_mana" }
+effects = [
+  { type = "remove_aura", aura = "sacrifice_succubus" },
+  { type = "if", cond = "t.demonic_pact == 0", then = [{ type = "remove_aura", aura = "sacrifice_imp" }, { type = "remove_aura", aura = "sacrifice_voidwalker" }, { type = "remove_aura", aura = "sacrifice_felhunter" }] },
+  { type = "summon", pet = "succubus" },
+]
+[spells.summon_felhunter]
+name = "Summon Felhunter"
+level = 30
+target = "self"
+cast_time = 10
+requires = "!pet.felhunter.active && !in_combat"
+cost = { mana = "base_mana" }
+effects = [
+  { type = "remove_aura", aura = "sacrifice_felhunter" },
+  { type = "if", cond = "t.demonic_pact == 0", then = [{ type = "remove_aura", aura = "sacrifice_imp" }, { type = "remove_aura", aura = "sacrifice_voidwalker" }, { type = "remove_aura", aura = "sacrifice_succubus" }] },
+  { type = "summon", pet = "felhunter" },
+]
+
+[spells.demonic_sacrifice]
+name = "Demonic Sacrifice"
+talent = "demonic_sacrifice"
+target = "self"
+requires = "pet.active"
+effects = [
+  { type = "if", cond = "pet.imp.active", then = [{ type = "aura", aura = "sacrifice_imp" }] },
+  { type = "if", cond = "pet.voidwalker.active", then = [{ type = "aura", aura = "sacrifice_voidwalker" }] },
+  { type = "if", cond = "pet.succubus.active", then = [{ type = "aura", aura = "sacrifice_succubus" }] },
+  { type = "if", cond = "pet.felhunter.active", then = [{ type = "aura", aura = "sacrifice_felhunter" }] },
+  { type = "sacrifice" },
+]
+
+[spells.soul_link]
+name = "Soul Link"
+talent = "soul_link"
+target = "self"
+requires = "!aura.soul_link_buff.up"
+cost = { mana = "0.2 * base_mana" }
+effects = [{ type = "aura", aura = "soul_link_buff" }]
+
+[spells.shadow_bolt]
+name = "Shadow Bolt"
+school = "shadow"
+ranks = [
+  { level = 1, lo = 12, hi = 16, mana = 25, cast = 1.7 }, { level = 6, lo = 22, hi = 27, mana = 40, cast = 2.2 },
+  { level = 12, lo = 40, hi = 46, mana = 70, cast = 2.8 }, { level = 20, lo = 58, hi = 66, mana = 110, cast = 3 },
+  { level = 28, lo = 78, hi = 90, mana = 160, cast = 3 }, { level = 36, lo = 101, hi = 113, mana = 210, cast = 3 },
+  { level = 44, lo = 140, hi = 156, mana = 265, cast = 3 }, { level = 52, lo = 188, hi = 210, mana = 315, cast = 3 },
+  { level = 60, lo = 253, hi = 283, mana = 380, cast = 3 },
+]
+effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coef = "r.cast / 3.5" }]
+
+[spells.immolate]
+name = "Immolate"
+school = "fire"
+cast_time = 2
+requires = "!target.aura.immolate.up"
+ranks = [
+  { level = 1, direct = 10.8, dot = 15, mana = 25 }, { level = 10, direct = 21, dot = 30, mana = 45 },
+  { level = 20, direct = 38, dot = 60, mana = 90 }, { level = 30, direct = 63.5, dot = 95, mana = 155 },
+  { level = 40, direct = 80, dot = 125, mana = 220 }, { level = 50, direct = 115.5, dot = 190, mana = 295 },
+  { level = 60, direct = 158, dot = 275, mana = 380 },
+]
+effects = [{ type = "damage", school = "fire", amount = "r.direct", coef = 0.2, mult = "1 + 0.1 * t.aftermath", on_hit = [{ type = "aura", aura = "immolate", target = "target" }] }]
+
+[spells.corruption]
+name = "Corruption"
+school = "shadow"
+cast_time = 2
+requires = "!target.aura.corruption.up"
+ranks = [
+  { level = 4, total = 40, dur = 12, mana = 35 }, { level = 14, total = 65, dur = 15, mana = 55 },
+  { level = 24, total = 132, dur = 18, mana = 100 }, { level = 34, total = 168, dur = 18, mana = 160 },
+  { level = 44, total = 240, dur = 18, mana = 225 }, { level = 54, total = 342, dur = 18, mana = 290 },
+  { level = 60, total = 438, dur = 18, mana = 340 },
+]
+effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, on_hit = [{ type = "aura", aura = "corruption", target = "target" }] }]
+
+[spells.bane_of_agony]
+name = "Bane of Agony"
+school = "shadow"
+requires = "!target.aura.bane_of_agony.up"
+ranks = [
+  { level = 8, total = 72, mana = 25 }, { level = 18, total = 120, mana = 50 }, { level = 28, total = 168, mana = 90 },
+  { level = 38, total = 252, mana = 130 }, { level = 48, total = 396, mana = 170 }, { level = 58, total = 552, mana = 215 },
+]
+effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, on_hit = [{ type = "aura", aura = "bane_of_agony", target = "target" }] }]
+
+[spells.siphon_life]
+name = "Siphon Life"
+talent = "siphon_life"
+school = "shadow"
+requires = "!target.aura.siphon_life.up"
+ranks = [{ level = 30, tick = 11, mana = 150 }, { level = 38, tick = 19, mana = 205 }, { level = 48, tick = 29, mana = 285 }, { level = 58, tick = 41, mana = 365 }]
+effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, on_hit = [{ type = "aura", aura = "siphon_life", target = "target" }] }]
+
+[spells.wrack]
+name = "Wrack"
+talent = "wrack"
+school = "shadow"
+cost = { mana = 200 }
+requires = "!target.aura.wrack.up"
+effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, on_hit = [{ type = "aura", aura = "wrack", target = "target" }] }]
+
+[spells.drain_life]
+name = "Drain Life"
+school = "shadow"
+ranks = [
+  { level = 14, per = 10, mana = 55 }, { level = 22, per = 14, mana = 85 }, { level = 30, per = 22, mana = 135 },
+  { level = 38, per = 28, mana = 185 }, { level = 46, per = 39, mana = 240 }, { level = 54, per = 51, mana = 300 },
+]
+[spells.drain_life.channel]
+duration = 5
+interval = 1
+effects = [
+  { type = "damage", school = "shadow", amount = "r.per", coef = 0.1, lifesteal = 1, tag = "Drain Life", mult = "(1 + 0.0667 * t.improved_drains) * (1 + min(0.04 * t.soul_siphon * (target.aura.corruption.up + target.aura.bane_of_agony.up + target.aura.siphon_life.up + target.aura.wrack.up), 0.12 * t.soul_siphon))", can_crit = true, crit = "t.pandemic > 0 ? 0 : -100", crit_bonus = "t.pandemic / 3" },
+  { type = "chance", p = "0.02 * t.nightfall", then = [{ type = "aura", aura = "shadow_trance", target = "self" }] },
+]
+
+[spells.drain_soul]
+name = "Drain Soul"
+school = "shadow"
+ranks = [{ level = 10, total = 85, mana = 55 }, { level = 24, total = 170, mana = 125 }, { level = 38, total = 270, mana = 210 }, { level = 52, total = 420, mana = 290 }]
+[spells.drain_soul.channel]
+duration = 15
+interval = 3
+effects = [
+  { type = "damage", school = "shadow", amount = "r.total / 5", coef = 0.1, tag = "Drain Soul", mult = "(1 + 0.0667 * t.improved_drains) * (target.hp_pct < 0.25 ? 2 : 1)", can_crit = true, crit = "t.pandemic > 0 ? 0 : -100", crit_bonus = "t.pandemic / 3" },
+  { type = "chance", p = "0.02 * t.nightfall", then = [{ type = "aura", aura = "shadow_trance", target = "self" }] },
+]
+
+[spells.life_tap]
+name = "Life Tap"
+target = "self"
+ranks = [{ level = 6, base = 30 }, { level = 16, base = 75 }, { level = 26, base = 140 }, { level = 36, base = 220 }, { level = 46, base = 310 }, { level = 56, base = 424 }]
+cost = { hp = "r.base + spi" }
+effects = [
+  { type = "resource", res = "mana", amount = "(r.base + spi) * (1 + 0.1 * t.improved_life_tap)" },
+  { type = "if", cond = "t.demonic_energies > 0 && pet.active", then = [{ type = "resource", res = "mana", target = "pet", amount = "(r.base + spi) * 0.5 * t.demonic_energies" }] },
+]
+
+[spells.death_coil]
+name = "Death Coil"
+school = "shadow"
+cooldown = 120
+ranks = [{ level = 42, dmg = 285, mana = 435 }, { level = 50, dmg = 375, mana = 525 }, { level = 58, dmg = 460, mana = 600 }]
+effects = [{ type = "damage", school = "shadow", amount = "r.dmg", coef = 0.2143, lifesteal = 1, on_hit = [{ type = "aura", aura = "fear", target = "target", duration = 3 }] }]
+
+[spells.searing_pain]
+name = "Searing Pain"
+school = "fire"
+cast_time = 1.5
+ranks = [
+  { level = 18, lo = 24, hi = 29, mana = 45 }, { level = 26, lo = 34, hi = 41, mana = 68 }, { level = 34, lo = 44, hi = 53, mana = 91 },
+  { level = 42, lo = 61, hi = 73, mana = 118 }, { level = 50, lo = 83, hi = 99, mana = 141 }, { level = 58, lo = 107, hi = 126, mana = 168 },
+]
+effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = 0.4286, threat = 2 }]
+
+[spells.soul_fire]
+name = "Soul Fire"
+school = "fire"
+cast_time = 6
+cooldown = 60
+ranks = [{ level = 48, lo = 343, hi = 431, mana = 305 }, { level = 56, lo = 389, hi = 488, mana = 335 }]
+effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = 1.0 }]
+
+[spells.shadowburn]
+name = "Shadowburn"
+talent = "shadowburn"
+school = "shadow"
+cooldown = 15
+ranks = [
+  { level = 20, lo = 65, hi = 74, mana = 105 }, { level = 24, lo = 80, hi = 92, mana = 130 }, { level = 32, lo = 118, hi = 133, mana = 190 },
+  { level = 40, lo = 147, hi = 165, mana = 245 }, { level = 48, lo = 201, hi = 225, mana = 305 }, { level = 56, lo = 258, hi = 288, mana = 365 },
+]
+effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coef = 0.4286 }]
+
+[spells.conflagrate]
+name = "Conflagrate"
+talent = "conflagrate"
+school = "fire"
+cooldown = 10
+cost = { mana = 100 }
+requires = "target.aura.immolate.up"
+text = "Only rank 1 (87-112) is on the site; scaled by level here."
+effects = [
+  { type = "damage", school = "fire", min = "87 * max(1, level / 40)", max = "112 * max(1, level / 40)", coef = 0.4286 },
+  { type = "chance", p = "1 - 0.2 * t.shadow_and_flame", then = [{ type = "remove_aura", aura = "immolate", target = "target" }] },
+]
+
+[spells.incinerate]
+name = "Incinerate"
+talent = "incinerate"
+school = "fire"
+cast_time = 2.5
+ranks = [{ level = 40, lo = 99, hi = 115, mana = 205 }, { level = 50, lo = 145, hi = 168, mana = 265 }, { level = 60, lo = 201, hi = 233, mana = 325 }]
+effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = 0.714, mult = "target.aura.immolate.up ? 1.25 : 1" }]
+
+[spells.hellfire]
+name = "Hellfire"
+school = "fire"
+ranks = [{ level = 30, per = 86, mana = 645 }, { level = 42, per = 142, mana = 975 }, { level = 54, per = 210, mana = 1300 }]
+[spells.hellfire.channel]
+duration = 15
+interval = 1
+effects = [
+  { type = "damage", school = "fire", target = "enemies", max_targets = 10, amount = "r.per", coef = 0.0476, hit = "auto", can_crit = false, tag = "Hellfire" },
+  { type = "damage", school = "fire", target = "self", amount = "r.per * 0.6", hit = "auto", can_crit = false, no_proc = true, tag = "Hellfire (self)" },
+]
+
+[spells.rain_of_fire]
+name = "Rain of Fire"
+school = "fire"
+ranks = [{ level = 20, total = 166, mana = 295 }, { level = 34, total = 372, mana = 605 }, { level = 46, total = 606, mana = 885 }, { level = 58, total = 884.8, mana = 1185 }]
+channel = { duration = 8, interval = 2, effects = [{ type = "damage", school = "fire", target = "enemies", max_targets = 10, amount = "r.total / 4", coef = 0.083, hit = "auto", can_crit = false, tag = "Rain of Fire" }] }
+
+[spells.healthstone]
+name = "Healthstone"
+level = 10
+off_gcd = true
+cooldown = 120
+cd_group = "healthstone"
+target = "self"
+requires = "opt.healthstone_in_fight > 0"
+ranks = [{ level = 10, heal = 120 }, { level = 22, heal = 300 }, { level = 34, heal = 600 }, { level = 46, heal = 960 }, { level = 58, heal = 1440 }]
+effects = [{ type = "heal", target = "self", amount = "r.heal", tag = "Healthstone" }]
+
+# Demon abilities (cast by the demon).
+[spells.firebolt]
+name = "Firebolt"
+school = "fire"
+cast_time = 2
+ranks = [{ level = 1, lo = 7, hi = 10 }, { level = 20, lo = 26, hi = 32 }, { level = 40, lo = 55, hi = 67 }, { level = 60, lo = 100, hi = 116 }]
+effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = 0.5714, mult = "1 + 0.1 * t.improved_imp" }]
+[spells.torment]
+name = "Torment"
+level = 10
+cooldown = 5
+effects = [{ type = "taunt", duration = 3 }, { type = "threat", amount = "level * 6 * (1 + 0.1 * t.improved_voidwalker)" }]
+[spells.lash_of_pain]
+name = "Lash of Pain"
+school = "shadow"
+level = 20
+cooldown = 12
+ranks = [{ level = 20, dmg = 33 }, { level = 28, dmg = 44 }, { level = 36, dmg = 60 }, { level = 44, dmg = 73 }, { level = 52, dmg = 87 }, { level = 60, dmg = 99 }]
+effects = [{ type = "damage", school = "shadow", amount = "r.dmg", coef = 0.4286, mult = "1 + 0.1 * t.improved_sayaad" }]
+
+# ------------------------------------------------------------------ rotations
+[rotations.affliction_drain]
+desc = "Affliction levelling with the Voidwalker tanking: Corruption, Bane of Agony, Siphon Life, Wrack, Nightfall Shadow Bolts, Drain Life when hurt, Life Tap"
+auto_melee = false
+precombat = ["demon_armor", "summon_voidwalker"]
+opener = []
+actions = [
+  { cast = "healthstone", if = "hp_pct < 0.3" },
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "death_coil", if = "hp_pct < 0.4" },
+  { cast = "life_tap", if = "mana_pct < 0.25 && hp_pct > 0.6" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "corruption" },
+  { cast = "bane_of_agony", if = "target.hp_pct > 0.3 || target.boss" },
+  { cast = "siphon_life" },
+  { cast = "wrack", if = "target.aura.corruption.up" },
+  { cast = "shadow_bolt", if = "aura.shadow_trance.up" },
+  { cast = "drain_life", if = "hp_pct < 0.7" },
+  { cast = "drain_soul", if = "target.hp_pct < 0.25 && !target.boss" },
+  { cast = "shadow_bolt", if = "t.nightfall == 0 || mana_pct > 0.5" },
+  { cast = "drain_life" },
+]
+rest = [
+  { cast = "summon_voidwalker", if = "!pet.active" },
+  { cast = "life_tap", if = "mana_pct < 0.7 && hp_pct > 0.8" },
+  { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+  { cast = "demon_armor" },
+]
+eat_below = 0.5
+drink_below = 0.35
+
+[rotations.pact]
+desc = "Demonic Pact: sacrifice the Voidwalker for mana regeneration, then fight with a Felhunter (Imp below 30); Soul Link; Affliction DoTs and Drain Life"
+auto_melee = false
+precombat = ["demon_armor", "summon_voidwalker", "demonic_sacrifice", "summon_felhunter", { cast = "summon_imp", if = "!pet.active" }, "soul_link"]
+opener = []
+actions = [
+  { cast = "healthstone", if = "hp_pct < 0.3" },
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "death_coil", if = "hp_pct < 0.4" },
+  { cast = "life_tap", if = "mana_pct < 0.25 && hp_pct > 0.6" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "corruption" },
+  { cast = "bane_of_agony", if = "target.hp_pct > 0.3 || target.boss" },
+  { cast = "siphon_life" },
+  { cast = "immolate", if = "target.hp_pct > 0.4 && !known.siphon_life" },
+  { cast = "shadow_bolt", if = "aura.shadow_trance.up" },
+  { cast = "drain_life", if = "hp_pct < 0.75" },
+  { cast = "searing_pain", if = "t.demonic_brand > 0 && !pet.aura.demonic_brand.up" },
+  { cast = "shadow_bolt" },
+]
+rest = [
+  { cast = "summon_voidwalker", if = "!aura.sacrifice_voidwalker.up && !pet.active && known.demonic_sacrifice" },
+  { cast = "demonic_sacrifice", if = "pet.voidwalker.active && known.demonic_sacrifice" },
+  { cast = "summon_felhunter", if = "!pet.active" },
+  { cast = "summon_imp", if = "!pet.active" },
+  { cast = "soul_link" },
+  { cast = "life_tap", if = "mana_pct < 0.7 && hp_pct > 0.8" },
+  { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+  { cast = "demon_armor" },
+]
+eat_below = 0.5
+drink_below = 0.35
+
+[rotations.destruction]
+desc = "Destruction with the Imp: Immolate, Conflagrate, Shadowburn to finish, Incinerate or Shadow Bolt"
+auto_melee = false
+precombat = ["demon_armor", "summon_imp"]
+opener = []
+actions = [
+  { cast = "healthstone", if = "hp_pct < 0.3" },
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "death_coil", if = "hp_pct < 0.4" },
+  { cast = "life_tap", if = "mana_pct < 0.2 && hp_pct > 0.5" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "shadowburn", if = "target.hp_pct < 0.25" },
+  { cast = "immolate", if = "target.hp_pct > 0.25 || target.boss" },
+  { cast = "conflagrate" },
+  { cast = "corruption", if = "target.boss" },
+  { cast = "incinerate", if = "target.aura.immolate.up" },
+  { cast = "shadow_bolt" },
+]
+rest = [
+  { cast = "summon_imp", if = "!pet.active" },
+  { cast = "life_tap", if = "mana_pct < 0.7 && hp_pct > 0.8" },
+  { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+  { cast = "demon_armor" },
+]
+eat_below = 0.5
+drink_below = 0.35

@@ -1,0 +1,347 @@
+# fsim: a Monte Carlo combat simulator for WoW: Forever
+
+`fsim` simulates characters of all nine classes in four kinds of situation
+(levelling, a dungeon boss, world-PvP pressure, duels) and reports every
+result with a confidence interval. Every class, talent, spell, race, gear kit,
+enemy and scenario lives in plain TOML files under `data/`. When a new client
+build changes something, you add one small patch file; no Rust is touched.
+
+Data: Forever client build **1.60.1.70338** (talents, spell ranks and racials
+read from wowforevertalents.com on 15 Oct 2026). Base stats, attack tables,
+armour, rage and most spell coefficients are Classic 1.12, because the client
+tooltips do not show them.
+
+## Quick start
+
+```sh
+cargo build --release                      # stable Rust; builds target/release/fsim
+alias fsim=./target/release/fsim
+
+fsim check builds/*/*.toml                 # load all data, validate every build
+fsim run boss builds/warrior/vampire_v2.toml builds/warrior/conventional_fury.toml
+fsim run solo_2_hard builds/druid/*.toml --level 30
+fsim run pressure builds/paladin/shockadin.toml
+fsim run duel builds/shaman/stormwarden.toml --vs builds/rogue/combat_swords.toml
+fsim scan solo_1 builds/druid/warden9.toml --levels 20,25,30,40,60
+fsim sheet builds/mage/frost.toml --level 30        # character sheet
+fsim log boss builds/rogue/mutilate.toml --lines 80 # one fight, blow by blow
+fsim whatif boss builds/warrior/vampire_v2.toml --with data/whatif/example_hotfix.toml
+fsim show classes.priest.talents.penance            # merged data after patches
+fsim list classes | races | talents <class> | spells <class> | rotations | scenarios | gear | enemies | options
+fsim serve                                         # the website, at http://localhost:8080
+```
+
+Useful flags on `run`, `scan` and `whatif`: `--level N`, `--opt name=value`
+(change an assumption, see `fsim list options`), `--precision 0.005`,
+`--max-reps`, `--seed`, `--threads`, `--json out.json`, `--all` (every metric
+and every paired difference). Global flags: `--data DIR`, `--patch FILE`
+(extra overlay), `--at-build 1.60.1.70338`, `--no-patches`.
+
+## The website (for people who don't use a terminal)
+
+`web/` is a static site that runs the same engine in the visitor's browser:
+pick a class, race and level, start from one of the builds in `builds/` or
+spend talent points in WoW-style talent trees, choose a test, and press
+Simulate. Up to three builds can be compared on the same dice rolls, results
+come with plain-English verdicts, and "Share these builds" copies a link.
+
+Each run is split between Web Workers, one per spare core: the heaviest
+test (three builds, "Precise", two tough mobs) takes about 6 s on an
+18-core laptop against 58 s on a single worker. The engine checks whether a
+run is precise enough at fixed fight counts (32, then every 16), so the
+result is the same on a phone with eight cores, a desktop with eighteen, or
+the local server.
+
+**Deploying (GitHub Pages).** Push to `main` with Settings > Pages > Source set
+to "GitHub Actions". `.github/workflows/pages.yml` then runs the tests,
+compiles the library to WebAssembly (`wasm32-unknown-unknown`, no
+wasm-bindgen), checks it with `tools/wasm_smoke.mjs`, regenerates the talent
+icons for the current data, and publishes `web/` plus `fsim.wasm`. Data and
+example builds are compiled into the `.wasm`, so a patch file in
+`data/patches/` reaches the website on the next push.
+
+**Running it locally.** `fsim serve` serves `web/` at http://localhost:8080 and
+answers the page's requests natively (the page uses `fsim.wasm` when present
+and falls back to this server otherwise):
+
+```sh
+cargo run --release -- serve            # then open http://localhost:8080
+```
+
+How the pieces fit:
+
+| File | Role |
+|---|---|
+| `src/api.rs` | JSON requests (`catalog`, `sheet`, `start`, `step`, `run`, `add`, `result`, `drop`); `fsim api '<json>'` answers one from the shell |
+| `src/ffi.rs` | four C-ABI exports the browser calls (`fsim_alloc`, `fsim_call`, `fsim_out_ptr`, `fsim_out_len`) |
+| `web/worker.js`, `web/engine.js` | compile `fsim.wasm` once, run it in a pool of Web Workers that each simulate a range of fights (`run`) while one collects them in order (`add`); fall back to `POST /api` |
+| `web/app.js`, `talents.js`, `results.js` | the page; talent rules mirror `build.rs` (the engine re-validates everything) |
+| `web/meta.js` | every label, icon rule and plain-English phrase, in one place |
+| `tools/fetch_icons.mjs` | downloads the game icons the site uses into `web/icons/` |
+| `tools/build_icons.mjs` | draws a stand-in for every icon (used when a game icon is missing) into `web/icons.js` |
+
+**Icons.** Talents, classes and races carry the game's icon name in the data
+(`icon = "ability_ghoulfrenzy"` in a talent's table; a patch file can set it
+for a new talent). `tools/fetch_icons.mjs` copies those icons, as the game's
+own 64 px textures, from a sparse checkout of
+[Gethe/wow-ui-textures](https://github.com/Gethe/wow-ui-textures) into
+`web/icons/` with a `manifest.json`; anything not found there comes from
+Wowhead's or Blizzard's image servers. The deploy does this on every push. To
+see the icons locally:
+
+```sh
+fsim api '{"op":"catalog"}' > catalog.json
+git clone --depth 1 --filter=blob:none --sparse --no-checkout https://github.com/Gethe/wow-ui-textures .textures
+node tools/fetch_icons.mjs catalog.json --textures .textures
+```
+
+Icons that are missing are drawn instead, from
+[game-icons.net](https://game-icons.net) (CC BY 3.0). The game icons are
+Blizzard Entertainment's artwork, used as fan sites commonly do; the credits
+say so.
+
+**Type.** Ortica (Benedetta Bovani, Collletttivo) for display and Uncut Sans
+(Kasper Nordkvist) for everything else, both under the SIL Open Font License
+(copies in `web/fonts/`), found through [uncut.wtf](https://uncut.wtf).
+
+## How the Monte Carlo works
+
+* **Replications.** One replication is one complete hour of levelling, one
+  boss fight, one duel, or one PvP pressure test. Results are averaged over
+  replications, never over the fights inside one, so every replication is an
+  independent draw.
+* **Random numbers.** xoshiro256++ seeded through SplitMix64. Replication
+  `r` of scenario `s` gets seed `hash(master seed, s, r)`, and inside a
+  replication every unit has its own streams (attack table, procs, misc)
+  keyed by its slot. Nothing depends on thread scheduling.
+* **Common random numbers.** Every build in one `run` is simulated on the
+  same replication seeds, so differences between builds are measured on the
+  same dice. The paired difference report shows the gain ("CRN variance
+  reduction x1.8" means the comparison needed 1.8x fewer replications than
+  independent runs would).
+* **Sequential stopping.** Replications run in batches (64 by default) until
+  the primary metric's 95% interval is within ±1% for every build (or
+  `--max-reps` is reached; the header says which). Means use Student-t
+  intervals, rates (win, death in a fight) use Wilson intervals, and the PvP
+  breakeven uses a distribution-free interval for the median.
+* **Determinism.** Same data, seed and flags give byte-identical output on
+  any machine and with any thread count. There is a test for it.
+* **Breakeven.** In `pressure`, each replication finds, by bisection on the
+  same seed, the attacker damage multiplier at which you stop winning, then
+  converts it to the attacker's damage per second before your mitigation.
+  The reported number is the median over replications.
+
+`cargo test --release` runs unit tests (expression language, RNG moments,
+interval coverage on skewed data and rare events) and integration tests
+(every build in every scenario at levels 20, 40 and 60; legal talent orders;
+thread-count independence; CRN variance reduction; patches change only what
+they say).
+
+## Scenarios
+
+| id | what it is | primary metric |
+|---|---|---|
+| `solo_1`, `solo_2`, `solo_3` | an hour of same-level humanoids, 1/2/3 per pull, 8 s travel; eat/drink/rest between pulls, death = 2 min corpse run | kills per hour |
+| `solo_2_hard` | double pulls of mobs hitting 40% harder | kills per hour (also deaths per hour) |
+| `boss` | 120 s on a +2 level boss from behind, tank holds threat, boss immune to crowd control | DPS |
+| `pressure`, `pressure_2v1` | a geared rogue-like player opens with a 4 s stun and stuns again at 10 s; PvP diminishing returns apply | breakeven attacker DPS |
+| `duel` | stand-and-trade against another build (`--vs`) | win rate |
+
+Scenarios, enemies and gear kits are data too (`data/base/scenarios.toml`,
+`enemies.toml`, `gear.toml`); add your own the same way.
+
+## The data
+
+```
+data/base/core.toml          combat rules: attack tables, armour, rage, GCD, DR, rest food
+data/base/options.toml       assumptions you can change with --opt
+data/base/common.toml        shared auras (stun, fear, ...) and potions
+data/base/races.toml         ten races with Forever racials
+data/base/gear.toml          standard gear kits at levels 20/40/60 (interpolated)
+data/base/enemies.toml       enemy templates
+data/base/scenarios.toml     scenarios
+data/base/classes/<class>.toml   one file per class
+data/patches/*.toml          overlays per client build (see data/patches/README.md)
+data/whatif/*.toml           overlays you test with --patch or `fsim whatif`
+builds/<class>/*.toml        character builds
+```
+
+### A class file
+
+```toml
+name = "Warrior"
+resources = ["rage"]
+can_parry = true
+base = [ { level = 1, str = 23, ... hp = 20, mana = 0 }, { level = 60, ... } ]
+
+[formulas]                       # Classic stat formulas; any expression
+ap = "str * 2 + level * 3 - 20"
+
+[talents.cruelty]
+tree = "Fury"
+points = 0                       # points needed in the tree above its row
+ranks = 5
+text = "+5% melee crit."
+mods = [{ stat = "melee_crit", add = "rank" }]       # passive stat change
+
+[talents.flurry]
+tree = "Fury"
+points = 25
+ranks = 5
+requires = "death_wish"          # prerequisite at full rank
+procs = [{ on = "melee_crit", effects = [{ type = "aura", aura = "flurry" }] }]
+
+[auras.flurry]
+duration = 15
+charges = 3
+mods = [{ stat = "melee_haste", mul = "1 + 0.05 * t.flurry" }]
+procs = [{ on = "melee_swing", effects = [{ type = "consume" }] }]
+
+[spells.bloodthirst]
+talent = "bloodthirst"
+cost = { rage = 30 }
+cooldown = 6
+ranks = [{ level = 40, bonus = 30 }, { level = 60, bonus = 48 }]   # r.bonus = current rank
+effects = [{ type = "damage", school = "physical", amount = "0.45 * ap + r.bonus" }]
+
+[rotations.fury_dw]              # a priority list; first usable line wins
+precombat = ["berserker_stance", "battle_shout"]
+opener = ["charge"]
+actions = [
+  { cast = "execute", if = "target.hp_pct < 0.2" },
+  { cast = "bloodthirst" },
+  { cast = "heroic_strike", if = "rage >= 60" },
+]
+rest = [{ cast = "cannibalize", if = "hp_pct < 0.75" }]   # between pulls
+```
+
+A talent listed with no `mods`, `spell_mods` or `procs`, and not used by any
+spell or formula, is legal in builds but has no effect; `fsim check` reports
+these per build ("points in talents the sim does not model").
+
+**Formulas** are strings (or plain numbers) with `+ - * /`, comparisons,
+`&& || !` (or `and or not`), `a ? b : c`, and `min max clamp abs floor ceil
+round pow sqrt if interp(x, x0,y0, x1,y1, ...)`. Names: any stat (`ap`,
+`str`, `melee_crit`, `spell_hit`, `block_value`, ...), resources (`hp`,
+`mana`, `rage`, `energy`, `hp_pct`, `max_mana`, `base_mana`, `base_hp`), `level`,
+`cp`, `stacks`, `t.<talent>` (rank), `rank` (inside a talent), `r.<field>`
+(current spell rank), `opt.<option>`, `aura.<id>[.up|.stacks|.remains|.charges]`,
+`cd.<spell>.ready|.remains`, `known.<spell>`, `spell.<spell>` (the event came
+from that spell), `event.amount|crit|periodic|pct|mh|oh|special|physical|...`,
+`form.<form>`, `form.any`, `mh.dagger`, `mh.speed`, `mh.dps`, `two_hand`,
+`dual_wield`, `has_shield`, `behind`, `enemies`, `in_combat`, `stunned`,
+`feared`, `frozen`, `rooted`, `casting`, `is_player`, `boss`, creature types
+(`humanoid`, `undead`, ...), `pet.active`, `pet.<pet>.active`, `class.<id>`,
+`race.<id>`; prefix with `target.`, `owner.` or `pet.` for another unit.
+Unknown names are errors at load time, with the path to the offending line.
+
+**Effects:** `damage` (school, hit = white/melee/ranged/spell/auto, weapon,
+weapon_mult, normalized, min/max/amount, coef, mult, crit, crit_bonus,
+can_crit, threat, target, lifesteal, periodic, no_proc, on_hit/on_crit/on_miss),
+`heal`, `resource` (add or `set`), `combo`, `aura` (stacks, duration, target),
+`remove_aura`, `remove_self`, `consume`, `emit` (custom event), `cooldown`
+(reset/reduce/set), `summon`, `dismiss`, `sacrifice`, `extra_attack`, `cast`,
+`interrupt`, `if`, `chance`, `dispel`, `taunt`, `threat`, `absorb`. Targets:
+`self`, `target`, `pet`, `owner`, `my_target`, `enemies` (+ `max_targets`).
+
+**Proc events (`on =`):** `melee_swing melee_landed melee_crit white_landed
+special_landed ranged_landed spell_landed spell_crit periodic heal heal_crit
+damage_dealt struck struck_melee struck_crit dodge parry block attack_dodged
+attack_parried kill cast combat_start summon pet_died`, plus `cast:<spell>`,
+`custom:<name>`, `aura_applied:<aura>`, `aura_expired:<aura>`. Procs take
+`if`, `chance`, `ppm` and `icd`.
+
+**Spell modifiers** (`spell_mods`, on talents and auras) change `cost
+cast_time cooldown damage heal crit crit_bonus threat gcd` of listed `spells`
+or a whole `school`. An aura with `consume_on_cast = true` is used up by the
+spells its modifiers apply to.
+
+**Coefficients.** `coef` multiplies spell power (healing power for heals).
+Ranks learned below level 20 lose 3.75% per level (Classic), and a rank with
+a higher rank available is scaled by (rank level + 11) / your level.
+Forever's rule that healing power counts 1/3 towards spell damage is in
+`core.toml` (`heal_to_spell_damage`).
+
+### A build file
+
+```toml
+name = "Warden-9 (26/9/16)"
+class = "druid"
+race = "tauren"
+level = 60
+gear = "leather_feral"            # a kit from gear.toml
+rotation = "feral_cat"            # a rotation from the class file
+order = ["ferocity", ...]         # optional: one talent per level from 10
+[talents]
+ferocity = 5
+...
+[gear_override]                   # optional: add or replace kit stats
+crit = 1
+[opts]                            # optional: per-build assumptions
+druid_omen = 1
+```
+
+`--level 30` trims the talents to the level's budget using `order`; without
+one, points go to the main tree first, top rows first (and the run says so).
+
+## When a new client build ships
+
+1. Read the changes (the talent site's diff pages are a good source).
+2. Write `data/patches/<build>.toml` with `[meta] build = "<build>"` and only
+   the changed keys. `data/patches/README.md` has a worked example: changing
+   a duration, replacing a rank table, deleting a talent.
+3. `fsim check builds/*/*.toml` - every typo comes back with its path.
+4. `fsim whatif <scenario> <builds> --with data/patches/<build>.toml` before
+   you commit it, to see exactly what the change does to each build on the
+   same random numbers. `fsim show <path>` prints the merged result.
+5. Old results stay reproducible with `--at-build <old build>`.
+
+A brand-new talent or spell is the same: add its block in the patch (or the
+class file), with `mods`, `spell_mods`, `procs` or `effects`.
+
+## Assumptions to know about (change them with `--opt`)
+
+`fsim list options` shows each with its default and source. The ones that
+move results most: Touch of the Grave drain and chance, Gore Drinker re-arming
+on Enrage refresh, Seal of Light/Wisdom trigger chance (tooltip says "on hit";
+Classic was about 20%), Maelstrom stack chance, Summon Hawk dive interval,
+pet scaling from the owner's stats, and whether druids get Omen of Clarity.
+
+## Limits
+
+* No positioning: no range, kiting, movement or line of sight. Roots and
+  slows do nothing; Frost Nova and Frostbite freezes stop the target acting
+  until it takes 25% of its health, standing in for kiting.
+* Totems are buffs on the shaman. Chain Lightning and Chain Heal hit one
+  target. Ground effects (Consecration, Flamestrike's burn) are per-target
+  auras. Pet focus is not modelled (fixed ability cadence).
+* Gear kits are generic stat totals, the same for every build of a role, so
+  results compare talents and rotations, not items.
+* Enemy players in `pressure` are scripted (two stuns, no trinkets, no
+  defensive cooldowns). Builds with long crowd control or immunities
+  (paladins, bears) get very high breakevens there; read it as "this build
+  cannot be killed by that attacker", not as an exact number.
+* Spell coefficients, Classic base stats and some proc rates are assumptions
+  where the Forever client shows no number.
+
+## Results on the shipped data (build 70338, default options)
+
+See `RESULTS.md` (regenerate with the commands at its top).
+
+## Cross-check against the Python prototype
+
+`data/whatif/python_parity.toml` puts back the prototype's assumptions
+(Battle Shout 232, Bloodthirst +30, Victory Rush 45% AP without cooldown, no
+crit suppression). With it, the boss scenario gives Vampire v2 271 DPS and
+Conventional Fury 305 DPS at level 60, against 272 and 304 from the
+prototype. Levelling comes out 5-8% higher (158 and 151 kills per hour
+against 151 and 140), from differences in resting and death handling. PvP
+breakeven is 17% higher for Vampire v2 (678 against 578), because this version
+applies PvP diminishing returns to the attacker's second stun and lets the
+attacker's opening stun land first.
+
+## License
+
+GPL-3.0-or-later (see `LICENSE`). The fonts in `web/fonts/` are under the SIL
+Open Font License. The game icons are not in this repository: the deploy
+fetches them, and they remain Blizzard Entertainment's artwork.

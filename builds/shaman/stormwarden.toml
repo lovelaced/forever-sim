@@ -1,0 +1,31 @@
+# "Stormwarden": shield-and-mace hybrid, 0/20/31. Water Shield mana,
+# Stormstrike and shocks for damage, Riptide/Healing Wave/Nature's Swiftness
+# to stay up. Windshaper Skyborne (Wind Blessed haste).
+name = "Stormwarden (0/20/31)"
+class = "shaman"
+race = "windshaper"
+level = 60
+gear = "mail_shield"
+rotation = "stormwarden"
+
+[talents]
+thundering_strikes = 5
+mental_dexterity = 3
+improved_lightning_shield = 2
+shamanistic_focus = 1
+anticipation = 3
+elemental_weapons = 1
+stormstrike = 1
+flurry = 4
+improved_healing_wave = 5
+mindfulness = 3
+tidal_focus = 5
+improved_reincarnation = 2
+water_shield = 1
+ancestral_healing = 3
+healing_focus = 1
+tidal_mastery = 5
+natures_swiftness = 1
+healing_way = 3
+purification = 1
+riptide = 1

@@ -1,0 +1,30 @@
+# Combat swords, 20/31/0. Undead for Touch of the Grave and Cannibalize.
+name = "Combat Swords (20/31)"
+class = "rogue"
+race = "undead"
+level = 60
+gear = "leather_agi"
+rotation = "combat_swords"
+
+[talents]
+malice = 5
+ruthlessness = 3
+murder = 2
+relentless_strikes = 1
+lethality = 5
+cold_blood = 1
+vile_poisons = 3
+improved_sinister_strike = 2
+lightning_reflexes = 3
+precision = 3
+deflection = 2
+riposte = 1
+endurance = 2
+improved_sprint = 2
+dual_wield_specialization = 5
+flawless_execution = 1
+blade_flurry = 1
+hack_and_slash = 5
+weapon_expertise = 2
+aggression = 1
+adrenaline_rush = 1
