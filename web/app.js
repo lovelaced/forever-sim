@@ -5,7 +5,7 @@ import { startEngine } from './engine.js';
 import * as M from './meta.js';
 import { h, svgIcon, loadIconManifest, retargetTip, hideTip, flash, fmtSec, debounce, tipIsPinned, repositionTip } from './ui.js';
 import {
-  S, env, bus, MAX_BUILDS, DEFAULT_PRESET, DEFAULT_LEVEL, presetOf, buildOf, nameOf, baselineBuild, copyBuild, buildFromPreset,
+  S, env, bus, MAX_BUILDS, DEFAULT_PRESET, DEFAULT_LEVEL, presetOf, baseName, buildOf, nameOf, baselineBuild, copyBuild, buildFromPreset,
   scenarioMeta, accuracyOf, sig, serial, restore, loadLocal, saveLocal, loadRows, encode, decode,
 } from './state.js';
 import { renderCards } from './cards.js';
@@ -64,6 +64,23 @@ function render() {
 
 bus.render = render;
 bus.cards = () => renderCards($('builds'), cardActions);
+// From the rankings and duels lists: put that build in the Compare tab. It
+// takes a free slot, or the last slot that isn't the baseline.
+bus.comparePreset = (file, level) => {
+  const p = presetOf(file);
+  if (!p) return;
+  const nb = buildFromPreset(p, level);
+  if (S.builds.length < MAX_BUILDS) {
+    S.builds.push(nb);
+    flash(`Added ${baseName(p.name)} to Compare your builds.`, 'info');
+  } else {
+    const k = [...S.builds.keys()].reverse().find((i) => S.builds[i].uid !== S.baseline) ?? S.builds.length - 1;
+    S.builds[k] = nb;
+    flash(`Compare holds ${MAX_BUILDS} builds, so this one took the place of the last.`, 'info');
+  }
+  refreshSheet(nb);
+  setView('compare');
+};
 bus.progress = () => { updateProgress(); updateBigProgress(); };
 
 // ------------------------------------------------------------------ builds

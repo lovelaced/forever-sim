@@ -7,19 +7,22 @@ import { S, env, bus, classOf, presetOf, presetTags, isExperimental, baseName, a
 import { metricOf, rangeTip } from './results.js';
 
 // The ranking's three tests, in the order the switcher shows them.
-export const RANK_TESTS = ['solo_1', 'solo_2_hard', 'solo_3', 'boss', 'pressure'];
+export const RANK_TESTS = ['solo_1', 'solo_2', 'solo_2_hard', 'solo_3', 'boss', 'pressure', 'pressure_2v1'];
 // Quickest first, so lists appear while the slow three-mob test runs.
-const RANK_RUN_ORDER = ['boss', 'solo_1', 'solo_2_hard', 'pressure', 'solo_3'];
+const RANK_RUN_ORDER = ['boss', 'solo_1', 'solo_2', 'solo_2_hard', 'pressure', 'pressure_2v1', 'solo_3'];
 // Rough share of the run each test takes (timed on Standard), for the progress bar.
-const RANK_COST = { boss: 1, solo_1: 4, solo_2_hard: 11, pressure: 13, solo_3: 80 };
-const RANK_TITLES = { solo_1: 'One mob', solo_2_hard: 'Two tough mobs', solo_3: 'Three mobs', boss: 'Dungeon boss', pressure: 'World PvP' };
+const RANK_COST = { boss: 1, solo_1: 4, solo_2: 12, solo_2_hard: 11, pressure: 13, pressure_2v1: 30, solo_3: 80 };
+const RANK_TITLES = { solo_1: 'One mob', solo_2: 'Two mobs', solo_2_hard: 'Two tough mobs', solo_3: 'Three mobs', boss: 'Dungeon boss', pressure: 'World PvP', pressure_2v1: 'Two attackers' };
+// Role filter for the lists.
+const ROLES = [['all', 'All'], ['damage', 'Damage'], ['healer', 'Healers'], ['tank', 'Tanks']];
+const roleOf = (p) => p.role || 'damage';
 const LEVELS = [20, 30, 40, 50, 60];
 const STORE = 'forever-sim/rankings-v2';
 
 // ------------------------------------------------------------------ state
 
 export function initRankings() {
-  S.rank = { level: 30, acc: 'standard', experiments: true, test: 'solo_1', results: {}, run: null };
+  S.rank = { level: 30, acc: 'standard', experiments: true, test: 'solo_1', role: 'all', results: {}, run: null };
   S.duels = { build: null, level: 30, acc: 'standard', experiments: true, result: null, run: null };
   try {
     const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
@@ -218,6 +221,10 @@ function controls(st, { go, goLabel, running, stopLabel, extra }) {
 }
 
 const tagsOf = (p) => presetTags(p).map((t) => h('span.card-tag', t));
+// Opens the build in the Compare tab at the list's level (app.js does the adding).
+const compareButton = (p, level) => h('button.linkish.row-compare', {
+  type: 'button', 'aria-label': `Compare ${baseName(p.name)} ${classOf(p.class)?.name || ''}`, onclick: () => bus.comparePreset(p.file, level),
+}, 'Compare');
 const classIcon = (p) => h('span.rank-icon', art(M.CLASS_ICONS[p.class], classOf(p.class)?.icon));
 
 // ------------------------------------------------------------------ rankings view
@@ -228,7 +235,7 @@ export function renderRankings(root) {
   const count = pool(st.experiments).length;
   const out = [
     h('h2.view-title', 'Every spec, ranked'),
-    h('p.lede', `Runs every build on the site through five tests and ranks them: leveling one mob at a time, two tough mobs at once and three mobs at once, a dungeon boss, and a world PvP ambush. That's ${count} builds, so it takes a while: about three minutes on a fast laptop on Standard (the three-mob test takes longest and runs last), and much longer on a phone. Quick is several times faster; Precise takes much longer. Each list appears as soon as its test finishes.`),
+    h('p.lede', `Runs every build on the site through seven tests and ranks them: leveling one, two, two tough and three mobs at a time, a dungeon boss, and two world PvP ambushes. That's ${count} builds, so it takes a while: about four minutes on a fast laptop on Standard, and much longer on a phone. Quick is several times faster; Precise takes much longer. Each list appears as soon as its test finishes, and the slow three-mob test runs last.`),
     controls(st, { go: runRankings, goLabel: `Rank ${count} builds`, running, stopLabel: 'Stop' }),
   ];
   if (running) out.push(progressBlock(st.run, `${RANK_TITLES[st.run.test]} · ${Math.min(st.run.i + 1, st.run.n)} of ${st.run.n}`));
@@ -240,6 +247,9 @@ export function renderRankings(root) {
       type: 'button', role: 'tab', 'aria-selected': String(st.test === t), 'aria-pressed': String(st.test === t), disabled: !st.results[t],
       onclick: () => { st.test = t; save(); bus.render(); },
     }, h('b', RANK_TITLES[t]), h('span', scenarioMeta(t).per)))));
+    out.push(h('div.quick.role-chips', { role: 'group', 'aria-label': 'Role' }, ROLES.map(([id, label]) => h('button.chip', {
+      type: 'button', 'aria-pressed': String((st.role || 'all') === id), onclick: () => { st.role = id; save(); bus.render(); },
+    }, label))));
     out.push(rankList(st, st.results[st.test] || st.results[have[0]], st.results[st.test] ? st.test : have[0]));
   } else if (!running) {
     out.push(h('p.hint.empty-big', 'Nothing ranked yet. Pick a level and press the button.'));
@@ -252,7 +262,7 @@ function rankList(st, r, test) {
   const primary = primaryOf(test);
   const pm = M.METRICS[primary];
   const rows = r.files.map((file, i) => ({ p: presetOf(file), m: metricOf(r.res, i, primary), deaths: metricOf(r.res, i, 'deaths_per_hour') }))
-    .filter((x) => x.p && x.m)
+    .filter((x) => x.p && x.m && ((st.role || 'all') === 'all' || roleOf(x.p) === st.role))
     .sort((a, b) => b.m.mean - a.m.mean);
   const max = Math.max(...rows.map((x) => x.m.hi), 1e-9);
   // a build whose range overlaps the first build of the group above shares
@@ -274,13 +284,13 @@ function rankList(st, r, test) {
         h('span.rank-n', { 'aria-label': x.tied ? `tied ${x.rank}` : `rank ${x.rank}` }, x.tied ? '=' : String(x.rank)),
         classIcon(x.p),
         h('span.who', h('span.who-name', baseName(x.p.name)), h('span.who-class', { style: { color: classColor(x.p.class) } }, classOf(x.p.class)?.name)),
-        tagsOf(x.p)),
-      h('div.val', fmtMetric(x.m.mean, pm), (test === 'solo_2_hard' || test === 'solo_3') && x.deaths ? h('small', `${fmtNum(x.deaths.mean, 1)} deaths/h`) : h('small', `±${fmtMetric((x.m.hi - x.m.lo) / 2, pm)}`)),
+        tagsOf(x.p), compareButton(x.p, r.level)),
+      h('div.val', fmtMetric(x.m.mean, pm), (test === 'solo_2' || test === 'solo_2_hard' || test === 'solo_3') && x.deaths ? h('small', `${fmtNum(x.deaths.mean, 1)} deaths/h`) : h('small', `±${fmtMetric((x.m.hi - x.m.lo) / 2, pm)}`)),
       h('div.bar', h('i', { style: { width: `${(100 * Math.max(0, x.m.mean)) / max}%` } }),
         h('s', { style: { left: `${(100 * Math.max(0, x.m.lo)) / max}%`, width: `${(100 * (x.m.hi - x.m.lo)) / max}%` } }))))),
     h('p.hint.bar-hint', 'Builds marked = are within the margin of error of the first build with that rank. The thin marks show the range the true average very likely sits in. ',
       withTip(h('span.q', { tabindex: '0' }, 'What does that mean?'), rangeTip)),
-    test === 'pressure' ? h('p.hint', 'The attacker is a scripted, geared melee player who opens with a stun. A very high number means it can’t get through that build’s crowd control and immunities at all, not an exact figure.') : null,
+    test.startsWith('pressure') ? h('p.hint', 'The attackers are scripted, geared melee players who open with a stun. A very high number means it can’t get through that build’s crowd control and immunities at all, not an exact figure.') : null,
     h('p.hint', 'Healers and tanks are measured on their solo play here. Every build wears the typical gear for its role and level.'));
 }
 
@@ -333,7 +343,7 @@ function duelBoard(st, r) {
       h('div.who-line',
         classIcon(x.p),
         h('span.who', h('span.who-name', baseName(x.p.name)), h('span.who-class', { style: { color: classColor(x.p.class) } }, classOf(x.p.class)?.name)),
-        tagsOf(x.p)),
+        tagsOf(x.p), compareButton(x.p, r.level)),
       withTip(h('div.val', { tabindex: '0' }, pct(x.mean), h('small', 'won')), () => [
         tt.title(`${name} against ${baseName(x.p.name)}`),
         tt.line(`Wins ${pct(x.mean)} of duels (${pct(x.lo)} to ${pct(x.hi)})`, 'gold'),
