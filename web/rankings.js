@@ -10,13 +10,13 @@ import { metricOf, rangeTip } from './results.js';
 export const RANK_TESTS = ['solo_1', 'solo_2_hard', 'boss'];
 const RANK_TITLES = { solo_1: 'One mob', solo_2_hard: 'Two tough mobs', boss: 'Dungeon boss' };
 const LEVELS = [20, 30, 40, 50, 60];
-const STORE = 'forever-sim/rankings-v1';
+const STORE = 'forever-sim/rankings-v2';
 
 // ------------------------------------------------------------------ state
 
 export function initRankings() {
-  S.rank = { level: 30, acc: 'quick', experiments: true, test: 'solo_1', results: {}, run: null };
-  S.duels = { build: null, level: 30, acc: 'quick', experiments: true, result: null, run: null };
+  S.rank = { level: 30, acc: 'standard', experiments: true, test: 'solo_1', results: {}, run: null };
+  S.duels = { build: null, level: 30, acc: 'standard', experiments: true, result: null, run: null };
   try {
     const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
     if (saved && saved.data === env.catalog.data_build) {
@@ -211,7 +211,7 @@ export function renderRankings(root) {
   const count = pool(st.experiments).length;
   const out = [
     h('h2.view-title', 'Every spec, ranked'),
-    h('p.lede', `Runs every build on the site through three tests and ranks them: leveling one mob at a time, leveling two tough mobs at once, and a dungeon boss. That's ${count} builds, so it takes longer than comparing a few: usually under a minute on a laptop on Quick, and a few minutes on a phone or on Standard and Precise.`),
+    h('p.lede', `Runs every build on the site through three tests and ranks them: leveling one mob at a time, leveling two tough mobs at once, and a dungeon boss. That's ${count} builds, so it takes longer than comparing a few: about half a minute on a fast laptop and several minutes on a phone. Quick is several times faster; Precise takes much longer.`),
     controls(st, { go: runRankings, goLabel: `Rank ${count} builds`, running, stopLabel: 'Stop' }),
   ];
   if (running) out.push(progressBlock(st.run, `${RANK_TITLES[st.run.test]} · ${Math.min(st.run.i + 1, st.run.n)} of ${st.run.n}`));
@@ -280,7 +280,7 @@ export function renderDuels(root) {
         .map((p) => h('option', { value: p.file, selected: p.file === st.build }, `${baseName(p.name)}${isExperimental(p) ? ' (experimental)' : ''}`))))));
   const out = [
     h('h2.view-title', 'One build against every other'),
-    h('p.lede', `Pick a build and it duels each of the other ${others.length} builds, both ways round: whoever opens a duel strikes first, so every matchup runs twice and the two are averaged. That's a lot of fights, so it can take a long time: a minute or more on a laptop on Quick, and much longer on a phone or on Standard and Precise.`),
+    h('p.lede', `Pick a build and it duels each of the other ${others.length} builds, both ways round: whoever opens a duel strikes first, so every matchup runs twice and the two are averaged. That's a lot of fights, so it can take a long time on slower devices: around ten seconds on a fast laptop, several minutes on a phone, and much longer on Precise.`),
     controls(st, { go: runDuels, goLabel: `Duel ${others.length} builds`, running, stopLabel: 'Stop', extra: picker }),
   ];
   if (running) out.push(progressBlock(st.run, `Duel ${Math.min(st.run.i + 1, st.run.n)} of ${st.run.n}`));
