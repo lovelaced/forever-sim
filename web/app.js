@@ -12,6 +12,7 @@ import { renderCards } from './cards.js';
 import { renderEditor, refreshSheet, refreshLater } from './editor.js';
 import { renderScorecard } from './scorecard.js';
 import { simulateAll, cancelRun, scorecardTests } from './runner.js';
+import { initRankings, renderRankings, renderDuels, updateBigProgress } from './rankings.js';
 
 const $ = (id) => document.getElementById(id);
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -19,19 +20,51 @@ const narrow = () => matchMedia('(max-width: 760px)').matches;
 
 const persist = debounce(saveLocal, 300);
 
+// The page's three views: your builds compared, every spec ranked, and one
+// build dueling every other.
+const VIEWS = [['compare', 'Compare your builds'], ['rankings', 'Class rankings'], ['duels', 'Duels']];
+const VIEW_KEY = 'forever-sim/view';
+let view = 'compare';
+try { view = VIEWS.some(([v]) => v === localStorage.getItem(VIEW_KEY)) ? localStorage.getItem(VIEW_KEY) : 'compare'; } catch { /* storage off */ }
+
+function setView(v) {
+  view = v;
+  try { localStorage.setItem(VIEW_KEY, v); } catch { /* storage off */ }
+  render();
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}
+
+function renderViews() {
+  $('views').replaceChildren(h('div.view-tabs-inner', { role: 'tablist' }, VIEWS.map(([v, label]) => h('button.tab', {
+    type: 'button', role: 'tab', 'aria-selected': String(view === v), onclick: () => setView(v),
+  }, label))));
+  const compare = view === 'compare';
+  for (const id of ['builds', 'run-options', 'runbar', 'results']) $(id).hidden = !compare;
+  $('rankings').hidden = view !== 'rankings';
+  $('duels').hidden = view !== 'duels';
+}
+
 function render() {
   if (!env.catalog) return;
-  renderCards($('builds'), cardActions);
-  renderRunbar();
-  renderEditor($('editor'), editorActions);
-  renderScorecard($('results'), { onRender: render });
+  renderViews();
+  if (view === 'compare') {
+    renderCards($('builds'), cardActions);
+    renderRunbar();
+    renderEditor($('editor'), editorActions);
+    renderScorecard($('results'), { onRender: render });
+  } else {
+    $('editor').hidden = true;
+    document.body.classList.remove('editor-open');
+    if (view === 'rankings') renderRankings($('rankings'));
+    else renderDuels($('duels'));
+  }
   retargetTip();
   persist();
 }
 
 bus.render = render;
 bus.cards = () => renderCards($('builds'), cardActions);
-bus.progress = () => updateProgress();
+bus.progress = () => { updateProgress(); updateBigProgress(); };
 
 // ------------------------------------------------------------------ builds
 
@@ -89,6 +122,7 @@ const editorActions = {
 
 async function simulate() {
   if (S.run && !S.run.finished) return;
+  if ([S.rank?.run, S.duels?.run].some((r) => r && !r.finished)) { flash('A ranking or duel run is still going. Wait for it or stop it first.'); return; }
   hideTip();
   S.editing = null;
   const started = simulateAll();
@@ -262,6 +296,7 @@ async function boot() {
   if (!from) S.builds = [buildFromPreset(presetOf(DEFAULT_PRESET) || env.catalog.presets[0], DEFAULT_LEVEL)];
   if (!buildOf(S.baseline)) S.baseline = S.builds[0].uid;
   loadRows();
+  initRankings();
   // Builds already in the saved results count as run, for "since your last run".
   for (const b of S.builds) {
     if (Object.values(S.rows).some((r) => r.roles?.some((x) => x.sig === sig(b)))) S.ranAs.set(b.uid, { sig: sig(b), build: structuredClone(b), sheet: null });
