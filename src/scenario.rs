@@ -62,9 +62,16 @@ fn new_sim<'w>(inp: &RepInput<'w>) -> Sim<'w> {
 /// How often each line of the rotation fired: per minute of fighting, and
 /// the between-pulls lines per hour. Every line is reported (zeros too), so
 /// averages over replications aren't biased by lines that rarely fire.
-fn line_counts(v: &mut Values, sim: &Sim, p: usize, fight_secs: f64, hours: Option<f64>) {
+fn line_counts(v: &mut Values, sim: &Sim, p: usize, fight_secs: f64, fights: f64, hours: Option<f64>) {
     let Some(rot) = sim.actors[p].rotation else { return };
     let m = &sim.metrics[p];
+    // whether each precombat line came up (1 when it did, however often)
+    for k in 0..rot.precombat.len() {
+        put(v, &format!("precombat_used:{k}"), m.precombat_lines.get(k).map_or(0.0, |&n| n.min(1.0)));
+    }
+    for k in 0..rot.opener.len() {
+        put(v, &format!("opener_per_fight:{k}"), m.opener_lines.get(k).copied().unwrap_or(0.0) / fights.max(1.0));
+    }
     for k in 0..rot.actions.len() {
         put(v, &format!("line_per_min:{k}"), m.lines.get(k).copied().unwrap_or(0.0) * 60.0 / fight_secs.max(1e-9));
     }
@@ -206,7 +213,7 @@ fn leveling(inp: &RepInput, pull: u32, minutes: f64, enemy: &str, travel: f64) -
     breakdown(&mut v, "heal_per_kill:", &m.heal_by, kills.max(1.0));
     breakdown(&mut v, "dmg_share:", &m.dmg_by, m.dmg.max(1e-9));
     breakdown(&mut v, "casts_per_kill:", &m.casts, kills.max(1.0));
-    line_counts(&mut v, &sim, p, combat_t, Some(hrs));
+    line_counts(&mut v, &sim, p, combat_t, pulls, Some(hrs));
     (v, sim.log.take(), sim.trace.take())
 }
 
@@ -236,7 +243,7 @@ fn boss(inp: &RepInput, duration: f64, enemy: &str, by_time: bool) -> RepOut {
     put(&mut v, "died", if sim.actors[p].alive { 0.0 } else { 1.0 });
     breakdown(&mut v, "dps:", &m.dmg_by, el);
     breakdown(&mut v, "casts_per_min:", &m.casts, el / 60.0);
-    line_counts(&mut v, &sim, p, el, None);
+    line_counts(&mut v, &sim, p, el, 1.0, None);
     (v, sim.log.take(), sim.trace.take())
 }
 
@@ -272,7 +279,7 @@ fn duel(inp: &RepInput, max_time: f64) -> RepOut {
     put(&mut v, "end_hp_pct", sim.actors[a].hp_pct(sim.t));
     breakdown(&mut v, "heal:", &m.heal_by, 1.0);
     breakdown(&mut v, "dps:", &m.dmg_by, el);
-    line_counts(&mut v, &sim, a, el, None);
+    line_counts(&mut v, &sim, a, el, 1.0, None);
     (v, sim.log.take(), sim.trace.take())
 }
 
@@ -314,7 +321,7 @@ fn pressure_fight(inp: &RepInput, attacker: &str, n: u32, scale: f64, max_time: 
     put(&mut v, "healed", m.heal);
     breakdown(&mut v, "heal:", &m.heal_by, 1.0);
     breakdown(&mut v, "dps:", &m.dmg_by, (sim.t - start).max(1e-9));
-    line_counts(&mut v, &sim, p, sim.t - start, None);
+    line_counts(&mut v, &sim, p, sim.t - start, 1.0, None);
     let _ = Kind::Player;
     (win, sim.t - start, v, sim.log.take(), sim.trace.take())
 }

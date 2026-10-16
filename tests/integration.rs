@@ -239,3 +239,40 @@ fn every_talent_tree_has_a_standard_build() {
         }
     }
 }
+
+/// Openers are real casts: Charge opens pulls but keeps its 15 sec cooldown,
+/// and a rogue opens from Stealth, which the first attack ends.
+#[test]
+fn openers_pay_cooldowns_and_stealth_breaks() {
+    let w = world();
+    let sc = &w.scenarios["solo_1"];
+    let times = |file: &str, spell: &str| -> Vec<f64> {
+        let b = load_build(&w, Path::new(file), Some(30)).unwrap();
+        let opts = defaults(&w, sc);
+        let (_, log) = run_rep(&RepInput { w: &w, sc, build: &b, opponent: None, opts: &opts, seed: 11, log: true });
+        log.unwrap().iter().filter(|l| l.ends_with(&format!(" casts {spell}"))).map(|l| l.split_whitespace().next().unwrap().parse().unwrap()).collect()
+    };
+    let charges = times("builds/warrior/arms.toml", "Charge");
+    assert!(charges.len() >= 10, "Arms should open pulls with Charge ({} times)", charges.len());
+    for p in charges.windows(2) {
+        assert!(p[1] - p[0] >= 15.0 - 1e-6, "Charge at {:.2} and {:.2}, inside its cooldown", p[0], p[1]);
+    }
+    let ambush = times("builds/rogue/subtlety.toml", "Ambush");
+    let stealth = times("builds/rogue/subtlety.toml", "Stealth");
+    assert!(!ambush.is_empty() && ambush.len() <= stealth.len() + 1, "Ambush needs Stealth each time ({} ambushes, {} stealths)", ambush.len(), stealth.len());
+}
+
+/// Buffs before the fight start their cooldowns: a Frost mage who puts up
+/// Ice Barrier before the pull can't cast it again for 30 seconds.
+#[test]
+fn precombat_buffs_start_their_cooldowns() {
+    let w = world();
+    let sc = &w.scenarios["solo_2_hard"];
+    let b = load_build(&w, Path::new("builds/mage/frost.toml"), None).unwrap();
+    let opts = defaults(&w, sc);
+    let (_, log) = run_rep(&RepInput { w: &w, sc, build: &b, opponent: None, opts: &opts, seed: 11, log: true });
+    let log = log.unwrap();
+    assert!(log.iter().any(|l| l.split_whitespace().next() == Some("0.00") && l.ends_with(" gains Ice Barrier")), "Ice Barrier goes up before the pull");
+    let first = log.iter().find(|l| l.ends_with(" casts Ice Barrier")).map(|l| l.split_whitespace().next().unwrap().parse::<f64>().unwrap());
+    assert!(first.map_or(false, |t| t >= 30.0 - 1e-6), "first Ice Barrier in the fight at {first:?}, inside the cooldown from before the pull");
+}

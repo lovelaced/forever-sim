@@ -190,6 +190,9 @@ pub struct Actor<'w> {
     pub queued: Option<SpellId>,
     /// The auto-repeat spell (a wand's Shoot) firing on each ranged swing.
     pub wanding: Option<SpellId>,
+    /// The next line of the rotation's opener, while the fight's opening
+    /// moves are still being played.
+    pub opening: Option<usize>,
     pub target: Option<usize>,
     pub alive: bool,
     pub rotation: Option<&'w Rotation>,
@@ -268,6 +271,10 @@ pub struct Metrics<'w> {
     pub lines: Vec<f64>,
     /// Times each line of its between-pulls list fired.
     pub rest_lines: Vec<f64>,
+    /// Times each line of its opener fired.
+    pub opener_lines: Vec<f64>,
+    /// Times each line of its precombat list fired.
+    pub precombat_lines: Vec<f64>,
 }
 
 /// One thing that happened in a traced fight: the website's timeline.
@@ -693,6 +700,7 @@ impl<'w> Sim<'w> {
             swing: [INF; 3],
             queued: None,
             wanding: None,
+            opening: None,
             target: None,
             alive: true,
             rotation: None,
@@ -1163,6 +1171,7 @@ impl<'w> Sim<'w> {
             x.swing = [INF; 3];
             x.queued = None;
             x.wanding = None;
+            x.opening = None;
             x.cast = None;
             x.threat.clear();
             x.taunt = None;

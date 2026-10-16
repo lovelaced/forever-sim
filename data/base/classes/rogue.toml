@@ -414,6 +414,10 @@ procs = [{ on = "parry", effects = [{ type = "aura", aura = "riposte_ready" }] }
 [auras.stealth]
 name = "Stealth"
 text = "Removed by the first attack. Re-entered between pulls."
+# any damage you deal or take ends it (stun openers remove it themselves;
+# buffs on yourself, like racials, don't)
+break_on_damage = true
+procs = [{ on = "damage_dealt", effects = [{ type = "remove_self" }] }]
 [auras.remorseless]
 name = "Remorseless"
 duration = 20

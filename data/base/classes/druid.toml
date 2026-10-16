@@ -495,6 +495,13 @@ form = true
 mods = [{ stat = "armor_mult", mul = 4.6 }, { stat = "crit", add = 3 }]
 [auras.prowl]
 name = "Prowl"
+# any damage you deal or take, or Faerie Fire, ends it (Pounce and Ravage
+# remove it themselves; buffs on yourself don't)
+break_on_damage = true
+procs = [
+  { on = "damage_dealt", effects = [{ type = "remove_self" }] },
+  { on = "cast", if = "spell.faerie_fire", effects = [{ type = "remove_self" }] },
+]
 [auras.clearcasting]
 name = "Clearcasting"
 duration = 15

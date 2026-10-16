@@ -216,6 +216,11 @@ impl<'w> Sim<'w> {
             return false;
         }
         let Some(rot) = x.rotation else { return false };
+        if !self.rest_phase && x.opening.is_some() {
+            if let Some(cast) = self.open_step(a, rot) {
+                return cast;
+            }
+        }
         let list = if self.rest_phase { &rot.rest } else { &rot.actions };
         for (k, act) in list.iter().enumerate() {
             let Some(plan) = self.can_cast(a, act.spell, act.target, false) else { continue };
@@ -259,11 +264,12 @@ impl<'w> Sim<'w> {
         false
     }
 
-    /// Run the precombat list: buffs, pets, forms. Free and instant.
+    /// Run the precombat list: buffs, pets, forms. Free and instant (the
+    /// character tops up afterwards anyway), but their cooldowns start: an
+    /// Ice Barrier cast before the pull isn't ready again at once.
     pub fn precombat(&mut self, a: usize) {
         let Some(rot) = self.actors[a].rotation else { return };
         self.run_free(a, &rot.precombat);
-        self.actors[a].cds.clear();
         self.actors[a].gcd_end = 0.0;
         self.fill(a);
         let pets = self.actors[a].pets.clone();
@@ -272,14 +278,52 @@ impl<'w> Sim<'w> {
         }
     }
 
-    /// Run the opener list at the start of a fight (free, ignores cooldowns).
+    /// Start a fight with the rotation's opener: its lines are played first,
+    /// in order and at most once each, like any other cast (costs, cooldowns,
+    /// global cooldown), before the rest of the rotation takes over.
     pub fn opener(&mut self, a: usize) {
         let Some(rot) = self.actors[a].rotation else { return };
-        self.run_free(a, &rot.opener);
+        self.actors[a].opening = if rot.opener.is_empty() { None } else { Some(0) };
+    }
+
+    /// The next opener move, if one is due. Returns Some(true) when it cast,
+    /// Some(false) to wait (global cooldown), None when the opener is over.
+    fn open_step(&mut self, a: usize, rot: &'w Rotation) -> Option<bool> {
+        let mut k = self.actors[a].opening?;
+        while k < rot.opener.len() {
+            let act = &rot.opener[k];
+            let sp = &self.w.spells[act.spell as usize];
+            if !sp.off_gcd && self.actors[a].gcd_end > self.t + EPS {
+                self.actors[a].opening = Some(k);
+                return Some(false);
+            }
+            // a move that can't be used now (cooldown, cost, stance) is skipped
+            if let Some(plan) = self.can_cast(a, act.spell, act.target, false) {
+                let ok = act.cond.as_ref().map_or(true, |c| {
+                    let cx = self.action_cx(a, &plan);
+                    self.ev(c, &cx) != 0.0
+                });
+                if ok {
+                    self.actors[a].opening = Some(k + 1);
+                    if self.actors[a].owner.is_none() {
+                        let v = &mut self.metrics[a].opener_lines;
+                        if v.len() <= k {
+                            v.resize(k + 1, 0.0);
+                        }
+                        v[k] += 1.0;
+                    }
+                    self.begin(a, plan);
+                    return Some(true);
+                }
+            }
+            k += 1;
+        }
+        self.actors[a].opening = None;
+        None
     }
 
     fn run_free(&mut self, a: usize, list: &'w [Action]) {
-        for act in list {
+        for (k, act) in list.iter().enumerate() {
             let Some(plan) = self.can_cast(a, act.spell, act.target, true) else { continue };
             if let Some(c) = &act.cond {
                 let cx = self.action_cx(a, &plan);
@@ -287,9 +331,26 @@ impl<'w> Sim<'w> {
                     continue;
                 }
             }
+            if self.actors[a].owner.is_none() {
+                let v = &mut self.metrics[a].precombat_lines;
+                if v.len() <= k {
+                    v.resize(k + 1, 0.0);
+                }
+                v[k] += 1.0;
+            }
             let cx = self.action_cx(a, &plan);
             let sp = &self.w.spells[plan.spell as usize];
             self.run_effects(&sp.effects, cx);
+            let cd = ((self.ev(&sp.cooldown, &cx) + plan.sm.cd_add) * plan.sm.cd_mul).max(0.0);
+            if cd > 0.0 {
+                let key = self.cd_key(plan.spell);
+                let t = self.t;
+                let x = &mut self.actors[a];
+                match x.cds.iter_mut().find(|c| c.0 == key) {
+                    Some(c) => c.1 = t + cd,
+                    None => x.cds.push((key, t + cd)),
+                }
+            }
         }
     }
 

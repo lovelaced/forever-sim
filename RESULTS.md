@@ -20,53 +20,53 @@ fsim run pressure builds/*/*.toml --precision 0.03
 | Class | Build | Boss DPS (60) | Solo kills/h (20) | (30) | (60) | Hard doubles kills/h (60) | Deaths/h | PvP breakeven (60) |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | Druid | Balance | 302 | 86 | 95 | 126 | 126 | 0.01 | 658 |
-| Druid | Feral | 313 | 134 | 130 | 117 | 105 | 1.79 | 579 |
+| Druid | Feral | 305 | 134 | 130 | 107 | 99 | 2.48 | 579 |
 | Druid | Restoration (healer) | 222 | 81 | 83 | 106 | 105 | 0.06 | 700 |
-| Hunter | Beast Mastery | 332 | 157 | 142 | 133 | 144 | 0.00 | 648 |
-| Hunter | Marksmanship | 310 | 170 | 157 | 142 | 147 | 0.00 | 442 |
-| Hunter | Survival | 303 | 146 | 142 | 138 | 125 | 0.00 | 625 |
-| Mage | Arcane | 440 | 85 | 107 | 132 | 82 | 12.99 | 416 |
-| Mage | Fire | 358 | 90 | 94 | 120 | 90 | 10.25 | 436 |
-| Mage | Frost | 383 | 104 | 110 | 134 | 137 | 3.66 | 590 |
+| Hunter | Beast Mastery | 331 | 157 | 141 | 131 | 140 | 0.00 | 648 |
+| Hunter | Marksmanship | 311 | 166 | 152 | 138 | 143 | 0.00 | 442 |
+| Hunter | Survival | 302 | 140 | 137 | 133 | 123 | 0.00 | 625 |
+| Mage | Arcane | 440 | 85 | 107 | 132 | 82 | 13.19 | 416 |
+| Mage | Fire | 358 | 90 | 94 | 120 | 90 | 10.27 | 436 |
+| Mage | Frost | 383 | 104 | 110 | 134 | 136 | 3.97 | 523 |
 | Paladin | Holy (healer) | 203 | 113 | 109 | 104 | 93 | 0.00 | 1095 |
 | Paladin | Protection (tank) | 119 | 104 | 91 | 92 | 111 | 0.00 | 2459 |
 | Paladin | Retribution | 272 | 139 | 140 | 139 | 133 | 0.01 | 1181 |
 | Priest | Discipline (healer) | 162 | 68 | 71 | 72 | 72 | 0.00 | 571 |
 | Priest | Holy (healer) | 160 | 70 | 62 | 65 | 64 | 0.00 | 568 |
 | Priest | Shadow | 449 | 90 | 84 | 165 | 181 | 0.00 | 884 |
-| Rogue | Assassination | 282 | 139 | 133 | 117 | 56 | 12.36 | 474 |
-| Rogue | Combat | 279 | 128 | 132 | 128 | 98 | 5.47 | 622 |
-| Rogue | Subtlety | 266 | 161 | 162 | 143 | 77 | 8.97 | 665 |
-| Shaman | Elemental | 222 | 93 | 101 | 111 | 103 | 1.38 | 578 |
-| Shaman | Enhancement | 320 | 147 | 146 | 144 | 145 | 0.35 | 632 |
+| Rogue | Assassination | 274 | 123 | 114 | 100 | 40 | 16.77 | 476 |
+| Rogue | Combat | 277 | 128 | 117 | 111 | 88 | 6.73 | 622 |
+| Rogue | Subtlety | 260 | 144 | 137 | 119 | 58 | 14.28 | 565 |
+| Shaman | Elemental | 222 | 93 | 101 | 111 | 102 | 1.47 | 578 |
+| Shaman | Enhancement | 320 | 147 | 146 | 144 | 145 | 0.36 | 632 |
 | Shaman | Restoration (healer) | 164 | 122 | 113 | 96 | 107 | 0.00 | 1172 |
 | Warlock | Affliction | 344 | 135 | 128 | 134 | 128 | 0.00 | 569 |
 | Warlock | Demonology | 352 | 118 | 124 | 111 | 85 | 8.58 | 652 |
 | Warlock | Destruction | 269 | 149 | 102 | 129 | 122 | 0.13 | 476 |
-| Warrior | Arms | 263 | 124 | 124 | 118 | 78 | 7.85 | 517 |
-| Warrior | Fury | 292 | 124 | 124 | 121 | 80 | 6.45 | 492 |
+| Warrior | Arms | 263 | 124 | 124 | 118 | 78 | 7.87 | 517 |
+| Warrior | Fury | 288 | 124 | 124 | 121 | 82 | 5.89 | 492 |
 | Warrior | Protection (tank) | 156 | 85 | 92 | 114 | 105 | 0.00 | 1200 |
 
 ### Forever experiments
 
 | Class | Build | Boss DPS (60) | Solo kills/h (20) | (30) | (60) | Hard doubles kills/h (60) | Deaths/h | PvP breakeven (60) |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| Druid | Bear (35/0/16) | 191 | 81 | 85 | 78 | 101 | 0.66 | 1381 |
-| Druid | Moonclaw+ (31/9/11) | 302 | 131 | 114 | 122 | 109 | 1.13 | 577 |
-| Druid | Warden-9 (26/9/16) | 277 | 131 | 127 | 120 | 107 | 0.73 | 656 |
-| Hunter | BM Ranged (31/20) | 283 | 152 | 140 | 125 | 148 | 0.01 | 476 |
-| Hunter | Survival Melee (20/0/31) | 250 | 144 | 131 | 126 | 123 | 0.01 | 557 |
-| Mage | Battlemage (10/0/41) | 325 | 88 | 88 | 134 | 150 | 1.84 | 638 |
+| Druid | Bear (35/0/16) | 191 | 81 | 85 | 78 | 101 | 0.62 | 1381 |
+| Druid | Moonclaw+ (31/9/11) | 299 | 131 | 114 | 115 | 103 | 1.63 | 577 |
+| Druid | Warden-9 (26/9/16) | 275 | 131 | 127 | 112 | 105 | 0.72 | 656 |
+| Hunter | BM Ranged (31/20) | 283 | 152 | 139 | 123 | 144 | 0.02 | 476 |
+| Hunter | Survival Melee (20/0/31) | 248 | 139 | 126 | 122 | 121 | 0.00 | 557 |
+| Mage | Battlemage (10/0/41) | 325 | 88 | 88 | 134 | 151 | 1.82 | 563 |
 | Paladin | Shield Battery (20/31/0) | 145 | 109 | 98 | 111 | 137 | 0.00 | 1453 |
 | Paladin | Shockadin (31/0/20) | 235 | 121 | 117 | 120 | 113 | 0.00 | 896 |
 | Priest | Plague Saint (31/20) | 199 | 76 | 80 | 82 | 79 | 0.55 | 546 |
-| Rogue | Combat Swords (20/31) | 272 | 130 | 145 | 139 | 105 | 4.54 | 646 |
-| Rogue | Mutilate (41/10) | 276 | 169 | 148 | 130 | 68 | 9.37 | 485 |
+| Rogue | Combat Swords (20/31) | 272 | 130 | 128 | 122 | 94 | 5.72 | 646 |
+| Rogue | Mutilate (41/10) | 270 | 145 | 127 | 113 | 53 | 12.94 | 494 |
 | Shaman | Stormwarden (0/20/31) | 228 | 116 | 112 | 127 | 135 | 0.00 | 1109 |
 | Warlock | Pact (20/31) | 307 | 148 | 98 | 141 | 124 | 0.85 | 568 |
-| Warrior | Conventional Fury (20/31) | 290 | 123 | 121 | 127 | 76 | 6.87 | 417 |
-| Warrior | Vampire Flurry-5 (38/13) | 260 | 123 | 119 | 146 | 115 | 2.22 | 693 |
-| Warrior | Vampire v2 (36/15) | 251 | 122 | 121 | 143 | 110 | 2.56 | 681 |
+| Warrior | Conventional Fury (20/31) | 286 | 123 | 121 | 127 | 76 | 6.93 | 417 |
+| Warrior | Vampire Flurry-5 (38/13) | 258 | 123 | 120 | 146 | 115 | 2.31 | 693 |
+| Warrior | Vampire v2 (36/15) | 249 | 122 | 121 | 143 | 110 | 2.63 | 681 |
 
 * Solo kills/h: an hour of single same-level humanoids (kills, travel,
   eating, drinking, deaths all included). Levels 20 and 30 use each build's
@@ -91,8 +91,30 @@ tests measure until the healing test arrives; tanks likewise.
 
 ## What moved since the previous table
 
-The previous table was build 70338 before the data was checked against the
-game's own spell tables. Three things changed the numbers since. (Fire,
+**Openers and pre-fight buffs are now real casts.** A build's opening moves
+used to be free and instant at every pull, and every cooldown was reset
+before each fight and after each death. Now the opener is played like the
+rest of the rotation (energy, mana, cooldowns, the global cooldown), Stealth
+and Prowl end on the first damage you deal or take, buffs cast before the
+pull start their cooldowns, and dying leaves cooldowns running.
+
+* Rogues lose 11 to 17% leveling and 10 to 29% in hard
+  doubles, where they also die more often (Assassination 12 to 17 deaths an
+  hour). Ambush, Garrote and Cheap Shot used to land together for free; now
+  each costs energy, and Cheap Shot can't follow Ambush because the first
+  hit ends Stealth. Evasion is no longer ready again after every death.
+  The Combat builds at level 20 are unchanged (no opener yet), and the boss
+  drops 1 to 3%.
+* Subtlety loses 15% in PvP: jumped while in Stealth, the first hit now ends
+  it, so there is no free Ambush once the stun wears off.
+* Cats at level 60 lose 6 to 8% leveling (Pounce costs energy), hunters 1 to
+  4% (Hunter's Mark takes a global cooldown).
+* Frost mages and Battlemages lose 11 to 12% in PvP: the Ice Barrier cast
+  before the fight used to be ready again at once.
+
+**Before that**, the previous table was build 70338 before the data was
+checked against the game's own spell tables. Three things changed the
+numbers then. (Fire,
 Frost, Shadow, Affliction, Destruction, Retribution, Elemental and
 Enhancement have since been rebuilt as the standard specs, so their rows
 above show the new talents; the notes below describe the builds as they
@@ -159,6 +181,9 @@ rank and talent value now matches the game or has a written reason):
 * Frost mage hard doubles and PvP lean on freezes standing in for kiting
   until the simulator models movement. Arcane mages hit hardest on the boss
   after Shadow (440) but die often in hard doubles (13 an hour).
+* Rogues on two mobs at once have none of the tools real rogues use there
+  yet (Sap, Blind, Vanish, Gouge); those arrive with crowd control, so their
+  hard doubles numbers are a floor.
 * Destruction warlocks level faster at 20 than at 30 (149 against 102 kills
   an hour): worth a closer look at the level 30 talents and pet.
 * Protection paladins' PvP number (2,459) means the scripted attacker can't

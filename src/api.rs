@@ -177,7 +177,7 @@ fn catalog(w: &World) -> J {
             let rotations: Vec<J> = c.rotations.values().map(|r| json!({
                 "id": r.id, "desc": r.desc, "lines": lines(&r.actions), "rest": lines(&r.rest),
                 "precombat": r.precombat.iter().map(|a| w.spells[a.spell as usize].name.clone()).collect::<Vec<_>>(),
-                "opener": r.opener.iter().map(|a| w.spells[a.spell as usize].name.clone()).collect::<Vec<_>>(),
+                "opener": lines(&r.opener),
             })).collect();
             let races: Vec<&str> = w.races.iter().filter(|r| r.classes.is_empty() || r.classes.contains(&c.id)).map(|r| r.id.as_str()).collect();
             json!({

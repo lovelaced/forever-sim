@@ -240,8 +240,8 @@ ranks = [{ level = 40, bonus = 30 }, { level = 60, bonus = 48 }]   # r.bonus = c
 effects = [{ type = "damage", school = "physical", amount = "0.45 * ap + r.bonus" }]
 
 [rotations.fury_dw]              # a priority list; first usable line wins
-precombat = ["berserker_stance", "battle_shout"]
-opener = ["charge"]
+precombat = ["berserker_stance", "battle_shout"]   # before each pull: free, cooldowns start
+opener = ["charge"]              # played first, in order, each at most once
 actions = [
   { cast = "execute", if = "target.hp_pct < 0.2" },
   { cast = "bloodthirst" },

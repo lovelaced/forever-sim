@@ -26,8 +26,24 @@ export function playedSection(ctx, cols, res) {
     }, x.letter ? `${x.letter} · ${x.name}` : x.name))) : null);
 
   const setup = [];
-  if (rot.precombat?.length) setup.push(h('p.played-note', h('b', 'Before a fight: '), list(rot.precombat), '.'));
-  if (rot.opener?.length) setup.push(h('p.played-note', h('b', 'Opens with: '), list(rot.opener), '.'));
+  let opened = [];
+  // only the buffs that apply (Deadly Poison replaces the off-hand Instant
+  // Poison once it's learned); results from before this was counted show all
+  const pre = rot.precombat?.filter((n, k) => (metricOf(res, c.cell.i, `precombat_used:${k}`)?.mean ?? 1) > 0.005) || [];
+  if (pre.length) setup.push(h('p.played-note', h('b', 'Before a fight: '), list(pre), '.'));
+  if (rot.opener?.length) {
+    // each opener move with how often it came up (one that can't be used,
+    // like Charge still on cooldown, is skipped)
+    const each = rot.opener.map((l, k) => ({ ...l, rate: metricOf(res, c.cell.i, `opener_per_fight:${k}`)?.mean ?? 0 }));
+    opened = each.filter((l) => l.rate > 0.005);
+    const unit = leveling ? 'pull' : 'fight';
+    setup.push(h('p.played-note', h('b', 'Opens with: '), opened.length
+      ? list(opened.map((l) => {
+        const dmg = share.get(l.name);
+        return `${l.name} (${l.rate > 0.99 ? `every ${unit}` : `${fmtNum(100 * l.rate, 0)}% of ${unit}s`}${dmg >= 0.01 ? `, ${pctText(dmg)} of damage` : ''})`;
+      }))
+      : 'none of its opening moves came up here', '.'));
+  }
 
   const lines = rot.lines.map((l, k) => ({ ...l, k, rate: per(k), dmg: share.get(l.name) }));
   const used = lines.filter((l) => l.rate > 0.005);
@@ -43,7 +59,7 @@ export function playedSection(ctx, cols, res) {
     type: 'button', onclick: () => { S.playedAll = all ? null : `${c.b.uid}|${ctx.test}`; bus.render(); },
   }, all ? 'Show only the lines that came up' : `Show all ${lines.length} lines, including ${lines.length - used.length} that never came up here`) : null;
   // damage that no line of the list casts: auto attacks, procs, pets, bleeds
-  const named = new Set(used.map((l) => l.name));
+  const named = new Set([...used, ...opened].map((l) => l.name));
   const other = [...share].filter(([n, x]) => !named.has(n) && x >= 0.01).sort((a, b) => b[1] - a[1]);
   const otherLine = other.length ? h('p.played-note', h('b', 'Damage from outside the list: '),
     other.map(([n, x]) => `${n === 'melee' ? 'auto attacks' : n} ${pctText(x)}`).join(', '), '.') : null;
@@ -62,7 +78,7 @@ export function playedSection(ctx, cols, res) {
     timeline(ctx, c, leveling));
 }
 
-const list = (names) => names.join(', ').replace(/, ([^,]*)$/, ' and $1');
+const list = (names) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`);
 const pctText = (x) => `${fmtNum(100 * x, x < 0.1 ? 1 : 0)}%`;
 
 // The line's own condition plus what the spell itself needs.
