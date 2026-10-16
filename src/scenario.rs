@@ -2,7 +2,7 @@
 //! returns named metrics. The Monte Carlo driver calls these many times.
 
 use crate::build::Build;
-use crate::engine::{Kind, Outcome, Sim, Stop};
+use crate::engine::{Kind, Outcome, Sim, Stop, TraceEv};
 use crate::model::*;
 use crate::vars::*;
 use std::collections::BTreeMap;
@@ -29,7 +29,17 @@ fn breakdown(v: &mut Values, prefix: &str, m: &BTreeMap<&str, f64>, div: f64) {
     }
 }
 
+/// A replication's numbers, its text log, and (when logging) its events.
+pub type RepOut = (Values, Option<Vec<String>>, Option<Vec<TraceEv>>);
+
 pub fn run_rep(inp: &RepInput) -> (Values, Option<Vec<String>>) {
+    let (v, log, _) = run_rep_traced(inp);
+    (v, log)
+}
+
+/// One replication with its structured events (for the website's timeline);
+/// `inp.log` turns both on.
+pub fn run_rep_traced(inp: &RepInput) -> RepOut {
     match &inp.sc.kind {
         ScenarioKind::Leveling { pull, minutes, enemy, travel } => leveling(inp, *pull, *minutes, enemy, *travel),
         ScenarioKind::Boss { duration, enemy, execute_by_time } => boss(inp, *duration, enemy, *execute_by_time),
@@ -44,13 +54,31 @@ fn new_sim<'w>(inp: &RepInput<'w>) -> Sim<'w> {
     let mut s = Sim::new(inp.w, inp.seed, inp.opts.to_vec());
     if inp.log {
         s.log = Some(vec![]);
+        s.trace = Some(vec![]);
     }
     s
+}
+
+/// How often each line of the rotation fired: per minute of fighting, and
+/// the between-pulls lines per hour. Every line is reported (zeros too), so
+/// averages over replications aren't biased by lines that rarely fire.
+fn line_counts(v: &mut Values, sim: &Sim, p: usize, fight_secs: f64, hours: Option<f64>) {
+    let Some(rot) = sim.actors[p].rotation else { return };
+    let m = &sim.metrics[p];
+    for k in 0..rot.actions.len() {
+        put(v, &format!("line_per_min:{k}"), m.lines.get(k).copied().unwrap_or(0.0) * 60.0 / fight_secs.max(1e-9));
+    }
+    if let Some(h) = hours {
+        for k in 0..rot.rest.len() {
+            put(v, &format!("rest_per_hour:{k}"), m.rest_lines.get(k).copied().unwrap_or(0.0) / h.max(1e-9));
+        }
+    }
 }
 
 fn rest(sim: &mut Sim, p: usize, travel: f64) -> (f64, f64, f64) {
     let w = sim.w;
     let start = sim.t;
+    sim.tracef(|s| s.tev("rest", p, None, ""));
     sim.rest_phase = true;
     sim.run(Stop::Until(sim.t + travel));
     sim.run(Stop::Rest { actor: p, until: sim.t + 90.0 });
@@ -74,6 +102,8 @@ fn rest(sim: &mut Sim, p: usize, travel: f64) -> (f64, f64, f64) {
         if need_drink {
             drinks = (mana_def / drink).ceil();
         }
+        let what = match (need_eat, need_drink) { (true, true) => "eat and drink", (true, false) => "eat", _ => "drink" };
+        sim.tracef(|s| TraceEv { amount: t, ..s.tev("eat", p, None, what) });
         sim.run(Stop::Until(sim.t + t));
         let x = &mut sim.actors[p];
         if need_eat {
@@ -94,7 +124,7 @@ fn rest(sim: &mut Sim, p: usize, travel: f64) -> (f64, f64, f64) {
     (sim.t - start, eats, drinks)
 }
 
-fn leveling(inp: &RepInput, pull: u32, minutes: f64, enemy: &str, travel: f64) -> (Values, Option<Vec<String>>) {
+fn leveling(inp: &RepInput, pull: u32, minutes: f64, enemy: &str, travel: f64) -> RepOut {
     let w = inp.w;
     let e = &w.enemies[enemy];
     let mut sim = new_sim(inp);
@@ -112,6 +142,7 @@ fn leveling(inp: &RepInput, pull: u32, minutes: f64, enemy: &str, travel: f64) -
             ids.push(sim.spawn_enemy(e, lvl, 1, 1000 + i * 16 + j, 1.0));
         }
         sim.actors[p].target = Some(ids[0]);
+        sim.tracef(|s| TraceEv { stacks: pull as f64, ..s.tev("pull", p, Some(ids[0]), "") });
         sim.enter_combat();
         sim.opener(p);
         let start = sim.t;
@@ -175,10 +206,11 @@ fn leveling(inp: &RepInput, pull: u32, minutes: f64, enemy: &str, travel: f64) -
     breakdown(&mut v, "heal_per_kill:", &m.heal_by, kills.max(1.0));
     breakdown(&mut v, "dmg_share:", &m.dmg_by, m.dmg.max(1e-9));
     breakdown(&mut v, "casts_per_kill:", &m.casts, kills.max(1.0));
-    (v, sim.log.take())
+    line_counts(&mut v, &sim, p, combat_t, Some(hrs));
+    (v, sim.log.take(), sim.trace.take())
 }
 
-fn boss(inp: &RepInput, duration: f64, enemy: &str, by_time: bool) -> (Values, Option<Vec<String>>) {
+fn boss(inp: &RepInput, duration: f64, enemy: &str, by_time: bool) -> RepOut {
     let w = inp.w;
     let e = &w.enemies[enemy];
     let mut sim = new_sim(inp);
@@ -204,10 +236,11 @@ fn boss(inp: &RepInput, duration: f64, enemy: &str, by_time: bool) -> (Values, O
     put(&mut v, "died", if sim.actors[p].alive { 0.0 } else { 1.0 });
     breakdown(&mut v, "dps:", &m.dmg_by, el);
     breakdown(&mut v, "casts_per_min:", &m.casts, el / 60.0);
-    (v, sim.log.take())
+    line_counts(&mut v, &sim, p, el, None);
+    (v, sim.log.take(), sim.trace.take())
 }
 
-fn duel(inp: &RepInput, max_time: f64) -> (Values, Option<Vec<String>>) {
+fn duel(inp: &RepInput, max_time: f64) -> RepOut {
     let mut sim = new_sim(inp);
     let a = sim.spawn_player(inp.build, 0, 1);
     let opp = inp.opponent.expect("duel needs an opponent (--vs)");
@@ -238,16 +271,19 @@ fn duel(inp: &RepInput, max_time: f64) -> (Values, Option<Vec<String>>) {
     put(&mut v, "taken", m.taken);
     put(&mut v, "end_hp_pct", sim.actors[a].hp_pct(sim.t));
     breakdown(&mut v, "heal:", &m.heal_by, 1.0);
-    (v, sim.log.take())
+    breakdown(&mut v, "dps:", &m.dmg_by, el);
+    line_counts(&mut v, &sim, a, el, None);
+    (v, sim.log.take(), sim.trace.take())
 }
 
 #[allow(clippy::too_many_arguments)]
-fn pressure_fight(inp: &RepInput, attacker: &str, n: u32, scale: f64, max_time: f64, log: bool) -> (bool, f64, Values, Option<Vec<String>>) {
+fn pressure_fight(inp: &RepInput, attacker: &str, n: u32, scale: f64, max_time: f64, log: bool) -> (bool, f64, Values, Option<Vec<String>>, Option<Vec<TraceEv>>) {
     let w = inp.w;
     let e = &w.enemies[attacker];
     let mut sim = Sim::new(w, inp.seed, inp.opts.to_vec());
     if log {
         sim.log = Some(vec![]);
+        sim.trace = Some(vec![]);
     }
     let p = sim.spawn_player(inp.build, 0, 1);
     sim.actors[p].behind = inp.sc.behind;
@@ -277,12 +313,14 @@ fn pressure_fight(inp: &RepInput, attacker: &str, n: u32, scale: f64, max_time: 
     put(&mut v, "dealt", m.dmg);
     put(&mut v, "healed", m.heal);
     breakdown(&mut v, "heal:", &m.heal_by, 1.0);
+    breakdown(&mut v, "dps:", &m.dmg_by, (sim.t - start).max(1e-9));
+    line_counts(&mut v, &sim, p, sim.t - start, None);
     let _ = Kind::Player;
-    (win, sim.t - start, v, sim.log.take())
+    (win, sim.t - start, v, sim.log.take(), sim.trace.take())
 }
 
 #[allow(clippy::too_many_arguments)]
-fn pressure(inp: &RepInput, attacker: &str, n: u32, lo: f64, hi: f64, steps: u32, max_time: f64, needs_kill: bool) -> (Values, Option<Vec<String>>) {
+fn pressure(inp: &RepInput, attacker: &str, n: u32, lo: f64, hi: f64, steps: u32, max_time: f64, needs_kill: bool) -> RepOut {
     let _ = needs_kill;
     let w = inp.w;
     let e = &w.enemies[attacker];
@@ -290,7 +328,7 @@ fn pressure(inp: &RepInput, attacker: &str, n: u32, lo: f64, hi: f64, steps: u32
     let (mut l, mut h) = (lo, hi);
     for _ in 0..steps {
         let mid = (l * h).sqrt();
-        let (win, _, _, _) = pressure_fight(inp, attacker, n, mid, max_time, false);
+        let (win, _, _, _, _) = pressure_fight(inp, attacker, n, mid, max_time, false);
         if win {
             l = mid;
         } else {
@@ -306,10 +344,10 @@ fn pressure(inp: &RepInput, attacker: &str, n: u32, lo: f64, hi: f64, steps: u32
     let cx = crate::engine::Cx { me: id, ..cx };
     let hit = probe.ev(&e.dmg, &cx);
     let unit_dps = hit * (1.0 + e.crit / 100.0) / e.speed;
-    let (win_ref, t_ref, mut v, log) = pressure_fight(inp, attacker, n, 1.0, max_time, inp.log);
+    let (win_ref, t_ref, mut v, log, trace) = pressure_fight(inp, attacker, n, 1.0, max_time, inp.log);
     put(&mut v, "breakeven", crit * unit_dps);
     put(&mut v, "breakeven_scale", crit);
     put(&mut v, "win_at_reference", if win_ref { 1.0 } else { 0.0 });
     put(&mut v, "time_alive_at_reference", t_ref);
-    (v, log)
+    (v, log, trace)
 }

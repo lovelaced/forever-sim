@@ -8,6 +8,7 @@ pub mod api;
 pub mod audit;
 pub mod build;
 pub mod engine;
+pub mod explain;
 pub mod expr;
 pub mod ffi;
 pub mod mc;

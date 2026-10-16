@@ -325,6 +325,8 @@ impl<'w> Sim<'w> {
         if self.log.is_some() && matches!(roll, Roll::Miss | Roll::Dodge | Roll::Parry) {
             let what = match roll { Roll::Miss => "misses", Roll::Dodge => "is dodged by", _ => "is parried by" };
             self.logf(|s| format!("{} {} {}", s.actors[a].name, what, s.actors[tgt].name));
+            let kind = match roll { Roll::Miss => "miss", Roll::Dodge => "dodge", _ => "parry" };
+            self.tracef(|s| s.tev(kind, a, Some(tgt), ""));
         }
         match roll {
             Roll::Miss => {
@@ -645,6 +647,7 @@ impl<'w> Sim<'w> {
         if self.log.is_some() {
             let kind = if ev.crit { " CRIT" } else if ev.periodic { " (tick)" } else { "" };
             self.logf(|s| format!("{} {} -> {} {:.0}{} [{:.0}/{:.0}]", s.actors[src].name, tag, s.actors[dst].name, rest, kind, s.actors[dst].hp.max(0.0), s.actors[dst].max_hp));
+            self.tracef(|s| TraceEv { amount: rest, crit: ev.crit, tick: ev.periodic, ..s.tev("hit", src, Some(dst), tag) });
         }
         self.actors[dst].in_combat = true;
         self.actors[src].in_combat = true;
@@ -705,6 +708,7 @@ impl<'w> Sim<'w> {
         }
         let w = self.w;
         self.logf(|s| format!("{} dies", s.actors[victim].name));
+        self.tracef(|s| s.tev("death", victim, None, ""));
         let v = &mut self.actors[victim];
         v.alive = false;
         v.hp = 0.0;
@@ -785,7 +789,7 @@ impl<'w> Sim<'w> {
     }
 
     /// Apply healing; returns effective healing.
-    pub fn heal_raw(&mut self, src: usize, dst: usize, amount: f64, tag: &'w str, _crit: bool) -> f64 {
+    pub fn heal_raw(&mut self, src: usize, dst: usize, amount: f64, tag: &'w str, crit: bool) -> f64 {
         if !self.actors[dst].alive || amount <= 0.0 {
             return 0.0;
         }
@@ -799,6 +803,7 @@ impl<'w> Sim<'w> {
         *m.heal_by.entry(tag).or_insert(0.0) += eff;
         if self.log.is_some() && eff > 0.0 {
             self.logf(|s| format!("{} {} heals {} {:.0} [{:.0}/{:.0}]", s.actors[src].name, tag, s.actors[dst].name, eff, s.actors[dst].hp, s.actors[dst].max_hp));
+            self.tracef(|s| TraceEv { amount: eff, crit, ..s.tev("heal", src, Some(dst), tag) });
         }
         // healing threat, split across enemies fighting the healer's team
         if eff > 0.0 && self.actors[src].in_combat {

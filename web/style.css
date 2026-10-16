@@ -554,6 +554,38 @@ dialog.panel::backdrop { background: rgba(5, 4, 3, .72); backdrop-filter: blur(2
 .duel-rows .rank-row.even .bar i { background: var(--text-3); }
 .empty-big { margin-top: var(--s5); }
 
+/* ------------------------------------------------------------ how it played */
+.played { margin-top: var(--s6); }
+.played-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s3); }
+.played-head h4 { font: 400 var(--fs-l)/1.3 var(--display-2); }
+.played-head .chip[aria-pressed='true'] { background: var(--slot, var(--gilt)); border-color: var(--slot, var(--gilt)); }
+.played-note { margin-top: var(--s2); font-size: var(--fs-s); color: var(--text-2); }
+.played-note b { color: var(--text); font-weight: 600; }
+.played .hint { margin-top: var(--s2); }
+.prio { display: grid; gap: 2px; max-width: 920px; margin-top: var(--s3); padding: 0; list-style: none; }
+.prio-row { display: grid; grid-template-columns: 2em minmax(0, 1fr) auto; gap: var(--s3); align-items: baseline; padding: 7px var(--s3); border-radius: 3px; background: var(--surface-2); }
+.prio-row.unused { background: transparent; opacity: .55; }
+.prio-n { text-align: right; color: var(--text-3); font-variant-numeric: tabular-nums; font-size: var(--fs-s); }
+.prio-what { display: grid; gap: 1px; min-width: 0; }
+.prio-what b { font-weight: 600; }
+.prio-when { color: var(--text-2); font-size: var(--fs-s); line-height: 1.45; }
+.prio-stats { display: grid; justify-items: end; gap: 1px; font-size: var(--fs-s); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.prio-stats .muted, .muted { color: var(--text-3); }
+.played-rest { margin-top: var(--s5); }
+.prio-toggle { margin-top: var(--s3); font-size: var(--fs-s); }
+.played h5 { font: 600 var(--fs-m)/1.3 var(--sans); }
+.timeline-box { margin-top: var(--s6); }
+.timeline { max-width: 920px; max-height: 520px; overflow-y: auto; margin-top: var(--s3); padding: 0; list-style: none; border-top: 1px solid var(--hair); }
+.tl-row { display: grid; grid-template-columns: 4em minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--s3); padding: 5px var(--s2); border-bottom: 1px solid var(--hair); font-size: var(--fs-s); line-height: 1.45; }
+.tl-row.tl-mark { background: var(--surface-2); }
+.tl-t { color: var(--text-3); font-variant-numeric: tabular-nums; text-align: right; }
+.tl-theirs { color: var(--text-2); }
+.tl-num { font-variant-numeric: tabular-nums; color: var(--text-2); }
+.tl-sep { color: var(--text-3); }
+.tl-aura { color: var(--gilt-hi); }
+.tl-aura.off { color: var(--text-3); }
+.tl-heal { color: var(--good); }
+
 /* ------------------------------------------------------------ run bar */
 .runbar {
   position: sticky; top: 0; z-index: 40; margin: var(--s5) calc(-1 * var(--s4)) 0; padding: var(--s3) var(--s4);
@@ -787,4 +819,11 @@ dialog.panel::backdrop { background: rgba(5, 4, 3, .72); backdrop-filter: blur(2
   .segmented.rank-tests button { flex: 0 0 auto; min-width: 104px; }
   .segmented.rank-tests button span { display: none; }
   .rank-rows.big .rank-row .val { font-size: var(--fs-m); }
+}
+
+@media (max-width: 760px) {
+  .prio-row { grid-template-columns: 1.6em minmax(0, 1fr); }
+  .prio-stats { grid-column: 2; justify-items: start; grid-auto-flow: column; gap: var(--s3); }
+  .tl-row { grid-template-columns: 3.4em minmax(0, 1fr); }
+  .tl-theirs { grid-column: 2; }
 }

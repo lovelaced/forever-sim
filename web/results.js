@@ -4,6 +4,7 @@
 import { h, art, withTip, tt, fmtMetric, fmtDiff, fmtNum } from './ui.js';
 import { METRICS, GROUPS, PRIMARY_HELP, UNIT_PLURAL } from './meta.js';
 import { pairOf, duelWin } from './runner.js';
+import { playedSection } from './played.js';
 
 const UNIT = {
   kills_per_hour: 'kills per hour', dps: 'damage per second', breakeven: 'attacker damage per second', win: 'of duels won',
@@ -101,6 +102,10 @@ export function renderDetail(ctx) {
     if (ch) verdicts.push(changeLine(ch, pm, primary, c));
   }
   if (verdicts.length) out.append(h('div.verdicts', verdicts));
+
+  // ---------------------------------------------------------------- how it played
+  const played = playedSection(ctx, cols, res);
+  if (played) out.append(played);
 
   // ---------------------------------------------------------------- every measure
   const names = Object.keys(METRICS).filter((k) => !METRICS[k].hidden && cols.some((c) => metricOf(res, c.cell.i, k)));

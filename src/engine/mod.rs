@@ -264,6 +264,27 @@ pub struct Metrics<'w> {
     pub drinks: f64,
     pub crits: f64,
     pub hits: f64,
+    /// Times each line of the rotation's fight list fired (by line index).
+    pub lines: Vec<f64>,
+    /// Times each line of its between-pulls list fired.
+    pub rest_lines: Vec<f64>,
+}
+
+/// One thing that happened in a traced fight: the website's timeline.
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct TraceEv {
+    pub t: f64,
+    /// cast, hit, miss, dodge, parry, heal, gain, lose or death
+    pub kind: &'static str,
+    pub who: String,
+    pub team: u8,
+    pub pet: bool,
+    pub target: Option<String>,
+    pub name: String,
+    pub amount: f64,
+    pub crit: bool,
+    pub tick: bool,
+    pub stacks: f64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -295,6 +316,8 @@ pub struct Sim<'w> {
     pub metrics: Vec<Metrics<'w>>,
     pub uid: u64,
     pub log: Option<Vec<String>>,
+    /// Structured events, recorded whenever `log` is on.
+    pub trace: Option<Vec<TraceEv>>,
     /// Coefficient penalties switched by assumptions (see downrank()).
     pub low_level_penalty: f64,
     pub downrank_penalty: f64,
@@ -337,6 +360,7 @@ impl<'w> Sim<'w> {
             metrics: vec![],
             uid: 0,
             log: None,
+            trace: None,
         }
     }
 
@@ -398,6 +422,25 @@ impl<'w> Sim<'w> {
                     let cx = Cx::new(a, Some(tg), "stun");
                     self.apply_aura(tg, st, a, 1, Some(d), None, cx);
                 }
+            }
+        }
+    }
+
+    /// A trace event for actor `who`, filled in by the caller.
+    pub fn tev(&self, kind: &'static str, who: usize, target: Option<usize>, name: &str) -> TraceEv {
+        let x = &self.actors[who];
+        TraceEv {
+            t: self.t, kind, who: x.name.clone(), team: x.team, pet: x.owner.is_some(),
+            target: target.map(|t| self.actors[t].name.clone()), name: name.to_string(),
+            amount: 0.0, crit: false, tick: false, stacks: 0.0,
+        }
+    }
+
+    pub fn tracef(&mut self, ev: impl FnOnce(&Self) -> TraceEv) {
+        if self.trace.is_some() {
+            let e = ev(self);
+            if let Some(t) = &mut self.trace {
+                t.push(e);
             }
         }
     }

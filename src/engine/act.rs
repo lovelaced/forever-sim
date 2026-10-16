@@ -217,7 +217,7 @@ impl<'w> Sim<'w> {
         }
         let Some(rot) = x.rotation else { return false };
         let list = if self.rest_phase { &rot.rest } else { &rot.actions };
-        for act in list {
+        for (k, act) in list.iter().enumerate() {
             let Some(plan) = self.can_cast(a, act.spell, act.target, false) else { continue };
             if let Some(c) = &act.cond {
                 let cx = self.action_cx(a, &plan);
@@ -228,6 +228,14 @@ impl<'w> Sim<'w> {
             if self.w.spells[act.spell as usize].auto_repeat && self.actors[a].wanding == Some(act.spell) {
                 // the chosen action is the wand that is already shooting: keep it going
                 return false;
+            }
+            if self.actors[a].owner.is_none() {
+                let m = &mut self.metrics[a];
+                let v = if self.rest_phase { &mut m.rest_lines } else { &mut m.lines };
+                if v.len() <= k {
+                    v.resize(k + 1, 0.0);
+                }
+                v[k] += 1.0;
             }
             self.begin(a, plan);
             return true;
@@ -383,6 +391,7 @@ impl<'w> Sim<'w> {
         let owner = self.actors[a].owner.unwrap_or(a);
         *self.metrics[owner].casts.entry(sp.name.as_str()).or_insert(0.0) += 1.0;
         self.logf(|s| format!("{} casts {}", s.actors[a].name, sp.name));
+        self.tracef(|s| s.tev("cast", a, Some(plan.target).filter(|&t| t != a), sp.name.as_str()));
         if let Some(ch) = &sp.channel {
             let dur = self.ev(&ch.duration, &cx);
             let iv = self.ev(&ch.interval, &cx).max(0.1);
@@ -826,6 +835,7 @@ impl<'w> Sim<'w> {
         }
         if self.log.is_some() {
             self.logf(|s| format!("{} gains {}{}", s.actors[holder].name, def.name, if st > 1.0 { format!(" ({st})") } else { String::new() }));
+            self.tracef(|s| TraceEv { stacks: st, ..s.tev("gain", holder, Some(src).filter(|&x| x != holder), def.name.as_str()) });
         }
         let mut c3 = c2;
         c3.aura = Some((holder, uid));
@@ -843,6 +853,7 @@ impl<'w> Sim<'w> {
         let def = &w.auras[inst.def as usize];
         if self.log.is_some() {
             self.logf(|s| format!("{} loses {}", s.actors[holder].name, def.name));
+            self.tracef(|s| s.tev("lose", holder, None, def.name.as_str()));
         }
         if def.form.is_some() && self.actors[holder].form == def.form {
             self.actors[holder].form = None;

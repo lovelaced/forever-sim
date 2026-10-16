@@ -35,7 +35,7 @@ use crate::build::{build_from_table, Build};
 use crate::engine::Sim;
 use crate::mc::{self, McCfg, McResult, Variant};
 use crate::model::*;
-use crate::scenario::{run_rep, RepInput, Values};
+use crate::scenario::{run_rep, run_rep_traced, RepInput, Values};
 use crate::validate::modelled_talents;
 use crate::vars::Stat;
 use crate::world::{load_world_mem, MemData};
@@ -101,6 +101,7 @@ pub fn handle(req: &str) -> String {
         "add" => add(st, &v),
         "result" => result(st, &v),
         "pair" => pair(&v),
+        "trace" => trace(&world, &v),
         "drop" => {
             if let Some(id) = v.get("id").and_then(|x| x.as_u64()) {
                 st.sessions.remove(&id);
@@ -160,7 +161,24 @@ fn catalog(w: &World) -> J {
                     })
                 })
                 .collect();
-            let rotations: Vec<J> = c.rotations.values().map(|r| json!({ "id": r.id, "desc": r.desc })).collect();
+            let ci = w.class_index(&c.id);
+            // each line with its condition in plain English, for "how this build played"
+            let lines = |list: &[Action]| -> Vec<J> {
+                list.iter().map(|a| {
+                    let sp = &w.spells[a.spell as usize];
+                    json!({
+                        "spell": sp.id, "name": sp.name,
+                        "when": a.cond.as_ref().and_then(|e| crate::explain::condition(w, ci, e)),
+                        // what the spell itself needs (Victory Rush after a kill)
+                        "needs": sp.requires.as_ref().and_then(|e| crate::explain::condition(w, ci, e)),
+                    })
+                }).collect()
+            };
+            let rotations: Vec<J> = c.rotations.values().map(|r| json!({
+                "id": r.id, "desc": r.desc, "lines": lines(&r.actions), "rest": lines(&r.rest),
+                "precombat": r.precombat.iter().map(|a| w.spells[a.spell as usize].name.clone()).collect::<Vec<_>>(),
+                "opener": r.opener.iter().map(|a| w.spells[a.spell as usize].name.clone()).collect::<Vec<_>>(),
+            })).collect();
             let races: Vec<&str> = w.races.iter().filter(|r| r.classes.is_empty() || r.classes.contains(&c.id)).map(|r| r.id.as_str()).collect();
             json!({
                 "id": c.id, "name": c.name, "icon": c.icon, "trees": c.trees, "talents": talents, "rotations": rotations, "races": races,
@@ -330,6 +348,52 @@ fn gear_json(w: &World, b: &Build) -> J {
     let shield = g.shield.map(|(armor, block)| json!({ "armor": armor.round(), "block_value": block.round() }));
     let kit = w.gear.get(&b.gear_id);
     json!({ "kit": b.gear_id, "desc": kit.map_or("", |k| k.desc.as_str()), "level": b.level, "stats": items, "weapons": weapons, "shield": shield })
+}
+
+// ---------------------------------------------------------------- trace
+
+/// One fight, event by event, for the website's timeline: the run's first
+/// replication (the same dice as its first fight). Boss, duel and ambush
+/// fights give the first `until` seconds (30 by default); leveling gives the
+/// first pull and the rest after it.
+fn trace(w: &World, v: &J) -> Result<J, String> {
+    let scenario = v.get("scenario").and_then(|x| x.as_str()).ok_or("trace needs a scenario")?;
+    let sc = w.scenarios.get(scenario).ok_or_else(|| format!("unknown scenario '{scenario}'"))?;
+    let level = v.get("level").and_then(|x| x.as_u64()).map(|x| x as u32);
+    let b = parse_build(w, v.get("build").ok_or("trace needs a build")?, level)?;
+    let opponent = match v.get("opponent") {
+        Some(o) if !o.is_null() => Some(parse_build(w, o, level).map_err(|e| format!("opponent: {e}"))?),
+        _ => None,
+    };
+    if matches!(sc.kind, ScenarioKind::Duel { .. }) && opponent.is_none() {
+        return Err("a duel needs an opponent".into());
+    }
+    let opts = opts_for(w, &b, Some(sc), v.get("opts"))?;
+    let cfg = McCfg { seed: v.get("seed").and_then(|x| x.as_u64()).unwrap_or(McCfg::default().seed), ..McCfg::default() };
+    let rep = v.get("rep").and_then(|x| x.as_u64()).unwrap_or(0) as usize;
+    // leveling: the first pulls play out the same however long the session is
+    let mut short = sc.clone();
+    if let ScenarioKind::Leveling { minutes, .. } = &mut short.kind {
+        *minutes = minutes.min(4.0);
+    }
+    let (_, _, events) = run_rep_traced(&RepInput { w, sc: &short, build: &b, opponent: opponent.as_ref(), opts: &opts, seed: mc::rep_seed(&cfg, sc, rep), log: true });
+    let mut events = events.unwrap_or_default();
+    let leveling = matches!(sc.kind, ScenarioKind::Leveling { .. });
+    if leveling {
+        // from the first pull to the next one (at most two and a half minutes)
+        let first = events.iter().position(|e| e.kind == "pull").unwrap_or(0);
+        let t0 = events.get(first).map_or(0.0, |e| e.t);
+        let next = events.iter().skip(first + 1).position(|e| e.kind == "pull").map(|k| k + first + 1).unwrap_or(events.len());
+        events = events.drain(first..next).filter(|e| e.t <= t0 + 150.0).collect();
+    } else {
+        let until = v.get("until").and_then(|x| x.as_f64()).unwrap_or(30.0);
+        events.retain(|e| e.t <= until + 1e-9);
+    }
+    // what concerns the build: its own (and its pet's) actions, what it puts
+    // on others, and what is done to it
+    let me = events.iter().find(|e| e.team == 0 && !e.pet).map(|e| e.who.clone()).unwrap_or_else(|| b.name.clone());
+    events.retain(|e| e.team == 0 || e.target.as_deref() == Some(me.as_str()) || e.kind == "death");
+    Ok(json!({ "me": me, "leveling": leveling, "events": events }))
 }
 
 // ---------------------------------------------------------------- sessions
