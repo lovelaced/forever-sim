@@ -1,25 +1,60 @@
-# Elemental, 31/20/0: Lava Burst, Lightning Overload, Elemental Fury.
-name = "Elemental (31/20/0)"
+# The ranged caster: Flame Shock, Lava Burst and Lightning Bolt, with Lightning Overload, Elemental Fury
+# and Elemental Mastery. Thundering Strikes and Ancestral Knowledge add crit and Intellect; Tidal Focus and
+# Mindfulness add hit and mana. Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Warcraft Tavern, WoW Forever Shaman Guide (level 30 Elemental build and talent order; Elemental's
+#   Restoration and Enhancement dips): https://www.warcrafttavern.com/forever/guides/shaman/
+# - Blizzard, WoW Forever beta development notes, Oct 15 Shaman changes (blue post mirror):
+#   https://www.bluetracker.gg/wow/topic/eu-en/631316-wow-forever-beta-development-notes-updated-15-october/
+# - wowtbc.gg, Elemental Shaman guide (single-target priority):
+#   https://wowtbc.gg/warcraftforever/class-guides/elemental-shaman/
+# Adapted to the Oct 15 tree (the guide was written before it): Call of Thunder is gone, so its level 25
+# point goes to Eye of the Storm (mobs hit you while you cast); Lava Burst is now the 21-point talent and
+# has a level 30 rank, so level 30 takes it instead of the first Lightning Overload point.
+# Theorycrafted (31 to 60): Lightning Overload 3, a second Eye of the Storm point, Elemental Fury 5 and
+# Elemental Mastery at 40, then the guide's dips: 8 Restoration points for Mindfulness (the 5 before it go
+# to Tidal Focus, now in the first row, for +5% hit) and 12 Enhancement points for Thundering Strikes,
+# Ancestral Knowledge and Improved Ghost Wolf.
+# Race: Windshaper Skyborne, which Warcraft Tavern names for Elemental (Wind Blessed haste); every shaman
+# race lands within 2% of the others here.
+name = "Elemental"
+kind = "standard"
 class = "shaman"
-race = "troll"
+race = "windshaper"
 level = 60
 gear = "mail_caster"
 rotation = "elemental"
 
+order = [
+  "convection", "convection", "convection", "convection", "convection",
+  "concussion", "concussion", "concussion", "concussion", "concussion",
+  "elemental_focus", "elemental_alacrity", "elemental_alacrity", "elemental_alacrity",
+  "call_of_flame", "eye_of_the_storm", "call_of_flame", "call_of_flame", "trial_by_fire", "trial_by_fire",
+  "lava_burst", "lightning_overload", "lightning_overload", "lightning_overload", "eye_of_the_storm",
+  "elemental_fury", "elemental_fury", "elemental_fury", "elemental_fury", "elemental_fury",
+  "elemental_mastery",
+  "tidal_focus", "tidal_focus", "tidal_focus", "tidal_focus", "tidal_focus",
+  "mindfulness", "mindfulness", "mindfulness",
+  "thundering_strikes", "thundering_strikes", "thundering_strikes", "thundering_strikes", "thundering_strikes",
+  "ancestral_knowledge", "ancestral_knowledge", "ancestral_knowledge", "ancestral_knowledge", "ancestral_knowledge",
+  "improved_ghost_wolf", "improved_ghost_wolf",
+]
+
 [talents]
 convection = 5
 concussion = 5
-reverberation = 5
-call_of_flame = 3
 elemental_focus = 1
 elemental_alacrity = 3
+call_of_flame = 3
+eye_of_the_storm = 2
+trial_by_fire = 2
+lava_burst = 1
 lightning_overload = 3
 elemental_fury = 5
-lava_burst = 1
+elemental_mastery = 1
+tidal_focus = 5
+mindfulness = 3
 thundering_strikes = 5
 ancestral_knowledge = 5
-improved_lightning_shield = 3
 improved_ghost_wolf = 2
-shamanistic_focus = 1
-anticipation = 3
-elemental_weapons = 1

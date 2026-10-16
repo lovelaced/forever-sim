@@ -37,6 +37,7 @@ use crate::mc::{self, McCfg, McResult, Variant};
 use crate::model::*;
 use crate::scenario::{run_rep, RepInput, Values};
 use crate::validate::modelled_talents;
+use crate::vars::Stat;
 use crate::world::{load_world_mem, MemData};
 use serde_json::{json, Map, Value as J};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -186,7 +187,16 @@ fn catalog(w: &World) -> J {
             json!({ "id": s.id, "desc": s.desc, "kind": kind, "primary": s.primary })
         })
         .collect();
-    let options: Vec<J> = w.opts.iter().map(|o| json!({ "name": o.name, "default": o.default, "desc": o.desc })).collect();
+    let options: Vec<J> = w
+        .opts
+        .iter()
+        .map(|o| {
+            json!({
+                "name": o.name, "default": o.default, "desc": o.desc, "label": o.label, "help": o.help, "kind": o.kind,
+                "unit": o.unit, "source": o.source, "cite": o.cite, "applies": o.applies,
+            })
+        })
+        .collect();
     let presets: Vec<J> = embedded::BUILD_FILES
         .iter()
         .filter_map(|(path, text)| {
@@ -195,6 +205,13 @@ fn catalog(w: &World) -> J {
             let note: Vec<&str> = text.lines().take_while(|l| l.starts_with('#')).map(|l| l.trim_start_matches('#').trim()).collect();
             b["file"] = J::from(*path);
             b["note"] = J::from(note.join(" "));
+            // the build's points at its own level, also when the file gives
+            // them only as a leveling order
+            if let Ok(built) = build_from_table(w, &t, path, None) {
+                let c = &w.classes[built.class];
+                let talents: Map<String, J> = c.talents.iter().enumerate().filter(|(i, _)| built.talents[*i] > 0).map(|(i, x)| (x.id.clone(), J::from(built.talents[i]))).collect();
+                b["talents"] = J::Object(talents);
+            }
             Some(b)
         })
         .collect();
@@ -267,7 +284,52 @@ fn sheet(w: &World, v: &J) -> Result<J, String> {
     let c = &w.classes[b.class];
     let unmodelled: Vec<String> = c.talents.iter().enumerate().filter(|(i, _)| b.talents[*i] > 0 && !modelled[*i]).map(|(_, t)| t.name.clone()).collect();
     let talents: Map<String, J> = c.talents.iter().enumerate().filter(|(i, _)| b.talents[*i] > 0).map(|(i, t)| (t.id.clone(), J::from(b.talents[i]))).collect();
-    Ok(json!({ "build": describe(w, &b), "rows": rows, "auras": auras, "unmodelled": unmodelled, "talents": talents }))
+    Ok(json!({ "build": describe(w, &b), "rows": rows, "auras": auras, "unmodelled": unmodelled, "talents": talents, "gear": gear_json(w, &b) }))
+}
+
+/// What the build's gear kit gives at its level: stat totals and weapons.
+fn gear_json(w: &World, b: &Build) -> J {
+    let g = &b.gear;
+    let mut items: Vec<J> = Vec::new();
+    let mut add = |label: &str, value: f64, unit: &str| {
+        if value.abs() > 1e-9 {
+            items.push(json!({ "label": label, "value": (value * 10.0).round() / 10.0, "unit": unit }));
+        }
+    };
+    let sum = |s: Stat| g.stats.iter().filter(|x| x.0 == s).map(|x| x.1).sum::<f64>();
+    for (s, label, unit) in [
+        (Stat::Str, "Strength", ""), (Stat::Agi, "Agility", ""), (Stat::Sta, "Stamina", ""), (Stat::Int, "Intellect", ""),
+        (Stat::Spi, "Spirit", ""), (Stat::Ap, "Attack power", ""), (Stat::Sp, "Spell power", ""), (Stat::HealPower, "Healing power", ""),
+        (Stat::MeleeCrit, "Critical strike", "%"), (Stat::Hit, "Hit", "%"), (Stat::Mp5, "Mana every 5 sec", ""),
+        (Stat::Armor, "Armor", ""), (Stat::Defense, "Defense", ""), (Stat::Dodge, "Dodge", "%"), (Stat::BlockValue, "Block value", ""),
+    ] {
+        add(label, sum(s), unit);
+    }
+    // crit from gear lands on melee, ranged and spell crit alike; show any that differ
+    for (s, label) in [(Stat::SpellCrit, "Spell critical strike"), (Stat::RangedCrit, "Ranged critical strike")] {
+        if (sum(s) - sum(Stat::MeleeCrit)).abs() > 1e-9 {
+            add(label, sum(s), "%");
+        }
+    }
+    let weapon = |slot: &str, wp: &Weapon| {
+        json!({
+            "slot": slot, "type": wp.wtype.name(), "min": wp.min.round(), "max": wp.max.round(), "speed": wp.speed,
+            "dps": (wp.dps() * 10.0).round() / 10.0, "school": wp.school.name(),
+        })
+    };
+    let mut weapons: Vec<J> = Vec::new();
+    if let Some(wp) = &g.mh {
+        weapons.push(weapon("main_hand", wp));
+    }
+    if let Some(wp) = &g.oh {
+        weapons.push(weapon("off_hand", wp));
+    }
+    if let Some(wp) = &g.ranged {
+        weapons.push(weapon("ranged", wp));
+    }
+    let shield = g.shield.map(|(armor, block)| json!({ "armor": armor.round(), "block_value": block.round() }));
+    let kit = w.gear.get(&b.gear_id);
+    json!({ "kit": b.gear_id, "desc": kit.map_or("", |k| k.desc.as_str()), "level": b.level, "stats": items, "weapons": weapons, "shield": shield })
 }
 
 // ---------------------------------------------------------------- sessions

@@ -4,7 +4,9 @@ import * as M from './meta.js';
 import { prepareClass } from './talents.js';
 
 export const MAX_BUILDS = 3;
-export const DEFAULT_PRESET = 'warrior/vampire_v2.toml';
+export const DEFAULT_PRESET = 'warrior/arms.toml';
+// The beta's level cap: a new visitor starts here.
+export const DEFAULT_LEVEL = 30;
 const STORE_KEY = 'forever-sim/v1';
 const ROWS_KEY = 'forever-sim/rows/v1';
 
@@ -39,7 +41,22 @@ export const S = {
 export const classOf = (id) => env.catalog.classes.find((c) => c.id === id);
 export const raceOf = (id) => env.catalog.races.find((r) => r.id === id);
 export const presetOf = (file) => env.catalog.presets.find((p) => p.file === file);
-export const presetsFor = (cls) => env.catalog.presets.filter((p) => p.class === cls);
+// A class's builds: standard specs first, in talent tree order, then the
+// Forever experiments by name.
+export const isExperimental = (p) => p && p.kind === 'experimental';
+function mainTree(p) {
+  const c = classOf(p.class);
+  if (!c) return 0;
+  const per = c.trees.map((tr) => c.talents.filter((t) => t.tree === tr).reduce((a, t) => a + (p.talents?.[t.id] || 0), 0));
+  return per.indexOf(Math.max(...per));
+}
+export const presetsFor = (cls) => env.catalog.presets.filter((p) => p.class === cls).sort((a, b) =>
+  (isExperimental(a) - isExperimental(b)) || (isExperimental(a) ? a.name.localeCompare(b.name) : mainTree(a) - mainTree(b) || a.name.localeCompare(b.name)));
+// "Experimental", "Healer" or "Tank", for labels next to a build's name.
+export function presetTags(p) {
+  if (!p) return [];
+  return [isExperimental(p) ? 'Experimental' : null, p.role === 'healer' ? 'Healer' : p.role === 'tank' ? 'Tank' : null].filter(Boolean);
+}
 export const baseName = (name) => name.replace(/\s*\([\d/+]+\)\s*$/, '').replace(/\+$/, '+');
 export const scenarioMeta = (id) => M.SCENARIOS.find((s) => s.id === id) || { id, title: id, short: id, unit: 'fight', per: '', icon: 'crossed-swords', help: '' };
 export const primaryOf = (test) => env.catalog.scenarios.find((s) => s.id === test)?.primary;
@@ -57,9 +74,11 @@ export function baselineBuild() {
 // ------------------------------------------------------------------ builds
 
 export function buildFromPreset(p, level) {
+  const lv = level || p.level || 60;
   return {
-    uid: uidSeq++, cls: p.class, race: p.race, level: level || p.level || 60,
-    talents: { ...p.talents }, plan: null, gear: p.gear, rotation: p.rotation,
+    uid: uidSeq++, cls: p.class, race: p.race, level: lv,
+    // below the build's own level, its full talents stay planned for later
+    talents: { ...p.talents }, plan: lv < (p.level || 60) ? { ...p.talents } : null, gear: p.gear, rotation: p.rotation,
     preset: p.file, order: p.order || null, popts: p.opts || null, edited: false, customName: null, seq: 0,
   };
 }

@@ -1,0 +1,51 @@
+# Druid: deliberate differences from Forever's spell data (build 70425).
+# See README.md in this folder for the format.
+
+[druid.caster_form]
+match = "Internal: leaving a form. The game cancels the form aura (or recasts the form's button), it has no spell of its own."
+
+[druid.swiftmend_heal]
+match = "Internal: the heal Swiftmend casts, sized from your highest Rejuvenation rank. In the game Swiftmend (18562) computes it with a script."
+
+# Cat Form abilities: the game gives them a 1.0 sec global cooldown. The
+# engine change that gives Cat Form its 1.0 sec global cooldown (and keeps
+# it out of haste and other forms) is planned; until then they use 1.5 sec.
+
+
+
+
+
+
+
+
+# Talents: game values (Forever's trait tables) that the audit can't find
+# among the numbers the talent drives, because the simulator has no use for
+# them or folds them into a formula that needs a level or a stat.
+[druid.talent_natures_reach]
+"value.0" = "Range +10%/20%: the simulator has no distance, so spell range does nothing."
+
+[druid.talent_overgrowth]
+"value.0" = "Entangling Roots can hold 1/2 more targets: roots hold one target here and do nothing without distance."
+
+[druid.talent_feral_swiftness]
+"value.1" = "Cat Form movement speed +15%/30%: the simulator has no movement."
+
+[druid.talent_feral_instinct]
+"value.0" = "Prowl is harder to detect (as if 1/2/3 levels higher): the simulator has no stealth detection."
+
+[druid.talent_brutal_impact]
+"value.0" = "Stun +0.5/1 sec: added inside Bash's and Pounce's stun durations (r.dur + 0.5 * t.brutal_impact, 2 + 0.5 * t.brutal_impact), so the audit only sees the totals."
+
+[druid.talent_thick_hide]
+"value.0" = "0.67/1.33/2.00 armor per point of defense skill above five times your level: modeled, but the formula multiplies it by the defense stat, which the audit can't evaluate."
+"value.1" = "1/2/3 armor per level in Cat, Bear and Moonkin Form: modeled as rank * level, which the audit can't evaluate without a level."
+
+[druid.talent_predatory_strikes]
+"value.0" = "Attack power +50%/100%/150% of your level in Cat and Bear Form: modeled as 0.5 * rank * level, which the audit can't evaluate without a level."
+
+[druid.talent_natural_instinct]
+"value.1" = "Healing power +12%/25% of Intellect: modeled as (rank == 2 ? 0.25 : 0.12) * int, which the audit can't evaluate without a stat."
+
+[druid.talent_improved_tranquility]
+"value.0" = "Tranquility threat -50%/100%: Tranquility, a party heal, is not simulated."
+"value.1" = "Tranquility cooldown -30%/60%: Tranquility, a party heal, is not simulated."

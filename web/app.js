@@ -5,7 +5,7 @@ import { startEngine } from './engine.js';
 import * as M from './meta.js';
 import { h, svgIcon, loadIconManifest, retargetTip, hideTip, flash, fmtSec, debounce, tipIsPinned, repositionTip } from './ui.js';
 import {
-  S, env, bus, MAX_BUILDS, DEFAULT_PRESET, presetOf, buildOf, nameOf, baselineBuild, copyBuild, buildFromPreset,
+  S, env, bus, MAX_BUILDS, DEFAULT_PRESET, DEFAULT_LEVEL, presetOf, buildOf, nameOf, baselineBuild, copyBuild, buildFromPreset,
   scenarioMeta, accuracyOf, sig, serial, restore, loadLocal, saveLocal, loadRows, encode, decode,
 } from './state.js';
 import { renderCards } from './cards.js';
@@ -150,15 +150,17 @@ function renderRunbar() {
 
 // ------------------------------------------------------------------ assumptions
 
+// Where an assumption's default comes from (options.toml `source`).
+const SOURCE = {
+  game: 'From Forever’s game data', community: 'From players’ reports', classic: 'The original game’s value', estimate: 'Our estimate',
+};
+
 function relevantOptions() {
   const tags = new Set();
   for (const b of S.builds) { tags.add(b.cls); tags.add(b.race); }
   const opp = S.opponent && presetOf(S.opponent.slice(7));
   if (opp) { tags.add(opp.class); tags.add(opp.race); }
-  return env.catalog.options.filter((o) => {
-    const scope = M.OPTION_SCOPE[o.name];
-    return !scope || scope.some((t) => tags.has(t)) || o.name in S.opts;
-  });
+  return env.catalog.options.filter((o) => !o.applies.length || o.applies.some((t) => tags.has(t)) || o.name in S.opts);
 }
 
 function setOpt(o, x) {
@@ -180,7 +182,7 @@ function renderAssumptions() {
   $('assumptions-body').replaceChildren(
     h('p.note', 'Some numbers the game does not publish. These are the simulator’s best guesses; change one to see how much it matters. Only the ones that affect your builds are listed. Changing one puts the results out of date until you simulate again.'),
     h('div.opt-list', list.map((o) => {
-      const ui = M.OPTION_UI[o.name] || { kind: 'num', label: o.desc };
+      const ui = o;
       const v = o.name in S.opts ? S.opts[o.name] : o.default;
       const isChanged = o.name in S.opts;
       const id = `opt-${o.name}`;
@@ -194,7 +196,8 @@ function renderAssumptions() {
           ui.kind === 'pct' || ui.unit === '%' ? h('span.unit', '%') : ui.unit ? h('span.unit', ui.unit) : null);
       }
       return h('div.opt',
-        h('label.desc', { for: id, class: isChanged ? 'changed' : '' }, ui.label, ui.help ? h('span.opt-help', ui.help) : null),
+        h('label.desc', { for: id, class: isChanged ? 'changed' : '' }, ui.label, ui.help ? h('span.opt-help', ui.help) : null,
+          h('span.opt-source', { class: `src-${o.source}` }, SOURCE[o.source] || '', o.cite ? `: ${o.cite}` : '')),
         input,
         isChanged ? h('button.linkish.reset', { type: 'button', onclick: () => { delete S.opts[o.name]; S.builds.forEach((b) => refreshLater(b)); renderAssumptions(); render(); } }, `Back to the default (${fmtDefault(o, ui)})`) : null);
     })));
@@ -256,7 +259,7 @@ async function boot() {
     else flash('That shared link could not be read.');
   }
   if (!from && loadLocal()) from = 'local';
-  if (!from) S.builds = [buildFromPreset(presetOf(DEFAULT_PRESET) || env.catalog.presets[0])];
+  if (!from) S.builds = [buildFromPreset(presetOf(DEFAULT_PRESET) || env.catalog.presets[0], DEFAULT_LEVEL)];
   if (!buildOf(S.baseline)) S.baseline = S.builds[0].uid;
   loadRows();
   // Builds already in the saved results count as run, for "since your last run".

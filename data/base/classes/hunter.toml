@@ -1,10 +1,19 @@
 # Hunter. Talents and spell ranks: Forever client 1.60.1.70338
 # (wowforevertalents.com/hunter and /abilities/hunter, checked 2026-10-15).
-# The site gives no row for nine talents; they are placed in the first row
-# of their tree (Deadly Aspects, Endurance Training, Hawk Eye, Improved
-# Concussive Shot, Lethal Attacks, Improved Tracking, Deflection) or in the
-# row the site lists next to them (Frenzy 25, Improved Serpent Sting 15).
-# Base stats and stat formulas are Classic 1.12 values.
+# Talent rows, ranks and prerequisites match the client's talent (trait)
+# tables, which `fsim audit hunter` checks. Base stats and stat formulas are
+# Classic 1.12 values.
+#
+# Spell numbers come from Forever's spell tables, build 1.60.1.70338
+# (data/reference/spellbook.json); every rank carries the game's spell `id`
+# and `fsim audit hunter` checks them. Deliberate differences are listed with
+# a reason in data/reference/accepted/hunter.toml.
+# Forever keeps one spell per talent; the per-rank numbers come from the
+# talent's trait data (spellbook.json "talents"), which the talent tooltip
+# uses. Several of those spells still hold Classic's full-rank number
+# (Unleashed Fury, Ferocity, Bestial Discipline, Barrage, Savage Strikes,
+# Lightning Reflexes, Survival Tactics, Frenzy); the sim follows the trait
+# data and says so next to the talent.
 name = "Hunter"
 icon = "classicon_hunter"
 resources = ["mana"]
@@ -35,14 +44,20 @@ icon = "spell_nature_ravenform"
 tree = "Beast Mastery"
 points = 0
 ranks = 5
-text = "With Aspect of the Hawk, Auto Shot has a 10% chance to give +30% ranged attack speed for 12 sec (melee version needs Aspect of the Beast, not simulated)."
-procs = [{ on = "ranged_landed", if = "!event.special && aura.aspect_of_the_hawk.up", chance = "0.02 * rank", effects = [{ type = "aura", aura = "quick_shots" }] }]
+text = "With Aspect of the Hawk, ranged attacks have a 10% chance to give +30% ranged attack speed for 12 sec. With Aspect of the Beast, melee auto attacks have a 10% chance to give +30% melee attack speed for 12 sec."
+# Spell 19552: +10% trigger chance on Aspect of the Hawk (Auto Shot and shots)
+# and Aspect of the Beast (melee auto attacks).
+procs = [
+  { on = "ranged_landed", if = "aura.aspect_of_the_hawk.up", chance = "0.02 * rank", effects = [{ type = "aura", aura = "quick_shots" }] },
+  { on = "melee_landed", if = "!event.special && aura.aspect_of_the_beast.up", chance = "0.02 * rank", effects = [{ type = "aura", aura = "quick_strikes" }] },
+]
 [talents.endurance_training]
 icon = "spell_nature_reincarnation"
 tree = "Beast Mastery"
 points = 0
 ranks = 5
-text = "Pet health and armour +15%."
+text = "Pet health and armor +15%."
+# 3% a rank to both (trait data); applied in [pets.cat] mods.
 [talents.focused_fire]
 icon = "inv_weapon_crossbow_10"
 tree = "Beast Mastery"
@@ -55,7 +70,9 @@ icon = "ability_hunter_aspectofthemonkey"
 tree = "Beast Mastery"
 points = 5
 ranks = 3
-text = "Aspect of the Monkey gives 6% more dodge."
+text = "Aspect of the Monkey gives 6% more dodge, and your pet gets half of the aspect's dodge."
+# Trait data: +2/4/6 dodge on the aspect (spell 19549 lists +4). The pet's
+# share (the tooltip's fixed 50%) is in [pets.cat] dodge.
 [talents.pathfinding]
 icon = "ability_mount_jungletiger"
 tree = "Beast Mastery"
@@ -67,7 +84,11 @@ icon = "ability_hunter_beastsoothe"
 tree = "Beast Mastery"
 points = 5
 ranks = 2
-text = "Revive Pet (not simulated)."
+text = "Revive Pet casts 6 sec faster, costs 40% less mana and brings the pet back with 30% more health."
+spell_mods = [
+  { spells = ["revive_pet"], prop = "cast_time", add = "-3 * rank" },
+  { spells = ["revive_pet"], prop = "cost", mul = "1 - 0.2 * rank" },
+]
 [talents.bestial_swiftness]
 icon = "ability_druid_dash"
 tree = "Beast Mastery"
@@ -80,19 +101,24 @@ tree = "Beast Mastery"
 points = 10
 ranks = 5
 text = "Pet and hawk damage +15%."
+# Trait data: 3% a rank (spell 19616 still lists Classic's +20).
 [talents.improved_mend_pet]
 icon = "ability_hunter_mendpet"
 tree = "Beast Mastery"
 points = 15
 ranks = 2
-text = "Mend Pet costs 20% less."
-spell_mods = [{ spells = ["mend_pet"], prop = "cost", mul = "1 - 0.1 * rank" }]
+text = "Mend Pet costs 20% more (a bug: the tooltip says less), and each heal has a 50% chance to cleanse a curse, disease, magic or poison effect from your pet (the cleanse is not simulated)."
+# 70338 trait data: Mend Pet cost +10/+20% (spell 19572 effect 1), the bug
+# the Oct 15 notes fix ("increase the Mana cost of Mend Pet instead of
+# decrease").
+spell_mods = [{ spells = ["mend_pet"], prop = "cost", mul = "1 + 0.1 * rank" }]
 [talents.ferocity]
 icon = "inv_misc_monsterclaw_04"
 tree = "Beast Mastery"
 points = 15
 ranks = 5
 text = "Pet and hawk crit +10%."
+# Trait data: 2% a rank (spell 19598 lists +16).
 [talents.summon_hawk]
 icon = "ability_hunter_animalhandler"
 tree = "Beast Mastery"
@@ -104,32 +130,39 @@ icon = "ability_druid_demoralizingroar"
 tree = "Beast Mastery"
 points = 20
 ranks = 2
-text = "You and your pet regenerate 1% of total health every 5 sec."
+text = "While your pet is active, you and your pet regenerate 1% of total health every 5 sec."
+# Trait data: 1% every 10 sec at rank 1, every 5 sec at rank 2.
 procs = [{ on = "combat_start", effects = [{ type = "aura", aura = "spirit_bond" }] }]
 [talents.intimidation]
 icon = "ability_devour"
 tree = "Beast Mastery"
 points = 20
 ranks = 1
-text = "Your pet's next attack stuns for 3 sec. 1 min cooldown."
+requires = "bestial_swiftness"
+text = "Your pet's next attack within 15 sec stuns for 3 sec. 1 min cooldown."
 [talents.bestial_discipline]
 icon = "spell_nature_abolishmagic"
 tree = "Beast Mastery"
 points = 20
 ranks = 2
-text = "Pet focus +20% (pet focus is not simulated); 50% mana regeneration while casting."
+text = "Pet focus regeneration +20% (your pet Claws more often); 50% mana regeneration while casting."
+# Trait data: focus regeneration +10% a rank (spell 19590 lists Classic's
+# +100%). Focus is not simulated: the bonus shortens Claw's interval.
 mods = [{ stat = "casting_regen", add = "0.25 * rank" }]
 [talents.frenzy]
 icon = "inv_misc_monsterclaw_03"
 tree = "Beast Mastery"
 points = 25
 ranks = 5
+requires = "ferocity"
 text = "Pet crits give it +30% attack speed for 8 sec (100% chance)."
+# Trait data: 20% chance a rank (spell 19621 lists +20, rank 1's value).
 [talents.bestial_wrath]
 icon = "ability_druid_ferociousbite"
 tree = "Beast Mastery"
 points = 30
 ranks = 1
+requires = "intimidation"
 text = "Pet deals 50% more damage for 18 sec. 2 min cooldown."
 
 [talents.hawk_eye]
@@ -143,7 +176,7 @@ icon = "spell_frost_stun"
 tree = "Marksmanship"
 points = 0
 ranks = 5
-text = "Concussive Shot stun chance (not simulated)."
+text = "Concussive Shot has a 20% chance to stun for 3 sec (Concussive Shot, a slow for kiting, is not simulated)."
 [talents.lethal_attacks]
 icon = "ability_searingarrow"
 tree = "Marksmanship"
@@ -156,21 +189,24 @@ icon = "ability_hunter_quickshot"
 tree = "Marksmanship"
 points = 5
 ranks = 3
-text = "Serpent Sting damage +20%."
+text = "Serpent Sting damage +20%. Also shortens Viper Sting's cooldown by 6 sec and lengthens Scorpid Sting by 45 sec (neither sting is simulated)."
+# Trait data: +6/13/20% a rank.
+spell_mods = [{ spells = ["serpent_sting"], prop = "damage", add = "interp(rank, 0,0, 1,0.06, 2,0.13, 3,0.2)" }]
 [talents.efficiency]
 icon = "spell_frost_wizardmark"
 tree = "Marksmanship"
 points = 5
 ranks = 5
 text = "Shots, Stings and melee abilities cost 15% less mana."
-spell_mods = [{ spells = ["arcane_shot", "aimed_shot", "multi_shot", "serpent_sting", "sniper_shot", "raptor_strike", "mongoose_bite", "counterattack", "wing_clip", "lacerate"], prop = "cost", mul = "1 - 0.03 * rank" }]
+# Spell 19416's list: not Sniper Shot or Strider Kick; Summon Hawk is on it.
+spell_mods = [{ spells = ["arcane_shot", "aimed_shot", "multi_shot", "serpent_sting", "scatter_shot", "summon_hawk", "raptor_strike", "mongoose_bite", "counterattack", "wing_clip", "lacerate"], prop = "cost", mul = "1 - 0.03 * rank" }]
 [talents.careful_aim]
 icon = "ability_hunter_zenarchery"
 tree = "Marksmanship"
 points = 5
 ranks = 5
-text = "Ranged Attack Power +100% of Intellect."
-mods = [{ stat = "rap", add = "0.2 * rank * int" }]
+text = "Attack Power and Ranged Attack Power +100% of Intellect."
+mods = [{ stat = "rap", add = "0.2 * rank * int" }, { stat = "ap", add = "0.2 * rank * int" }]
 [talents.rapid_killing]
 icon = "ability_hunter_rapidkilling"
 tree = "Marksmanship"
@@ -198,34 +234,48 @@ icon = "ability_trueshot"
 tree = "Marksmanship"
 points = 15
 ranks = 1
-text = "+30 ranged Attack Power to the party."
-mods = [{ stat = "rap", add = 30 }]
+text = "Trueshot Aura: you and your party gain ranged Attack Power (+30 at level 25, rising with rank to +75)."
 [talents.mortal_shots]
 icon = "ability_piercedamage"
 tree = "Marksmanship"
 points = 15
 ranks = 5
-text = "Ranged ability crit damage bonus +30%."
-spell_mods = [{ spells = ["aimed_shot", "multi_shot", "sniper_shot", "arcane_shot"], prop = "crit_bonus", add = "0.06 * rank" }]
-[talents.improved_serpent_sting]
-icon = "ability_hunter_quickshot"
-tree = "Marksmanship"
-points = 15
-ranks = 5
-text = "Serpent Sting damage +10%."
+requires = "careful_aim"
+text = "Ranged crit damage bonus +30%, Auto Shot included, Sniper Shot not (the sim gives it to melee crits too)."
+# Spell 19485 covers Auto Shot and every shot except Sniper Shot (its family
+# flag, word 3 bit 8388608, is missing from the 70338 list). The engine has
+# one crit bonus for all physical attacks, so melee crits get it as well, and
+# Sniper Shot takes it back off.
+mods = [{ stat = "crit_bonus_melee", add = "0.06 * rank" }]
+spell_mods = [{ spells = ["sniper_shot"], prop = "crit_bonus", add = "-0.06 * rank" }]
+# Improved Serpent Sting (node 105003, spell 19464) is left out: the client
+# keeps the node but places it far off the Marksmanship tree (y 39300; the
+# tree ends at 5730), and its points don't count toward the 20 and 25 point
+# rows (TraitNodeGroup 12720 and 12721 leave it out). The same in 70425, so
+# players can't take it.
 [talents.rapid_recuperation]
 icon = "ability_hunter_rapidregeneration"
 tree = "Marksmanship"
 points = 20
 ranks = 2
-text = "Serpent Sting hits give mana regeneration while casting (not simulated)."
+requires = "rapid_killing"
+text = "Serpent Sting gives 50% mana regeneration while casting for 15 sec; using up Rapid Killing gives 100%."
+# Trait data: 25/50% from Serpent Sting, 50/100% from the shot that uses up
+# Rapid Killing (one buff, #1242512: the newer one replaces the other). A
+# Rapid Killing with its full 20 sec left was earned by this very shot's
+# kill, so the shot doesn't use it up.
+procs = [
+  { on = "cast:serpent_sting", effects = [{ type = "aura", aura = "rapid_recuperation" }] },
+  { on = "cast", if = "aura.rapid_killing.up && aura.rapid_killing.remains < 19.99 && (spell.arcane_shot || spell.aimed_shot || spell.multi_shot || spell.sniper_shot || spell.scatter_shot)", effects = [{ type = "aura", aura = "rapid_recuperation_kill" }] },
+]
 [talents.barrage]
 icon = "ability_upgrademoonglaive"
 tree = "Marksmanship"
 points = 20
 ranks = 3
 text = "Multi-Shot, Aimed Shot and Volley damage +10%."
-spell_mods = [{ spells = ["multi_shot", "aimed_shot"], prop = "damage", mul = "1 + rank / 30" }]
+# Trait data: +3/7/10% (spell 19461 lists Classic's +15%).
+spell_mods = [{ spells = ["multi_shot", "aimed_shot"], prop = "damage", mul = "1 + interp(rank, 1,0.03, 2,0.07, 3,0.1)" }]
 [talents.scatter_shot]
 icon = "ability_golemstormbolt"
 tree = "Marksmanship"
@@ -244,6 +294,7 @@ icon = "hunter_pvp_snipershot"
 tree = "Marksmanship"
 points = 30
 ranks = 1
+requires = "trueshot_aura"
 text = "Ranged weapon damage +160..295. 4 sec cast, 15 sec cooldown."
 
 [talents.improved_tracking]
@@ -272,6 +323,7 @@ tree = "Survival"
 points = 5
 ranks = 2
 text = "Melee ability crit +4%."
+# Trait data: 2% a rank (spell 19159 lists Classic's +20%).
 spell_mods = [{ spells = ["raptor_strike", "mongoose_bite", "counterattack", "strider_kick", "wing_clip"], prop = "crit", add = "2 * rank" }]
 [talents.survivalist]
 icon = "spell_shadow_twilight"
@@ -285,7 +337,7 @@ icon = "ability_rogue_trip"
 tree = "Survival"
 points = 5
 ranks = 3
-text = "Wing Clip immobilise chance (movement is not simulated)."
+text = "Wing Clip has a 20% chance to immobilize for 5 sec (movement is not simulated)."
 [talents.clever_traps]
 icon = "spell_nature_timestop"
 tree = "Survival"
@@ -298,6 +350,7 @@ tree = "Survival"
 points = 10
 ranks = 3
 text = "+3% hit."
+# One hit stat: spells already count `hit` (spell hit = hit + spell_hit).
 mods = [{ stat = "hit", add = "rank" }]
 [talents.deterrence]
 icon = "ability_whirlwind"
@@ -310,34 +363,47 @@ icon = "ability_ensnare"
 tree = "Survival"
 points = 15
 ranks = 2
-text = "Trap and Feign Death resist (not simulated)."
+text = "Traps and Feign Death are 10% more likely to hit (not simulated)."
+# Trait data: 5% a rank (spell 19376 lists 17).
 [talents.predators_edge]
 icon = "ability_dualwield"
 tree = "Survival"
 points = 15
 ranks = 5
-text = "Melee crit damage +30%, off-hand damage +50%."
-mods = [{ stat = "crit_bonus_melee", add = "0.06 * rank" }, { stat = "offhand_mult", mul = "1 + 0.1 * rank" }]
+text = "Melee ability crit damage +30%, off-hand damage +50%."
+# Spell 1310627: the crit bonus is for melee abilities, not auto attacks.
+spell_mods = [{ spells = ["raptor_strike", "mongoose_bite", "counterattack", "strider_kick", "wing_clip"], prop = "crit_bonus", add = "0.06 * rank" }]
+mods = [{ stat = "offhand_mult", mul = "1 + 0.1 * rank" }]
 [talents.counterattack]
 icon = "ability_warrior_challange"
 tree = "Survival"
 points = 15
 ranks = 1
-text = "After a parry: 50% weapon damage plus a bonus, immobilise 5 sec. 5 sec cooldown."
+requires = "deterrence"
+text = "After a parry: 50% weapon damage plus a bonus, immobilize 5 sec. 5 sec cooldown."
 [talents.resourcefulness]
 icon = "ability_hunter_resourcefulness"
 tree = "Survival"
 points = 20
 ranks = 2
-text = "Melee abilities cost 60% less mana; crits may give mana regeneration (not simulated)."
-spell_mods = [{ spells = ["raptor_strike", "mongoose_bite", "counterattack", "wing_clip", "strider_kick", "lacerate"], prop = "cost", mul = "1 - 0.3 * rank" }]
+text = "Melee abilities cost 60% less mana. The tooltip's mana regeneration on critical strikes never triggers in this build."
+# Spell 440529's list: Raptor Strike, Mongoose Bite, Counterattack, Wing Clip
+# and traps (not Strider Kick or Lacerate). The proc (effect 1, which triggers
+# #1242688: 50% mana regeneration while casting for 30 sec) gets -20/-40 from
+# the 70338 trait data, so it never fires; the tooltip shows 50/100% from an
+# effect the spell doesn't have. The Oct 15 notes confirm it: Resourcefulness
+# "now correctly activates when landing a critical strike".
+spell_mods = [{ spells = ["raptor_strike", "mongoose_bite", "counterattack", "wing_clip"], prop = "cost", mul = "1 - 0.3 * rank" }]
 [talents.expose_prey]
 icon = "ability_hunter_swiftstrike"
 tree = "Survival"
 points = 20
 ranks = 2
-text = "Attacks on Hunter's Mark targets have a 10% chance to enable Mongoose Bite."
-procs = [{ on = "melee_landed", if = "target.aura.hunters_mark.up", chance = "0.05 * rank", effects = [{ type = "aura", aura = "mongoose_ready" }] }]
+text = "Attacks on Hunter's Mark targets have a 10% chance to enable Mongoose Bite for 10 sec."
+procs = [
+  { on = "melee_landed", if = "target.aura.hunters_mark.up", chance = "0.05 * rank", effects = [{ type = "aura", aura = "mongoose_ready", duration = 10 }] },
+  { on = "ranged_landed", if = "target.aura.hunters_mark.up", chance = "0.05 * rank", effects = [{ type = "aura", aura = "mongoose_ready", duration = 10 }] },
+]
 [talents.survivalists_discipline]
 icon = "ability_hunter_mastertactitian"
 tree = "Survival"
@@ -357,12 +423,16 @@ tree = "Survival"
 points = 25
 ranks = 5
 text = "Agility +10%."
+# Trait data for the tree's node (110859): 2% a rank. Spell 19168 lists
+# Classic's +15%, and so does an older copy of the talent (node 104982) that
+# the client keeps off the tree.
 mods = [{ stat = "agi_pct", add = "0.02 * rank" }]
 [talents.lacerating_strikes]
 icon = "ability_gouge"
 tree = "Survival"
 points = 30
 ranks = 1
+requires = "expose_prey"
 text = "Mongoose Bite bleeds for 40% of its damage over 21 sec."
 
 # ------------------------------------------------------------------ passives
@@ -372,21 +442,35 @@ procs = [{ on = "dodge", effects = [{ type = "aura", aura = "mongoose_ready" }] 
 [[passives]]
 name = "Counterattack window"
 procs = [{ on = "parry", effects = [{ type = "aura", aura = "counterattack_ready" }] }]
+[[passives]]
+name = "Dead pet"
+procs = [{ on = "pet_died", effects = [{ type = "aura", aura = "pet_dead" }] }]
 
 # ------------------------------------------------------------------ pets
+# Base health, armor, damage, attack power and dodge are estimates
+# modeled on the original game's level-60 cat; Forever's data has no pet
+# stat table. Pets also get a share of the hunter's Stamina and ranged
+# attack power (opt.pet_owner_sta, opt.pet_owner_ap), 10 health per Stamina.
 [pets.cat]
 name = "Cat"
 creature = "beast"
 speed = 2.0
-hp = "interp(level, 1,60, 20,520, 40,1450, 60,3100) * (1 + 0.03 * t.endurance_training)"
-armor = "interp(level, 1,20, 20,450, 40,1500, 60,2700) * (1 + 0.03 * t.endurance_training)"
+hp = "interp(level, 1,60, 20,520, 40,1450, 60,3100) + 10 * opt.pet_owner_sta * sta"
+armor = "interp(level, 1,20, 20,450, 40,1500, 60,2700)"
 dmg_min = "interp(level, 1,2, 20,16, 40,32, 60,50)"
 dmg_max = "interp(level, 1,4, 20,24, 40,46, 60,72)"
 ap = "interp(level, 1,0, 60,120) + opt.pet_owner_ap * rap"
-crit = "5 + 2 * t.ferocity"
-dodge = "interp(level, 1,5, 60,10)"
+# Crit: Forever's pets inherit the hunter's crit (Hunter Pet Scaling, 415429,
+# effect 13; the Oct 15 notes: pets "were only ever inheriting the player's
+# Melee Critical Strike chance"), taken when the pet is summoned. The pet's
+# own base crit is dropped (it was an estimate of 5%); whether Forever adds
+# one on top is a judgment call.
+crit = "melee_crit + 2 * t.ferocity"
+dodge = "interp(level, 1,5, 60,10) + (t.improved_aspect_of_the_monkey > 0 && aura.aspect_of_the_monkey.up ? 0.5 * (8 + 2 * t.improved_aspect_of_the_monkey) : 0)"
 mods = [
   { stat = "dmg_done", mul = "(1 + 0.03 * t.unleashed_fury) * (1 + 0.01 * t.focused_fire)" },
+  { stat = "max_hp_mult", mul = "1 + 0.03 * t.endurance_training" },
+  { stat = "armor_mult", mul = "1 + 0.03 * t.endurance_training" },
 ]
 procs = [{ on = "melee_crit", chance = "0.2 * t.frenzy", effects = [{ type = "aura", aura = "pet_frenzy" }] }]
 [pets.cat.rotation]
@@ -400,14 +484,22 @@ actions = [
 name = "Aspect of the Hawk"
 group = "aspect"
 mods = [{ stat = "rap", add = "r.rap" }]
+[auras.aspect_of_the_beast]
+name = "Aspect of the Beast"
+group = "aspect"
+mods = [{ stat = "ap", add = "r.ap" }]
 [auras.aspect_of_the_monkey]
 name = "Aspect of the Monkey"
 group = "aspect"
-mods = [{ stat = "dodge", add = "8 + 2 * t.improved_aspect_of_the_monkey" }]
+mods = [{ stat = "dodge", add = 8 }, { stat = "dodge", add = "2 * t.improved_aspect_of_the_monkey" }]
 [auras.quick_shots]
 name = "Quick Shots"
 duration = 12
 mods = [{ stat = "ranged_haste", mul = 1.3 }]
+[auras.quick_strikes]
+name = "Quick Strikes"
+duration = 12
+mods = [{ stat = "melee_haste", mul = 1.3 }]
 [auras.hunters_mark]
 name = "Hunter's Mark"
 debuff = true
@@ -416,16 +508,20 @@ duration = 120
 name = "Hunter's Mark (your bonus)"
 duration = 120
 mods = [{ stat = "rap", add = "r.rap" }]
+[auras.trueshot_aura]
+name = "Trueshot Aura"
+duration = 1800
+mods = [{ stat = "rap", add = "r.rap" }]
 [auras.serpent_sting]
 name = "Serpent Sting"
 debuff = true
 duration = 15
-tick = { interval = 3, effects = [{ type = "damage", school = "nature", periodic = true, tag = "Serpent Sting", amount = "r.total / 5 * (1 + t.improved_stings / 15 + 0.02 * t.improved_serpent_sting)" }] }
+tick = { interval = 3, effects = [{ type = "damage", school = "nature", periodic = true, tag = "Serpent Sting", amount = "r.total / 5" }] }
 [auras.lacerate]
 name = "Lacerate"
 debuff = true
 duration = 21
-tick = { interval = 3, effects = [{ type = "damage", school = "physical", periodic = true, tag = "Lacerate", amount = "r.total / 7" }] }
+tick = { interval = 3, effects = [{ type = "damage", school = "physical", periodic = true, tag = "Lacerate", amount = "r.tick" }] }
 [auras.lacerating_strikes]
 name = "Lacerating Strikes"
 debuff = true
@@ -434,6 +530,11 @@ max_stacks = 2000
 refresh = "replace"
 text = "Stacks hold 40% of the Mongoose Bite's damage."
 tick = { interval = 3, effects = [{ type = "damage", school = "physical", periodic = true, tag = "Lacerating Strikes", amount = "stacks / 7" }] }
+[auras.wing_clip]
+name = "Wing Clip"
+debuff = true
+mechanic = "slow"
+duration = 10
 [auras.rapid_fire]
 name = "Rapid Fire"
 duration = 15
@@ -442,7 +543,21 @@ mods = [{ stat = "ranged_haste", mul = 1.4 }, { stat = "melee_haste", mul = 1.4 
 name = "Rapid Killing"
 duration = 20
 consume_on_cast = true
-spell_mods = [{ spells = ["arcane_shot", "aimed_shot", "multi_shot", "sniper_shot"], prop = "damage", mul = "1 + 0.1 * t.rapid_killing" }]
+spell_mods = [{ spells = ["arcane_shot", "aimed_shot", "multi_shot", "sniper_shot", "scatter_shot"], prop = "damage", mul = "1 + 0.1 * t.rapid_killing" }]
+[auras.rapid_recuperation]
+name = "Rapid Recuperation"
+group = "rapid_recuperation"
+duration = 15
+mods = [{ stat = "casting_regen", add = "0.25 * t.rapid_recuperation" }]
+[auras.rapid_recuperation_kill]
+name = "Rapid Recuperation (Rapid Killing)"
+group = "rapid_recuperation"
+duration = 15
+mods = [{ stat = "casting_regen", add = "0.5 * t.rapid_recuperation" }]
+[auras.resourcefulness]
+name = "Resourcefulness"
+duration = 30
+mods = [{ stat = "casting_regen", add = 0.5 }]
 [auras.hawk]
 name = "Hawk"
 duration = 18
@@ -451,7 +566,7 @@ text = "Each hawk dive-bombs every opt.hawk_dive_interval sec (not on the toolti
 tick = { interval = "opt.hawk_dive_interval", effects = [{ type = "damage", target = "my_target", school = "physical", hit = "auto", tag = "Hawk", amount = "(r.base + 0.05 * rap) * stacks", mult = "1 + 0.03 * t.unleashed_fury", crit = "2 * t.ferocity" }] }
 [auras.spirit_bond]
 name = "Spirit Bond"
-tick = { interval = 5, effects = [{ type = "heal", target = "self", amount = "max_hp * 0.005 * t.spirit_bond", tag = "Spirit Bond" }, { type = "heal", target = "pet", amount = "pet.max_hp * 0.005 * t.spirit_bond", tag = "Spirit Bond" }] }
+tick = { interval = "t.spirit_bond >= 2 ? 5 : 10", effects = [{ type = "if", cond = "pet.active", then = [{ type = "heal", target = "self", amount = "max_hp * 0.01", tag = "Spirit Bond" }, { type = "heal", target = "pet", amount = "pet.max_hp * 0.01", tag = "Spirit Bond" }] }] }
 [auras.deterrence]
 name = "Deterrence"
 duration = 10
@@ -473,53 +588,110 @@ mods = [{ stat = "dmg_done", mul = 1.5 }, { stat = "immune_fear", add = 1 }, { s
 [auras.mend_pet]
 name = "Mend Pet"
 duration = 5
-tick = { interval = 1, effects = [{ type = "heal", target = "target", amount = "r.hps", tag = "Mend Pet" }] }
+tick = { interval = 1, effects = [{ type = "heal", target = "target", amount = "r.hps", coef = "r.coef", tag = "Mend Pet" }] }
 [auras.intimidation]
 name = "Intimidation"
+duration = 15
 charges = 1
 procs = [{ on = "melee_landed", effects = [{ type = "aura", aura = "stun", target = "target", duration = 3 }, { type = "consume" }] }]
+[auras.pet_dead]
+name = "Pet is dead"
+text = "Call Pet can't bring back a dead pet; Revive Pet can, out of combat."
 
 # ------------------------------------------------------------------ spells
 [spells.call_pet]
 name = "Call Pet"
-level = 10
 target = "self"
-requires = "!pet.active && !in_combat"
-cast_time = 1
+requires = "!pet.active && !in_combat && !aura.pet_dead.up"
+ranks = [{ level = 10, id = 883 }]
 effects = [{ type = "summon", pet = "cat" }]
+
+[spells.revive_pet]
+name = "Revive Pet"
+target = "self"
+requires = "aura.pet_dead.up && !in_combat"
+cast_time = 10
+cost = { mana = "base_mana" }
+ranks = [{ level = 10, id = 982 }]
+text = "Brings a dead pet back with 15% health."
+effects = [
+  { type = "summon", pet = "cat" },
+  { type = "resource", target = "pet", res = "hp", amount = "pet.max_hp * (0.15 + 0.15 * t.improved_revive_pet)", set = true },
+  { type = "remove_aura", aura = "pet_dead" },
+]
 
 [spells.aspect_of_the_hawk]
 name = "Aspect of the Hawk"
 target = "self"
 requires = "!aura.aspect_of_the_hawk.up"
-ranks = [{ level = 10, rap = 20, mana = 20 }, { level = 18, rap = 35, mana = 35 }, { level = 28, rap = 50, mana = 50 }, { level = 38, rap = 70, mana = 70 }, { level = 48, rap = 90, mana = 90 }, { level = 60, rap = 120, mana = 120 }]
-text = "Rank 6 (level 58) is listed at +55 on the site, below rank 5; it is left out."
+ranks = [
+  { level = 10, id = 13165, rap = 20, mana = 20 },
+  { level = 18, id = 14318, rap = 35, mana = 35 },
+  { level = 28, id = 14319, rap = 50, mana = 50 },
+  { level = 38, id = 14320, rap = 70, mana = 70 },
+  { level = 48, id = 14321, rap = 90, mana = 90 },
+  { level = 60, id = 25296, rap = 120, mana = 120 },
+]
+text = "Rank 6 (level 58, #14322) gives +55 in the game's data, below rank 5; it is left out."
 effects = [{ type = "aura", aura = "aspect_of_the_hawk" }]
+
+[spells.aspect_of_the_beast]
+name = "Aspect of the Beast"
+target = "self"
+requires = "!aura.aspect_of_the_beast.up"
+ranks = [
+  { level = 30, id = 13161, ap = 50, mana = 50 },
+  { level = 40, id = 1299445, ap = 70, mana = 70 },
+  { level = 50, id = 1299446, ap = 90, mana = 90 },
+  { level = 60, id = 1299447, ap = 110, mana = 110 },
+]
+text = "Forever: melee Attack Power. No rotation uses it yet."
+effects = [{ type = "aura", aura = "aspect_of_the_beast" }]
 
 [spells.aspect_of_the_monkey]
 name = "Aspect of the Monkey"
-level = 4
 target = "self"
 requires = "!aura.aspect_of_the_monkey.up"
 cost = { mana = 20 }
+ranks = [{ level = 4, id = 13163 }]
 effects = [{ type = "aura", aura = "aspect_of_the_monkey" }]
 
 [spells.hunters_mark]
 name = "Hunter's Mark"
 off_gcd = false
 requires = "!target.aura.hunters_mark.up"
-ranks = [{ level = 6, rap = 26, mana = 15 }, { level = 22, rap = 59, mana = 30 }, { level = 40, rap = 98, mana = 45 }]
-text = "Rank 4 (level 58) is listed at +71, below rank 3; it is left out."
+ranks = [{ level = 6, id = 1130, rap = 26, mana = 15 }, { level = 22, id = 14323, rap = 59, mana = 30 }, { level = 40, id = 14324, rap = 98, mana = 45 }]
+text = "Rank 4 (level 58, #14325) gives +71 in the game's data, below rank 3; it is left out."
 effects = [{ type = "aura", aura = "hunters_mark", target = "target" }, { type = "aura", aura = "hunters_mark_bonus", target = "self" }]
+
+[spells.trueshot_aura]
+name = "Trueshot Aura"
+talent = "trueshot_aura"
+target = "self"
+requires = "!aura.trueshot_aura.up"
+ranks = [
+  { level = 25, id = 1299346, rap = 30, mana = 180 },
+  { level = 32, id = 1299348, rap = 40, mana = 245 },
+  { level = 40, id = 19506, rap = 50, mana = 325 },
+  { level = 50, id = 20905, rap = 75, mana = 425 },
+]
+text = "Rank 5 (level 60, #20906) gives +50 in the game's data, below rank 4; it is left out."
+effects = [{ type = "aura", aura = "trueshot_aura" }]
 
 [spells.serpent_sting]
 name = "Serpent Sting"
 school = "nature"
 requires = "!target.aura.serpent_sting.up"
 ranks = [
-  { level = 4, total = 10, mana = 15 }, { level = 10, total = 30, mana = 30 }, { level = 18, total = 60, mana = 50 },
-  { level = 26, total = 110, mana = 80 }, { level = 34, total = 170, mana = 115 }, { level = 42, total = 240, mana = 150 },
-  { level = 50, total = 320, mana = 190 }, { level = 58, total = 415, mana = 230 }, { level = 60, total = 555, mana = 250 },
+  { level = 4, id = 1978, total = 10, mana = 15 },
+  { level = 10, id = 13549, total = 30, mana = 30 },
+  { level = 18, id = 13550, total = 60, mana = 50 },
+  { level = 26, id = 13551, total = 110, mana = 80 },
+  { level = 34, id = 13552, total = 170, mana = 115 },
+  { level = 42, id = 13553, total = 240, mana = 150 },
+  { level = 50, id = 13554, total = 320, mana = 190 },
+  { level = 58, id = 13555, total = 415, mana = 230 },
+  { level = 60, id = 25295, total = 555, mana = 250 },
 ]
 effects = [{ type = "damage", school = "nature", hit = "ranged", amount = 0, can_crit = false, on_hit = [{ type = "aura", aura = "serpent_sting", target = "target" }] }]
 
@@ -529,37 +701,51 @@ school = "arcane"
 cooldown = 6
 cd_group = "arcane_hawk"
 ranks = [
-  { level = 6, dmg = 20, mana = 25 }, { level = 12, dmg = 26, mana = 35 }, { level = 20, dmg = 39, mana = 50 },
-  { level = 28, dmg = 65, mana = 80 }, { level = 36, dmg = 94, mana = 105 }, { level = 44, dmg = 134, mana = 135 },
-  { level = 52, dmg = 170, mana = 160 }, { level = 60, dmg = 217, mana = 190 },
+  { level = 6, id = 3044, dmg = 20, mana = 25 },
+  { level = 12, id = 14281, dmg = 26, mana = 35 },
+  { level = 20, id = 14282, dmg = 39, mana = 50 },
+  { level = 28, id = 14283, dmg = 65, mana = 80 },
+  { level = 36, id = 14284, dmg = 94, mana = 105 },
+  { level = 44, id = 14285, dmg = 134, mana = 135 },
+  { level = 52, id = 14286, dmg = 170, mana = 160 },
+  { level = 60, id = 14287, dmg = 217, mana = 190 },
 ]
-effects = [{ type = "damage", school = "arcane", hit = "ranged", amount = "r.dmg", tag = "Arcane Shot" }]
+effects = [{ type = "damage", school = "arcane", hit = "ranged", min = "r.dmg", max = "r.dmg", tag = "Arcane Shot" }]
 
 [spells.aimed_shot]
 name = "Aimed Shot"
 cooldown = 6
 cd_group = "aimed_multi"
 ranks = [
-  { level = 20, bonus = 20, mana = 75, cast = 2 }, { level = 28, bonus = 34, mana = 115, cast = 2 }, { level = 36, bonus = 55, mana = 160, cast = 2 },
-  { level = 44, bonus = 89, mana = 210, cast = 2 }, { level = 52, bonus = 125, mana = 260, cast = 2 }, { level = 60, bonus = 166, mana = 310, cast = 2 },
+  { level = 20, id = 19434, bonus = 20, mana = 75, cast = 2 },
+  { level = 28, id = 20900, bonus = 34, mana = 115, cast = 2 },
+  { level = 36, id = 20901, bonus = 55, mana = 160, cast = 2 },
+  { level = 44, id = 20902, bonus = 89, mana = 210, cast = 2 },
+  { level = 52, id = 20903, bonus = 125, mana = 260, cast = 2 },
+  { level = 60, id = 20904, bonus = 166, mana = 310, cast = 2 },
 ]
-effects = [{ type = "damage", weapon = "ranged", amount = "r.bonus" }]
+effects = [{ type = "damage", weapon = "ranged", normalized = true, amount = "r.bonus" }]
 
 [spells.multi_shot]
 name = "Multi-Shot"
-level = 18
 cooldown = 6
 cd_group = "aimed_multi"
 cast_time = 0.5
 cost = { mana = "0.139 * base_mana" }
-effects = [{ type = "damage", weapon = "ranged", target = "enemies", max_targets = 3 }]
+ranks = [{ level = 18, id = 2643 }]
+effects = [{ type = "damage", weapon = "ranged", normalized = true, target = "enemies", max_targets = 3 }]
 
 [spells.sniper_shot]
 name = "Sniper Shot"
 talent = "sniper_shot"
 cooldown = 15
-ranks = [{ level = 40, bonus = 160, mana = 365, cast = 4 }, { level = 48, bonus = 225, mana = 365, cast = 4 }, { level = 58, bonus = 295, mana = 365, cast = 4 }]
-effects = [{ type = "damage", weapon = "ranged", amount = "r.bonus" }]
+ranks = [
+  { level = 40, id = 1310687, bonus = 160, mana = 365, cast = 4 },
+  { level = 48, id = 1310785, bonus = 225, mana = 365, cast = 4 },
+  { level = 58, id = 1310786, bonus = 295, mana = 365, cast = 4 },
+]
+text = "Also gives the next 3 shots +10 yards of range (range is not simulated)."
+effects = [{ type = "damage", weapon = "ranged", normalized = true, amount = "r.bonus" }]
 
 [spells.summon_hawk]
 name = "Summon Hawk"
@@ -567,16 +753,27 @@ talent = "summon_hawk"
 cooldown = 6
 cd_group = "arcane_hawk"
 target = "self"
-ranks = [{ level = 25, base = 32, mana = 80 }, { level = 36, base = 47, mana = 105 }, { level = 48, base = 85, mana = 135 }, { level = 60, base = 108, mana = 190 }]
+ranks = [
+  { level = 25, id = 1293241, base = 32, mana = 80 },
+  { level = 36, id = 1293525, base = 47, mana = 105 },
+  { level = 48, id = 1293526, base = 85, mana = 135 },
+  { level = 60, id = 1293527, base = 108, mana = 190 },
+]
 effects = [{ type = "aura", aura = "hawk", target = "self" }]
 
 [spells.raptor_strike]
 name = "Raptor Strike"
+next_swing = true
 cooldown = 6
 ranks = [
-  { level = 1, bonus = 5, mana = 10 }, { level = 8, bonus = 11, mana = 25 }, { level = 16, bonus = 21, mana = 35 },
-  { level = 24, bonus = 30, mana = 45 }, { level = 32, bonus = 35, mana = 55 }, { level = 40, bonus = 40, mana = 70 },
-  { level = 48, bonus = 55, mana = 85 }, { level = 56, bonus = 70, mana = 100 },
+  { level = 1, id = 2973, bonus = 5, mana = 10 },
+  { level = 8, id = 14260, bonus = 11, mana = 25 },
+  { level = 16, id = 14261, bonus = 21, mana = 35 },
+  { level = 24, id = 14262, bonus = 30, mana = 45 },
+  { level = 32, id = 14263, bonus = 35, mana = 55 },
+  { level = 40, id = 14264, bonus = 40, mana = 70 },
+  { level = 48, id = 14265, bonus = 55, mana = 85 },
+  { level = 56, id = 14266, bonus = 70, mana = 100 },
 ]
 effects = [{ type = "damage", weapon = "mh", amount = "r.bonus" }]
 
@@ -584,9 +781,14 @@ effects = [{ type = "damage", weapon = "mh", amount = "r.bonus" }]
 name = "Mongoose Bite"
 cooldown = 5
 requires = "aura.mongoose_ready.up"
-ranks = [{ level = 16, bonus = 15, mana = 30 }, { level = 30, bonus = 22, mana = 40 }, { level = 44, bonus = 37, mana = 50 }, { level = 58, bonus = 57, mana = 65 }]
+ranks = [
+  { level = 16, id = 1495, bonus = 15, mana = 30 },
+  { level = 30, id = 14269, bonus = 22, mana = 40 },
+  { level = 44, id = 14270, bonus = 37, mana = 50 },
+  { level = 58, id = 14271, bonus = 57, mana = 65 },
+]
 effects = [
-  { type = "damage", weapon = "mh", amount = "r.bonus", on_hit = [{ type = "if", cond = "t.lacerating_strikes > 0", then = [{ type = "aura", aura = "lacerating_strikes", target = "target", stacks = "0.4 * event.amount" }] }] },
+  { type = "damage", weapon = "mh", normalized = true, amount = "r.bonus", on_hit = [{ type = "if", cond = "t.lacerating_strikes > 0", then = [{ type = "aura", aura = "lacerating_strikes", target = "target", stacks = "0.4 * event.amount" }] }] },
   { type = "remove_aura", aura = "mongoose_ready" },
 ]
 
@@ -595,9 +797,14 @@ name = "Counterattack"
 talent = "counterattack"
 cooldown = 5
 requires = "aura.counterattack_ready.up"
-ranks = [{ level = 25, bonus = 26, mana = 30 }, { level = 30, bonus = 40, mana = 45 }, { level = 42, bonus = 70, mana = 65 }, { level = 54, bonus = 110, mana = 85 }]
+ranks = [
+  { level = 25, id = 19306, bonus = 26, mana = 30 },
+  { level = 30, id = 1242634, bonus = 40, mana = 45 },
+  { level = 42, id = 20909, bonus = 70, mana = 65 },
+  { level = 54, id = 20910, bonus = 110, mana = 85 },
+]
 effects = [
-  { type = "damage", weapon = "mh", weapon_mult = 0.5, amount = "r.bonus", hit = "auto", on_hit = [{ type = "aura", aura = "root", target = "target", duration = 5 }] },
+  { type = "damage", weapon = "mh", normalized = true, weapon_mult = 0.5, amount = "r.bonus", hit = "auto", on_hit = [{ type = "aura", aura = "root", target = "target", duration = 5 }] },
   { type = "remove_aura", aura = "counterattack_ready" },
 ]
 
@@ -605,33 +812,42 @@ effects = [
 name = "Strider Kick"
 talent = "strider_kick"
 cooldown = 8
-effects = [{ type = "damage", weapon = "mh" }]
+cost = { mana = "0.0581 * base_mana" }
+ranks = [{ level = 30, id = 1317257 }]
+effects = [{ type = "damage", weapon = "mh", normalized = true }]
 
 [spells.lacerate]
 name = "Lacerate"
 requires = "!target.aura.lacerate.up"
-ranks = [{ level = 30, total = 147, mana = 40 }, { level = 40, total = 231, mana = 65 }, { level = 50, total = 322, mana = 80 }, { level = 60, total = 406, mana = 95 }]
+ranks = [
+  { level = 30, id = 24118, tick = 17, tick_per_level = 0.5, max_level = 38, mana = 40 },
+  { level = 40, id = 24119, tick = 28, tick_per_level = 0.6, max_level = 48, mana = 65 },
+  { level = 50, id = 24120, tick = 40, tick_per_level = 0.7, max_level = 58, mana = 80 },
+  { level = 60, id = 1299332, tick = 58, tick_per_level = 0.8, max_level = 68, mana = 95 },
+]
 effects = [{ type = "damage", weapon = "mh", weapon_mult = 0, amount = 0, can_crit = false, on_hit = [{ type = "aura", aura = "lacerate", target = "target" }] }]
 
 [spells.wing_clip]
 name = "Wing Clip"
 requires = "target.is_player && !target.slowed"
-ranks = [{ level = 12, dmg = 5, mana = 40 }, { level = 38, dmg = 25, mana = 60 }, { level = 60, dmg = 50, mana = 80 }]
-effects = [{ type = "damage", school = "physical", amount = "r.dmg" }]
+ranks = [{ level = 12, id = 2974, dmg = 5, mana = 40 }, { level = 38, id = 14267, dmg = 25, mana = 60 }, { level = 60, id = 14268, dmg = 50, mana = 80 }]
+effects = [{ type = "damage", school = "physical", min = "r.dmg", max = "r.dmg", on_hit = [{ type = "aura", aura = "wing_clip", target = "target" }] }]
 
 [spells.scatter_shot]
 name = "Scatter Shot"
 talent = "scatter_shot"
 cooldown = 30
+cost = { mana = "0.08 * base_mana" }
+ranks = [{ level = 30, id = 19503 }]
 effects = [{ type = "damage", weapon = "ranged", weapon_mult = 0.5, on_hit = [{ type = "aura", aura = "incap", target = "target", duration = 4 }] }]
 
 [spells.rapid_fire]
 name = "Rapid Fire"
-level = 26
 off_gcd = true
 cooldown = 300
 cost = { mana = 100 }
 target = "self"
+ranks = [{ level = 26, id = 3045 }]
 effects = [{ type = "aura", aura = "rapid_fire" }]
 
 [spells.bestial_wrath]
@@ -639,17 +855,20 @@ name = "Bestial Wrath"
 talent = "bestial_wrath"
 off_gcd = true
 cooldown = 120
+cost = { mana = "0.12 * base_mana" }
 target = "pet"
 requires = "pet.active"
+ranks = [{ level = 40, id = 19574 }]
 effects = [{ type = "aura", aura = "bestial_wrath", target = "pet" }]
 
 [spells.intimidation]
 name = "Intimidation"
 talent = "intimidation"
-off_gcd = true
 cooldown = 60
+cost = { mana = "0.08 * base_mana" }
 target = "pet"
 requires = "pet.active"
+ranks = [{ level = 30, id = 19577 }]
 effects = [{ type = "aura", aura = "intimidation", target = "pet" }]
 
 [spells.deterrence]
@@ -658,6 +877,7 @@ talent = "deterrence"
 off_gcd = true
 cooldown = 300
 target = "self"
+ranks = [{ level = 20, id = 19263 }]
 effects = [{ type = "aura", aura = "deterrence" }]
 
 [spells.mend_pet]
@@ -665,36 +885,61 @@ name = "Mend Pet"
 target = "pet"
 requires = "pet.active"
 ranks = [
-  { level = 12, hps = 20, mana = 50 }, { level = 20, hps = 38, mana = 90 }, { level = 28, hps = 68, mana = 155 },
-  { level = 36, hps = 103, mana = 225 }, { level = 44, hps = 142, mana = 300 }, { level = 52, hps = 189, mana = 385 },
-  { level = 60, hps = 245, mana = 480 },
+  { level = 12, id = 136, hps = 20, coef = 0.14, mana = 50 },
+  { level = 20, id = 3111, hps = 38, coef = 0.2, mana = 90 },
+  { level = 28, id = 3661, hps = 68, coef = 0.2, mana = 155 },
+  { level = 36, id = 3662, hps = 103, coef = 0.2, mana = 225 },
+  { level = 44, id = 13542, hps = 142, coef = 0.2, mana = 300 },
+  { level = 52, id = 13543, hps = 189, coef = 0.2, mana = 385 },
+  { level = 60, id = 13544, hps = 245, coef = 0.2, mana = 480 },
 ]
 effects = [{ type = "aura", aura = "mend_pet", target = "pet" }]
 
 # Pet abilities (cast by the pet; pets know them at the owner's level).
+# Focus is not simulated, so the costs (Claw 25, Growl 15 focus) are not
+# charged; Claw's cooldown stands in for the focus budget.
 [spells.claw]
 name = "Claw"
-cooldown = 4
-ranks = [{ level = 1, lo = 4, hi = 6 }, { level = 20, lo = 15, hi = 22 }, { level = 40, lo = 29, hi = 41 }, { level = 60, lo = 50, hi = 72 }]
-text = "Pet focus is not simulated: Claw every 4 sec approximates the focus budget."
-effects = [{ type = "damage", school = "physical", min = "r.lo + ap / 14", max = "r.hi + ap / 14" }]
+cooldown = "opt.hunter_pet_claw_interval / (1 + 0.1 * t.bestial_discipline)"
+ranks = [
+  { level = 1, id = 16827, lo = 4, hi = 6 },
+  { level = 8, id = 16828, lo = 8, hi = 12 },
+  { level = 16, id = 16829, lo = 12, hi = 16 },
+  { level = 24, id = 16830, lo = 16, hi = 22 },
+  { level = 32, id = 16831, lo = 21, hi = 29 },
+  { level = 40, id = 16832, lo = 26, hi = 36 },
+  { level = 48, id = 3010, lo = 35, hi = 49 },
+  { level = 56, id = 3009, lo = 43, hi = 59 },
+]
+text = "Pet focus is not simulated: Claw every opt.hunter_pet_claw_interval sec (shorter with Bestial Discipline) approximates the focus budget."
+effects = [{ type = "damage", school = "physical", min = "r.lo + opt.hunter_pet_ability_ap * ap", max = "r.hi + opt.hunter_pet_ability_ap * ap" }]
 [spells.growl]
 name = "Growl"
 cooldown = 5
 off_gcd = true
-effects = [{ type = "taunt", duration = 3 }, { type = "threat", amount = "level * 5" }]
+ranks = [
+  { level = 1, id = 2649, threat = 50, threat_per_level = 2, max_level = 10 },
+  { level = 10, id = 14916, threat = 65, threat_per_level = 3, max_level = 20 },
+  { level = 20, id = 14917, threat = 110, threat_per_level = 4, max_level = 30 },
+  { level = 30, id = 14918, threat = 170, threat_per_level = 4, max_level = 40 },
+  { level = 40, id = 14919, threat = 240, threat_per_level = 4, max_level = 50 },
+  { level = 50, id = 14920, threat = 320, threat_per_level = 4, max_level = 60 },
+  { level = 60, id = 14921, threat = 415, threat_per_level = 5, max_level = 70 },
+]
+text = "In the game Growl only adds threat. The 3 sec taunt stands in for the pet holding threat, which the sim does not track yet."
+effects = [{ type = "taunt", duration = 3 }, { type = "threat", amount = "r.threat" }]
 
 # ------------------------------------------------------------------ rotations
 [rotations.ranged_pet]
 desc = "Ranged with a cat tanking: Hunter's Mark, Serpent Sting, Aimed/Arcane/Hawk on cooldown, Mend Pet when it is low"
 auto_melee = false
 auto_ranged = true
-precombat = ["aspect_of_the_hawk", "call_pet"]
+precombat = ["aspect_of_the_hawk", "trueshot_aura", "call_pet"]
 opener = ["hunters_mark"]
 actions = [
   { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
   { cast = "deterrence", if = "hp_pct < 0.35" },
-  { cast = "intimidation", if = "target.is_player" },
+  { cast = "intimidation", target = "enemy", if = "target.is_player" },
   { cast = "bestial_wrath" },
   { cast = "rapid_fire" },
   { cast = "blood_fury" },
@@ -703,13 +948,15 @@ actions = [
   { cast = "serpent_sting", if = "target.hp_pct > 0.3" },
   { cast = "summon_hawk", if = "aura.hawk.stacks < 2" },
   { cast = "sniper_shot" },
-  { cast = "aimed_shot" },
   { cast = "multi_shot", if = "enemies >= 2 || !known.aimed_shot" },
+  { cast = "aimed_shot" },
   { cast = "arcane_shot", if = "mana_pct > 0.3" },
   { cast = "aspect_of_the_hawk" },
 ]
 rest = [
+  { cast = "revive_pet" },
   { cast = "call_pet", if = "!pet.active" },
+  { cast = "trueshot_aura" },
   { cast = "cannibalize", if = "hp_pct < 0.75" },
   { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
 ]
@@ -725,7 +972,7 @@ opener = ["hunters_mark"]
 actions = [
   { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
   { cast = "deterrence", if = "hp_pct < 0.35" },
-  { cast = "intimidation", if = "target.is_player" },
+  { cast = "intimidation", target = "enemy", if = "target.is_player" },
   { cast = "bestial_wrath" },
   { cast = "rapid_fire" },
   { cast = "blood_fury" },
@@ -741,6 +988,121 @@ actions = [
   { cast = "aspect_of_the_monkey" },
 ]
 rest = [
+  { cast = "revive_pet" },
+  { cast = "call_pet", if = "!pet.active" },
+  { cast = "cannibalize", if = "hp_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+]
+eat_below = 0.55
+drink_below = 0.4
+
+# The three standard specs (builds/hunter/beast_mastery.toml, marksmanship.toml,
+# survival.toml). ranged_pet and survival_melee above stay as they are for the
+# experimental builds; the patch file restates their action lists.
+# Aimed Shot and Multi-Shot share a 6 sec cooldown, so Multi-Shot has to come
+# first on packs or it is never cast once Aimed Shot is known (in ranged_pet it
+# never is after level 20). The guides: "Multi-Shot replaces Aimed Shot on
+# groups" (wow.gg), Aimed Shot single target (Method, wowtbc.gg).
+[rotations.beast_mastery]
+desc = "Beast Mastery with a cat tanking: Hunter's Mark, Serpent Sting, Bestial Wrath and Rapid Fire on cooldown, two hawks on bosses and players, Aimed Shot (Multi-Shot on two or more), Arcane Shot with spare mana"
+auto_melee = false
+auto_ranged = true
+precombat = ["aspect_of_the_hawk", "trueshot_aura", "call_pet"]
+opener = ["hunters_mark"]
+actions = [
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
+  { cast = "intimidation", target = "enemy", if = "target.is_player" },
+  { cast = "bestial_wrath" },
+  { cast = "rapid_fire" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "serpent_sting", if = "target.hp_pct > 0.3 || target.boss" },
+  { cast = "summon_hawk", if = "target.aura.hawk.stacks < 2 && (target.boss || target.is_player)" },
+  { cast = "multi_shot", if = "enemies >= 2" },
+  { cast = "aimed_shot" },
+  { cast = "multi_shot" },
+  { cast = "arcane_shot", if = "mana_pct > 0.3" },
+  { cast = "aspect_of_the_hawk" },
+]
+rest = [
+  { cast = "revive_pet" },
+  { cast = "call_pet", if = "!pet.active" },
+  { cast = "trueshot_aura" },
+  { cast = "cannibalize", if = "hp_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+]
+eat_below = 0.55
+drink_below = 0.4
+
+[rotations.marksmanship]
+desc = "Marksmanship with a cat tanking: Hunter's Mark, Trueshot Aura, Serpent Sting, Rapid Fire, Sniper Shot, Aimed Shot (Multi-Shot on two or more), Arcane Shot with spare mana, Scatter Shot on players"
+auto_melee = false
+auto_ranged = true
+precombat = ["aspect_of_the_hawk", "trueshot_aura", "call_pet"]
+opener = ["hunters_mark"]
+actions = [
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
+  { cast = "scatter_shot", if = "target.is_player" },
+  { cast = "rapid_fire" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "elunes_light" },
+  { cast = "serpent_sting", if = "target.hp_pct > 0.3 || target.boss" },
+  { cast = "sniper_shot" },
+  { cast = "multi_shot", if = "enemies >= 2" },
+  { cast = "aimed_shot" },
+  { cast = "multi_shot" },
+  { cast = "arcane_shot", if = "mana_pct > 0.3" },
+  { cast = "aspect_of_the_hawk" },
+]
+rest = [
+  { cast = "revive_pet" },
+  { cast = "call_pet", if = "!pet.active" },
+  { cast = "trueshot_aura" },
+  { cast = "cannibalize", if = "hp_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+]
+eat_below = 0.55
+drink_below = 0.4
+
+# Survival in melee as the guides play it: Aspect of the Beast (melee Attack
+# Power in Forever, learned at 30; Aspect of the Monkey before that), Hunter's
+# Mark for Expose Prey, Serpent Sting to open, then Raptor Strike, Strider
+# Kick, Mongoose Bite and Counterattack as they come up (wowtbc.gg, wow.gg,
+# classicwowforever.com). Traps are not simulated.
+[rotations.survival]
+desc = "Survival in melee with a cat: Aspect of the Beast (Monkey before 30), Hunter's Mark, Serpent Sting, Mongoose Bite, Counterattack, Raptor Strike and Strider Kick on cooldown, Lacerate on longer fights, War Stomp on players and double pulls"
+auto_melee = true
+auto_ranged = false
+precombat = ["call_pet", "aspect_of_the_beast", { cast = "aspect_of_the_monkey", if = "!known.aspect_of_the_beast" }]
+opener = ["hunters_mark"]
+actions = [
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
+  { cast = "deterrence", if = "hp_pct < 0.35" },
+  { cast = "war_stomp", if = "target.is_player || enemies >= 2" },
+  { cast = "intimidation", target = "enemy", if = "target.is_player" },
+  { cast = "rapid_fire" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "elunes_light" },
+  { cast = "serpent_sting", if = "target.hp_pct > 0.5 || target.boss" },
+  { cast = "mongoose_bite" },
+  { cast = "counterattack" },
+  { cast = "raptor_strike" },
+  { cast = "strider_kick" },
+  { cast = "wing_clip" },
+  { cast = "lacerate", if = "target.hp_pct > 0.3 || target.boss" },
+  { cast = "aspect_of_the_beast" },
+  { cast = "aspect_of_the_monkey", if = "!known.aspect_of_the_beast" },
+]
+rest = [
+  { cast = "revive_pet" },
   { cast = "call_pet", if = "!pet.active" },
   { cast = "cannibalize", if = "hp_pct < 0.75" },
   { cast = "rapid_regeneration", if = "hp_pct < 0.7" },

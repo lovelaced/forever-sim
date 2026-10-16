@@ -1,0 +1,64 @@
+# The healer: Water Shield, Mana Tide Totem, Nature's Swiftness and Riptide, then an Enhancement dip for crit,
+# Intellect and an instant Ghost Wolf. Here it plays solo with a mace and shield: a Lightning Bolt pull,
+# Flame Shock, Earth Shock, Searing Totem and melee. Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Warcraft Tavern, WoW Forever Shaman Guide (level 30 Restoration build and talent order; the 12-point
+#   Enhancement dip): https://www.warcrafttavern.com/forever/guides/shaman/
+# - wow.gg, WoW Forever Restoration Shaman (beta) (level 20 build, Orc or Dwarf):
+#   https://wow.gg/guides/wow-forever-restoration-shaman-beta
+# - Method, WoW Forever Shaman Leveling Guide (Rockbiter Weapon on a one-hander and shield, the basic
+#   Flame Shock, Searing Totem, shock and melee play):
+#   https://www.method.gg/wow-forever/wow-forever-shaman-leveling-guide-and-talents
+# - Blizzard, WoW Forever beta development notes, Oct 15 Shaman changes (blue post mirror):
+#   https://www.bluetracker.gg/wow/topic/eu-en/631316-wow-forever-beta-development-notes-updated-15-october/
+# Levels 10 to 30 follow Warcraft Tavern's order, which is still legal after Oct 15 (Tidal Focus moved up to
+# the first row). Theorycrafted (31 to 60): Healing Way 3, the fifth Tidal Mastery point, Purification 5 and
+# Riptide at 40 (its first rank is a level 40 spell), the last Tidal Focus points, Restorative Totems 5 and
+# Healing Focus 1, then the guide's Enhancement dip: Thundering Strikes 5, Ancestral Knowledge 5 and
+# Improved Ghost Wolf 2.
+# Race: Dwarf, the only Alliance shaman (wow.gg lists Orc and Dwarf): Stoneform when hurt, and the mace crit
+# bonus with the kit's mace.
+name = "Restoration"
+kind = "standard"
+role = "healer"
+class = "shaman"
+race = "dwarf"
+level = 60
+gear = "mail_shield"
+rotation = "restoration"
+
+order = [
+  "improved_healing_wave", "improved_healing_wave", "improved_healing_wave", "improved_healing_wave", "improved_healing_wave",
+  "mindfulness", "mindfulness", "mindfulness", "tidal_focus", "tidal_focus",
+  "water_shield", "ancestral_healing", "ancestral_healing", "ancestral_healing", "tidal_focus",
+  "mana_tide_totem", "tidal_mastery", "tidal_mastery", "tidal_mastery", "tidal_mastery",
+  "natures_swiftness",
+  "healing_way", "healing_way", "healing_way", "tidal_mastery",
+  "purification", "purification", "purification", "purification", "purification",
+  "riptide",
+  "tidal_focus", "tidal_focus",
+  "restorative_totems", "restorative_totems", "restorative_totems", "restorative_totems", "restorative_totems",
+  "healing_focus",
+  "thundering_strikes", "thundering_strikes", "thundering_strikes", "thundering_strikes", "thundering_strikes",
+  "ancestral_knowledge", "ancestral_knowledge", "ancestral_knowledge", "ancestral_knowledge", "ancestral_knowledge",
+  "improved_ghost_wolf", "improved_ghost_wolf",
+]
+
+[talents]
+improved_healing_wave = 5
+tidal_focus = 5
+mindfulness = 3
+water_shield = 1
+ancestral_healing = 3
+mana_tide_totem = 1
+tidal_mastery = 5
+natures_swiftness = 1
+healing_way = 3
+purification = 5
+riptide = 1
+restorative_totems = 5
+healing_focus = 1
+thundering_strikes = 5
+ancestral_knowledge = 5
+improved_ghost_wolf = 2

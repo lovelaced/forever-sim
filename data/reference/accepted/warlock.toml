@@ -1,0 +1,80 @@
+# Warlock: deliberate differences from Forever's spell data (build 70338).
+# Format: data/reference/accepted/README.md.
+
+[warlock.healthstone]
+cooldown = "The 2-minute cooldown belongs to the Healthstone item, which the spell data doesn't include; the heal spells the items cast (6262, 6263, 5720, 5723, 11732) have none. Assumption warlock_healthstone_cooldown (Classic: 2 min)."
+
+[warlock.firebolt]
+"cost.mana" = "Demon mana is not modelled: demons have no mana regeneration in the engine, so a cost would empty the Imp within a minute and leave it idle. Like hunter pet focus (README, Limits), demon abilities run on a fixed cadence for now."
+
+[warlock.torment]
+"cost.mana" = "Demon mana is not modelled (see firebolt). Torment also taunts for 3 sec in the sim, which the game's spell doesn't: enemies only re-pick a target when theirs dies, so the taunt stands in for threat-based Voidwalker tanking until the engine has it."
+
+[warlock.lash_of_pain]
+"cost.mana" = "Demon mana is not modelled (see firebolt)."
+
+# Simplifications the audit can't see (no spell field to report), kept until
+# the engine work they wait for:
+# - One demon at a time; Demonic Sacrifice and Demonic Pact are modelled by
+#   summoning one demon after another between pulls.
+# - Summons, Demon Skin/Armor and Soul Link happen between pulls; their cast
+#   time isn't paid (Master Summoner's -4 sec cast and Fel Domination wait for
+#   in-combat summoning).
+# - No range or movement: Destructive Reach, Curse of Exhaustion, Aftermath's
+#   slow and Fear on adds do nothing.
+# - One target for DoTs and curses: no multi-dotting, Bane of Havoc does
+#   nothing, Hellfire and Rain of Fire hit every enemy in the fight.
+# - Fel Concentration and Intensity resist pushback on every spell, not only
+#   Drain and Destruction spells (the engine has one pushback stat).
+
+# Talents: game values (Forever's trait tables) that the audit can't find
+# among the numbers the talent drives, because the simulator has no use for
+# them or folds them into a formula that needs a spell rank, a stat, a level
+# or the target's state.
+[warlock.talent_improved_life_tap]
+"value.0" = "Life Tap mana +10%/20%: modeled as (rank base + Spirit) * (1 + 0.1 * rank), which the audit can't evaluate without the spell rank and Spirit."
+
+[warlock.talent_soul_siphon]
+"value.0" = "Drain Life, Drain Soul and Wrack +4/8/12% for each Affliction effect of yours on the target, up to three: modeled as 0.04 * rank per effect counted on the target, which the audit can't count."
+
+[warlock.talent_improved_health_funnel]
+"value.0" = "Health Funnel transfers 20%/40% more: Health Funnel is not simulated (demons are never healed by a spell here)."
+"value.1" = "Health Funnel's health cost -15%/30%: Health Funnel is not simulated."
+"value.2" = "Health Funnel's threat -50%/100%: Health Funnel is not simulated."
+"value.3" = "Health Funnel's health cost over time -15%/30%: Health Funnel is not simulated."
+
+[warlock.talent_improved_imp]
+"value.2" = "A dummy at -0.3/-0.7/-1.0 sec that the tooltip doesn't mention (it lists only Firebolt and Fire Shield +10% a rank, effects 0 and 1, which match). Classic's Improved Firebolt cut the Imp's Firebolt cast by 0.5/1 sec, so it may be that, but the data names no target and the tooltip says nothing, so it is not simulated."
+
+[warlock.talent_demonic_aegis]
+"value.0" = "Demon Skin and Demon Armor +15%/30%: modeled as the rank's armor and health regeneration * (1 + 0.15 * rank), which the audit can't evaluate without the spell rank."
+
+[warlock.talent_improved_voidwalker]
+"value.0" = "Voidwalker abilities +10/20/30%: Torment's threat is the rank's threat * (1 + 0.1 * rank), which the audit can't evaluate without the spell rank; Consume Shadows, Sacrifice and Suffering are not simulated."
+
+[warlock.talent_demonic_energies]
+"value.0" = "Your spells heal your demon for 8%/15% of their damage: modeled as the damage * (rank == 1 ? 0.08 : 0.15), which the audit can't evaluate without a damage event."
+"value.1" = "Life Tap gives your demon 50%/100% of the mana you gain: modeled as Life Tap's mana * 0.5 * rank, which the audit can't evaluate without the spell rank and Spirit (demons don't spend mana in the sim yet)."
+
+[warlock.talent_decimation]
+"value.3" = "Shadow Bolt and Searing Pain +3%/6% on targets below 35% health: modeled behind a target-health condition, which the audit can't evaluate."
+
+[warlock.talent_improved_felhunter]
+"value.0" = "Felhunter abilities +10/20/30% (Tainted Blood, Devour Magic): not simulated, the Felhunter only melees here."
+"value.1" = "Spell Lock cooldown -2/4/6 sec: not simulated, the Felhunter only melees here."
+
+[warlock.talent_demonic_knowledge]
+"value.0" = "Spell damage +33/67/100% of your level for you and your demon: modeled as level * 0.33/0.67/1, which the audit can't evaluate without a level."
+
+[warlock.talent_destructive_reach]
+"value.0" = "Range +10%/20%: the simulator has no distance, so spell range does nothing."
+"value.1" = "The trait data still lists effect 1 (10%/20%), but build 70425 removed it from spell 17917 (it was one spell's area radius). Range and radius do nothing here: no positioning."
+
+[warlock.talent_grim_reach]
+"value.0" = "Affliction spell range +10%/20%: the simulator has no distance, so spell range does nothing."
+
+[warlock.talent_aftermath]
+"value.0" = "Conflagrate's chance to Daze the target (20% a rank; a 50% slow for 5 sec): slows do nothing here (no movement). Effect 1, Immolate's initial damage +10% a rank, is modeled and matches."
+
+[warlock.talent_shadow_and_flame]
+"value.0" = "A dummy at 4% a rank (20 at 5/5) that none of the tooltip's numbers use: those are 2% a rank for the Shadow and Fire bonuses (effects 2 and 3) and 20% a rank for keeping Immolate and refunding a Soul Shard (effect 1). Soul Shards aren't simulated and nothing else in the talent matches it."

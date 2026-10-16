@@ -1,10 +1,16 @@
 # Priest. Talents and spell ranks: Forever client 1.60.1.70338
 # (wowforevertalents.com/priest and /abilities/priest, checked 2026-10-15).
-# Spell coefficients are Classic/TBC approximations (cast time / 3.5,
-# duration / 15 for heal-over-time); the client tooltips do not show them.
-# The site gives no row for nine first-tier talents; they are placed in the
-# first row (Power in Light, Wand Specialization, Twin Disciplines, Twilight
-# Focus, Improved Renew, Holy Specialization, Shadow Focus, Blackout, Spirit Tap).
+# Spell ranks, coefficients, periodic ticks, absorbs, proc chances and the
+# spells each talent modifier reaches follow Forever's own spell data
+# (data/reference/spellbook.json, build 70338; `fsim audit priest`).
+# Deliberate differences are listed in data/reference/accepted/priest.toml.
+# Per-rank talent values, points and prerequisites come from the client's
+# talent tree (trait) tables, the "talents" section of spellbook.json. Forever
+# keeps one spell per talent and that spell's number is often a rank-1
+# leftover or the top rank's total; the trait values win, and agree with the
+# tooltips. Nine talents sit in the first row (points 0 in the trait tables):
+# Power in Light, Wand Specialization, Twin Disciplines, Twilight Focus,
+# Improved Renew, Holy Specialization, Shadow Focus, Blackout, Spirit Tap.
 name = "Priest"
 icon = "classicon_priest"
 resources = ["mana"]
@@ -32,58 +38,59 @@ icon = "spell_holy_searinglight"
 tree = "Discipline"
 points = 0
 ranks = 5
-text = "Smite and Penance deal 10% more to targets with your Holy Fire."
+text = "Smite and Penance deal 2% more per point (10% at 5/5) to targets with your Holy Fire. The talent tree's values and the tooltip agree; the talent spell's 15 is not used."
 spell_mods = [{ spells = ["smite", "penance"], prop = "damage", mul = "target.aura.holy_fire.up ? 1 + 0.02 * rank : 1" }]
 [talents.wand_specialization]
 icon = "inv_wand_01"
 tree = "Discipline"
 points = 0
 ranks = 2
-text = "Wand damage (wands are not in the gear kits)."
+text = "Wand damage +13/25%."
+spell_mods = [{ spells = ["shoot"], prop = "damage", mul = "1 + (rank >= 2 ? 0.25 : 0.13)" }]
 [talents.twin_disciplines]
 icon = "spell_holy_sealofvengeance"
 tree = "Discipline"
 points = 0
 ranks = 5
-text = "Instant spells deal and heal 5% more."
+text = "Instant spells deal and heal 5% more. In the game data: Holy Nova, Shadowguard, Desperate Prayer, Prayer of Mending, Contingency Plan and the ticks of Shadow Word: Pain, Devouring Plague and Renew (not Power Word: Shield, Shadow Word: Death or Penance)."
 spell_mods = [
-  { spells = ["shadow_word_pain", "devouring_plague", "power_word_shield", "renew", "holy_nova", "shadow_word_death", "penance", "penance_heal", "prayer_of_mending"], prop = "damage", mul = "1 + 0.01 * rank" },
-  { spells = ["shadow_word_pain", "devouring_plague", "power_word_shield", "renew", "holy_nova", "shadow_word_death", "penance", "penance_heal", "prayer_of_mending"], prop = "heal", mul = "1 + 0.01 * rank" },
+  { spells = ["shadow_word_pain", "devouring_plague", "holy_nova", "shadowguard"], prop = "damage", mul = "1 + 0.01 * rank" },
+  { spells = ["renew", "holy_nova", "prayer_of_mending", "desperate_prayer", "contingency_plan"], prop = "heal", mul = "1 + 0.01 * rank" },
 ]
 [talents.silent_resolve]
 icon = "spell_nature_manaregentotem"
 tree = "Discipline"
 points = 5
 ranks = 3
-text = "Stun, Fear and Silence durations -15%."
+text = "Stun, Fear and Silence effects on you are 5% shorter per point (the sim shortens stuns and fears; nothing here silences). Holy spell threat -10% per point is not simulated: the priest fights alone, so threat never changes who an enemy attacks."
 mods = [{ stat = "stun_duration", mul = "1 - 0.05 * rank" }, { stat = "fear_duration", mul = "1 - 0.05 * rank" }]
 [talents.holy_precision]
 icon = "spell_holy_divineillumination"
 tree = "Discipline"
 points = 5
 ranks = 3
-text = "Holy spell hit +18% (applied to all spells here)."
+text = "Holy spell hit +18% (Smite, Holy Fire, Holy Nova, Penance; the sim has one spell hit for every school, so it reaches Shadow spells too)."
 mods = [{ stat = "spell_hit", add = "6 * rank" }]
 [talents.improved_power_word_shield]
 icon = "spell_holy_powerwordshield"
 tree = "Discipline"
 points = 5
 ranks = 3
-text = "Power Word: Shield absorbs 20% more."
+text = "Power Word: Shield absorbs 7%, 14% or 20% more."
 [talents.martyrdom]
 icon = "spell_nature_tranquility"
 tree = "Discipline"
 points = 5
 ranks = 2
-text = "Focused Casting after being crit (approximated as 20% pushback resistance)."
-mods = [{ stat = "pushback_resist", add = "0.1 * rank" }]
+text = "50% chance per rank to gain Focused Casting (no pushback for 6 sec) after a melee or ranged critical hit against you. Its 20% interrupt resistance is not simulated."
+procs = [{ on = "struck_crit", if = "!event.spell", chance = "0.5 * rank", effects = [{ type = "aura", aura = "focused_casting" }] }]
 [talents.mental_agility]
 icon = "ability_hibernation"
 tree = "Discipline"
 points = 10
 ranks = 3
-text = "Smite, Holy Fire and instant spells cost 10% less."
-spell_mods = [{ spells = ["smite", "holy_fire", "shadow_word_pain", "devouring_plague", "power_word_shield", "renew", "holy_nova", "shadow_word_death", "penance", "penance_heal", "prayer_of_mending"], prop = "cost", mul = "1 - rank / 30" }]
+text = "Smite, Holy Fire and instant spells cost 3%, 7% or 10% less. In the game data that excludes Shadow Word: Death and Penance."
+spell_mods = [{ spells = ["smite", "holy_fire", "shadow_word_pain", "devouring_plague", "power_word_shield", "renew", "holy_nova", "prayer_of_mending", "shadowguard", "inner_fire", "fortitude", "shadowform", "vampiric_embrace", "psychic_scream", "power_infusion", "contingency_plan"], prop = "cost", mul = "1 - interp(rank, 1,0.03, 2,0.07, 3,0.1)" }]
 [talents.inner_focus]
 icon = "spell_frost_windwalkon"
 tree = "Discipline"
@@ -95,14 +102,14 @@ icon = "spell_nature_sleep"
 tree = "Discipline"
 points = 10
 ranks = 3
-text = "50% of mana regeneration continues while casting."
-mods = [{ stat = "casting_regen", add = "rank / 6" }]
+text = "17%, 33% or 50% of mana regeneration continues while casting."
+mods = [{ stat = "casting_regen", add = "interp(rank, 1,0.17, 2,0.33, 3,0.5)" }]
 [talents.improved_inner_fire]
 icon = "spell_holy_innerfire"
 tree = "Discipline"
 points = 15
 ranks = 3
-text = "Inner Fire armour +45%."
+text = "Inner Fire armor +15% and 4 more charges per point (+45% and 12 at 3/3)."
 [talents.mental_strength]
 icon = "spell_nature_enchantarmor"
 tree = "Discipline"
@@ -115,6 +122,7 @@ icon = "spell_holy_pureofheart"
 tree = "Discipline"
 points = 15
 ranks = 1
+requires = "improved_power_word_shield"
 text = "Power Word: Shield cooldown -4 sec, cost -15%."
 spell_mods = [{ spells = ["power_word_shield"], prop = "cooldown", add = -4 }, { spells = ["power_word_shield"], prop = "cost", mul = 0.85 }]
 [talents.improved_mana_burn]
@@ -122,7 +130,7 @@ icon = "spell_shadow_manaburn"
 tree = "Discipline"
 points = 15
 ranks = 2
-text = "Mana Burn (not simulated)."
+text = "Mana Burn cast time -1 sec (not simulated: no Mana Burn, and no enemy here uses mana)."
 [talents.penance]
 icon = "spell_holy_penance"
 tree = "Discipline"
@@ -134,20 +142,24 @@ icon = "spell_holy_holyprotection"
 tree = "Discipline"
 points = 20
 ranks = 5
-text = "+10% crit on targets with Weakened Soul, Weakened Soul -5 sec."
-spell_mods = [{ prop = "crit", add = "aura.weakened_soul.up ? 2 * rank : 0" }]
+requires = "soul_warding"
+text = "Heals crit 2% more often per point on targets with Weakened Soul, and Weakened Soul lasts 1 sec less per point (10% and 5 sec at 5/5)."
+spell_mods = [{ spells = ["lesser_heal", "heal", "greater_heal", "flash_heal", "binding_heal", "penance_heal", "renew", "desperate_prayer", "prayer_of_mending"], prop = "crit", add = "aura.weakened_soul.up ? 2 * rank : 0" }]
 [talents.divine_aegis]
 icon = "spell_holy_devineaegis"
 tree = "Discipline"
 points = 25
 ranks = 3
-text = "Critical heals shield the target for 15% of the heal."
-procs = [{ on = "heal_crit", effects = [{ type = "aura", aura = "divine_aegis", target = "self", stacks = "event.amount * 0.05 * rank" }] }]
+text = "Non-periodic critical heals shield the target for 5% of the heal per point (15% at 3/3)."
+# Only non-periodic crits (Renew's ticks can crit but don't count): Oct 15
+# notes, which say the tooltip now states this rule; the behavior is not new.
+procs = [{ on = "heal_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "divine_aegis", target = "self", stacks = "event.amount * 0.05 * rank" }] }]
 [talents.power_infusion]
 icon = "spell_holy_powerinfusion"
 tree = "Discipline"
 points = 30
 ranks = 1
+requires = "penance"
 text = "+20% spell damage and healing for 15 sec. 3 min cooldown."
 
 [talents.twilight_focus]
@@ -155,14 +167,14 @@ icon = "spell_holy_healingfocus"
 tree = "Holy"
 points = 0
 ranks = 3
-text = "70% chance to avoid pushback."
-mods = [{ stat = "pushback_resist", add = "0.2333 * rank" }]
+text = "23%, 47% or 70% chance to avoid pushback (game: cast and channeled spells; applied to all here)."
+mods = [{ stat = "pushback_resist", add = "interp(rank, 1,0.23, 2,0.47, 3,0.7)" }]
 [talents.improved_renew]
 icon = "spell_holy_renew"
 tree = "Holy"
 points = 0
 ranks = 3
-text = "Renew heals 15% more."
+text = "Renew heals 5% more per point (15% at 3/3)."
 spell_mods = [{ spells = ["renew"], prop = "heal", mul = "1 + 0.05 * rank" }]
 [talents.holy_specialization]
 icon = "spell_holy_sealofsalvation"
@@ -184,7 +196,7 @@ tree = "Holy"
 points = 5
 ranks = 5
 text = "Smite, Holy Fire, Heal and Greater Heal cast -0.5 sec."
-spell_mods = [{ spells = ["smite", "holy_fire", "heal"], prop = "cast_time", add = "-0.1 * rank" }]
+spell_mods = [{ spells = ["smite", "holy_fire", "heal", "greater_heal"], prop = "cast_time", add = "-0.1 * rank" }]
 [talents.holy_nova]
 icon = "spell_holy_holynova"
 tree = "Holy"
@@ -196,35 +208,36 @@ icon = "spell_holy_blessedrecovery"
 tree = "Holy"
 points = 10
 ranks = 3
-text = "After a crit or a hit over 30% of max health, heal 25% of the damage over 6 sec."
-procs = [{ on = "struck", if = "event.crit || event.pct > 0.3", effects = [{ type = "aura", aura = "blessed_recovery", stacks = "event.amount * (rank == 3 ? 0.25 : 0.0833 * rank)" }] }]
+text = "After a crit or a hit over 30% of max health, heal 8%, 17% or 25% of the damage over 6 sec. The game carries leftover healing into a refresh; here a refresh starts over."
+procs = [{ on = "struck", if = "event.crit || event.pct > 0.3", effects = [{ type = "aura", aura = "blessed_recovery", stacks = "event.amount * interp(rank, 1,0.08, 2,0.17, 3,0.25)" }] }]
 [talents.inspiration]
 icon = "spell_holy_layonhands"
 tree = "Holy"
 points = 10
 ranks = 3
-text = "Critical heals give +25% armour for 15 sec."
-procs = [{ on = "heal_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "inspiration", stacks = "rank" }] }]
+text = "Non-periodic critical heals give +8%, +17% or +25% armor for 15 sec."
+procs = [{ on = "heal_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "inspiration" }] }]
 [talents.holy_reach]
 icon = "spell_holy_purify"
 tree = "Holy"
 points = 15
 ranks = 2
-text = "Range (not simulated)."
+text = "Smite and Holy Fire range and Holy Nova radius +20% (not simulated: no range or positioning)."
 [talents.improved_healing]
 icon = "spell_holy_heal02"
 tree = "Holy"
 points = 15
 ranks = 3
-text = "Healing spells cost 15% less."
-spell_mods = [{ spells = ["heal", "penance_heal", "prayer_of_mending", "binding_heal"], prop = "cost", mul = "1 - 0.05 * rank" }]
+text = "Lesser Heal, Heal, Greater Heal, Penance and Prayer of Mending cost 15% less."
+spell_mods = [{ spells = ["lesser_heal", "heal", "greater_heal", "penance", "penance_heal", "prayer_of_mending"], prop = "cost", mul = "1 - 0.05 * rank" }]
 [talents.searing_light]
 icon = "spell_holy_searinglightpriest"
 tree = "Holy"
 points = 15
 ranks = 2
-text = "Holy damage +5%."
-mods = [{ stat = "holy_dmg_done", mul = "1 + 0.025 * rank" }]
+requires = "divine_fury"
+text = "Holy damage +2% or +5%, and each Holy Fire tick has a 5% chance per point to make your next Holy Nova free (Holy Purpose). The talent tree's values and the tooltip agree; the talent spell's 10 is not used."
+mods = [{ stat = "holy_dmg_done", mul = "rank == 1 ? 1.02 : 1.05" }]
 [talents.binding_heal]
 icon = "spell_holy_blindingheal"
 tree = "Holy"
@@ -236,32 +249,33 @@ icon = "inv_scroll_07"
 tree = "Holy"
 points = 20
 ranks = 2
-text = "Mana back when alternating heals (not simulated)."
+text = "Mana back (5% of base cost per point, 10% at 2/2) when a heal follows a different heal (not simulated: needs a healer rotation on allies)."
 [talents.spirit_of_redemption]
 icon = "inv_enchant_essenceeternallarge"
 tree = "Holy"
 points = 20
 ranks = 1
-text = "Spirit form on death (not simulated)."
+text = "On death, 15 sec as a spirit that heals allies for free (not simulated: no party)."
 [talents.spiritual_guidance]
 icon = "spell_holy_spiritualguidence"
 tree = "Holy"
 points = 20
 ranks = 5
-text = "Healing +25% of Spirit, damage +8% of Spirit."
-mods = [{ stat = "heal_power", add = "0.05 * rank * spi" }, { stat = "sp", add = "0.016 * rank * spi" }]
+text = "Healing +5% of Spirit per point (25% at 5/5); spell damage +1%, 3%, 5%, 6% or 8% of Spirit."
+mods = [{ stat = "heal_power", add = "0.05 * rank * spi" }, { stat = "sp", add = "interp(rank, 1,0.01, 2,0.03, 3,0.05, 4,0.06, 5,0.08) * spi" }]
 [talents.spiritual_healing]
 icon = "spell_nature_moonglow"
 tree = "Holy"
 points = 25
 ranks = 3
-text = "Healing done +10%."
-mods = [{ stat = "heal_done", mul = "1 + rank / 30" }]
+text = "Healing done +3%, 7% or 10%. In the game data it reaches every heal here except Vampiric Embrace. The talent tree's values and the tooltip agree; the talent spell's 2 is not used."
+spell_mods = [{ spells = ["lesser_heal", "heal", "greater_heal", "flash_heal", "binding_heal", "penance_heal", "renew", "desperate_prayer", "prayer_of_mending", "holy_nova", "contingency_plan"], prop = "heal", mul = "1 + interp(rank, 1,0.03, 2,0.07, 3,0.1)" }]
 [talents.prayer_of_mending]
 icon = "spell_holy_prayerofmendingtga"
 tree = "Holy"
 points = 30
 ranks = 1
+requires = "spirit_of_redemption"
 text = "Prayer of Mending: heals the next time you take damage (jumps need a party; solo it heals once)."
 
 [talents.shadow_focus]
@@ -269,40 +283,40 @@ icon = "spell_shadow_burningspirit"
 tree = "Shadow Magic"
 points = 0
 ranks = 5
-text = "Shadow spell hit +5% (applied to all spells here)."
+text = "Shadow spell hit +5% (the sim has one spell hit for every school, so it reaches Holy spells too)."
 mods = [{ stat = "spell_hit", add = "rank" }]
 [talents.blackout]
 icon = "spell_shadow_gathershadows"
 tree = "Shadow Magic"
 points = 0
 ranks = 5
-text = "Shadow damage has a 10% chance to stun for 3 sec."
+text = "Shadow damage has a 2% chance per point to stun for 3 sec (10% at 5/5)."
 procs = [{ on = "spell_landed", if = "!event.periodic && (spell.mind_blast || spell.shadow_word_death || spell.mind_flay)", chance = "0.02 * rank", effects = [{ type = "aura", aura = "stun", target = "target", duration = 3 }] }]
 [talents.spirit_tap]
 icon = "spell_shadow_requiem"
 tree = "Shadow Magic"
 points = 0
 ranks = 5
-text = "After a kill: +100% Spirit for 15 sec."
+text = "After a kill, a 20% chance per point (100% at 5/5) of +100% Spirit for 15 sec, and 50% of mana regeneration continues while casting."
 procs = [{ on = "kill", chance = "0.2 * rank", effects = [{ type = "aura", aura = "spirit_tap" }] }]
 [talents.shadow_affinity]
 icon = "spell_shadow_shadowward"
 tree = "Shadow Magic"
 points = 5
 ranks = 3
-text = "Shadow threat -30% (not simulated)."
+text = "Shadow spell threat -10% per point (30% at 3/3; the talent spell's 8 is not used). Not simulated: the priest fights alone, so threat never changes who an enemy attacks."
 [talents.improved_shadow_word_pain]
 icon = "spell_shadow_shadowwordpain"
 tree = "Shadow Magic"
 points = 5
 ranks = 2
-text = "Shadow Word: Pain lasts 6 sec longer."
+text = "Shadow Word: Pain lasts 3 sec longer per point (6 sec at 2/2)."
 [talents.shadow_reach]
 icon = "spell_shadow_chilltouch"
 tree = "Shadow Magic"
 points = 5
 ranks = 2
-text = "Range (not simulated)."
+text = "Shadow spell range +20% (not simulated: no range or positioning)."
 [talents.improved_mind_blast]
 icon = "spell_shadow_unholyfrenzy"
 tree = "Shadow Magic"
@@ -315,27 +329,28 @@ icon = "spell_shadow_psychicscream"
 tree = "Shadow Magic"
 points = 10
 ranks = 2
-text = "Psychic Scream cooldown -4 sec."
+requires = "blackout"
+text = "Psychic Scream cooldown -2 sec per point (4 sec at 2/2)."
 spell_mods = [{ spells = ["psychic_scream"], prop = "cooldown", add = "-2 * rank" }]
 [talents.mind_flay]
 icon = "spell_shadow_siphonmana"
 tree = "Shadow Magic"
 points = 10
 ranks = 1
-text = "Mind Flay: channelled Shadow damage and a slow."
+text = "Mind Flay: channeled Shadow damage and a slow."
 [talents.improved_mind_flay]
 icon = "spell_shadow_soulleech_2"
 tree = "Shadow Magic"
 points = 10
 ranks = 2
-text = "Mind Flay +20% damage."
+text = "Mind Flay +10% damage per point (its 5 yards more range and 15% stronger slow per point are not simulated)."
 spell_mods = [{ spells = ["mind_flay"], prop = "damage", mul = "1 + 0.1 * rank" }]
 [talents.improved_fade]
 icon = "spell_magic_lesserinvisibilty"
 tree = "Shadow Magic"
 points = 15
 ranks = 2
-text = "Fade (not simulated)."
+text = "Fade cooldown -3 sec per point (not simulated: no Fade, and the priest fights alone, so threat never changes who an enemy attacks)."
 [talents.vampiric_embrace]
 icon = "spell_shadow_unsummonbuilding"
 tree = "Shadow Magic"
@@ -347,20 +362,20 @@ icon = "spell_shadow_blackplague"
 tree = "Shadow Magic"
 points = 15
 ranks = 3
-text = "Shadow spells make the target take 2% more Shadow damage per stack (5 stacks, 15 sec)."
-procs = [{ on = "spell_landed", if = "!event.periodic && (spell.mind_blast || spell.shadow_word_pain || spell.mind_flay || spell.devouring_plague || spell.shadow_word_death)", chance = "rank / 3", effects = [{ type = "aura", aura = "shadow_weaving", target = "target" }] }]
+text = "Shadow spells have a 33%, 67% or 100% chance to make the target take 2% more Shadow damage per stack (5 stacks, 15 sec)."
+procs = [{ on = "spell_landed", if = "!event.periodic && (spell.mind_blast || spell.shadow_word_pain || spell.mind_flay || spell.devouring_plague || spell.shadow_word_death)", chance = "interp(rank, 1,0.33, 2,0.67, 3,1)", effects = [{ type = "aura", aura = "shadow_weaving", target = "target" }] }]
 [talents.silence]
 icon = "spell_shadow_impphaseshift"
 tree = "Shadow Magic"
 points = 20
 ranks = 1
-text = "Silence (not simulated)."
+text = "Silence: 5 sec silence, 45 sec cooldown, 225 mana (not simulated yet: waits for crowd control and interrupts in the rotations)."
 [talents.devouring_contagion]
 icon = "spell_shadow_devouringplague"
 tree = "Shadow Magic"
 points = 20
 ranks = 2
-text = "Devouring Plague costs 50% less."
+text = "Devouring Plague costs 25% less per point (50% at 2/2). Spreading it to an enemy within 5 or 10 yards when its target dies is not simulated (needs multi-target choice)."
 spell_mods = [{ spells = ["devouring_plague"], prop = "cost", mul = "1 - 0.25 * rank" }]
 [talents.early_demise]
 icon = "spell_shadow_demonicfortitude"
@@ -368,7 +383,7 @@ tree = "Shadow Magic"
 points = 25
 ranks = 2
 text = "Shadow Word: Death crit +30% on targets at or below 20% health."
-spell_mods = [{ spells = ["shadow_word_death"], prop = "crit", add = "target.hp_pct <= 0.2 ? 15 * rank : 0" }]
+spell_mods = [{ spells = ["shadow_word_death"], prop = "crit", add = "target.hp_pct > 0.2 ? 0 : 15 * rank" }]
 [talents.darkness]
 icon = "spell_shadow_twilight"
 tree = "Shadow Magic"
@@ -381,12 +396,16 @@ icon = "spell_shadow_shadowform"
 tree = "Shadow Magic"
 points = 30
 ranks = 1
-text = "Shadowform: +10% Shadow damage, Shadow spells cost 50% less and crit for +100%, -15% physical damage taken; no healing spells."
+requires = "vampiric_embrace"
+text = "Shadowform: +10% Shadow damage, Shadow spells cost 50% less, Mind Blast, Mind Flay, Shadow Word: Pain, Devouring Plague and Shadowguard crit for +100%, -15% physical damage taken; no healing spells."
 
 # ------------------------------------------------------------------ auras
 [auras.inner_fire]
 name = "Inner Fire"
+duration = 600
+charges = "20 + 4 * t.improved_inner_fire"
 mods = [{ stat = "armor", add = "r.armor * (1 + 0.15 * t.improved_inner_fire)" }]
+procs = [{ on = "struck", if = "!event.spell", effects = [{ type = "consume" }] }]
 [auras.fortitude]
 name = "Power Word: Fortitude"
 mods = [{ stat = "sta", add = "r.sta" }]
@@ -398,30 +417,36 @@ duration = "15 - t.renewed_hope"
 [auras.power_word_shield]
 name = "Power Word: Shield"
 duration = 30
-absorb = "(r.absorb + 0.1 * heal_power) * (1 + t.improved_power_word_shield / 15) * (aura.power_infusion.up ? 1.2 : 1)"
+absorb = "(r.absorb + 0.1 * heal_power) * (1 + interp(t.improved_power_word_shield, 0,0, 1,0.07, 2,0.14, 3,0.2))"
 [auras.renew]
 name = "Renew"
 duration = 15
-tick = { interval = 3, effects = [{ type = "heal", target = "target", amount = "r.total / 5", coef = 0.2, periodic = true, mult = "1 + 0.05 * t.improved_renew", tag = "Renew" }] }
+tick = { interval = 3, effects = [{ type = "heal", target = "target", amount = "r.tick", coef = 0.2, periodic = true, can_crit = true, tag = "Renew" }] }
 [auras.shadow_word_pain]
 name = "Shadow Word: Pain"
 debuff = true
 duration = "18 + 3 * t.improved_shadow_word_pain"
-tick = { interval = 3, effects = [{ type = "damage", school = "shadow", periodic = true, tag = "Shadow Word: Pain", amount = "r.total / 6", coef = "1 / 6" }] }
+tick = { interval = 3, effects = [{ type = "damage", school = "shadow", periodic = true, tag = "Shadow Word: Pain", amount = "r.tick", coef = 0.2 }] }
 [auras.devouring_plague]
 name = "Devouring Plague"
 debuff = true
 duration = 24
-tick = { interval = 3, effects = [{ type = "damage", school = "shadow", periodic = true, tag = "Devouring Plague", amount = "r.total / 8", coef = "0.8 / 8", lifesteal = 1 }] }
+tick = { interval = 3, effects = [{ type = "damage", school = "shadow", periodic = true, tag = "Devouring Plague", amount = "r.tick", coef = 0.1, lifesteal = 1 }] }
 [auras.holy_fire]
 name = "Holy Fire"
 debuff = true
 duration = 10
-tick = { interval = 2, effects = [{ type = "damage", school = "holy", periodic = true, tag = "Holy Fire (burn)", amount = "r.dot / 5", coef = "0.165 / 5" }] }
+tick = { interval = 2, effects = [
+  { type = "damage", school = "holy", periodic = true, tag = "Holy Fire (burn)", amount = "r.dot", coef = 0.05 },
+  { type = "chance", p = "0.05 * t.searing_light", then = [{ type = "aura", aura = "holy_purpose", target = "self" }] },
+] }
 [auras.inner_focus]
 name = "Inner Focus"
 consume_on_cast = true
-spell_mods = [{ spells = ["smite", "holy_fire", "mind_blast", "heal", "flash_heal", "penance", "penance_heal", "shadow_word_death", "binding_heal", "mind_flay"], prop = "cost", mul = 0 }, { spells = ["smite", "holy_fire", "mind_blast", "heal", "flash_heal", "penance", "penance_heal", "shadow_word_death", "binding_heal", "mind_flay"], prop = "crit", add = 25 }]
+spell_mods = [
+  { spells = ["smite", "holy_fire", "mind_blast", "mind_flay", "shadow_word_pain", "devouring_plague", "shadow_word_death", "penance", "penance_heal", "holy_nova", "lesser_heal", "heal", "greater_heal", "flash_heal", "binding_heal", "renew", "power_word_shield", "prayer_of_mending", "shadowguard", "inner_fire", "fortitude", "psychic_scream", "shadowform", "vampiric_embrace", "power_infusion", "contingency_plan"], prop = "cost", mul = 0 },
+  { spells = ["smite", "holy_fire", "mind_blast", "mind_flay", "penance", "penance_heal", "holy_nova", "lesser_heal", "heal", "greater_heal", "flash_heal", "binding_heal", "desperate_prayer", "prayer_of_mending", "shadowguard"], prop = "crit", add = 25 },
+]
 [auras.power_infusion]
 name = "Power Infusion"
 duration = 15
@@ -441,17 +466,16 @@ tick = { interval = 2, effects = [{ type = "heal", target = "self", amount = "st
 [auras.inspiration]
 name = "Inspiration"
 duration = 15
-max_stacks = 3
 refresh = "replace"
-mods = [{ stat = "armor_mult", mul = "1 + (stacks == 3 ? 0.25 : 0.08 * stacks)" }]
+mods = [{ stat = "armor_mult", mul = "1 + interp(t.inspiration, 0,0, 1,0.08, 2,0.17, 3,0.25)" }]
 [auras.spirit_tap]
 name = "Spirit Tap"
 duration = 15
-mods = [{ stat = "spi_pct", add = 1.0 }]
+mods = [{ stat = "spi_pct", add = 1.0 }, { stat = "casting_regen", add = 0.5 }]
 [auras.vampiric_embrace]
 name = "Vampiric Embrace"
 duration = 30
-procs = [{ on = "spell_landed", if = "!event.physical", effects = [{ type = "heal", target = "self", amount = "event.amount * 0.2", tag = "Vampiric Embrace" }] }]
+procs = [{ on = "spell_landed", if = "!event.physical && !(spell.smite || spell.holy_fire || spell.penance || spell.holy_nova)", effects = [{ type = "heal", target = "self", amount = "event.amount * 0.2", tag = "Vampiric Embrace" }] }]
 [auras.shadow_weaving]
 name = "Shadow Weaving"
 debuff = true
@@ -463,12 +487,12 @@ mods = [{ stat = "spell_dmg_taken", mul = "1 + 0.02 * stacks" }]
 name = "Shadowform"
 form = true
 mods = [{ stat = "shadow_dmg_done", mul = 1.1 }, { stat = "phys_dmg_taken", mul = 0.85 }]
-spell_mods = [{ school = "shadow", prop = "cost", mul = 0.5 }, { school = "shadow", prop = "crit_bonus", add = 1.0 }]
+spell_mods = [{ school = "shadow", prop = "cost", mul = 0.5 }, { spells = ["mind_blast", "mind_flay", "shadow_word_pain", "devouring_plague", "shadowguard"], prop = "crit_bonus", add = 1.0 }]
 [auras.shadowguard]
 name = "Shadowguard"
 duration = 600
 charges = 3
-procs = [{ on = "struck_melee", effects = [{ type = "damage", school = "shadow", target = "target", hit = "auto", amount = "r.dmg", coef = 0.1, no_proc = true, tag = "Shadowguard" }, { type = "consume" }] }]
+procs = [{ on = "struck_melee", icd = 3.5, effects = [{ type = "damage", school = "shadow", target = "target", hit = "auto", amount = "r.dmg", coef = 0.267, no_proc = true, tag = "Shadowguard" }, { type = "consume" }] }]
 [auras.prayer_of_mending]
 name = "Prayer of Mending"
 duration = 30
@@ -477,7 +501,7 @@ procs = [{ on = "struck", effects = [{ type = "heal", target = "self", amount = 
 [auras.dark_sacrifice]
 name = "Dark Sacrifice"
 duration = 15
-tick = { interval = 3, effects = [{ type = "resource", res = "hp", amount = "-r.cost / 5" }, { type = "resource", res = "mana", amount = "(r.cost + spi) / 5" }] }
+tick = { interval = 3, effects = [{ type = "resource", res = "hp", amount = "-r.tick" }, { type = "resource", res = "mana", amount = "r.tick + spi / 5" }] }
 [auras.contingency_plan]
 name = "Contingency Plan"
 duration = 30
@@ -486,54 +510,78 @@ procs = [{ on = "struck", if = "hp_pct < 0.35", effects = [{ type = "aura", aura
 name = "Contingency Plan (shield)"
 duration = 15
 absorb = "r.shield"
+[auras.focused_casting]
+name = "Focused Casting"
+duration = 6
+mods = [{ stat = "pushback_resist", add = 1.0 }]
+[auras.holy_purpose]
+name = "Holy Purpose"
+duration = 10
+consume_on_cast = true
+spell_mods = [{ spells = ["holy_nova"], prop = "cost", mul = 0 }]
 [auras.contingency_heal]
 name = "Contingency Plan (heal)"
 duration = 15
-tick = { interval = 3, effects = [{ type = "heal", target = "self", amount = "r.hot / 5", periodic = true, tag = "Contingency Plan" }] }
+tick = { interval = 3, effects = [{ type = "heal", target = "self", amount = "r.hot", coef = 0.2, periodic = true, tag = "Contingency Plan" }] }
 
 # ------------------------------------------------------------------ spells
 [spells.inner_fire]
 name = "Inner Fire"
 target = "self"
 requires = "!aura.inner_fire.up"
-ranks = [{ level = 12, armor = 315, mana = 30 }, { level = 20, armor = 495, mana = 65 }, { level = 30, armor = 720, mana = 105 }, { level = 40, armor = 945, mana = 165 }, { level = 50, armor = 1170, mana = 235 }, { level = 60, armor = 1395, mana = 315 }]
+ranks = [{ level = 12, id = 588, armor = 315, mana = 30 }, { level = 20, id = 7128, armor = 495, mana = 65 }, { level = 30, id = 602, armor = 720, mana = 105 }, { level = 40, id = 1006, armor = 945, mana = 165 }, { level = 50, id = 10951, armor = 1170, mana = 235 }, { level = 60, id = 10952, armor = 1395, mana = 315 }]
+text = "Lasts 10 min or 20 melee and ranged hits taken."
 effects = [{ type = "aura", aura = "inner_fire" }]
 [spells.fortitude]
 name = "Power Word: Fortitude"
 target = "self"
 requires = "!aura.fortitude.up"
-ranks = [{ level = 1, sta = 4, mana = 60 }, { level = 12, sta = 10, mana = 155 }, { level = 24, sta = 26, mana = 400 }, { level = 36, sta = 42, mana = 745 }, { level = 48, sta = 56, mana = 1170 }, { level = 60, sta = 70, mana = 1695 }]
+ranks = [{ level = 1, id = 1243, sta = 4, mana = 60 }, { level = 12, id = 1244, sta = 10, mana = 155 }, { level = 24, id = 1245, sta = 26, mana = 400 }, { level = 36, id = 2791, sta = 42, mana = 745 }, { level = 48, id = 10937, sta = 56, mana = 1170 }, { level = 60, id = 10938, sta = 70, mana = 1695 }]
 effects = [{ type = "aura", aura = "fortitude" }]
+# Shadowguard, Desperate Prayer, Dark Sacrifice and Contingency Plan are
+# priest racials in Forever (Blizzard's Priest deep dive, news 24301514):
+# Troll, Dwarf, Undead and Gnome. The class's spell table has no race mask,
+# so each one checks the caster's race.
 [spells.shadowguard]
 name = "Shadowguard"
 school = "shadow"
 target = "self"
-requires = "!aura.shadowguard.up || aura.shadowguard.charges < 2"
-ranks = [{ level = 20, dmg = 13, mana = 50 }, { level = 28, dmg = 22, mana = 85 }, { level = 36, dmg = 33, mana = 120 }, { level = 44, dmg = 50, mana = 160 }, { level = 52, dmg = 70, mana = 200 }, { level = 60, dmg = 96, mana = 250 }]
+requires = "race.troll && (!aura.shadowguard.up || aura.shadowguard.charges < 2)"
+ranks = [{ level = 20, id = 18137, dmg = 13, mana = 50 }, { level = 28, id = 19308, dmg = 22, mana = 85 }, { level = 36, id = 19309, dmg = 33, mana = 120 }, { level = 44, id = 19310, dmg = 50, mana = 160 }, { level = 52, id = 19311, dmg = 70, mana = 200 }, { level = 60, id = 19312, dmg = 96, mana = 250 }]
+text = "3 charges, at most one every 3.5 sec."
 effects = [{ type = "aura", aura = "shadowguard" }]
 
 [spells.smite]
 name = "Smite"
 school = "holy"
 ranks = [
-  { level = 1, lo = 13, hi = 18, mana = 20, cast = 1.5 }, { level = 6, lo = 25, hi = 32, mana = 30, cast = 2 },
-  { level = 14, lo = 44, hi = 51, mana = 60, cast = 2.5 }, { level = 22, lo = 59, hi = 68, mana = 95, cast = 2.5 },
-  { level = 30, lo = 81, hi = 91, mana = 140, cast = 2.5 }, { level = 38, lo = 93, hi = 106, mana = 185, cast = 2.5 },
-  { level = 46, lo = 124, hi = 139, mana = 230, cast = 2.5 }, { level = 54, lo = 167, hi = 186, mana = 280, cast = 2.5 },
+  { level = 1, id = 585, lo = 13, lo_per_level = 0.087, hi = 17, hi_per_level = 0.113, mana = 20, cast = 1.5, max_level = 6, coef = 0.429 },
+  { level = 6, id = 591, lo = 24, lo_per_level = 0.268, hi = 30, hi_per_level = 0.332, mana = 30, cast = 2, max_level = 11, coef = 0.571 },
+  { level = 14, id = 598, lo = 42, lo_per_level = 0.466, hi = 48, hi_per_level = 0.534, mana = 60, cast = 2.5, max_level = 19, coef = 0.714 },
+  { level = 22, id = 984, lo = 56, lo_per_level = 0.65, hi = 64, hi_per_level = 0.75, mana = 95, cast = 2.5, max_level = 27, coef = 0.714 },
+  { level = 30, id = 1004, lo = 76, lo_per_level = 0.938, hi = 86, hi_per_level = 1.062, mana = 140, cast = 2.5, max_level = 35, coef = 0.714 },
+  { level = 38, id = 6060, lo = 88, lo_per_level = 1.032, hi = 100, hi_per_level = 1.168, mana = 185, cast = 2.5, max_level = 43, coef = 0.714 },
+  { level = 46, id = 10933, lo = 119, lo_per_level = 1.035, hi = 133, hi_per_level = 1.165, mana = 230, cast = 2.5, max_level = 51, coef = 0.714 },
+  { level = 54, id = 10934, lo = 160, lo_per_level = 1.227, hi = 180, hi_per_level = 1.373, mana = 280, cast = 2.5, max_level = 59, coef = 0.714 },
 ]
-effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef = "r.cast / 3.5" }]
+effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef = "r.coef" }]
 
 [spells.holy_fire]
 name = "Holy Fire"
 school = "holy"
 cast_time = 3.5
 ranks = [
-  { level = 20, lo = 56, hi = 70, dot = 20, mana = 85 }, { level = 24, lo = 63, hi = 79, dot = 25, mana = 95 },
-  { level = 30, lo = 79, hi = 99, dot = 30, mana = 125 }, { level = 36, lo = 89, hi = 113, dot = 35, mana = 145 },
-  { level = 42, lo = 102, hi = 128, dot = 65, mana = 170 }, { level = 48, lo = 132, hi = 167, dot = 50, mana = 200 },
-  { level = 54, lo = 162, hi = 206, dot = 65, mana = 230 }, { level = 60, lo = 184, hi = 232, dot = 75, mana = 255 },
+  { level = 20, id = 14914, lo = 51, lo_per_level = 1.152, hi = 65, hi_per_level = 1.448, dot = 4, mana = 85, max_level = 24, coef = 0.75 },
+  { level = 24, id = 15262, lo = 56, lo_per_level = 1.244, hi = 70, hi_per_level = 1.556, dot = 5, mana = 95, max_level = 30, coef = 0.75 },
+  { level = 30, id = 15263, lo = 71, lo_per_level = 1.329, hi = 89, hi_per_level = 1.671, dot = 6, mana = 125, max_level = 36, coef = 0.75 },
+  { level = 36, id = 15264, lo = 81, lo_per_level = 1.324, hi = 103, hi_per_level = 1.676, dot = 7, mana = 145, max_level = 42, coef = 0.75 },
+  { level = 42, id = 15265, lo = 94, lo_per_level = 1.325, hi = 118, hi_per_level = 1.675, dot = 13, mana = 170, max_level = 48, coef = 0.75 },
+  { level = 48, id = 15266, lo = 123, lo_per_level = 1.499, hi = 155, hi_per_level = 1.901, dot = 10, mana = 200, max_level = 54, coef = 0.75 },
+  { level = 54, id = 15267, lo = 152, lo_per_level = 1.674, hi = 194, hi_per_level = 2.126, dot = 13, mana = 230, max_level = 60, coef = 0.75 },
+  { level = 60, id = 15261, lo = 184, lo_per_level = 1.766, hi = 232, hi_per_level = 2.234, dot = 15, mana = 255, max_level = 66, coef = 0.75 },
 ]
-effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef = 0.857, on_hit = [{ type = "aura", aura = "holy_fire", target = "target" }] }]
+text = "`dot` is the burn per 2 sec tick."
+effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "aura", aura = "holy_fire", target = "target" }] }]
 
 [spells.mind_blast]
 name = "Mind Blast"
@@ -541,21 +589,33 @@ school = "shadow"
 cast_time = 1.5
 cooldown = 8
 ranks = [
-  { level = 10, lo = 40, hi = 44, mana = 50 }, { level = 16, lo = 70, hi = 75, mana = 80 }, { level = 22, lo = 103, hi = 110, mana = 110 },
-  { level = 28, lo = 153, hi = 163, mana = 150 }, { level = 34, lo = 198, hi = 210, mana = 185 }, { level = 40, lo = 259, hi = 276, mana = 225 },
-  { level = 46, lo = 325, hi = 344, mana = 265 }, { level = 52, lo = 406, hi = 428, mana = 310 }, { level = 58, lo = 477, hi = 503, mana = 350 },
+  { level = 10, id = 8092, lo = 37, lo_per_level = 0.571, hi = 41, hi_per_level = 0.629, mana = 50, max_level = 15, coef = 0.429 },
+  { level = 16, id = 8102, lo = 65, lo_per_level = 0.864, hi = 71, hi_per_level = 0.936, mana = 80, max_level = 21, coef = 0.429 },
+  { level = 22, id = 8103, lo = 98, lo_per_level = 1.062, hi = 104, hi_per_level = 1.138, mana = 110, max_level = 27, coef = 0.429 },
+  { level = 28, id = 8104, lo = 147, lo_per_level = 1.359, hi = 155, hi_per_level = 1.441, mana = 150, max_level = 33, coef = 0.429 },
+  { level = 34, id = 8105, lo = 190, lo_per_level = 1.55, hi = 202, hi_per_level = 1.65, mana = 185, max_level = 39, coef = 0.429 },
+  { level = 40, id = 8106, lo = 250, lo_per_level = 1.841, hi = 266, hi_per_level = 1.959, mana = 225, max_level = 45, coef = 0.429 },
+  { level = 46, id = 10945, lo = 315, lo_per_level = 2.041, hi = 333, hi_per_level = 2.159, mana = 265, max_level = 51, coef = 0.429 },
+  { level = 52, id = 10946, lo = 394, lo_per_level = 2.334, hi = 416, hi_per_level = 2.466, mana = 310, max_level = 57, coef = 0.429 },
+  { level = 58, id = 10947, lo = 472, lo_per_level = 2.53, hi = 498, hi_per_level = 2.67, mana = 350, max_level = 63, coef = 0.429 },
 ]
-effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coef = 0.4286 }]
+effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coef = "r.coef" }]
 
 [spells.shadow_word_pain]
 name = "Shadow Word: Pain"
 school = "shadow"
 requires = "!target.aura.shadow_word_pain.up"
 ranks = [
-  { level = 4, total = 30, mana = 25 }, { level = 10, total = 60, mana = 50 }, { level = 18, total = 108, mana = 95 },
-  { level = 26, total = 180, mana = 155 }, { level = 34, total = 288, mana = 230 }, { level = 42, total = 426, mana = 305 },
-  { level = 50, total = 582, mana = 385 }, { level = 58, total = 762, mana = 470 },
+  { level = 4, id = 589, tick = 5, mana = 25 },
+  { level = 10, id = 594, tick = 10, mana = 50 },
+  { level = 18, id = 970, tick = 18, mana = 95 },
+  { level = 26, id = 992, tick = 30, mana = 155 },
+  { level = 34, id = 2767, tick = 48, mana = 230 },
+  { level = 42, id = 10892, tick = 71, mana = 305 },
+  { level = 50, id = 10893, tick = 97, mana = 385 },
+  { level = 58, id = 10894, tick = 127, mana = 470 },
 ]
+text = "`tick` is the damage every 3 sec (6 ticks, 8 with Improved Shadow Word: Pain)."
 effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, on_hit = [{ type = "aura", aura = "shadow_word_pain", target = "target" }] }]
 
 [spells.devouring_plague]
@@ -564,9 +624,14 @@ school = "shadow"
 cooldown = 60
 requires = "!target.aura.devouring_plague.up"
 ranks = [
-  { level = 20, total = 128, mana = 215 }, { level = 28, total = 232, mana = 350 }, { level = 36, total = 344, mana = 495 },
-  { level = 44, total = 488, mana = 645 }, { level = 52, total = 656, mana = 810 }, { level = 60, total = 848, mana = 985 },
+  { level = 20, id = 2944, tick = 16, mana = 215 },
+  { level = 28, id = 19276, tick = 29, mana = 350 },
+  { level = 36, id = 19277, tick = 43, mana = 495 },
+  { level = 44, id = 19278, tick = 61, mana = 645 },
+  { level = 52, id = 19279, tick = 82, mana = 810 },
+  { level = 60, id = 19280, tick = 106, mana = 985 },
 ]
+text = "`tick` is the damage every 3 sec (8 ticks); it heals you for the damage dealt."
 effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, on_hit = [{ type = "aura", aura = "devouring_plague", target = "target" }] }]
 
 [spells.mind_flay]
@@ -574,17 +639,29 @@ name = "Mind Flay"
 talent = "mind_flay"
 school = "shadow"
 ranks = [
-  { level = 20, total = 63, mana = 45 }, { level = 28, total = 102, mana = 70 }, { level = 36, total = 153, mana = 100 },
-  { level = 44, total = 225, mana = 135 }, { level = 52, total = 294, mana = 165 }, { level = 60, total = 390, mana = 205 },
+  { level = 20, id = 15407, tick = 21, mana = 45 },
+  { level = 28, id = 17311, tick = 34, mana = 70 },
+  { level = 36, id = 17312, tick = 51, mana = 100 },
+  { level = 44, id = 17313, tick = 75, mana = 135 },
+  { level = 52, id = 17314, tick = 98, mana = 165 },
+  { level = 60, id = 18807, tick = 130, mana = 205 },
 ]
-channel = { duration = 3, interval = 1, effects = [{ type = "damage", school = "shadow", amount = "r.total / 3", coef = 0.15, tag = "Mind Flay" }] }
+text = "One hit roll when cast (a miss ends the channel), then a periodic tick every second for 3 sec that cannot crit, as in the game's periodic aura. The slow is not simulated."
+effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, on_miss = [{ type = "interrupt", target = "self" }] }]
+channel = { duration = 3, interval = 1, effects = [{ type = "damage", school = "shadow", periodic = true, amount = "r.tick", coef = 0.167, tag = "Mind Flay" }] }
 
 [spells.shadow_word_death]
 name = "Shadow Word: Death"
 school = "shadow"
 cooldown = 15
-ranks = [{ level = 32, lo = 293, hi = 312, mana = 175 }, { level = 40, lo = 368, hi = 391, mana = 205 }, { level = 48, lo = 401, hi = 427, mana = 250 }, { level = 56, lo = 444, hi = 472, mana = 340 }]
-effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coef = 0.4286, on_hit = [{ type = "if", cond = "target.alive", then = [{ type = "resource", res = "hp", target = "self", amount = "-0.1 * max_hp" }] }] }]
+ranks = [
+  { level = 32, id = 1309595, lo = 286, lo_per_level = 1.455, hi = 304, hi_per_level = 1.545, mana = 175, max_level = 37, coef = 0.429 },
+  { level = 40, id = 1309633, lo = 359, lo_per_level = 1.843, hi = 381, hi_per_level = 1.957, mana = 205, max_level = 45, coef = 0.429 },
+  { level = 48, id = 1309635, lo = 391, lo_per_level = 2.133, hi = 415, hi_per_level = 2.267, mana = 250, max_level = 53, coef = 0.429 },
+  { level = 56, id = 1309636, lo = 434, lo_per_level = 2.424, hi = 462, hi_per_level = 2.576, mana = 340, max_level = 61, coef = 0.429 },
+]
+text = "If the target survives, you take 10% of your maximum health."
+effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "if", cond = "target.alive", then = [{ type = "resource", res = "hp", target = "self", amount = "-0.1 * max_hp" }] }] }]
 
 [spells.penance]
 name = "Penance"
@@ -592,9 +669,16 @@ talent = "penance"
 school = "holy"
 cd_group = "penance"
 cooldown = 12
-ranks = [{ level = 30, dmg = 45, heal = 134, mana = 150 }, { level = 40, dmg = 53, heal = 209, mana = 220 }, { level = 50, dmg = 72, heal = 279, mana = 270 }, { level = 60, dmg = 92, heal = 425, mana = 385 }]
-text = "The tooltip number is per bolt (3 bolts over 2 sec, TBC-style)."
-channel = { duration = 2.01, interval = 0.67, effects = [{ type = "damage", school = "holy", amount = "r.dmg", coef = 0.229, tag = "Penance" }] }
+ranks = [
+  { level = 30, id = 402174, dmg = 42, dmg_per_level = 0.29, heal = 126, heal_per_level = 0.87, max_level = 39, mana = 150 },
+  { level = 40, id = 1240720, dmg = 50, dmg_per_level = 0.33, heal = 200, heal_per_level = 0.98, max_level = 49, mana = 220 },
+  { level = 50, id = 1240721, dmg = 68, dmg_per_level = 0.43, heal = 268, heal_per_level = 1.27, max_level = 59, mana = 270 },
+  { level = 60, id = 1316995, dmg = 92, heal = 425, mana = 385 },
+]
+text = "Three bolts (`dmg` or `heal` each, 0.19 of spell power each): one when cast, then one every second of a 2 sec channel."
+effects = [{ type = "damage", school = "holy", amount = "r.dmg", coef = 0.19, tag = "Penance" }]
+channel = { duration = 2, interval = 1, effects = [{ type = "damage", school = "holy", amount = "r.dmg", coef = 0.19, tag = "Penance" }] }
+
 [spells.penance_heal]
 name = "Penance (heal)"
 talent = "penance"
@@ -602,21 +686,32 @@ school = "holy"
 cd_group = "penance"
 cooldown = 12
 target = "self"
-ranks = [{ level = 30, dmg = 45, heal = 134, mana = 150 }, { level = 40, dmg = 53, heal = 209, mana = 220 }, { level = 50, dmg = 72, heal = 279, mana = 270 }, { level = 60, dmg = 92, heal = 425, mana = 385 }]
-channel = { duration = 2.01, interval = 0.67, effects = [{ type = "heal", target = "self", amount = "r.heal", coef = 0.229, can_crit = true, tag = "Penance" }] }
+ranks = [
+  { level = 30, id = 402174, dmg = 42, dmg_per_level = 0.29, heal = 126, heal_per_level = 0.87, max_level = 39, mana = 150 },
+  { level = 40, id = 1240720, dmg = 50, dmg_per_level = 0.33, heal = 200, heal_per_level = 0.98, max_level = 49, mana = 220 },
+  { level = 50, id = 1240721, dmg = 68, dmg_per_level = 0.43, heal = 268, heal_per_level = 1.27, max_level = 59, mana = 270 },
+  { level = 60, id = 1316995, dmg = 92, heal = 425, mana = 385 },
+]
+text = "Penance cast on yourself: the same game spell as Penance."
+effects = [{ type = "heal", target = "self", amount = "r.heal", coef = 0.19, can_crit = true, tag = "Penance" }]
+channel = { duration = 2, interval = 1, effects = [{ type = "heal", target = "self", amount = "r.heal", coef = 0.19, can_crit = true, tag = "Penance" }] }
 
 [spells.holy_nova]
 name = "Holy Nova"
 talent = "holy_nova"
 school = "holy"
 ranks = [
-  { level = 20, lo = 26, hi = 30, hlo = 50, hhi = 57, mana = 185 }, { level = 28, lo = 48, hi = 55, hlo = 79, hhi = 91, mana = 290 },
-  { level = 36, lo = 73, hi = 84, hlo = 111, hhi = 128, mana = 400 }, { level = 44, lo = 103, hi = 119, hlo = 151, hhi = 175, mana = 520 },
-  { level = 52, lo = 138, hi = 160, hlo = 226, hhi = 260, mana = 635 }, { level = 60, lo = 174, hi = 200, hlo = 288, hhi = 334, mana = 750 },
+  { level = 20, id = 15237, lo = 25, lo_per_level = 0.187, hi = 29, hi_per_level = 0.213, hlo = 47, hlo_per_level = 0.371, hhi = 55, hhi_per_level = 0.429, mana = 185, max_level = 26, coef = 0.107 },
+  { level = 28, id = 15430, lo = 45, lo_per_level = 0.37, hi = 53, hi_per_level = 0.43, hlo = 77, hlo_per_level = 0.467, hhi = 87, hhi_per_level = 0.533, mana = 290, max_level = 34, coef = 0.107 },
+  { level = 36, id = 15431, lo = 70, lo_per_level = 0.556, hi = 80, hi_per_level = 0.644, hlo = 108, hlo_per_level = 0.558, hhi = 124, hhi_per_level = 0.642, mana = 400, max_level = 42, coef = 0.107 },
+  { level = 44, id = 27799, lo = 99, lo_per_level = 0.744, hi = 113, hi_per_level = 0.856, hlo = 147, hlo_per_level = 0.648, hhi = 171, hhi_per_level = 0.752, mana = 520, max_level = 50, coef = 0.107 },
+  { level = 52, id = 27800, lo = 133, lo_per_level = 0.927, hi = 153, hi_per_level = 1.073, hlo = 221, hlo_per_level = 0.743, hhi = 255, hhi_per_level = 0.857, mana = 635, max_level = 58, coef = 0.107 },
+  { level = 60, id = 27801, lo = 174, lo_per_level = 1.114, hi = 200, hi_per_level = 1.286, hlo = 288, hlo_per_level = 0.834, hhi = 334, hhi_per_level = 0.966, mana = 750, max_level = 66, coef = 0.107 },
 ]
+text = "Hits every nearby enemy (no cap in the game data) and heals you; the heal is the game's separate Holy Nova heal spell (23455, ...), 0.107 of healing power."
 effects = [
-  { type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef = 0.107, target = "enemies", max_targets = 10, threat = 0 },
-  { type = "heal", target = "self", min = "r.hlo", max = "r.hhi", coef = 0.143, tag = "Holy Nova" },
+  { type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef = "r.coef", target = "enemies", threat = 0 },
+  { type = "heal", target = "self", min = "r.hlo", max = "r.hhi", coef = 0.107, tag = "Holy Nova" },
 ]
 
 [spells.power_word_shield]
@@ -625,11 +720,18 @@ cooldown = 4
 target = "self"
 requires = "!aura.weakened_soul.up"
 ranks = [
-  { level = 6, absorb = 48, mana = 45 }, { level = 12, absorb = 92, mana = 80 }, { level = 18, absorb = 162, mana = 130 },
-  { level = 24, absorb = 236, mana = 175 }, { level = 30, absorb = 302, mana = 210 }, { level = 36, absorb = 381, mana = 250 },
-  { level = 42, absorb = 485, mana = 300 }, { level = 48, absorb = 608, mana = 355 }, { level = 54, absorb = 769, mana = 425 },
-  { level = 60, absorb = 928, mana = 500 },
+  { level = 6, id = 17, absorb = 44, absorb_per_level = 0.8, max_level = 11, mana = 45 },
+  { level = 12, id = 592, absorb = 86, absorb_per_level = 1.2, max_level = 17, mana = 80 },
+  { level = 18, id = 600, absorb = 154, absorb_per_level = 1.6, max_level = 23, mana = 130 },
+  { level = 24, id = 3747, absorb = 226, absorb_per_level = 2, max_level = 29, mana = 175 },
+  { level = 30, id = 6065, absorb = 291, absorb_per_level = 2.3, max_level = 35, mana = 210 },
+  { level = 36, id = 6066, absorb = 368, absorb_per_level = 2.6, max_level = 41, mana = 250 },
+  { level = 42, id = 10898, absorb = 470, absorb_per_level = 3, max_level = 47, mana = 300 },
+  { level = 48, id = 10899, absorb = 591, absorb_per_level = 3.4, max_level = 53, mana = 355 },
+  { level = 54, id = 10900, absorb = 749, absorb_per_level = 3.9, max_level = 59, mana = 425 },
+  { level = 60, id = 10901, absorb = 928, absorb_per_level = 4.3, max_level = 65, mana = 500 },
 ]
+text = "Absorbs `absorb` (growing with your level up to the rank's top) plus 0.1 of healing power."
 effects = [{ type = "aura", aura = "power_word_shield" }, { type = "aura", aura = "weakened_soul", target = "self" }]
 
 [spells.renew]
@@ -639,12 +741,31 @@ target = "self"
 requires = "!aura.renew.up"
 forms = ["none"]
 ranks = [
-  { level = 8, total = 45, mana = 30 }, { level = 14, total = 75, mana = 65 }, { level = 20, total = 125, mana = 105 },
-  { level = 26, total = 160, mana = 140 }, { level = 32, total = 205, mana = 170 }, { level = 38, total = 270, mana = 205 },
-  { level = 44, total = 370, mana = 250 }, { level = 50, total = 510, mana = 305 }, { level = 56, total = 670, mana = 365 },
-  { level = 60, total = 830, mana = 410 },
+  { level = 8, id = 139, tick = 9, mana = 30 },
+  { level = 14, id = 6074, tick = 15, mana = 65 },
+  { level = 20, id = 6075, tick = 25, mana = 105 },
+  { level = 26, id = 6076, tick = 32, mana = 140 },
+  { level = 32, id = 6077, tick = 41, mana = 170 },
+  { level = 38, id = 6078, tick = 54, mana = 205 },
+  { level = 44, id = 10927, tick = 74, mana = 250 },
+  { level = 50, id = 10928, tick = 102, mana = 305 },
+  { level = 56, id = 10929, tick = 134, mana = 365 },
+  { level = 60, id = 25315, tick = 166, mana = 410 },
 ]
+text = "`tick` is the healing every 3 sec (5 ticks). Renew can crit (Forever patch notes, Sep 24)."
 effects = [{ type = "aura", aura = "renew" }]
+
+[spells.lesser_heal]
+name = "Lesser Heal"
+school = "holy"
+target = "self"
+forms = ["none"]
+ranks = [
+  { level = 1, id = 2050, lo = 46, lo_per_level = 0.271, hi = 56, hi_per_level = 0.329, mana = 30, cast = 1.5, max_level = 3, coef = 0.429 },
+  { level = 4, id = 2052, lo = 86, lo_per_level = 0.637, hi = 102, hi_per_level = 0.763, mana = 45, cast = 2, max_level = 9, coef = 0.571 },
+  { level = 10, id = 2053, lo = 151, lo_per_level = 1.11, hi = 175, hi_per_level = 1.29, mana = 75, cast = 2.5, max_level = 15, coef = 0.714 },
+]
+effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Lesser Heal" }]
 
 [spells.heal]
 name = "Heal"
@@ -652,15 +773,26 @@ school = "holy"
 target = "self"
 forms = ["none"]
 ranks = [
-  { level = 1, lo = 47, hi = 57, mana = 30, cast = 1.5 }, { level = 4, lo = 89, hi = 106, mana = 45, cast = 2 },
-  { level = 10, lo = 156, hi = 182, mana = 75, cast = 2.5 }, { level = 16, lo = 260, hi = 300, mana = 155, cast = 3 },
-  { level = 22, lo = 363, hi = 416, mana = 205, cast = 3 }, { level = 28, lo = 509, hi = 577, mana = 255, cast = 3 },
-  { level = 34, lo = 633, hi = 714, mana = 305, cast = 3 }, { level = 40, lo = 818, hi = 921, mana = 370, cast = 3 },
-  { level = 46, lo = 1063, hi = 1193, mana = 455, cast = 3 }, { level = 52, lo = 1355, hi = 1517, mana = 545, cast = 3 },
-  { level = 58, lo = 1699, hi = 1895, mana = 655, cast = 3 }, { level = 60, lo = 1853, hi = 2067, mana = 710, cast = 3 },
+  { level = 16, id = 2054, lo = 250, lo_per_level = 1.855, hi = 290, hi_per_level = 2.145, mana = 155, cast = 3, max_level = 21, coef = 0.857 },
+  { level = 22, id = 2055, lo = 350, lo_per_level = 2.705, hi = 400, hi_per_level = 3.095, mana = 205, cast = 3, max_level = 27, coef = 0.857 },
+  { level = 28, id = 6063, lo = 490, lo_per_level = 3.748, hi = 556, hi_per_level = 4.252, mana = 255, cast = 3, max_level = 33, coef = 0.857 },
+  { level = 34, id = 6064, lo = 611, lo_per_level = 4.227, hi = 691, hi_per_level = 4.773, mana = 305, cast = 3, max_level = 39, coef = 0.857 },
 ]
-text = "Lesser Heal, Heal and Greater Heal as one ladder."
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.cast / 3.5", tag = "Heal" }]
+effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Heal" }]
+
+[spells.greater_heal]
+name = "Greater Heal"
+school = "holy"
+target = "self"
+forms = ["none"]
+ranks = [
+  { level = 40, id = 2060, lo = 794, lo_per_level = 4.796, hi = 894, hi_per_level = 5.404, mana = 370, cast = 3, max_level = 45, coef = 0.857 },
+  { level = 46, id = 10963, lo = 1036, lo_per_level = 5.467, hi = 1162, hi_per_level = 6.133, mana = 455, cast = 3, max_level = 51, coef = 0.857 },
+  { level = 52, id = 10964, lo = 1324, lo_per_level = 6.227, hi = 1482, hi_per_level = 6.973, mana = 545, cast = 3, max_level = 57, coef = 0.857 },
+  { level = 58, id = 10965, lo = 1685, lo_per_level = 7.09, hi = 1879, hi_per_level = 7.91, mana = 655, cast = 3, max_level = 63, coef = 0.857 },
+  { level = 60, id = 25314, lo = 1853, lo_per_level = 7.656, hi = 2067, hi_per_level = 8.544, mana = 710, cast = 3, max_level = 65, coef = 0.857 },
+]
+effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Greater Heal" }]
 
 [spells.flash_heal]
 name = "Flash Heal"
@@ -669,11 +801,15 @@ target = "self"
 cast_time = 1.5
 forms = ["none"]
 ranks = [
-  { level = 20, lo = 183, hi = 224, mana = 125 }, { level = 26, lo = 235, hi = 285, mana = 155 }, { level = 32, lo = 295, hi = 354, mana = 185 },
-  { level = 38, lo = 362, hi = 432, mana = 215 }, { level = 44, lo = 478, hi = 569, mana = 265 }, { level = 50, lo = 606, hi = 719, mana = 315 },
-  { level = 56, lo = 772, hi = 911, mana = 380 },
+  { level = 20, id = 2061, lo = 174, lo_per_level = 1.706, hi = 214, hi_per_level = 2.094, mana = 125, max_level = 25, coef = 0.429 },
+  { level = 26, id = 9472, lo = 225, lo_per_level = 1.985, hi = 273, hi_per_level = 2.415, mana = 155, max_level = 31, coef = 0.429 },
+  { level = 32, id = 9473, lo = 283, lo_per_level = 2.271, hi = 341, hi_per_level = 2.729, mana = 185, max_level = 37, coef = 0.429 },
+  { level = 38, id = 9474, lo = 349, lo_per_level = 2.551, hi = 417, hi_per_level = 3.049, mana = 215, max_level = 43, coef = 0.429 },
+  { level = 44, id = 10915, lo = 463, lo_per_level = 3.015, hi = 551, hi_per_level = 3.585, mana = 265, max_level = 49, coef = 0.429 },
+  { level = 50, id = 10916, lo = 589, lo_per_level = 3.385, hi = 699, hi_per_level = 4.015, mana = 315, max_level = 55, coef = 0.429 },
+  { level = 56, id = 10917, lo = 757, lo_per_level = 3.853, hi = 893, hi_per_level = 4.546, mana = 380, max_level = 61, coef = 0.429 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 0.4286, tag = "Flash Heal" }]
+effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Flash Heal" }]
 
 [spells.binding_heal]
 name = "Binding Heal"
@@ -683,11 +819,15 @@ target = "self"
 cast_time = 1.5
 forms = ["none"]
 ranks = [
-  { level = 25, lo = 235, hi = 286, mana = 155 }, { level = 32, lo = 295, hi = 354, mana = 185 }, { level = 38, lo = 362, hi = 432, mana = 215 },
-  { level = 44, lo = 478, hi = 569, mana = 265 }, { level = 50, lo = 606, hi = 719, mana = 315 }, { level = 56, lo = 772, hi = 911, mana = 380 },
+  { level = 25, id = 401937, lo = 223, lo_per_level = 1.985, hi = 271, hi_per_level = 2.415, mana = 155, max_level = 31, coef = 0.429 },
+  { level = 32, id = 1240770, lo = 283, lo_per_level = 2.271, hi = 341, hi_per_level = 2.729, mana = 185, max_level = 37, coef = 0.429 },
+  { level = 38, id = 1240771, lo = 349, lo_per_level = 2.551, hi = 417, hi_per_level = 3.049, mana = 215, max_level = 43, coef = 0.429 },
+  { level = 44, id = 1240772, lo = 463, lo_per_level = 3.015, hi = 551, hi_per_level = 3.585, mana = 265, max_level = 49, coef = 0.429 },
+  { level = 50, id = 1240773, lo = 589, lo_per_level = 3.385, hi = 699, hi_per_level = 4.015, mana = 315, max_level = 55, coef = 0.429 },
+  { level = 56, id = 1240774, lo = 757, lo_per_level = 3.853, hi = 893, hi_per_level = 4.546, mana = 380, max_level = 61, coef = 0.429 },
 ]
-text = "Solo, only the self-heal half is used."
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 0.4286, tag = "Binding Heal" }]
+text = "Heals the target and you with two equal effects; solo, only the self-heal half is used."
+effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Binding Heal" }]
 
 [spells.prayer_of_mending]
 name = "Prayer of Mending"
@@ -695,33 +835,55 @@ talent = "prayer_of_mending"
 school = "holy"
 cooldown = 10
 target = "self"
-ranks = [{ level = 40, base = 172, mana = 210 }, { level = 50, base = 298, mana = 305 }, { level = 60, base = 413, mana = 390 }]
+ranks = [{ level = 40, id = 401859, base = 172, mana = 210 }, { level = 50, id = 1240826, base = 298, mana = 305 }, { level = 60, id = 1240827, base = 413, mana = 390 }]
 effects = [{ type = "aura", aura = "prayer_of_mending" }]
 
 [spells.desperate_prayer]
 name = "Desperate Prayer"
 school = "holy"
-off_gcd = true
 cooldown = 600
 target = "self"
+requires = "race.dwarf"
 ranks = [
-  { level = 10, lo = 144, hi = 183 }, { level = 18, lo = 265, hi = 328 }, { level = 26, lo = 438, hi = 532 }, { level = 34, lo = 569, hi = 685 },
-  { level = 42, lo = 816, hi = 973 }, { level = 50, lo = 1087, hi = 1288 }, { level = 58, lo = 1284, hi = 1515 },
+  { level = 10, id = 13908, lo = 131, lo_per_level = 2.116, hi = 167, hi_per_level = 2.684, max_level = 16, coef = 0.429 },
+  { level = 18, id = 19236, lo = 247, lo_per_level = 3.041, hi = 305, hi_per_level = 3.759, max_level = 24, coef = 0.429 },
+  { level = 26, id = 19238, lo = 414, lo_per_level = 4.064, hi = 502, hi_per_level = 4.936, max_level = 32, coef = 0.429 },
+  { level = 34, id = 19240, lo = 540, lo_per_level = 4.809, hi = 650, hi_per_level = 5.791, max_level = 40, coef = 0.429 },
+  { level = 42, id = 19241, lo = 781, lo_per_level = 5.84, hi = 931, hi_per_level = 6.96, max_level = 48, coef = 0.429 },
+  { level = 50, id = 19242, lo = 1046, lo_per_level = 6.772, hi = 1240, hi_per_level = 8.028, max_level = 56, coef = 0.429 },
+  { level = 58, id = 19243, lo = 1269, lo_per_level = 7.524, hi = 1497, hi_per_level = 8.876, max_level = 64, coef = 0.429 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 0.4286, tag = "Desperate Prayer" }]
+text = "Instant, but on the global cooldown (game data)."
+effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Desperate Prayer" }]
 
 [spells.dark_sacrifice]
 name = "Dark Sacrifice"
 cooldown = 600
 target = "self"
-ranks = [{ level = 20, cost = 440 }, { level = 30, cost = 720 }, { level = 40, cost = 1020 }, { level = 50, cost = 1330 }, { level = 60, cost = 1600 }]
+requires = "race.undead"
+ranks = [
+  { level = 20, id = 1277324, tick = 80, tick_per_level = 1, max_level = 28 },
+  { level = 30, id = 1277325, tick = 136, tick_per_level = 1, max_level = 38 },
+  { level = 40, id = 1277326, tick = 196, tick_per_level = 1, max_level = 48 },
+  { level = 50, id = 1277327, tick = 258, tick_per_level = 1, max_level = 58 },
+  { level = 60, id = 1277328, tick = 320, tick_per_level = 1, max_level = 68 },
+]
+text = "Every 3 sec for 15 sec: lose `tick` health, gain `tick` mana plus a fifth of your Spirit (the tooltip: that amount plus Spirit in mana)."
 effects = [{ type = "aura", aura = "dark_sacrifice" }]
 
 [spells.contingency_plan]
 name = "Contingency Plan"
 cooldown = 600
 target = "self"
-ranks = [{ level = 20, shield = 155, hot = 125 }, { level = 30, shield = 290, hot = 200 }, { level = 40, shield = 467, hot = 280 }, { level = 50, shield = 596, hot = 510 }, { level = 60, shield = 926, hot = 670 }]
+requires = "race.gnome"
+ranks = [
+  { level = 20, id = 1277462, shield = 155, hot = 25 },
+  { level = 30, id = 1277634, shield = 290, hot = 40 },
+  { level = 40, id = 1277638, shield = 467, hot = 56 },
+  { level = 50, id = 1277639, shield = 596, hot = 102 },
+  { level = 60, id = 1277640, shield = 926, hot = 134 },
+]
+text = "A 30 sec ward; below 35% health you get a 15 sec shield and `hot` healing every 3 sec for 15 sec (0.2 of healing power per tick)."
 effects = [{ type = "aura", aura = "contingency_plan" }]
 
 [spells.inner_focus]
@@ -730,12 +892,15 @@ talent = "inner_focus"
 off_gcd = true
 cooldown = 180
 target = "self"
+ranks = [{ level = 1, id = 14751 }]
 effects = [{ type = "aura", aura = "inner_focus" }]
 [spells.power_infusion]
 name = "Power Infusion"
 talent = "power_infusion"
+level = 40
 off_gcd = true
 cooldown = 180
+cost = { mana = "0.2 * base_mana" }
 target = "self"
 effects = [{ type = "aura", aura = "power_infusion" }]
 [spells.vampiric_embrace]
@@ -751,19 +916,25 @@ name = "Shadowform"
 talent = "shadowform"
 target = "self"
 requires = "!aura.shadowform.up"
-cost = { mana = "0.13 * base_mana" }
+cooldown = 1.5
+cost = { mana = "0.4 * base_mana" }
 effects = [{ type = "aura", aura = "shadowform" }]
 [spells.psychic_scream]
 name = "Psychic Scream"
 school = "shadow"
 cooldown = 30
 requires = "target.is_player || enemies >= 2"
-ranks = [{ level = 14, mana = 100 }, { level = 28, mana = 140 }, { level = 42, mana = 180 }, { level = 56, mana = 210 }]
-effects = [{ type = "aura", aura = "fear", target = "enemies", max_targets = 5, duration = 8 }]
+text = "Frightens 2, 3, 4 or 5 nearby enemies by rank, for 8 sec."
+ranks = [{ level = 14, id = 8122, targets = 2, mana = 100 }, { level = 28, id = 8124, targets = 3, mana = 140 }, { level = 42, id = 10888, targets = 4, mana = 180 }, { level = 56, id = 10890, targets = 5, mana = 210 }]
+effects = [{ type = "aura", aura = "fear", target = "enemies", max_targets = "r.targets", duration = 8 }]
 
 # ------------------------------------------------------------------ rotations
+# Racials: Desperate Prayer (Dwarf), Contingency Plan (Gnome), Shadowguard
+# (Troll), Elune's Light (Night Elf) and Eureka! (Gnome); other races skip
+# those lines. Before Shadowform a leveling priest heals itself with Flash
+# Heal when a fight goes badly (Shadowform forbids it).
 [rotations.shadow]
-desc = "Shadow: Shadowform, Shield, Vampiric Embrace, Pain and Plague, Mind Blast, Shadow Word: Death, Mind Flay"
+desc = "Shadow: Shadowform, Shield, Vampiric Embrace, Pain and Plague, Mind Blast, Shadow Word: Death, Mind Flay; Flash Heal when low before Shadowform"
 auto_melee = false
 precombat = ["inner_fire", "fortitude", "shadowguard", "shadowform", "power_word_shield"]
 opener = []
@@ -771,19 +942,25 @@ actions = [
   { cast = "healing_potion", if = "hp_pct < 0.2" },
   { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
   { cast = "desperate_prayer", if = "hp_pct < 0.35" },
+  { cast = "contingency_plan", if = "hp_pct < 0.6" },
   { cast = "power_word_shield", if = "!target.boss && (in_combat || hp_pct < 0.9)" },
   { cast = "psychic_scream", if = "hp_pct < 0.4" },
+  { cast = "flash_heal", if = "hp_pct < 0.35" },
   { cast = "vampiric_embrace" },
   { cast = "blood_fury" },
   { cast = "berserking" },
+  { cast = "elunes_light" },
+  { cast = "eureka" },
   { cast = "power_infusion" },
   { cast = "shadow_word_pain", if = "target.hp_pct > 0.2 || target.boss" },
   { cast = "devouring_plague", if = "target.hp_pct > 0.3 || target.boss" },
-  { cast = "inner_focus" },
+  { cast = "inner_focus", if = "cd.mind_blast.ready && gcd_remains <= 0" },
   { cast = "mind_blast" },
   { cast = "shadow_word_death", if = "target.hp_pct < 0.2 || hp_pct > 0.6" },
+  { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (mana_pct < 0.4 || (target.hp_pct < 0.35 && !known.mind_flay))" },   # leveling: Mind Blast and Pain, then wand to finish until Mind Flay; after that only to save mana
   { cast = "mind_flay" },
   { cast = "smite", if = "!known.mind_flay" },
+  { cast = "shoot", if = "gcd_remains <= 0" },   # out of mana: the wand is free
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
@@ -796,6 +973,7 @@ rest = [
 eat_below = 0.5
 drink_below = 0.35
 
+# Racials as in the shadow rotation; other races skip those lines.
 [rotations.smite]
 desc = "Discipline/Holy damage: Shield, Holy Fire, Pain and Plague, Penance, Mind Blast, Smite; Renew and Flash Heal when hurt"
 auto_melee = false
@@ -805,6 +983,7 @@ actions = [
   { cast = "healing_potion", if = "hp_pct < 0.2" },
   { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
   { cast = "desperate_prayer", if = "hp_pct < 0.35" },
+  { cast = "contingency_plan", if = "hp_pct < 0.6" },
   { cast = "power_word_shield", if = "!target.boss && (in_combat || hp_pct < 0.9)" },
   { cast = "penance_heal", if = "hp_pct < 0.45" },
   { cast = "flash_heal", if = "hp_pct < 0.4" },
@@ -813,15 +992,19 @@ actions = [
   { cast = "psychic_scream", if = "hp_pct < 0.4" },
   { cast = "blood_fury" },
   { cast = "berserking" },
+  { cast = "elunes_light" },
+  { cast = "eureka" },
   { cast = "power_infusion" },
   { cast = "holy_fire", if = "!target.aura.holy_fire.up && target.hp_pct > 0.3" },
   { cast = "shadow_word_pain", if = "target.hp_pct > 0.3 || target.boss" },
   { cast = "devouring_plague", if = "target.hp_pct > 0.4 || target.boss" },
-  { cast = "inner_focus" },
+  { cast = "inner_focus", if = "gcd_remains <= 0" },
   { cast = "penance" },
   { cast = "mind_blast" },
+  { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (target.hp_pct < 0.35 || mana_pct < 0.4)" },   # leveling: wand to finish and save mana
   { cast = "holy_nova", if = "enemies >= 3" },
   { cast = "smite" },
+  { cast = "shoot", if = "gcd_remains <= 0" },   # out of mana: the wand is free
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },

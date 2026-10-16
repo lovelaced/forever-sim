@@ -1,5 +1,6 @@
 # Mutilate daggers, 41/10/0 with Seal Fate and Venom.
 name = "Mutilate (41/10)"
+kind = "experimental"
 class = "rogue"
 race = "undead"
 level = 60

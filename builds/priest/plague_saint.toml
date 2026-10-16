@@ -2,11 +2,30 @@
 # Pain, Devouring Plague, Penance and Smite with Shield/Divine Aegis/Blessed
 # Recovery and Touch of the Grave keeping you up.
 name = "Plague Saint (31/20)"
+kind = "experimental"
 class = "priest"
 race = "undead"
 level = 60
 gear = "cloth_caster"
 rotation = "smite"
+# Levelling order (one entry per level from 10). Build 70425 moved Mental
+# Strength up to row 2 and Improved Power Word: Shield down to row 3; without
+# an order the sim would now buy Mental Strength before Meditation at level
+# 30. This keeps the path the sim took before the patch.
+order = [
+  "power_in_light", "power_in_light", "power_in_light", "power_in_light", "power_in_light",
+  "twin_disciplines", "twin_disciplines", "twin_disciplines", "twin_disciplines",
+  "twin_disciplines", "holy_precision", "holy_precision", "improved_power_word_shield",
+  "improved_power_word_shield", "improved_power_word_shield", "mental_agility",
+  "inner_focus", "meditation", "meditation", "meditation", "mental_strength",
+  "mental_strength", "mental_strength", "mental_strength", "soul_warding",
+  "penance", "renewed_hope", "renewed_hope", "renewed_hope", "divine_aegis",
+  "power_infusion", "holy_specialization", "holy_specialization", "holy_specialization",
+  "holy_specialization", "holy_specialization", "divine_fury", "divine_fury",
+  "divine_fury", "divine_fury", "divine_fury", "holy_nova", "blessed_recovery",
+  "blessed_recovery", "blessed_recovery", "inspiration", "improved_healing",
+  "improved_healing", "searing_light", "searing_light", "binding_heal",
+]
 
 [talents]
 power_in_light = 5

@@ -3,7 +3,11 @@
 # (crit and hit in percent). Levels between anchors are interpolated.
 # Forever reworked item stats, so these are deliberately generic.
 # Weapon: min, max, speed, type (sword axe mace dagger fist polearm staff
-# sword2h axe2h mace2h bow gun crossbow thrown wand).
+# sword2h axe2h mace2h bow gun crossbow thrown wand), and for a wand its
+# school. Cloth kits carry a typical wand for the level: about 20 damage per
+# second at 20 (Greater Magic Wand 17.5, Gravestone Scepter 29), 30 at 30
+# (Goblin Igniter 33), 40 at 40 (Blackbone Wand 35, Dreambough Wand 39) and
+# 56 at 60 (Skul's Ghastly Touch); crafted arcane wands early, shadow later.
 
 [gear.plate_dw]
 # Levels 40 and 60 match the gear of the earlier Python sim.
@@ -401,7 +405,7 @@ mh = { min = 66, max = 123, speed = 2.6, type = "mace" }
 shield = { armor = 2300, block_value = 50 }
 
 [gear.cloth_caster]
-desc = "Caster cloth with a staff and wand slot (mage, warlock, shadow priest)."
+desc = "Caster cloth with a staff and a wand (mage, warlock, shadow priest)."
 [[gear.cloth_caster.levels]]
 level = 20
 sta = 16
@@ -410,6 +414,7 @@ spi = 18
 sp = 15
 armor = 120
 mh = { min = 30, max = 46, speed = 3.0, type = "staff" }
+ranged = { min = 24, max = 44, speed = 1.7, type = "wand", school = "arcane" }
 [[gear.cloth_caster.levels]]
 level = 40
 sta = 50
@@ -420,6 +425,7 @@ crit = 1
 hit = 1
 armor = 350
 mh = { min = 70, max = 106, speed = 3.2, type = "staff" }
+ranged = { min = 47, max = 88, speed = 1.7, type = "wand", school = "shadow" }
 [[gear.cloth_caster.levels]]
 level = 60
 sta = 130
@@ -430,9 +436,10 @@ crit = 3
 hit = 4
 armor = 650
 mh = { min = 120, max = 180, speed = 3.4, type = "staff" }
+ranged = { min = 70, max = 131, speed = 1.8, type = "wand", school = "shadow" }
 
 [gear.cloth_healer]
-desc = "Healer cloth (Holy/Discipline priest)."
+desc = "Healer cloth with a wand (Holy or Discipline priest)."
 [[gear.cloth_healer.levels]]
 level = 20
 sta = 18
@@ -441,6 +448,7 @@ spi = 24
 heal_power = 25
 armor = 120
 mh = { min = 30, max = 46, speed = 3.0, type = "staff" }
+ranged = { min = 24, max = 44, speed = 1.7, type = "wand", school = "arcane" }
 [[gear.cloth_healer.levels]]
 level = 40
 sta = 55
@@ -450,6 +458,7 @@ heal_power = 120
 mp5 = 4
 armor = 350
 mh = { min = 70, max = 106, speed = 3.2, type = "staff" }
+ranged = { min = 47, max = 88, speed = 1.7, type = "wand", school = "shadow" }
 [[gear.cloth_healer.levels]]
 level = 60
 sta = 140
@@ -460,9 +469,10 @@ mp5 = 10
 crit = 2
 armor = 650
 mh = { min = 120, max = 180, speed = 3.4, type = "staff" }
+ranged = { min = 70, max = 131, speed = 1.8, type = "wand", school = "shadow" }
 
 [gear.cloth_battlemage]
-desc = "Caster cloth with a sword (mage battlemage: Coldflame Saber line)."
+desc = "Caster cloth with a sword and a wand (mage battlemage: Coldflame Saber line)."
 [[gear.cloth_battlemage.levels]]
 level = 21
 sta = 18
@@ -471,6 +481,7 @@ spi = 16
 sp = 32
 armor = 130
 mh = { min = 17, max = 32, speed = 2.0, type = "sword" }
+ranged = { min = 24, max = 44, speed = 1.7, type = "wand", school = "arcane" }
 [[gear.cloth_battlemage.levels]]
 level = 40
 sta = 50
@@ -481,6 +492,7 @@ crit = 1
 hit = 1
 armor = 350
 mh = { min = 32, max = 60, speed = 2.0, type = "sword" }
+ranged = { min = 47, max = 88, speed = 1.7, type = "wand", school = "shadow" }
 [[gear.cloth_battlemage.levels]]
 level = 60
 sta = 130
@@ -491,6 +503,7 @@ crit = 3
 hit = 4
 armor = 650
 mh = { min = 60, max = 110, speed = 2.0, type = "sword" }
+ranged = { min = 70, max = 131, speed = 1.8, type = "wand", school = "shadow" }
 
 [gear.leather_daggers]
 desc = "Agility leather with two daggers (Backstab/Mutilate/Ambush rogue)."

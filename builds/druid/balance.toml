@@ -1,0 +1,47 @@
+# A caster druid: Moonfire and Insect Swarm, then Starfire with Wrath for Eclipse, Moonkin Form at 40
+# and Vengeance for bigger crits. Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Warcraft Tavern, Druid leveling guide ("Mid-Level Balance, Eclipse", 26 points: the order here
+#   for 10-35; the play: Thorns, pull with Wrath, Moonfire, Insect Swarm, then two Starfires to one
+#   Wrath after 30; Balance is "a lot weaker for leveling than Feral"):
+#   https://www.warcrafttavern.com/forever/guides/druid-leveling/
+# - Mobalytics, Balance druid guide (the same first 16 points at 30, then Vengeance and Nature's
+#   Grace; read from search excerpts, the page refuses automated readers):
+#   https://mobalytics.gg/wow-forever/classes/balance-druid-guide
+# - Method, Druid leveling guide (races; Wrath and Moonfire while leveling):
+#   https://www.method.gg/wow-forever/wow-forever-druid-leveling-guide-and-talents
+# - Blizzard forums, Balance leveling thread (full Balance plus Nature's Focus):
+#   https://us.forums.blizzard.com/en/wow/t/2371595
+# No guide has a level 60 Balance build yet. From 36 this one finishes Moonfury, takes Moonkin Form at
+# 40, Vengeance and Genesis, then Nature's Focus (the forum's pick, against pushback while mobs hit
+# you) and Naturalist for damage: 41/0/10. The Balance tree has only 46 points in Forever.
+# Race: High Order Skyborne (Alliance). Method picks Skyborne for Balance; Wind Blessed gives 3% haste
+# since build 70425, and Read Leyline (mana, not simulated) suits a caster.
+name = "Balance"
+kind = "standard"
+class = "druid"
+race = "high_order"
+level = 60
+gear = "leather_caster"
+rotation = "balance"
+
+order = [
+  "improved_wrath", "improved_wrath", "improved_wrath", "improved_wrath", "improved_wrath",   # 10-14
+  "moonglow", "moonglow", "moonglow",                                                         # 15-17
+  "natures_majesty", "natures_majesty",                                                       # 18-19
+  "natures_reach", "natures_reach",                                                           # 20-21
+  "improved_moonfire", "improved_moonfire",                                                   # 22-23
+  "natures_splendor",                                                                         # 24
+  "insect_swarm",                                                                             # 25
+  "improved_starfire", "improved_starfire", "improved_starfire", "improved_starfire",         # 26-29
+  "eclipse", "eclipse", "eclipse",                                                            # 30-32
+  "improved_starfire",                                                                        # 33
+  "natures_grace",                                                                            # 34
+  "moonfury", "moonfury", "moonfury", "moonfury", "moonfury",                                 # 35-39
+  "moonkin_form",                                                                             # 40
+  "vengeance", "vengeance", "vengeance", "vengeance", "vengeance",                            # 41-45
+  "genesis", "genesis", "genesis", "genesis", "genesis",                                      # 46-50
+  "natures_focus", "natures_focus", "natures_focus", "natures_focus", "natures_focus",        # 51-55
+  "naturalist", "naturalist", "naturalist", "naturalist", "naturalist",                       # 56-60
+]

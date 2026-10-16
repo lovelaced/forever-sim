@@ -1,27 +1,58 @@
-# Fire mage, 10/41/0: Heating Up Pyroblasts, Ignite, Combustion.
-name = "Fire (10/41)"
+# Fire with 22 points in Frost, the build most Fire mages plan in Forever: Fireball, Fire Blast, Scorch,
+# Ignite and Heating Up Pyroblasts, then Elemental Precision, Ice Shards, Shatter and Fingers of Frost,
+# with Frostfire Bolt and Ice Lance once Fingers of Frost comes at 58. Level 60 points are theorycrafted
+# until launch.
+
+# Sources:
+# - talentsforever.com, Fire Mage builds (the most planned Fire build, 0/28/22, the most planned Mage
+#   build of all) and its Fire leveling order to 60: https://talentsforever.com/mage/builds/fire and
+#   https://talentsforever.com/mage/leveling
+# - Warcraft Tavern, WoW Forever Mage Leveling Guide (the level 30 Fire build, Ignite, Improved Scorch,
+#   Heating Up and Pyroblast with Elemental Precision from Frost, and its rotation):
+#   https://www.warcrafttavern.com/forever/guides/mage-leveling/
+# The order is talentsforever.com's Fire leveling order. Build 70425 cut Fire Power from 5 ranks to 3 and
+# gave Critical Mass 5, so the point that order put in a fourth Fire Power rank goes to Critical Mass at
+# 60 (0/29/22 here). Theorycrafted: everything past level 30, which the site's players have planned but
+# not played.
+# Race: Orc, Warcraft Tavern's first Horde Mage pick: Blood Fury adds 10% spell power for 15 seconds and
+# Savage adds 1% crit.
+name = "Fire"
+kind = "standard"
 class = "mage"
-race = "undead"
+race = "orc"
 level = 60
 gear = "cloth_caster"
 rotation = "fire"
 
+order = [
+  "improved_fireball", "improved_fireball", "improved_fireball", "improved_fireball", "improved_fireball",   # 10-14
+  "ignite", "ignite", "ignite", "ignite", "ignite",   # 15-19
+  "burning_soul", "burning_soul", "burning_soul", "flame_throwing", "pyroblast",   # 20-24
+  "improved_scorch", "improved_scorch", "improved_scorch", "heating_up", "master_of_elements",   # 25-29
+  "master_of_elements", "master_of_elements", "critical_mass", "critical_mass", "critical_mass",   # 30-34
+  "fire_power", "fire_power", "fire_power", "elemental_precision", "elemental_precision",   # 35-39
+  "elemental_precision", "elemental_precision", "elemental_precision", "ice_shards", "ice_shards",   # 40-44
+  "ice_shards", "ice_shards", "ice_shards", "piercing_ice", "piercing_ice",   # 45-49
+  "piercing_ice", "frost_channeling", "frost_channeling", "frost_channeling", "ice_lance",   # 50-54
+  "shatter", "shatter", "shatter", "fingers_of_frost", "fingers_of_frost",   # 55-59
+  "critical_mass",   # 60
+]
+
 [talents]
-wand_specialization = 2
-arcane_focus = 3
-arcane_concentration = 5
 improved_fireball = 5
-incineration = 3
-wake_of_fire = 2
 ignite = 5
-impact = 3
-flame_throwing = 2
 burning_soul = 3
+flame_throwing = 1
 pyroblast = 1
-heating_up = 1
 improved_scorch = 3
+heating_up = 1
 master_of_elements = 3
-critical_mass = 3
-blast_wave = 1
-fire_power = 5
-combustion = 1
+critical_mass = 4
+fire_power = 3
+elemental_precision = 5
+ice_shards = 5
+piercing_ice = 3
+frost_channeling = 3
+ice_lance = 1
+shatter = 3
+fingers_of_frost = 2

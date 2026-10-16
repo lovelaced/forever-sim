@@ -1,0 +1,67 @@
+# The healing build: Illumination and Divine Favor, Holy Shock at 30 and Light's Vigil at 40, with
+# Benediction and Guardian's Favor at the end. Solo it fights with Seal of Righteousness, Judgement, Holy
+# Strike, Holy Shock and Consecration, and heals itself with Holy Shock and Flash of Light.
+# Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Mobalytics, WoW Forever Holy Paladin Guide (level 30 build and its talent order; LFCarry's Holy guide
+#   repeats it): https://mobalytics.gg/wow-forever/classes/holy-paladin-guide
+#   and https://lfcarry.com/guides/wow-forever-holy-paladin-pve
+# - Warcraft Tavern, WoW Forever Paladin Guide (the 26-point Holy Shock build: Voice of Truth, row 4,
+#   Holy Shock, Divine Precision, Holy Power): https://www.warcrafttavern.com/forever/guides/paladin/
+# - talentsforever.com, Paladin leveling orders (the most planned Holy order, levels 10 to 49) and Paladin
+#   builds (the most used level 60 Holy build in its planner, 36/10/5, which this build ends on):
+#   https://talentsforever.com/paladin/leveling and https://talentsforever.com/paladin/builds
+# - Method, WoW Forever Paladin Leveling Guide (Seal of Righteousness, Judgement, Holy Strike):
+#   https://www.method.gg/wow-forever/wow-forever-paladin-leveling-guide-and-talents
+# Levels 10 to 30 follow Mobalytics (Divine Intellect, Healing Light, Spiritual Focus, Reverence, Purifying
+# Power, Divine Favor, Illumination 4, Holy Shock), which takes Holy Shock 4 levels sooner than the
+# planner. Levels 31 to 45 follow the planner: the last Illumination point, Voice of Truth, Infusion of
+# Light, Holy Power, Light's Vigil at 40 (its first rank is a level 40 spell) and Benediction.
+# Theorycrafted (46 to 60): Divine Precision, Unyielding Faith, Toughness, Precision and Guardian's Favor,
+# which complete the 36/10/5 build.
+# Race: Human (LFCarry rates it first for Holy): Ruthless adds 2% crit to heals, which feeds Illumination,
+# and The Human Spirit adds Spirit.
+name = "Holy"
+kind = "standard"
+role = "healer"
+class = "paladin"
+race = "human"
+level = 60
+gear = "plate_holy"
+rotation = "holy_shock"
+
+order = [
+  "divine_intellect", "divine_intellect", "divine_intellect", "divine_intellect", "divine_intellect",
+  "healing_light", "healing_light", "healing_light", "spiritual_focus", "spiritual_focus",
+  "reverence", "reverence", "reverence", "purifying_power", "purifying_power",
+  "divine_favor", "illumination", "illumination", "illumination", "illumination",
+  "holy_shock",
+  "illumination", "voice_of_truth", "infusion_of_light", "infusion_of_light",
+  "holy_power", "holy_power", "holy_power", "holy_power", "holy_power",
+  "lights_vigil",
+  "benediction", "benediction", "benediction", "benediction", "benediction",
+  "divine_precision", "divine_precision", "divine_precision", "unyielding_faith", "unyielding_faith",
+  "toughness", "toughness", "toughness", "toughness", "toughness",
+  "precision", "precision", "precision", "guardians_favor", "guardians_favor",
+]
+
+[talents]
+divine_intellect = 5
+healing_light = 3
+spiritual_focus = 2
+reverence = 3
+purifying_power = 2
+divine_favor = 1
+illumination = 5
+holy_shock = 1
+infusion_of_light = 2
+voice_of_truth = 1
+holy_power = 5
+lights_vigil = 1
+divine_precision = 3
+unyielding_faith = 2
+benediction = 5
+toughness = 5
+precision = 3
+guardians_favor = 2

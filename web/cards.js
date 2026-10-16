@@ -2,8 +2,9 @@
 // baseline, what its last change did, and the buttons to edit, copy, remove
 // or make it the baseline.
 import * as M from './meta.js';
-import { h, art } from './ui.js';
-import { S, MAX_BUILDS, classOf, raceOf, nameOf, classColor, baselineBuild, buildDiff, diffText } from './state.js';
+import { h, art, withTip, tt } from './ui.js';
+import { gearLines } from './editor.js';
+import { S, MAX_BUILDS, classOf, raceOf, nameOf, classColor, baselineBuild, buildDiff, diffText, presetOf, presetTags } from './state.js';
 import { prepareClass } from './talents.js';
 import { changesFor } from './runner.js';
 
@@ -18,6 +19,19 @@ export function renderCards(root, actions) {
       h('span.add-text', h('b', 'Add a build to compare'), h('span', `Starts as a copy of ${nameOf(from)}`))));
   }
   root.replaceChildren(h('div.cards', { style: { '--n': String(cards.length) } }, cards));
+}
+
+// "Typical level 30 gear: caster cloth with a staff and a wand", with the
+// kit's stats and weapons on hover or tap.
+function gearLine(b) {
+  const title = M.GEAR_TITLES[b.gear] || b.gear;
+  const line = h('p.card-gear', { tabindex: '0' }, `Typical level ${b.level} gear: ${title.charAt(0).toLowerCase()}${title.slice(1)}`);
+  const sheet = S.sheets.get(b.uid);
+  if (sheet && sheet.gear) {
+    const { stats, weapons } = gearLines(sheet.gear);
+    withTip(line, () => [tt.title(`${title}, level ${sheet.gear.level}`), tt.line(stats.join(', '), 'gold'), ...weapons.map((w) => tt.line(w)), tt.line('The same totals for every build with this kit.', 'grey')]);
+  }
+  return line;
 }
 
 function card(b, k, isBase, base, actions) {
@@ -63,8 +77,10 @@ function card(b, k, isBase, base, actions) {
       h('span.card-portrait', h('span.face', art(M.RACE_ICONS[b.race] || 'rune-stone', race?.icon)), h('span.crest', art(M.CLASS_ICONS[b.cls], c.icon))),
       h('div.card-id',
         h('h3.card-name', nameOf(b)),
-        h('p.card-sub', `Level ${b.level} ${race?.name || ''} `, h('span', { style: { color: classColor(b.cls) } }, c.name)))),
+        h('p.card-sub', `Level ${b.level} ${race?.name || ''} `, h('span', { style: { color: classColor(b.cls) } }, c.name),
+          presetTags(b.preset && presetOf(b.preset)).map((t) => h('span.card-tag', t))))),
     h('p.card-split', split.map(([tr, n], i) => h('span', { class: n ? '' : 'zero', title: tr.name }, art(style[i]?.[1] || 'rune-stone', style[i]?.[2]), `${n}`))),
+    gearLine(b),
     isBase && S.builds.length > 1 ? h('p.card-diff.base', 'Baseline: the others are compared with this build.') : diff,
     change,
     h('div.card-actions',

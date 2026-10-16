@@ -1,9 +1,10 @@
 # Warden-9 (Feral 26 / Balance 9 / Restoration 16): a cat that leaves form to
 # Rejuvenation + Swiftmend + Regrowth and comes back with its Energy (Furor 5).
-# Levelling order follows the guide; Nature's Reach moved to Balance row 10
-# in build 70338, so the Balance dip is Genesis 5, Nature's Majesty 2,
-# Improved Moonfire 2.
+# Leveling order follows the guide. The Balance dip is Genesis 5, Nature's
+# Majesty 2, Improved Moonfire 2 (Nature's Reach, +4% hit, needs 5 points in
+# Balance in build 70338 and would fit in place of Improved Moonfire).
 name = "Warden-9 (26/9/16)"
+kind = "experimental"
 class = "druid"
 race = "tauren"
 level = 60

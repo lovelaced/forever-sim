@@ -1,5 +1,6 @@
 # Combat swords, 20/31/0. Undead for Touch of the Grave and Cannibalize.
 name = "Combat Swords (20/31)"
+kind = "experimental"
 class = "rogue"
 race = "undead"
 level = 60
@@ -17,10 +18,10 @@ vile_poisons = 3
 improved_sinister_strike = 2
 lightning_reflexes = 3
 precision = 3
-deflection = 2
+deflection = 3
 riposte = 1
 endurance = 2
-improved_sprint = 2
+improved_sprint = 1
 dual_wield_specialization = 5
 flawless_execution = 1
 blade_flurry = 1

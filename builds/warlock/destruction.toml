@@ -1,28 +1,58 @@
-# Destruction with the Imp, 0/20/31: Conflagrate, Shadowburn, Incinerate.
-name = "Destruction (0/20/31)"
+# Destruction with the Voidwalker tanking: Immolate, Conflagrate and Shadow Bolt, Shadowburn to finish,
+# Shadow and Flame from 40 and Incinerate from 45. Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Method, WoW Forever Warlock Leveling Guide (the Destruction talent order to level 35 and its
+#   rotation): https://www.method.gg/wow-forever/wow-forever-warlock-leveling-guide-and-talents
+# - Warcraft Tavern, Warlock Leveling Guide and Destruction Warlock guide (level 30 builds, the Voidwalker
+#   in the open world, the rotation): https://www.warcrafttavern.com/forever/guides/warlock-leveling/ and
+#   https://www.warcrafttavern.com/forever/guides/destruction-warlock/
+# - talentsforever.com, Destruction Warlock builds (the most planned level 60 Destruction build, 5/11/35)
+#   and its leveling order to 60: https://talentsforever.com/warlock/builds/destruction and
+#   https://talentsforever.com/warlock/leveling
+# Levels 10 to 35 follow Method, which takes Suppression first. Theorycrafted (36 to 60): the rest of
+# talentsforever.com's 5/11/35 in its order: Fire and Brimstone, Bane of Havoc, Shadow and Flame,
+# Incinerate at 45 (the first level with 30 points in Destruction), then Demonic Embrace, Fel Vitality,
+# Demonic Aegis, Cataclysm and Demonic Sacrifice.
+# Race: Gnome, which Method calls especially strong for Destruction: Eureka! adds 10% damage for 8 seconds
+# and Expansive Mind adds mana.
+name = "Destruction"
+kind = "standard"
 class = "warlock"
-race = "undead"
+race = "gnome"
 level = 60
 gear = "cloth_caster"
 rotation = "destruction"
 
+order = [
+  "suppression", "suppression", "suppression", "suppression", "suppression",   # 10-14
+  "bane", "bane", "bane", "bane", "bane",   # 15-19
+  "aftermath", "aftermath", "aftermath", "aftermath", "aftermath",   # 20-24
+  "shadowburn", "ruin", "ruin", "ruin", "ruin",   # 25-29
+  "conflagrate", "ruin", "agonizing_flames", "agonizing_flames", "agonizing_flames",   # 30-34
+  "fire_and_brimstone", "fire_and_brimstone", "fire_and_brimstone", "bane_of_havoc", "destructive_reach",   # 35-39
+  "shadow_and_flame", "shadow_and_flame", "shadow_and_flame", "shadow_and_flame", "shadow_and_flame",   # 40-44
+  "incinerate", "demonic_embrace", "demonic_embrace", "demonic_embrace", "demonic_embrace",   # 45-49
+  "demonic_embrace", "fel_vitality", "fel_vitality", "fel_vitality", "demonic_aegis",   # 50-54
+  "demonic_aegis", "destructive_reach", "cataclysm", "cataclysm", "cataclysm",   # 55-59
+  "demonic_sacrifice",   # 60
+]
+
 [talents]
-demonic_embrace = 5
-improved_imp = 3
-unholy_power = 2
-fel_vitality = 3
-demonic_energies = 2
-demonic_sacrifice = 1
-master_summoner = 2
-improved_sayaad = 2
-improved_shadow_bolt = 5
+suppression = 5
 bane = 5
-cataclysm = 3
-aftermath = 2
-ruin = 5
+aftermath = 5
 shadowburn = 1
-agonizing_flames = 3
+ruin = 5
 conflagrate = 1
+agonizing_flames = 3
 fire_and_brimstone = 3
-shadow_and_flame = 2
+bane_of_havoc = 1
+destructive_reach = 2
+shadow_and_flame = 5
 incinerate = 1
+demonic_embrace = 5
+fel_vitality = 3
+demonic_aegis = 2
+cataclysm = 3
+demonic_sacrifice = 1

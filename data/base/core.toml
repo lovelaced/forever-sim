@@ -10,7 +10,8 @@ notes = "Talents and spells from the Forever client build 1.60.1.70338 (same as 
 [combat]
 rage_conversion = [0.0091107836, 3.225598133, 4.2652911]  # a*L^2 + b*L + c
 rage_dealt = 7.5          # rage per (damage / conversion) dealt by white swings
-rage_taken = 2.5          # rage per (damage / conversion) taken
+rage_taken = 2.5          # rage per (damage / conversion) taken (scaled by the assumption rage_taken_mult)
+rage_crit_mult = 2.0      # Forever: critical strikes with basic attacks give 100% more rage (warriors and bears; beta notes Oct 1 and 8)
 melee_miss = [5.0, 5.5, 6.0, 8.0]       # player attacking a mob, before hit
 mob_dodge = [5.0, 5.2, 5.4, 5.6]
 mob_parry = [5.0, 5.5, 6.0, 14.0]       # only when attacking from the front
@@ -23,6 +24,7 @@ dual_wield_miss = 19.0
 defense_per_point = 0.04   # % per defense point above attacker weapon skill
 gcd = 1.5
 energy_gcd = 1.0
+auto_repeat_windup = 0.5       # a wand's first shot waits this long (standing still)
 pushback = 0.5             # seconds added to a cast (removed from a channel) per hit
 max_pushbacks = 2
 heal_to_spell_damage = 0.3333   # Forever: bonus healing gives 1/3 as spell damage

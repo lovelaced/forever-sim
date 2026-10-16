@@ -1,0 +1,54 @@
+# The usual leveling hunter: a cat tanks while you shoot from range with Aimed Shot, Serpent Sting and
+# Arcane Shot, two hawks on bosses, and Bestial Wrath at 40, then Marksmanship for Trueshot Aura and
+# Mortal Shots. Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Method, Hunter leveling guide and talents (Celz, Oct 9): the talent order for 10-30 (21/0/0) and
+#   the play (Aspect of the Hawk, pet first, Aimed Shot single target, Multi-Shot on packs):
+#   https://www.method.gg/wow-forever/wow-forever-hunter-leveling-guide-and-talents
+# - wowtbc.gg, Beast Mastery hunter (standard 31/20/0 at 60, a 1-60 order with Frenzy at 35 and
+#   Bestial Wrath at 40, then Lethal Attacks, Careful Aim, Trueshot Aura and Mortal Shots):
+#   https://wowtbc.gg/warcraftforever/class-guides/beast-mastery-hunter/
+# - Mobalytics, Kargoz's 1-60 Beast Mastery guide (31/20/0; read from search excerpts, the page
+#   refuses automated readers):
+#   https://mobalytics.gg/wow-forever/profile/kargoz/classes/1-60-beast-mastery-hunter-leveling-guide-pets-weapons-talents-rotation-macros
+# - Warcraft Tavern, Hunter guide (21/0/0 at 30, races): https://www.warcrafttavern.com/forever/guides/hunter/
+# - wow.gg, Beast Mastery beta guide (rotation): https://wow.gg/guides/wow-forever-beast-mastery-hunter-beta
+# Levels 31 to 60 follow the 31/20/0 split wowtbc.gg and Kargoz give: Bestial Discipline and the
+# rest of Ferocity, Frenzy, Bestial Wrath at 40, then Lethal Attacks, Careful Aim, Improved Stings,
+# Rapid Killing, Trueshot Aura and Mortal Shots 4, as in wowtbc.gg's standard build. Method's 10-30
+# order spends two points on Pathfinding, so this build has Frenzy 4 and no Endurance Training
+# where wowtbc.gg's has Frenzy 5 and Endurance Training 1.
+# Race: Orc. Method and Warcraft Tavern name Orc first for Horde hunters (Blood Fury, and Savage's
+# +1% crit since build 70425). In the sim Blood Fury raises melee Attack Power only, so it does
+# little for a ranged hunter here.
+name = "Beast Mastery"
+kind = "standard"
+class = "hunter"
+race = "orc"
+level = 60
+gear = "mail_hunter"
+rotation = "beast_mastery"
+
+order = [
+  "deadly_aspects", "deadly_aspects", "deadly_aspects", "deadly_aspects", "deadly_aspects",   # 10-14
+  "focused_fire", "focused_fire",                                                             # 15-16
+  "improved_revive_pet",                                                                      # 17
+  "pathfinding", "pathfinding",                                                               # 18-19
+  "unleashed_fury", "unleashed_fury", "unleashed_fury", "unleashed_fury", "unleashed_fury",   # 20-24
+  "summon_hawk",                                                                              # 25
+  "improved_revive_pet",                                                                      # 26
+  "ferocity", "ferocity",                                                                     # 27-28
+  "bestial_swiftness",                                                                        # 29
+  "intimidation",                                                                             # 30
+  "bestial_discipline", "bestial_discipline",                                                 # 31-32
+  "ferocity", "ferocity", "ferocity",                                                         # 33-35
+  "frenzy", "frenzy", "frenzy", "frenzy",                                                     # 36-39
+  "bestial_wrath",                                                                            # 40
+  "lethal_attacks", "lethal_attacks", "lethal_attacks", "lethal_attacks", "lethal_attacks",   # 41-45
+  "careful_aim", "careful_aim", "careful_aim", "careful_aim", "careful_aim",                  # 46-50
+  "improved_stings", "improved_stings", "improved_stings",                                    # 51-53
+  "rapid_killing", "rapid_killing",                                                           # 54-55
+  "trueshot_aura",                                                                            # 56
+  "mortal_shots", "mortal_shots", "mortal_shots", "mortal_shots",                             # 57-60
+]

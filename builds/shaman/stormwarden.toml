@@ -2,6 +2,7 @@
 # Stormstrike and shocks for damage, Riptide/Healing Wave/Nature's Swiftness
 # to stay up. Windshaper Skyborne (Wind Blessed haste).
 name = "Stormwarden (0/20/31)"
+kind = "experimental"
 class = "shaman"
 race = "windshaper"
 level = 60

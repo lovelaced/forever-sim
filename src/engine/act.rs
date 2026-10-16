@@ -225,6 +225,10 @@ impl<'w> Sim<'w> {
                     continue;
                 }
             }
+            if self.w.spells[act.spell as usize].auto_repeat && self.actors[a].wanding == Some(act.spell) {
+                // the chosen action is the wand that is already shooting: keep it going
+                return false;
+            }
             self.begin(a, plan);
             return true;
         }
@@ -284,6 +288,20 @@ impl<'w> Sim<'w> {
     pub fn begin(&mut self, a: usize, plan: Plan) {
         let w = self.w;
         let sp = &w.spells[plan.spell as usize];
+        if sp.auto_repeat {
+            // the first shot waits for the wind-up (standing still), the
+            // next ones keep the weapon's own timer
+            let x = &mut self.actors[a];
+            x.wanding = Some(plan.spell);
+            let first = self.t + w.combat.auto_repeat_windup;
+            let s = x.swing[Hand::Ranged as usize];
+            x.swing[Hand::Ranged as usize] = if s == INF { first } else { s.max(first) };
+            return;
+        }
+        if !sp.off_gcd || plan.cast_time > 0.0 {
+            // casting anything stops a wand
+            self.actors[a].wanding = None;
+        }
         if sp.next_swing {
             self.actors[a].queued = Some(plan.spell);
             return;
@@ -380,6 +398,8 @@ impl<'w> Sim<'w> {
                 sm: plan.sm,
             });
         }
+        // auras granted or refreshed from here on came from this cast
+        let mark = self.uid;
         self.run_effects(&sp.effects, cx);
         if sp.finisher {
             self.actors[a].cp = 0.0;
@@ -387,17 +407,20 @@ impl<'w> Sim<'w> {
         let ev = Ev { other: Some(plan.target), by: Some(plan.spell), ..Ev::default() };
         self.emit(a, EventKind::Cast(plan.spell), ev, 0);
         self.emit(a, EventKind::AnyCast, ev, 0);
-        self.consume_on_cast(a, plan.spell);
+        self.consume_on_cast(a, plan.spell, mark);
     }
 
-    fn consume_on_cast(&mut self, a: usize, spell: SpellId) {
+    /// Use up auras whose modifiers applied to this cast, except ones the
+    /// cast itself just granted (a Clearcasting proc from this spell's hit
+    /// is kept for the next one).
+    fn consume_on_cast(&mut self, a: usize, spell: SpellId, mark: u64) {
         let w = self.w;
         let school = w.spells[spell as usize].school;
         let mut k = 0;
         while k < self.actors[a].auras.len() {
             let inst = &self.actors[a].auras[k];
             let def = &w.auras[inst.def as usize];
-            if def.consume_on_cast && def.spell_mods.iter().any(|m| m.applies(spell, school)) {
+            if def.consume_on_cast && inst.fresh <= mark && def.spell_mods.iter().any(|m| m.applies(spell, school)) {
                 let ch = inst.charges;
                 match ch {
                     Some(c) if c > 1.0 => {
@@ -725,10 +748,14 @@ impl<'w> Sim<'w> {
                 Refresh::Refresh => {
                     let charges = def.charges.as_ref().map(|c| self.ev(c, &c2));
                     let absorb = def.absorb.as_ref().map(|a| self.ev(a, &c2));
+                    self.uid += 1;
+                    let fresh = self.uid;
                     let inst = &mut self.actors[holder].auras[k];
+                    inst.fresh = fresh;
                     inst.expires = expires;
                     inst.stacks = (inst.stacks + stacks).min(def.max_stacks.max(1));
                     inst.rank = rank;
+                    inst.spell = rank.map(|r| r.0).or(cx.spell);
                     inst.src = src;
                     if charges.is_some() {
                         inst.charges = charges;
@@ -773,6 +800,7 @@ impl<'w> Sim<'w> {
             def: aura,
             src,
             rank,
+            spell: rank.map(|r| r.0).or(cx.spell),
             expires,
             stacks: stacks.min(def.max_stacks.max(1)),
             charges,
@@ -782,6 +810,7 @@ impl<'w> Sim<'w> {
             applied: self.t,
             dmg_since: 0.0,
             uid,
+            fresh: uid,
         };
         let st = inst.stacks as f64;
         self.actors[holder].auras.push(inst);

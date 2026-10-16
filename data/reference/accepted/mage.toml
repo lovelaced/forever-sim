@@ -1,0 +1,98 @@
+# Mage: deliberate differences from Forever's data (build 1.60.1.70338, and
+# build 1.60.1.70425 with the Oct 15 patch file: rows marked "70425").
+#
+# Spells: every rank matches Forever's spell data. Frost Armor and Ice Armor
+# are separate spells, area spells hit every enemy (the game has no cap), and
+# Arcane Missiles channel for the game's 3, 4 or 5 sec.
+#
+# Talents: the `talent_*` entries are per-rank values from the game's trait
+# data that `fsim audit` can't see, because the sim does not simulate them or
+# because they sit inside a formula that also reads stats, a spell rank or
+# the crit's damage. Each one says where the number is.
+#
+# Simplifications outside the audited fields are written on the spells and
+# auras in data/base/classes/mage.toml (`text`), and wait for engine work:
+#   - movement and kiting: frozen targets stop acting until they take 25% of
+#     their health (Frost Nova, Frostbite), slows do nothing
+#   - ground effects: Blizzard hits every enemy for the whole channel and
+#     Flamestrike's burn is a debuff on the enemies the blast hit
+#   - school-specific hit: Elemental Precision raises hit for every spell
+#   - threat: the threat parts of Arcane Subtlety, Burning Soul and Frost
+#     Channeling only matter once enemies pick targets by threat
+#
+# Format (data/reference/accepted/README.md):
+#   [mage.<spell id>] or [mage.talent_<id>]
+#   <field> = "reason"
+
+# ---- Arcane
+
+
+[mage.talent_arcane_focus]
+"value.0" = "Arcane spell hit +1% per rank. Not simulated: the engine has one spell hit chance for every school, with no per-school modifier."
+
+[mage.talent_improved_channeling]
+"value.0" = "20% per rank chance that damage does not push back Arcane Missiles. Not simulated: pushback resistance is one number for every spell, with no per-spell modifier."
+"value.1" = "14% per rank chance that damage does not push back Arcane Blast (and Arcane Wrath from build 70425). Not simulated, for the same reason as effect 0."
+
+[mage.talent_arcane_subtlety]
+"value.1" = "Target resistances -8/15. Not simulated: the sim has no spell resistances. Effect 0, Arcane threat -15/30%, is modelled and matches."
+
+[mage.talent_magic_absorption]
+"value.0" = "A fully resisted spell gives back 1/2% of your mana. Not simulated: the sim has no spell resistances, so nothing is ever fully resisted."
+"value.1" = "All resistances +5/10. Not simulated: the sim has no spell resistances."
+
+[mage.talent_arcane_resilience]
+"value.0" = "Modelled: armor +25/50% of Intellect, as `0.25 * rank * int`, which the check can't evaluate because it reads Intellect."
+
+[mage.talent_arcane_geometry]
+"value.0" = "Range +3/6 yd for the spells the talent names. Not simulated: the engine has no range or positioning."
+
+[mage.talent_arcane_shielding]
+"value.0" = "Mana Shield costs 17/33% less mana per point of damage. Not simulated: Mana Shield is not in the sim."
+"value.1" = "Mage Armor resistances +25/50%. Not simulated: Mage Armor is not in the sim and there are no spell resistances."
+
+[mage.talent_improved_counterspell]
+"value.0" = "Counterspell also silences for 2/4 sec. Not simulated: the sim's Counterspell lockout (10 sec) already stops every school, so a shorter silence adds nothing."
+
+[mage.talent_arcane_wrath]
+requires = "70425: the game's tree links Arcane Blast to Arcane Wrath (a prerequisite edge), but Arcane Wrath's node has no points gate (0), so the spellbook lists the edge under `linked` rather than `requires`. The sim requires Arcane Blast 1/1. The Oct 15 notes call it a 16-point talent; the tables give it no such gate."
+
+# ---- Fire
+
+[mage.talent_ignite]
+"value.0" = "Modelled: the burn is 8% per rank of the crit's damage, as `0.08 * rank * event.amount` in the Ignite proc, which the check can't evaluate because it reads the crit's damage."
+
+[mage.talent_improved_fire_blast]
+"value.1" = "70425: Fire Blast range +8/15 yd. Not simulated: the engine has no range or positioning. Effect 0, the cooldown, is modelled and matches."
+
+[mage.talent_fire_power]
+"value.0" = "70425: modelled: Fire spells deal 1/2/3% more per Fire effect of the mage's on the target (up to 4), as `1 + 0.01 * rank * min(4, ...)` over the target's Ignite, Fire Vulnerability, Fireball and Pyroblast burns and Impact stun, which the check can't evaluate because it reads the target's auras."
+
+[mage.talent_flame_throwing]
+"value.0" = "Fire spell range +3/6 yd. Not simulated: the engine has no range or positioning."
+
+[mage.talent_improved_fire_ward]
+"value.0" = "Fire Ward reflect chance +10/20%. Not simulated: Fire Ward is not in the sim."
+
+[mage.talent_master_of_elements]
+"value.0" = "Modelled: a crit refunds 10% per rank of the spell's base mana cost, as `0.1 * t.master_of_elements * r.mana` on each Fire and Frost spell, which the check can't evaluate because it reads the spell rank's mana cost."
+
+# ---- Frost
+
+[mage.talent_frost_warding]
+"value.0" = "Modelled: Frost and Ice Armor give 15% per rank more armor, as `r.armor * (1 + 0.15 * t.frost_warding)` on both auras, which the check can't evaluate because it reads the armor spell's rank."
+"value.1" = "Frost Ward reflect chance +10/20%. Not simulated: Frost Ward is not in the sim."
+
+[mage.talent_permafrost]
+"value.0" = "Modelled: chill effects last 11% per rank longer, as the Chilled aura's duration `5 * (1 + 0.11 * t.permafrost)`; the check only sees the product (5.55/6.1/6.65 sec)."
+"value.1" = "Movement slow 3/7/10% stronger. Not simulated: the engine has no movement."
+
+[mage.talent_improved_blizzard]
+"value.0" = "Blizzard's chill slows movement 15/25/40%. The slow is not simulated (no movement); the chill itself is modelled (it can set off Frostbite and Fingers of Frost) and is the same at every rank."
+
+[mage.talent_winters_chill]
+"value.0" = "70425: modelled: Winter's Chill stacks up to 5 at every rank, which is the debuff's max_stacks (a plain number, not a formula the check reads). Effect 1, the 20-100% chance, is modelled and matches."
+
+[mage.talent_arctic_reach]
+"value.0" = "Frostbolt and Blizzard range +10/20%. Not simulated: the engine has no range or positioning."
+"value.1" = "Frost Nova and Cone of Cold radius +10/20%. Not simulated: area spells hit every enemy in the fight."

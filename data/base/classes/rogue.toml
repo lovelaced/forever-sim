@@ -1,5 +1,15 @@
 # Rogue. Talents and spell ranks: Forever client 1.60.1.70338
 # (wowforevertalents.com/rogue and /abilities/rogue, checked 2026-10-15).
+# Spell numbers are checked against Forever's spell tables with `fsim audit
+# rogue` (data/reference/spellbook.json); deliberate differences are listed in
+# data/reference/accepted/rogue.toml. Talent values per rank come from the
+# client's talent tree (trait tree 1111: TraitDefinitionEffectPoints curves),
+# because each Forever talent has one spell whose own number is either the
+# full-rank value or a leftover Classic rank-1 value.
+# Weapon strikes follow the game's effect order: the flat bonus is added to
+# the weapon roll before the weapon-damage percentage multiplies both
+# (Backstab rank 1: (weapon + 10) x 150%), and "normalized" strikes use the
+# standard weapon speed (dagger 1.7, other one-handers 2.4) for attack power.
 # Base stats and the stat formulas are Classic 1.12 values.
 name = "Rogue"
 icon = "classicon_rogue"
@@ -52,7 +62,7 @@ tree = "Assassination"
 points = 5
 ranks = 3
 text = "Finishing moves have a 60% chance to add a combo point."
-procs = [{ on = "cast", if = "spell.eviscerate || spell.slice_and_dice || spell.rupture || spell.kidney_shot || spell.venom", chance = "0.2 * rank", effects = [{ type = "combo", amount = 1 }] }]
+procs = [{ on = "cast", if = "spell.eviscerate || spell.slice_and_dice || spell.rupture || spell.kidney_shot || spell.venom", chance = "0.2 * rank", icd = 0.5, effects = [{ type = "combo", amount = 1 }] }]
 [talents.murder]
 icon = "spell_shadow_deathscream"
 tree = "Assassination"
@@ -60,6 +70,7 @@ points = 5
 ranks = 2
 text = "+4% damage against Humanoids and Giants."
 mods = [{ stat = "dmg_done", mul = "(target.humanoid || target.giant) ? 1 + 0.02 * rank : 1" }]
+# Talent spell 14165 lists 15 (one rank); the client's rank curve gives 15/30/45%, as the tooltip says.
 [talents.improved_slice_and_dice]
 icon = "ability_rogue_slicedice"
 tree = "Assassination"
@@ -77,12 +88,14 @@ icon = "ability_warrior_riposte"
 tree = "Assassination"
 points = 10
 ranks = 2
-text = "Expose Armor costs 10 less Energy (Expose Armor is not simulated)."
+text = "Expose Armor costs 10 less Energy and gives back 2 combo points when used with 5 (Expose Armor is not simulated)."
+# Talent spell 14128 lists 6 (Classic rank 1); the client's rank curve gives 4% a rank (20% at 5), as the tooltip says.
 [talents.lethality]
 icon = "ability_criticalstrike"
 tree = "Assassination"
 points = 10
 ranks = 5
+requires = "malice"
 text = "+20% crit damage bonus for Sinister Strike, Gouge, Backstab, Mutilate, Ghostly Strike and Hemorrhage."
 spell_mods = [{ spells = ["sinister_strike", "gouge", "backstab", "mutilate", "ghostly_strike", "hemorrhage"], prop = "crit_bonus", add = "0.04 * rank" }]
 [talents.vile_poisons]
@@ -90,7 +103,7 @@ icon = "ability_rogue_feigndeath"
 tree = "Assassination"
 points = 15
 ranks = 5
-text = "Poison damage +20%."
+text = "Poison damage +20%, and poisons are 40% harder to dispel (dispels are not simulated)."
 [talents.cold_blood]
 icon = "spell_ice_lament"
 tree = "Assassination"
@@ -102,7 +115,7 @@ icon = "ability_poisons"
 tree = "Assassination"
 points = 15
 ranks = 5
-text = "Poisons apply 10% more often."
+text = "Poisons apply 10% more often, and each application has a 50% chance not to use up a charge (charges are not simulated)."
 [talents.vigor]
 icon = "spell_nature_earthbindtotem"
 tree = "Assassination"
@@ -115,24 +128,26 @@ icon = "ability_rogue_deadlybrew"
 tree = "Assassination"
 points = 20
 ranks = 1
-text = "Strike with both weapons for 75% weapon damage plus a bonus, +20% against poisoned targets, 2 combo points."
+text = "Strike with both daggers for 75% weapon damage plus a bonus, +20% against poisoned targets, 2 combo points."
 [talents.improved_kidney_shot]
 icon = "ability_rogue_kidneyshot"
 tree = "Assassination"
 points = 20
 ranks = 2
-text = "Targets stunned by Kidney Shot take 10% more damage."
+text = "Targets stunned by Kidney Shot take 10% more damage from you."
 [talents.seal_fate]
 icon = "spell_shadow_chilltouch"
 tree = "Assassination"
 points = 25
 ranks = 5
-text = "Crits from combo-point builders have a 100% chance to add a combo point."
+text = "Crits from combo-point builders have a 100% chance to add a combo point (at most one every 0.5 sec, so one per Mutilate)."
+procs = [{ on = "melee_crit", if = "event.special && (spell.sinister_strike || spell.backstab || spell.mutilate || spell.hemorrhage || spell.ghostly_strike || spell.ambush || spell.gouge)", chance = "0.2 * rank", icd = 0.5, effects = [{ type = "combo", amount = 1 }] }]
 [talents.venom]
 icon = "inv_sword_31"
 tree = "Assassination"
 points = 30
 ranks = 1
+requires = "mutilate"
 text = "Finisher: poison damage +30%, poisons apply 10% more often, 9-21 sec."
 
 [talents.improved_eviscerate]
@@ -141,14 +156,14 @@ tree = "Combat"
 points = 0
 ranks = 3
 text = "Eviscerate damage +20%."
-spell_mods = [{ spells = ["eviscerate"], prop = "damage", mul = "rank == 1 ? 1.07 : (rank == 2 ? 1.14 : 1.20)" }]
+spell_mods = [{ spells = ["eviscerate"], prop = "damage", mul = "rank == 1 ? 1.07 : (rank == 2 ? 1.13 : 1.20)" }]
 [talents.improved_sinister_strike]
 icon = "spell_shadow_ritualofsacrifice"
 tree = "Combat"
 points = 0
 ranks = 2
 text = "Sinister Strike costs 5 less Energy."
-spell_mods = [{ spells = ["sinister_strike"], prop = "cost", add = "-2.5 * rank" }]
+spell_mods = [{ spells = ["sinister_strike"], prop = "cost", add = "rank == 1 ? -3 : -5" }]
 [talents.lightning_reflexes]
 icon = "spell_nature_invisibilty"
 tree = "Combat"
@@ -166,6 +181,7 @@ spell_mods = [
   { spells = ["backstab"], prop = "crit", add = "10 * rank" },
   { spells = ["mutilate"], prop = "crit", add = "5 * rank" },
 ]
+# Talent spell 13713 lists 1 (Classic rank 1); the client's rank curve gives 2/4/6%, as the tooltip says.
 [talents.deflection]
 icon = "ability_parry"
 tree = "Combat"
@@ -173,6 +189,7 @@ points = 5
 ranks = 3
 text = "+6% parry."
 mods = [{ stat = "parry", add = "2 * rank" }]
+# Talent spell 13705 lists 1 (one rank); the client's rank curve gives 1/2/3%, as the tooltip says.
 [talents.precision]
 icon = "ability_marksmanship"
 tree = "Combat"
@@ -192,19 +209,20 @@ icon = "ability_warrior_challange"
 tree = "Combat"
 points = 10
 ranks = 1
+requires = "deflection"
 text = "After a parry: 150% weapon damage and a 6 sec disarm. 10 Energy, 6 sec cooldown."
 [talents.improved_sprint]
 icon = "ability_rogue_sprint"
 tree = "Combat"
 points = 10
 ranks = 2
-text = "Sprint removes movement impairing effects (movement is not simulated)."
+text = "Sprint has a 100% chance to remove movement impairing effects (movement is not simulated)."
 [talents.improved_kick]
 icon = "ability_kick"
 tree = "Combat"
 points = 15
 ranks = 2
-text = "Kick silences for 2 sec."
+text = "Kick silences the target for 2 sec."
 [talents.flawless_execution]
 icon = "inv_sword_35"
 tree = "Combat"
@@ -212,11 +230,13 @@ points = 15
 ranks = 1
 text = "Eviscerate costs 10 less Energy."
 spell_mods = [{ spells = ["eviscerate"], prop = "cost", add = -10 }]
+# Talent spell 13715 lists 50 (Classic's 5/5 value); the client's rank curve gives 5% a rank (25% at 5), as the tooltip says.
 [talents.dual_wield_specialization]
 icon = "ability_dualwield"
 tree = "Combat"
 points = 15
 ranks = 5
+requires = "precision"
 text = "Off-hand damage +25%."
 mods = [{ stat = "offhand_mult", mul = "1 + 0.05 * rank" }]
 [talents.blade_flurry]
@@ -224,25 +244,27 @@ icon = "ability_warrior_punishingblow"
 tree = "Combat"
 points = 20
 ranks = 1
-text = "+20% attack speed and strikes hit a nearby enemy for 15 sec. 2 min cooldown."
+text = "+20% attack speed and melee attacks also hit a second nearby enemy for 15 sec. 2 min cooldown."
 [talents.hack_and_slash]
 icon = "inv_sword_27"
 tree = "Combat"
 points = 20
 ranks = 5
-text = "Axe/Sword: 5% extra attack chance. Dagger/Fist: +5% crit. Mace: ignore 15% of armour."
+text = "Axe/Sword: 5% extra attack chance. Dagger/Fist: +5% crit. Mace: ignore 15% of armor."
 mods = [
   { stat = "melee_crit", add = "(mh.dagger || mh.fist) ? rank : 0" },
   { stat = "armor_pen_pct", add = "mh.mace ? 0.03 * rank : 0" },
 ]
-procs = [{ on = "melee_landed", if = "!event.extra && ((event.mh && (mh.sword || mh.axe)) || (event.oh && (oh.sword || oh.axe)))", chance = "0.01 * rank", icd = 1.0, effects = [{ type = "extra_attack", hand = "mh" }] }]
+procs = [{ on = "melee_landed", if = "!event.extra && ((event.mh && (mh.sword || mh.axe)) || (event.oh && (oh.sword || oh.axe)))", chance = "0.01 * rank", icd = 0.2, effects = [{ type = "extra_attack", hand = "mh" }] }]
 [talents.weapon_expertise]
 icon = "spell_holy_blessingofstrength"
 tree = "Combat"
 points = 25
 ranks = 2
+requires = "blade_flurry"
 text = "Attacks are dodged or parried 2% less often."
 mods = [{ stat = "expertise", add = "rank" }]
+# Talent spell 18427 lists 2 (one rank); the client's rank curve gives 2/4/6%, as the tooltip says.
 [talents.aggression]
 icon = "ability_racial_avatar"
 tree = "Combat"
@@ -262,13 +284,14 @@ icon = "ability_stealth"
 tree = "Subtlety"
 points = 0
 ranks = 5
-text = "Stealth speed and cooldown (stealth movement is not simulated)."
+text = "Stealth cooldown 6 sec shorter and 15% less slowed in Stealth (movement isn’t simulated)."
+spell_mods = [{ spells = ["stealth"], prop = "cooldown", add = "-(rank + 1)" }]
 [talents.master_of_deception]
 icon = "spell_shadow_charm"
 tree = "Subtlety"
 points = 0
 ranks = 3
-text = "Stealth detection (not simulated)."
+text = "Enemies spot you in Stealth as if you were 3 levels higher (stealth detection is not simulated)."
 [talents.opportunity]
 icon = "ability_warrior_warcry"
 tree = "Subtlety"
@@ -281,20 +304,20 @@ icon = "spell_nature_mirrorimage"
 tree = "Subtlety"
 points = 5
 ranks = 3
-text = "100% chance to gain a combo point when you dodge."
-procs = [{ on = "dodge", chance = "rank / 3", effects = [{ type = "combo", amount = 1 }] }]
+text = "100% chance to gain a combo point when you dodge (at most once a second). The game also counts fully resisted spells, which the sim leaves out."
+procs = [{ on = "dodge", chance = "rank == 1 ? 0.33 : (rank == 2 ? 0.67 : 1)", icd = 1.0, effects = [{ type = "combo", amount = 1 }] }]
 [talents.elusiveness]
 icon = "spell_magic_lesserinvisibilty"
 tree = "Subtlety"
 points = 5
 ranks = 2
-text = "Vanish and Blind cooldowns -90 sec (not simulated)."
+text = "Vanish and Blind cooldowns 90 sec shorter (Vanish and Blind are not simulated)."
 [talents.dirty_tricks]
 icon = "ability_sap"
 tree = "Subtlety"
 points = 5
 ranks = 2
-text = "Sap and Blind cost 50% less (not simulated)."
+text = "Sap and Blind cost 50% less Energy (Sap and Blind are not simulated)."
 [talents.improved_ambush]
 icon = "ability_rogue_ambush"
 tree = "Subtlety"
@@ -319,13 +342,13 @@ icon = "ability_rogue_distract"
 tree = "Subtlety"
 points = 10
 ranks = 2
-text = "Distract (not simulated)."
+text = "Distract covers 5 more yards and lowers the stealth detection of distracted enemies by 2 levels (Distract is not simulated)."
 [talents.heightened_senses]
 icon = "ability_ambush"
 tree = "Subtlety"
 points = 15
 ranks = 2
-text = "Stealth detection and -4% chance to be hit by spells (not simulated)."
+text = "Spot stealthed enemies as if 3 levels higher, and 4% less chance to be hit by spells and ranged attacks (not simulated)."
 [talents.premeditation]
 icon = "spell_shadow_possession"
 tree = "Subtlety"
@@ -337,7 +360,7 @@ icon = "inv_sword_17"
 tree = "Subtlety"
 points = 15
 ranks = 3
-text = "Ignore 9% of the target's armour; Rupture damage +30%."
+text = "Ignore 9% of the target's armor; Rupture damage +30%."
 mods = [{ stat = "armor_pen_pct", add = "0.03 * rank" }]
 [talents.dirty_deeds]
 icon = "spell_shadow_summonsuccubus"
@@ -351,18 +374,20 @@ icon = "spell_shadow_antishadow"
 tree = "Subtlety"
 points = 20
 ranks = 1
-text = "Resets other rogue cooldowns (not simulated)."
+text = "Finishes the cooldown of your other rogue abilities, 10 min cooldown (not simulated)."
 [talents.hemorrhage]
 icon = "spell_shadow_lifedrain"
 tree = "Subtlety"
 points = 20
 ranks = 1
+requires = "serrated_blades"
 text = "100% weapon damage (145% with a dagger); your Rupture deals 15% more to the target. 35 Energy."
 [talents.quietus]
 icon = "ability_rogue_garrote"
 tree = "Subtlety"
 points = 25
 ranks = 5
+requires = "dirty_deeds"
 text = "Sinister Strike, Ghostly Strike and Hemorrhage deal 10% more to targets below 35% health."
 spell_mods = [{ spells = ["sinister_strike", "ghostly_strike", "hemorrhage"], prop = "damage", mul = "target.hp_pct < 0.35 ? 1 + 0.02 * rank : 1" }]
 [talents.cutthroat]
@@ -377,6 +402,7 @@ icon = "ability_rogue_rupture"
 tree = "Subtlety"
 points = 30
 ranks = 1
+requires = "preparation"
 text = "Rupture ticks make your next Hemorrhage or Backstab cost 3 less Energy per stack (5 stacks, 10 sec)."
 
 # ------------------------------------------------------------------ passives
@@ -408,6 +434,8 @@ refresh = "replace"
 max_stacks = 5
 duration = "6 + 2 * cp"
 text = "Stacks hold the combo points the Rupture was cast with."
+# Per tick: the game's base plus its per-combo-point amount (spell data), and
+# an attack power share spread over the ticks (an assumption, see options).
 [auras.rupture.tick]
 interval = 2
 [[auras.rupture.tick.effects]]
@@ -415,7 +443,8 @@ type = "damage"
 school = "physical"
 periodic = true
 tag = "Rupture"
-amount = "(interp(stacks, 1,r.c1, 2,r.c2, 3,r.c3, 4,r.c4, 5,r.c5) + ap * interp(stacks, 1,0.04, 2,0.10, 3,0.18, 4,0.21, 5,0.24)) / (3 + stacks) * (1 + 0.1 * t.serrated_blades) * (target.aura.hemorrhage.up ? 1.15 : 1)"
+amount = "(r.tick + r.tick_cp * stacks + opt.rogue_rupture_ap * ap * interp(stacks, 1,0.04, 2,0.10, 3,0.18, 4,0.21, 5,0.24) / (3 + stacks)) * (target.aura.hemorrhage.up ? 1.15 : 1)"
+mult = "1 + 0.1 * t.serrated_blades"
 [[auras.rupture.tick.effects]]
 type = "if"
 cond = "t.thousand_cuts > 0"
@@ -424,13 +453,16 @@ then = [{ type = "aura", aura = "thousand_cuts", target = "self" }]
 name = "Garrote"
 debuff = true
 duration = 18
-tick = { interval = 3, effects = [{ type = "damage", school = "physical", periodic = true, tag = "Garrote", amount = "(r.total + 0.18 * ap) / 6" }] }
+tick = { interval = 3, effects = [{ type = "damage", school = "physical", periodic = true, tag = "Garrote", amount = "r.tick + opt.rogue_garrote_ap * ap / 6" }] }
 [auras.kidney_vulnerability]
 name = "Improved Kidney Shot"
 debuff = true
 refresh = "replace"
 max_stacks = 2
 text = "Stacks = talent rank of the rogue who applied it."
+# The game limits the bonus to the rogue's own damage. The sim raises all
+# damage the target takes, which is the same thing where Kidney Shot is used
+# (the rogue is the only one attacking that target).
 mods = [{ stat = "dmg_taken", mul = "1 + 0.05 * stacks" }]
 [auras.hemorrhage]
 name = "Hemorrhage"
@@ -448,6 +480,20 @@ mods = [{ stat = "dodge", add = 50 }]
 name = "Blade Flurry"
 duration = 15
 mods = [{ stat = "melee_haste", mul = 1.2 }]
+# Each melee hit that lands on one enemy while another is alive is repeated
+# on that other enemy for the damage the first hit dealt (as in the original
+# game: the copy uses the first target's armor and cannot crit or miss on its
+# own). The mark tells the copy which enemy to skip. Poisons are not copied.
+procs = [{ on = "melee_landed", if = "enemies >= 2", effects = [
+  { type = "aura", aura = "blade_flurry_mark", target = "target" },
+  { type = "damage", school = "physical", hit = "auto", can_crit = false, fixed = true, no_proc = true, amount = "event.amount", mult = "target.aura.blade_flurry_mark.up ? 0 : 1", target = "enemies", max_targets = "target.alive ? 2 : 1", tag = "Blade Flurry" },
+  { type = "remove_aura", aura = "blade_flurry_mark", target = "target" },
+] }]
+[auras.blade_flurry_mark]
+name = "Blade Flurry target"
+debuff = true
+duration = 1
+text = "Marks the enemy the hit came from, so the Blade Flurry copy goes to another one."
 [auras.adrenaline_rush]
 name = "Adrenaline Rush"
 duration = 15
@@ -473,13 +519,13 @@ spell_mods = [{ spells = ["hemorrhage", "backstab"], prop = "cost", add = "-3 * 
 name = "Instant Poison (main hand)"
 group = "poison_mh"
 procs = [{ on = "melee_landed", if = "event.mh", chance = "0.2 + 0.02 * t.improved_poisons + (aura.venom.up ? 0.1 : 0)", effects = [
-  { type = "damage", school = "nature", hit = "spell", min = "r.lo", max = "r.hi", mult = "(1 + 0.04 * t.vile_poisons) * (aura.venom.up ? 1.3 : 1)", no_proc = true, tag = "Instant Poison" },
+  { type = "damage", school = "nature", hit = "spell", min = "r.lo * (aura.venom.up ? 1.3 : 1)", max = "r.hi * (aura.venom.up ? 1.3 : 1)", mult = "1 + 0.04 * t.vile_poisons", no_proc = true, tag = "Instant Poison" },
 ] }]
 [auras.instant_poison_oh]
 name = "Instant Poison (off hand)"
 group = "poison_oh"
 procs = [{ on = "melee_landed", if = "event.oh", chance = "0.2 + 0.02 * t.improved_poisons + (aura.venom.up ? 0.1 : 0)", effects = [
-  { type = "damage", school = "nature", hit = "spell", min = "r.lo", max = "r.hi", mult = "(1 + 0.04 * t.vile_poisons) * (aura.venom.up ? 1.3 : 1)", no_proc = true, tag = "Instant Poison" },
+  { type = "damage", school = "nature", hit = "spell", min = "r.lo * (aura.venom.up ? 1.3 : 1)", max = "r.hi * (aura.venom.up ? 1.3 : 1)", mult = "1 + 0.04 * t.vile_poisons", no_proc = true, tag = "Instant Poison" },
 ] }]
 [auras.deadly_poison_mh]
 name = "Deadly Poison (main hand)"
@@ -494,7 +540,7 @@ name = "Deadly Poison"
 debuff = true
 duration = 12
 max_stacks = 5
-tick = { interval = 3, effects = [{ type = "damage", school = "nature", periodic = true, tag = "Deadly Poison", amount = "r.total / 4 * stacks * (1 + 0.04 * t.vile_poisons) * (aura.venom.up ? 1.3 : 1)" }] }
+tick = { interval = 3, effects = [{ type = "damage", school = "nature", periodic = true, tag = "Deadly Poison", amount = "r.tick * stacks * (aura.venom.up ? 1.3 : 1)", mult = "1 + 0.04 * t.vile_poisons" }] }
 
 # ------------------------------------------------------------------ spells
 [spells.stealth]
@@ -503,82 +549,103 @@ cooldown = 10
 off_gcd = true
 target = "self"
 requires = "!in_combat && !aura.stealth.up"
+ranks = [{ level = 1, id = 1784 }, { level = 20, id = 1785 }, { level = 40, id = 1786 }, { level = 60, id = 1787 }]
 effects = [{ type = "aura", aura = "stealth" }]
 
 [spells.sinister_strike]
 name = "Sinister Strike"
 cost = { energy = 45 }
 ranks = [
-  { level = 1, bonus = 3 }, { level = 6, bonus = 6 }, { level = 14, bonus = 10 }, { level = 22, bonus = 15 },
-  { level = 30, bonus = 22 }, { level = 38, bonus = 33 }, { level = 46, bonus = 52 }, { level = 54, bonus = 68 },
+  { level = 1, id = 1752, bonus = 3 },
+  { level = 6, id = 1757, bonus = 6 },
+  { level = 14, id = 1758, bonus = 10 },
+  { level = 22, id = 1759, bonus = 15 },
+  { level = 30, id = 1760, bonus = 22 },
+  { level = 38, id = 8621, bonus = 33 },
+  { level = 46, id = 11293, bonus = 52 },
+  { level = 54, id = 11294, bonus = 68 },
 ]
 [[spells.sinister_strike.effects]]
 type = "damage"
 weapon = "mh"
+normalized = true
 amount = "r.bonus"
 on_hit = [{ type = "combo", amount = 1 }]
-on_crit = [{ type = "chance", p = "0.2 * t.seal_fate", then = [{ type = "combo", amount = 1 }] }]
 
 [spells.backstab]
 name = "Backstab"
 cost = { energy = 60 }
 requires = "behind && mh.dagger"
+# bonus = the game's flat bonus; 150% applies to it too (rank 1: +15, rank 8: +210)
 ranks = [
-  { level = 4, bonus = 10 }, { level = 12, bonus = 20 }, { level = 20, bonus = 32 }, { level = 28, bonus = 46 },
-  { level = 36, bonus = 60 }, { level = 44, bonus = 90 }, { level = 52, bonus = 110 }, { level = 60, bonus = 150 },
+  { level = 4, id = 53, bonus = 10 },
+  { level = 12, id = 2589, bonus = 20 },
+  { level = 20, id = 2590, bonus = 32 },
+  { level = 28, id = 2591, bonus = 46 },
+  { level = 36, id = 8721, bonus = 60 },
+  { level = 44, id = 11279, bonus = 90 },
+  { level = 52, id = 11280, bonus = 110 },
+  { level = 60, id = 11281, bonus = 140 },
 ]
 [[spells.backstab.effects]]
 type = "damage"
 weapon = "mh"
+normalized = true
 weapon_mult = 1.5
-amount = "r.bonus"
+amount = "1.5 * r.bonus"
 on_hit = [{ type = "combo", amount = 1 }, { type = "chance", p = "0.15 * t.puncturing_wounds", then = [{ type = "combo", amount = 1 }] }]
-on_crit = [{ type = "chance", p = "0.2 * t.seal_fate", then = [{ type = "combo", amount = 1 }] }]
 
 [spells.mutilate]
 name = "Mutilate"
 talent = "mutilate"
 cost = { energy = 60 }
-requires = "dual_wield"
-ranks = [{ level = 30, bonus = 17.25 }, { level = 40, bonus = 24.75 }, { level = 50, bonus = 36 }, { level = 60, bonus = 50.25 }]
+requires = "dual_wield && mh.dagger && oh.dagger"
+# bonus = the game's flat bonus per hand; 75% applies to it too (rank 1: +17.25)
+ranks = [
+  { level = 30, id = 1310707, bonus = 23 },
+  { level = 40, id = 399956, bonus = 33 },
+  { level = 50, id = 1241582, bonus = 48 },
+  { level = 60, id = 1241584, bonus = 67 },
+]
 [[spells.mutilate.effects]]
 type = "damage"
 weapon = "mh"
+normalized = true
 weapon_mult = 0.75
-amount = "r.bonus"
+amount = "0.75 * r.bonus"
 mult = "target.aura.deadly_poison.up ? 1.2 : 1"
 on_hit = [{ type = "combo", amount = 2 }]
-on_crit = [{ type = "chance", p = "0.2 * t.seal_fate", then = [{ type = "combo", amount = 1 }] }]
 [[spells.mutilate.effects]]
 type = "damage"
 weapon = "oh"
+normalized = true
 weapon_mult = 0.75
-amount = "r.bonus"
-mult = "target.aura.deadly_poison.up ? 1.2 : 1"
-on_crit = [{ type = "chance", p = "0.2 * t.seal_fate", then = [{ type = "combo", amount = 1 }] }]
+amount = "0.75 * r.bonus"
+mult = "(target.aura.deadly_poison.up ? 1.2 : 1) * (opt.rogue_mutilate_offhand_penalty > 0 ? offhand_mult : 1)"
 
 [spells.hemorrhage]
 name = "Hemorrhage"
 talent = "hemorrhage"
 cost = { energy = 35 }
+ranks = [{ level = 30, id = 16511 }]
 [[spells.hemorrhage.effects]]
 type = "damage"
 weapon = "mh"
+normalized = true
 weapon_mult = "mh.dagger ? 1.45 : 1.0"
 on_hit = [{ type = "combo", amount = 1 }, { type = "aura", aura = "hemorrhage", target = "target" }]
-on_crit = [{ type = "chance", p = "0.2 * t.seal_fate", then = [{ type = "combo", amount = 1 }] }]
 
 [spells.ghostly_strike]
 name = "Ghostly Strike"
 talent = "ghostly_strike"
 cost = { energy = 40 }
 cooldown = 20
+ranks = [{ level = 1, id = 14278 }]
 [[spells.ghostly_strike.effects]]
 type = "damage"
 weapon = "mh"
 weapon_mult = "mh.dagger ? 1.8 : 1.25"
 on_hit = [{ type = "combo", amount = 1 }]
-on_crit = [{ type = "chance", p = "0.2 * t.seal_fate", then = [{ type = "combo", amount = 1 }] }]
 [[spells.ghostly_strike.effects]]
 type = "aura"
 aura = "ghostly_strike"
@@ -589,7 +656,9 @@ name = "Riposte"
 talent = "riposte"
 cost = { energy = 10 }
 cooldown = 6
+off_gcd = true
 requires = "aura.riposte_ready.up"
+ranks = [{ level = 1, id = 14251 }]
 effects = [
   { type = "damage", weapon = "mh", weapon_mult = 1.5, on_hit = [{ type = "aura", aura = "disarm", target = "target", duration = 6 }] },
   { type = "remove_aura", aura = "riposte_ready" },
@@ -599,7 +668,7 @@ effects = [
 name = "Gouge"
 cost = { energy = 45 }
 cooldown = 10
-ranks = [{ level = 6, dmg = 10 }, { level = 18, dmg = 20 }, { level = 32, dmg = 32 }, { level = 46, dmg = 55 }, { level = 60, dmg = 75 }]
+ranks = [{ level = 6, id = 1776, dmg = 10 }, { level = 18, id = 1777, dmg = 20 }, { level = 32, id = 8629, dmg = 32 }, { level = 46, id = 11285, dmg = 55 }, { level = 60, id = 11286, dmg = 75 }]
 effects = [{ type = "damage", school = "physical", amount = "r.dmg", on_hit = [{ type = "combo", amount = 1 }, { type = "aura", aura = "incap", target = "target", duration = "4 + 0.5 * t.improved_gouge" }] }]
 
 [spells.kick]
@@ -608,8 +677,11 @@ cost = { energy = 25 }
 cooldown = 10
 off_gcd = false
 requires = "target.casting"
-ranks = [{ level = 12, dmg = 15 }, { level = 26, dmg = 30 }, { level = 42, dmg = 45 }, { level = 58, dmg = 80 }]
-effects = [{ type = "damage", school = "physical", amount = "r.dmg", on_hit = [{ type = "interrupt", lockout = 5 }] }]
+ranks = [{ level = 12, id = 1766, dmg = 15 }, { level = 26, id = 1767, dmg = 30 }, { level = 42, id = 1768, dmg = 45 }, { level = 58, id = 1769, dmg = 80 }]
+effects = [{ type = "damage", school = "physical", amount = "r.dmg", on_hit = [
+  { type = "interrupt", lockout = 5 },
+  { type = "chance", p = "0.5 * t.improved_kick", then = [{ type = "aura", aura = "silence", target = "target", duration = 2 }] },
+] }]
 
 [spells.eviscerate]
 name = "Eviscerate"
@@ -617,13 +689,18 @@ finisher = true
 cost = { energy = 35 }
 requires = "cp >= 1"
 ranks = [
-  { level = 1, lo = 6, hi = 10, per = 5 }, { level = 8, lo = 14, hi = 22, per = 11 }, { level = 16, lo = 25, hi = 39, per = 19 },
-  { level = 24, lo = 41, hi = 61, per = 31 }, { level = 32, lo = 60, hi = 90, per = 45 }, { level = 40, lo = 93, hi = 137, per = 71 },
-  { level = 48, lo = 144, hi = 212, per = 110 }, { level = 56, lo = 199, hi = 295, per = 151 },
+  { level = 1, id = 2098, lo = 6, hi = 10, per = 5 },
+  { level = 8, id = 6760, lo = 14, hi = 22, per = 11 },
+  { level = 16, id = 6761, lo = 25, hi = 39, per = 19 },
+  { level = 24, id = 6762, lo = 41, hi = 61, per = 31 },
+  { level = 32, id = 8623, lo = 60, hi = 90, per = 45 },
+  { level = 40, id = 8624, lo = 93, hi = 137, per = 71 },
+  { level = 48, id = 11299, lo = 144, hi = 212, per = 110 },
+  { level = 56, id = 11300, lo = 199, hi = 295, per = 151 },
 ]
-text = "Damage per combo point from the Forever rank table; Attack Power adds 3% per combo point (TBC coefficient, Forever says only 'increased by Attack Power')."
+text = "Damage per combo point from the Forever rank table. The tooltip says attack power adds to it without a number; the share per combo point is an assumption (rogue_eviscerate_ap)."
 effects = [
-  { type = "damage", school = "physical", min = "r.lo + r.per * (cp - 1) + 0.03 * cp * ap", max = "r.hi + r.per * (cp - 1) + 0.03 * cp * ap" },
+  { type = "damage", school = "physical", min = "r.lo + r.per * (cp - 1) + opt.rogue_eviscerate_ap * cp * ap", max = "r.hi + r.per * (cp - 1) + opt.rogue_eviscerate_ap * cp * ap" },
   { type = "chance", p = "0.2 * cp * t.relentless_strikes", then = [{ type = "resource", res = "energy", amount = 25 }] },
 ]
 
@@ -633,7 +710,7 @@ finisher = true
 cost = { energy = 25 }
 target = "self"
 requires = "cp >= 1"
-ranks = [{ level = 10, haste = 0.2 }, { level = 42, haste = 0.3 }]
+ranks = [{ level = 10, id = 5171, haste = 0.2 }, { level = 42, id = 6774, haste = 0.3 }]
 effects = [
   { type = "aura", aura = "slice_and_dice", target = "self" },
   { type = "chance", p = "0.2 * cp * t.relentless_strikes", then = [{ type = "resource", res = "energy", amount = 25 }] },
@@ -644,13 +721,14 @@ name = "Rupture"
 finisher = true
 cost = { energy = 25 }
 requires = "cp >= 1"
+# tick = damage every 2 sec, tick_cp = extra per combo point (rank 1, 1 point: (5 + 1.18) x 4 ticks = 24.72)
 ranks = [
-  { level = 20, c1 = 24.72, c2 = 36.8, c3 = 51.24, c4 = 68.04, c5 = 87.2 },
-  { level = 28, c1 = 35.12, c2 = 52.8, c3 = 74.04, c4 = 98.84, c5 = 127.2 },
-  { level = 36, c1 = 53.48, c2 = 78.7, c3 = 108.66, c4 = 143.36, c5 = 182.8 },
-  { level = 44, c1 = 75.84, c2 = 109.6, c3 = 149.28, c4 = 194.88, c5 = 246.4 },
-  { level = 52, c1 = 104.56, c2 = 151.4, c3 = 206.52, c4 = 269.92, c5 = 341.6 },
-  { level = 60, c1 = 158.92, c2 = 222.3, c3 = 295.14, c4 = 377.44, c5 = 469.2 },
+  { level = 20, id = 1943, tick = 5, tick_cp = 1.18 },
+  { level = 28, id = 8639, tick = 7, tick_cp = 1.78 },
+  { level = 36, id = 8640, tick = 11, tick_cp = 2.37 },
+  { level = 44, id = 11273, tick = 16, tick_cp = 2.96 },
+  { level = 52, id = 11274, tick = 22, tick_cp = 4.14 },
+  { level = 60, id = 11275, tick = 35, tick_cp = 4.73 },
 ]
 effects = [
   { type = "aura", aura = "rupture", target = "target", stacks = "cp" },
@@ -663,7 +741,7 @@ finisher = true
 cost = { energy = 25 }
 cooldown = 20
 requires = "cp >= 1"
-ranks = [{ level = 30, extra = 0 }, { level = 50, extra = 1 }]
+ranks = [{ level = 30, id = 408, extra = 0 }, { level = 50, id = 8643, extra = 1 }]
 effects = [
   { type = "aura", aura = "stun", target = "target", duration = "cp + r.extra" },
   { type = "if", cond = "t.improved_kidney_shot > 0", then = [{ type = "aura", aura = "kidney_vulnerability", target = "target", duration = "cp + r.extra", stacks = "t.improved_kidney_shot" }] },
@@ -677,6 +755,7 @@ finisher = true
 cost = { energy = 25 }
 target = "self"
 requires = "cp >= 1"
+ranks = [{ level = 40, id = 1310703 }]
 effects = [
   { type = "aura", aura = "venom", target = "self" },
   { type = "chance", p = "0.2 * cp * t.relentless_strikes", then = [{ type = "resource", res = "energy", amount = 25 }] },
@@ -684,21 +763,29 @@ effects = [
 
 [spells.cheap_shot]
 name = "Cheap Shot"
-level = 26
 cost = { energy = 60 }
 requires = "aura.stealth.up"
+ranks = [{ level = 26, id = 1833 }]
 effects = [
   { type = "remove_aura", aura = "stealth" },
   { type = "aura", aura = "stun", target = "target", duration = 4 },
   { type = "combo", amount = 2 },
-  { type = "chance", p = "t.initiative / 3", then = [{ type = "combo", amount = 1 }] },
+  { type = "chance", p = "interp(t.initiative, 0,0, 1,0.33, 2,0.67, 3,1)", then = [{ type = "combo", amount = 1 }] },
 ]
 
 [spells.ambush]
 name = "Ambush"
 cost = { energy = 60 }
 requires = "(aura.stealth.up || aura.cutthroat.up) && mh.dagger"
-ranks = [{ level = 18, bonus = 70 }, { level = 26, bonus = 100 }, { level = 34, bonus = 125 }, { level = 42, bonus = 185 }, { level = 50, bonus = 230 }, { level = 58, bonus = 290 }]
+# bonus = the game's flat bonus; 250% applies to it too (rank 1: +70, as the tooltip says)
+ranks = [
+  { level = 18, id = 8676, bonus = 28 },
+  { level = 26, id = 8724, bonus = 40 },
+  { level = 34, id = 8725, bonus = 50 },
+  { level = 42, id = 11267, bonus = 74 },
+  { level = 50, id = 11268, bonus = 92 },
+  { level = 58, id = 11269, bonus = 116 },
+]
 [[spells.ambush.effects]]
 type = "remove_aura"
 aura = "stealth"
@@ -708,21 +795,29 @@ aura = "cutthroat"
 [[spells.ambush.effects]]
 type = "damage"
 weapon = "mh"
+normalized = true
 weapon_mult = 2.5
-amount = "r.bonus"
-on_hit = [{ type = "combo", amount = 1 }, { type = "chance", p = "t.initiative / 3", then = [{ type = "combo", amount = 1 }] }]
-on_crit = [{ type = "chance", p = "0.2 * t.seal_fate", then = [{ type = "combo", amount = 1 }] }]
+amount = "2.5 * r.bonus"
+on_hit = [{ type = "combo", amount = 1 }, { type = "chance", p = "interp(t.initiative, 0,0, 1,0.33, 2,0.67, 3,1)", then = [{ type = "combo", amount = 1 }] }]
 
 [spells.garrote]
 name = "Garrote"
 cost = { energy = 50 }
 requires = "aura.stealth.up && (behind || t.dirty_deeds > 0)"
-ranks = [{ level = 14, total = 144 }, { level = 22, total = 204 }, { level = 30, total = 282 }, { level = 38, total = 354 }, { level = 46, total = 444 }, { level = 54, total = 552 }]
+# tick = damage every 3 sec for 18 sec
+ranks = [
+  { level = 14, id = 703, tick = 24 },
+  { level = 22, id = 8631, tick = 34 },
+  { level = 30, id = 8632, tick = 47 },
+  { level = 38, id = 8633, tick = 59 },
+  { level = 46, id = 11289, tick = 74 },
+  { level = 54, id = 11290, tick = 92 },
+]
 effects = [
   { type = "remove_aura", aura = "stealth" },
   { type = "aura", aura = "garrote", target = "target" },
   { type = "combo", amount = 1 },
-  { type = "chance", p = "t.initiative / 3", then = [{ type = "combo", amount = 1 }] },
+  { type = "chance", p = "interp(t.initiative, 0,0, 1,0.33, 2,0.67, 3,1)", then = [{ type = "combo", amount = 1 }] },
 ]
 
 [spells.premeditation]
@@ -732,14 +827,15 @@ off_gcd = true
 cooldown = 120
 requires = "aura.stealth.up"
 target = "self"
+ranks = [{ level = 20, id = 14183 }]
 effects = [{ type = "combo", amount = 2 }]
 
 [spells.evasion]
 name = "Evasion"
-level = 8
 off_gcd = true
 cooldown = 300
 target = "self"
+ranks = [{ level = 8, id = 5277 }]
 effects = [{ type = "aura", aura = "evasion" }]
 
 [spells.blade_flurry]
@@ -748,14 +844,15 @@ talent = "blade_flurry"
 cost = { energy = 25 }
 cooldown = 120
 target = "self"
+ranks = [{ level = 1, id = 13877 }]
 effects = [{ type = "aura", aura = "blade_flurry" }]
 
 [spells.adrenaline_rush]
 name = "Adrenaline Rush"
 talent = "adrenaline_rush"
-off_gcd = true
 cooldown = 300
 target = "self"
+ranks = [{ level = 1, id = 13750 }]
 effects = [{ type = "aura", aura = "adrenaline_rush" }]
 
 [spells.cold_blood]
@@ -764,8 +861,14 @@ talent = "cold_blood"
 off_gcd = true
 cooldown = 180
 target = "self"
+ranks = [{ level = 1, id = 14177 }]
 effects = [{ type = "aura", aura = "cold_blood" }]
 
+# Poisons: the game coats one weapon at a time; the sim keeps one poison per
+# hand so each hand can carry a different one. Damage and chances are the
+# game's: Instant Poison I-VI deals 8680/8685/8689/11335/11336/11337 on a 20%
+# chance per hit, Deadly Poison I-V ticks 2818/2819/11353/11354/25349 every
+# 3 sec for 12 sec, stacking 5 times, on a 30% chance per hit.
 [spells.instant_poison_mh]
 name = "Instant Poison (main hand)"
 target = "self"
@@ -780,24 +883,28 @@ effects = [{ type = "aura", aura = "instant_poison_oh" }]
 [spells.deadly_poison_mh]
 name = "Deadly Poison (main hand)"
 target = "self"
-ranks = [{ level = 30, total = 24 }, { level = 38, total = 36 }, { level = 46, total = 56 }, { level = 54, total = 72 }, { level = 60, total = 92 }]
+ranks = [{ level = 30, tick = 6 }, { level = 38, tick = 9 }, { level = 46, tick = 14 }, { level = 54, tick = 18 }, { level = 60, tick = 23 }]
 effects = [{ type = "aura", aura = "deadly_poison_mh" }]
 [spells.deadly_poison_oh]
 name = "Deadly Poison (off hand)"
 target = "self"
 requires = "dual_wield"
-ranks = [{ level = 30, total = 24 }, { level = 38, total = 36 }, { level = 46, total = 56 }, { level = 54, total = 72 }, { level = 60, total = 92 }]
+ranks = [{ level = 30, tick = 6 }, { level = 38, tick = 9 }, { level = 46, tick = 14 }, { level = 54, tick = 18 }, { level = 60, tick = 23 }]
 effects = [{ type = "aura", aura = "deadly_poison_oh" }]
 
 # ------------------------------------------------------------------ rotations
 [rotations.combat_swords]
-desc = "Combat swords: Slice and Dice up, Sinister Strike to 5 points, Eviscerate; Kidney Shot and Evasion against players"
+desc = "Combat swords: Slice and Dice up, Sinister Strike to 5 points, Eviscerate, Blade Flurry and Adrenaline Rush on cooldown; Evasion when low against two or more or a player, Kidney Shot against players"
 precombat = ["instant_poison_mh", "deadly_poison_oh", { cast = "instant_poison_oh", if = "!known.deadly_poison_oh" }, "stealth"]
 opener = ["premeditation", "cheap_shot"]
 actions = [
-  { cast = "evasion", if = "hp_pct < 0.5 && target.is_player" },
+  { cast = "will_to_survive" },
+  { cast = "evasion", if = "hp_pct < 0.5 && (target.is_player || enemies >= 2)" },
+  { cast = "stoneform", if = "hp_pct < 0.5" },
   { cast = "blood_fury" },
   { cast = "berserking" },
+  { cast = "elunes_light" },
+  { cast = "eureka" },
   { cast = "adrenaline_rush" },
   { cast = "blade_flurry" },
   { cast = "riposte" },
@@ -816,13 +923,17 @@ rest = [
 eat_below = 0.55
 
 [rotations.daggers]
-desc = "Daggers: Ambush/Garrote opener, Mutilate or Backstab (Sinister Strike when not behind), Rupture on long fights, Eviscerate"
+desc = "Daggers: Ambush/Garrote opener, Mutilate or Backstab (Sinister Strike when not behind), Rupture on long fights, Eviscerate; Evasion when low against two or more or a player"
 precombat = ["instant_poison_mh", "deadly_poison_oh", { cast = "instant_poison_oh", if = "!known.deadly_poison_oh" }, "stealth"]
 opener = ["premeditation", "ambush", "garrote", "cheap_shot"]
 actions = [
-  { cast = "evasion", if = "hp_pct < 0.5 && target.is_player" },
+  { cast = "will_to_survive" },
+  { cast = "evasion", if = "hp_pct < 0.5 && (target.is_player || enemies >= 2)" },
+  { cast = "stoneform", if = "hp_pct < 0.5" },
   { cast = "blood_fury" },
   { cast = "berserking" },
+  { cast = "elunes_light" },
+  { cast = "eureka" },
   { cast = "adrenaline_rush" },
   { cast = "riposte" },
   { cast = "kick" },
@@ -838,6 +949,38 @@ actions = [
   { cast = "backstab" },
   { cast = "hemorrhage" },
   { cast = "sinister_strike", if = "!known.mutilate && !known.hemorrhage && !(behind && mh.dagger)" },
+]
+rest = [
+  { cast = "cannibalize", if = "hp_pct < 0.75" },
+  { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
+  { cast = "stealth" },
+]
+eat_below = 0.55
+
+[rotations.subtlety]
+desc = "Subtlety: Premeditation and Ambush from Stealth (Cheap Shot without a dagger), Ghostly Strike on cooldown, Hemorrhage as the builder (Backstab or Sinister Strike before 30), Slice and Dice, Rupture on long fights, Eviscerate; Evasion when low against two or more or a player"
+precombat = ["instant_poison_mh", "deadly_poison_oh", { cast = "instant_poison_oh", if = "!known.deadly_poison_oh" }, "stealth"]
+opener = ["premeditation", "ambush", "cheap_shot"]
+actions = [
+  { cast = "will_to_survive" },
+  { cast = "evasion", if = "hp_pct < 0.5 && (target.is_player || enemies >= 2)" },
+  { cast = "stoneform", if = "hp_pct < 0.5" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "elunes_light" },
+  { cast = "eureka" },
+  { cast = "riposte" },
+  { cast = "kick" },
+  { cast = "kidney_shot", if = "target.is_player && cp >= 4 && !target.stunned" },
+  { cast = "slice_and_dice", if = "!aura.slice_and_dice.up && cp >= 2 && target.hp_pct > 0.35" },
+  { cast = "rupture", if = "cp >= 5 && !target.aura.rupture.up && (target.boss ? target.hp_pct > 0.1 : target.hp_pct > 0.5)" },
+  { cast = "eviscerate", if = "cp >= 5 || (cp >= 2 && target.hp_pct < 0.2)" },
+  { cast = "ambush" },
+  { cast = "ghostly_strike" },
+  { cast = "hemorrhage", if = "!target.aura.hemorrhage.up" },
+  { cast = "backstab" },
+  { cast = "hemorrhage" },
+  { cast = "sinister_strike", if = "!known.hemorrhage && !(behind && mh.dagger)" },
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75" },

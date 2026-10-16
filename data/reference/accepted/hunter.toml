@@ -1,0 +1,63 @@
+# Deliberate differences between data/base/classes/hunter.toml and Forever's
+# spell data (build 1.60.1.70425). Format: data/reference/accepted/README.md.
+
+[hunter.counterattack]
+level = "Counterattack is a 15-point Survival talent, which opens at level 25, so the sim lets the talent teach rank 1 (#19306) then. The game's spell lists level 30, the same level as its second rank (#1242634); whether it can be used before 30 isn't confirmed on the beta."
+
+[hunter.claw]
+cooldown = "Pet focus is not simulated. Claw costs 25 focus and has no cooldown in the game; the sim gives it a cooldown of opt.hunter_pet_claw_interval (4 s by default, up to 20% shorter with Bestial Discipline) to stand in for the focus budget."
+
+# ------------------------------------------------------------------ talents
+# Talent rows (`fsim audit hunter`, rows talent_<id>): per-rank values from
+# the client's trait data that the check can't see in the sim's formulas.
+
+[hunter.talent_lightning_reflexes]
+"value.0" = "The audit pairs this talent by name with node 104982, an older copy of Lightning Reflexes with Classic's 3% a rank that the client places off the Survival tree (x 102800, y 5740; the tree spans x 9080 to 10880). The node on the tree is 110859 (Survival, 25 points, 2/4/6/8/10% Agility), which is what the sim models."
+
+[hunter.talent_lightningreflexes]
+talent = "Node 110859, the Lightning Reflexes on the Survival tree. The sim's lightning_reflexes models it (2% Agility a rank); the audit matches talents by name and pairs the sim's talent with the first node of that name, the retired copy 104982."
+
+[hunter.talent_improved_aspect_of_the_monkey]
+"value.1" = "A dummy value (5/6/7) the tooltip doesn't show. The tooltip gives the pet a fixed 50% of the aspect's dodge, which the sim models in [pets.cat] dodge."
+
+[hunter.talent_pathfinding]
+"value.0" = "Aspect of the Cheetah and Aspect of the Pack speed +3% a rank: movement is not simulated."
+
+[hunter.talent_improved_revive_pet]
+"value.2" = "Revive Pet's health bonus, +15% a rank on top of the base 15%: it sits in Revive Pet's health formula (pet.max_hp * (0.15 + 0.15 * rank)), which depends on the pet's health, so the check can't evaluate it."
+
+[hunter.talent_improved_mend_pet]
+"value.0" = "Chance for each Mend Pet heal to cleanse a curse, disease, magic or poison effect (15/50%): the cleanse is not simulated."
+
+[hunter.talent_bestial_discipline]
+"value.0" = "Pet focus regeneration +10% a rank. Focus is not simulated: the bonus divides Claw's interval (opt.hunter_pet_claw_interval / (1 + 0.1 * rank)), so it never appears as a number of its own."
+
+[hunter.talent_hawk_eye]
+"value.0" = "Ranged weapon range +2 yards a rank: range is not simulated."
+
+[hunter.talent_improved_concussive_shot]
+"value.0" = "Chance for Concussive Shot to stun (4% a rank): Concussive Shot, a slow for kiting, is not in the sim."
+
+[hunter.talent_improved_stings]
+"value.1" = "Viper Sting cooldown -2 sec a rank: Viper Sting is not simulated."
+"value.2" = "Scorpid Sting duration +15 sec a rank: Scorpid Sting is not simulated."
+
+[hunter.talent_careful_aim]
+"value.0" = "Attack power +20% of Intellect a rank: the sim adds 0.2 * rank * int, which depends on Intellect, so the check can't evaluate it."
+"value.1" = "Ranged attack power +20% of Intellect a rank: the sim adds 0.2 * rank * int, which depends on Intellect, so the check can't evaluate it."
+
+[hunter.talent_entrapment]
+"value.0" = "Root from traps (1 sec a rank): traps are not simulated."
+
+[hunter.talent_improved_wing_clip]
+"value.0" = "Chance for Wing Clip to immobilize (7/13/20%): roots and movement are not simulated."
+
+[hunter.talent_clever_traps]
+"value.0" = "Trap duration and damage +15% a rank: traps are not simulated."
+"value.1" = "Trap duration and damage +15% a rank: traps are not simulated."
+
+[hunter.talent_survival_tactics]
+"value.0" = "Trap and Feign Death hit chance +5% a rank: neither is simulated."
+
+[hunter.talent_improvedserpentsting]
+talent = "Node 105003 (spell 19464). The client keeps it but places it far off the Marksmanship tree (y 39300; the tree ends at 5730), and its points don't count toward the 20 and 25 point rows, the same in 70338 and 70425. Players can't take it, so the sim leaves it out."

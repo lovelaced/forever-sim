@@ -6,3 +6,5 @@ node_modules/
 catalog.json
 /web/icons/
 /.textures
+/.db2/
+/target-next/

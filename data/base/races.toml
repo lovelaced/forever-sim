@@ -1,7 +1,9 @@
 # Races: stat offsets from the human baseline (Classic), class lists and
-# racials from the Forever client build 1.60.1.70338 (wowforevertalents.com/racials).
+# racials from Forever's spell data, build 1.60.1.70338 (tools/spell.py
+# --grep "" <race> lists them). Later builds change them in data/patches/.
 # Racial actives are spells any rotation can list; a character without the
-# race simply skips them.
+# race simply skips them. Damage bonuses against a creature type only matter
+# against enemies of that type.
 
 [races.human]
 name = "Human"
@@ -16,8 +18,7 @@ passives = [
 ]
 [races.human.spells.will_to_survive]
 name = "Will to Survive"
-off_gcd = true
-cooldown = 180
+cooldown = 180                    # on the global cooldown (spell 1259718: 1.5 sec)
 usable_while = ["stun"]
 target = "self"
 requires = "stunned"
@@ -32,11 +33,11 @@ stats = { str = 2, agi = -4, sta = 3, int = -1, spi = -2 }
 source = "forever-70338"
 passives = [
   { name = "Mace Specialization", if = "mh.mace", mods = [{ stat = "crit", add = 1 }] },
+  { name = "Big Game Hunter", mods = [{ stat = "dmg_done", mul = "target.beast ? 1.05 : 1" }] },
 ]
 [races.dwarf.spells.stoneform]
 name = "Stoneform"
-off_gcd = true
-cooldown = 180
+cooldown = 180                    # on the global cooldown (spell 20594: 1.5 sec)
 target = "self"
 effects = [{ type = "aura", aura = "stoneform" }]
 [races.dwarf.auras.stoneform]
@@ -79,7 +80,7 @@ target = "self"
 effects = [{ type = "aura", aura = "eureka" }]
 [races.gnome.auras.eureka]
 name = "Eureka!"
-duration = 30
+duration = 15                     # spell 1259812 and its class versions
 charges = 3
 consume_on_cast = true
 spell_mods = [{ prop = "cost", mul = 0.9 }, { prop = "damage", mul = 1.1 }, { prop = "heal", mul = 1.1 }]
@@ -91,7 +92,10 @@ faction = "alliance"
 classes = ["warrior", "hunter", "rogue", "mage", "druid"]
 stats = { str = -3, agi = 4, sta = -1, int = 1, spi = 0 }   # assumption: no published stats
 source = "forever-70338 (stat offsets assumed)"
-passives = [{ name = "Wind Blessed", mods = [{ stat = "haste", mul = 1.01 }] }]
+passives = [
+  { name = "Wind Blessed", mods = [{ stat = "haste", mul = 1.01 }] },
+  { name = "Elemental Insight", mods = [{ stat = "dmg_done", mul = "target.elemental ? 1.05 : 1" }] },
+]
 
 [races.orc]
 name = "Orc"
@@ -113,7 +117,19 @@ effects = [{ type = "aura", aura = "blood_fury" }]
 [races.orc.auras.blood_fury]
 name = "Blood Fury"
 duration = 15
-mods = [{ stat = "ap_mult", mul = 1.10 }, { stat = "sp", mul = 1.10 }, { stat = "heal_power", mul = 1.10 }]
+# spell 20572: attack power, ranged attack power and spell power +10%
+mods = [{ stat = "ap_mult", mul = 1.10 }, { stat = "rap_mult", mul = 1.10 }, { stat = "sp", mul = 1.10 }, { stat = "heal_power", mul = 1.10 }]
+[races.orc.spells.shatter_curse]
+name = "Shatter Curse"
+# spell 1299026; no rotation uses it yet
+cooldown = 180
+target = "self"
+text = "Immune to Curses and 15% less magic damage taken for 8 sec."
+effects = [{ type = "aura", aura = "shatter_curse" }]
+[races.orc.auras.shatter_curse]
+name = "Shatter Curse"
+duration = 8
+mods = [{ stat = "spell_dmg_taken", mul = 0.85 }]
 
 [races.undead]
 name = "Undead"
@@ -124,16 +140,15 @@ stats = { str = -1, agi = -2, sta = 1, int = -2, spi = 4 }
 source = "forever-70338"
 [[races.undead.passives]]
 name = "Touch of the Grave"
-text = "Your spells and attacks have a chance to drain health from the target, up to 5% of your maximum health. Beta testers report no internal cooldown and no procs from periodic damage or channel ticks."
+text = "Your spells and attacks have a chance to drain health from the target, up to 5% of your maximum health. Beta testers report no procs from periodic damage or channel ticks."
+# One proc for every attack and spell that lands, so they share the game's
+# 1 sec internal cooldown (spells 1260189 and 1260201).
 procs = [
-  { on = "melee_landed", chance = "(class.mage || class.priest || class.warlock) ? opt.tog_chance_caster : opt.tog_chance_melee", effects = [{ type = "damage", school = "shadow", hit = "auto", amount = "opt.tog_drain_pct / 100 * max_hp", can_crit = false, lifesteal = 1, no_proc = true, tag = "Touch of the Grave" }] },
-  { on = "ranged_landed", chance = "(class.mage || class.priest || class.warlock) ? opt.tog_chance_caster : opt.tog_chance_melee", effects = [{ type = "damage", school = "shadow", hit = "auto", amount = "opt.tog_drain_pct / 100 * max_hp", can_crit = false, lifesteal = 1, no_proc = true, tag = "Touch of the Grave" }] },
-  { on = "spell_landed", if = "!event.periodic", chance = "(class.mage || class.priest || class.warlock) ? opt.tog_chance_caster : opt.tog_chance_melee", effects = [{ type = "damage", school = "shadow", hit = "auto", amount = "opt.tog_drain_pct / 100 * max_hp", can_crit = false, lifesteal = 1, no_proc = true, tag = "Touch of the Grave" }] },
+  { on = "damage_dealt", if = "!event.periodic", icd = 1, chance = "(class.mage || class.priest || class.warlock) ? opt.tog_chance_caster : opt.tog_chance_melee", effects = [{ type = "damage", school = "shadow", hit = "auto", amount = "opt.tog_drain_pct / 100 * max_hp", can_crit = false, lifesteal = 1, no_proc = true, tag = "Touch of the Grave" }] },
 ]
 [races.undead.spells.will_of_the_forsaken]
 name = "Will of the Forsaken"
-off_gcd = true
-cooldown = 120
+cooldown = 120                    # on the global cooldown (spell 7744: 1.5 sec)
 usable_while = ["fear", "incap"]
 target = "self"
 requires = "feared || incapacitated"
@@ -163,6 +178,8 @@ source = "forever-70338"
 passives = [{ name = "Endurance", mods = [{ stat = "max_hp_mult", mul = 1.05 }, { stat = "hit", add = 1 }] }]
 [races.tauren.spells.war_stomp]
 name = "War Stomp"
+cast_time = 0.5                   # spell 20549: 0.5 sec cast, off the global cooldown
+off_gcd = true
 cooldown = 120
 target = "enemy"
 effects = [{ type = "aura", aura = "stun", target = "enemies", max_targets = 5, duration = 2 }]
@@ -174,22 +191,26 @@ faction = "horde"
 classes = ["warrior", "hunter", "rogue", "priest", "shaman", "mage", "warlock"]
 stats = { str = 1, agi = 2, sta = 1, int = -4, spi = 0 }
 source = "forever-70338"
-passives = [{ name = "Regeneration", mods = [{ stat = "combat_hp_regen", add = 0.10 }] }]
+passives = [
+  { name = "Regeneration", mods = [{ stat = "combat_hp_regen", add = 0.10 }] },
+  { name = "Beast Slaying", mods = [{ stat = "dmg_done", mul = "target.beast ? 1.05 : 1" }] },
+]
 [races.troll.spells.berserking]
 name = "Berserking"
 off_gcd = true
 cooldown = 180
 target = "self"
-effects = [{ type = "aura", aura = "berserking", stacks = "round(10 + 20 * clamp((1 - hp_pct) / 0.6, 0, 1))" }]
+effects = [{ type = "aura", aura = "berserking" }]
 [races.troll.auras.berserking]
 name = "Berserking"
 duration = 10
-max_stacks = 30
-refresh = "replace"
-text = "10% to 30% attack and casting speed (stacks = percent), more when hurt."
-mods = [{ stat = "haste", mul = "1 + stacks / 100" }]
+# Forever's spell (20554) and tooltip give a flat 10%; the original game's
+# 10% to 30% scaling with missing health is gone.
+text = "10% attack and casting speed."
+mods = [{ stat = "haste", mul = 1.10 }]
 [races.troll.spells.rapid_regeneration]
 name = "Rapid Regeneration"
+off_gcd = true
 cooldown = 180
 target = "self"
 effects = [{ type = "aura", aura = "rapid_regeneration" }]
@@ -197,7 +218,7 @@ effects = [{ type = "aura", aura = "rapid_regeneration" }]
 name = "Rapid Regeneration"
 duration = 6
 break_on_damage = true
-tick = { interval = 1, effects = [{ type = "resource", res = "hp", amount = "max_hp * 0.5 / 6" }] }
+tick = { interval = 1.2, effects = [{ type = "resource", res = "hp", amount = "max_hp * 0.10" }] }   # spell 1260270: 10% every 1.2 sec
 
 [races.windshaper]
 name = "Windshaper Skyborne"

@@ -5,7 +5,7 @@ import * as M from './meta.js';
 import { h, art, ability, withTip, tt, flash, fmtNum } from './ui.js';
 import { prepareClass, renderTrees, learnBlock, unlearnBlock, budgetFor, spent } from './talents.js';
 import {
-  S, env, bus, classOf, raceOf, presetOf, presetsFor, baseName, classColor, editingBuild, names, nameOf, slotOf, autoName,
+  S, env, bus, classOf, raceOf, presetOf, presetsFor, presetTags, isExperimental, baseName, classColor, editingBuild, names, nameOf, slotOf, autoName,
   apiBuild, buildFromPreset, emptyBuild, sig, buildDiff, diffText, saveLocal,
 } from './state.js';
 
@@ -78,6 +78,17 @@ function afterTalentChange(t, viaTouch) {
   btn.classList.add('bump');
   if (viaTouch || btn.matches(':hover')) btn.dispatchEvent(new CustomEvent('showtip', { detail: { pinned: !!viaTouch } }));
   if (document.activeElement === document.body) btn.focus({ preventScroll: true });
+}
+
+// The build's own note, plus what kind of build it is.
+function presetNote(p, b) {
+  const extra = [
+    isExperimental(p) ? 'A Forever experiment, not one of the standard specs.' : null,
+    p.role === 'healer' ? 'A healing spec: these tests measure damage, leveling speed and survival, so it shows its solo play here. A healing test is coming.' : null,
+    p.role === 'tank' ? 'A tank spec: these tests measure solo play, not tanking for a group.' : null,
+    b.edited ? 'You have changed its talents.' : null,
+  ].filter(Boolean);
+  return [p.note, ...extra].filter(Boolean).join(' ');
 }
 
 function pickClass(cls) {
@@ -201,9 +212,12 @@ export function renderEditor(root, actions) {
   const presetRow = h('div.field-row', h('label.label', { for: 'preset' }, 'Start from'),
     h('div.field',
       h('select.select#preset', { onchange: (e) => pickPreset(e.target.value) },
-        presets.map((x) => h('option', { value: x.file, selected: x.file === b.preset }, baseName(x.name))),
-        h('option', { value: '', selected: !b.preset }, 'No talents (start from scratch)')),
-      h('p.note', p ? (b.edited ? `${p.note} You have changed its talents.` : p.note) : 'Spend your own talent points below.')));
+        [['Standard specs', presets.filter((x) => !isExperimental(x))], ['Forever experiments', presets.filter(isExperimental)]]
+          .filter(([, list]) => list.length)
+          .map(([label, list]) => h('optgroup', { label }, list.map((x) => h('option', { value: x.file, selected: x.file === b.preset },
+            baseName(x.name) + (x.role === 'healer' ? ' (healer)' : x.role === 'tank' ? ' (tank)' : '')))))
+          .concat([h('option', { value: '', selected: !b.preset }, 'No talents (start from scratch)')])),
+      h('p.note', p ? presetNote(p, b) : 'Spend your own talent points below.')));
 
   // Inner tabs
   const tabDefs = [['talents', 'Talents'], ['sheet', 'Character sheet'], ['gear', 'Gear and play style']];
@@ -332,12 +346,36 @@ function gearPanel(b) {
   return [
     h('div.section', h('h3', 'Gear'),
       h('div.choice-card', ability(M.gearIcon(g.id), ['#d9c49a', '#2d2416'], M.gearWowIcon(g.id)),
-        h('div.grow', gearSel, h('p.note', `${g.desc} Stats are a typical set for the character's level.`)))),
+        h('div.grow', gearSel, h('p.note', g.desc)))),
+    gearDetails(b, S.sheets.get(b.uid)),
     h('div.section', h('h3', 'Play style'),
       h('div.choice-card', ability(M.CLASS_ICONS[b.cls], ['#d9c49a', '#2d2416'], c.icon),
         h('div.grow', rotSel, h('p.note', rDetail ? `In order of priority: ${rDetail.replace(/\.$/, '')}.` : rTitle)))),
     h('p.note', { style: { marginTop: '18px' } }, 'The simulated player follows the play style perfectly, with the reaction time of a good human player.'),
   ];
+}
+
+// What the gear kit gives at the build's level: stats and weapons.
+export function gearLines(gear) {
+  const stats = gear.stats.map((s) => (s.unit === '%' ? `${fmtNum(s.value, s.value % 1 ? 1 : 0)}% ${s.label.toLowerCase()}` : `${fmtNum(Math.round(s.value))} ${s.label}`));
+  const weapons = gear.weapons.map((wp) => {
+    const school = wp.school !== 'physical' ? `${wp.school} ` : '';
+    const word = M.WEAPON_WORDS[wp.type] || wp.type;
+    const name = wp.slot === 'off_hand' ? `Off-hand ${word.toLowerCase()}` : word;
+    return `${name}: ${fmtNum(wp.min)} to ${fmtNum(wp.max)} ${school}damage every ${fmtNum(wp.speed, 1)} sec (${fmtNum(wp.dps, 1)} a second)`;
+  });
+  if (gear.shield) weapons.push(`Shield: ${fmtNum(gear.shield.armor)} armor, blocks ${fmtNum(gear.shield.block_value)} damage`);
+  return { stats, weapons };
+}
+
+function gearDetails(b, sheet) {
+  if (!sheet) return h('p.hint', 'Working out the gear…');
+  if (sheet.error || !sheet.gear) return null;
+  const { stats, weapons } = gearLines(sheet.gear);
+  return h('div.section', h('h3', `What this gear gives at level ${sheet.gear.level}`),
+    h('div.chips-list', stats.map((s) => h('span.pill', s))),
+    h('ul.gear-weapons', weapons.map((w) => h('li', w))),
+    h('p.note', 'This is a typical set for a player who has picked up quest and dungeon rewards on the way to this level. Every build that wears it gets the same totals, so results compare talents and play, not lucky drops. Forever reworked item stats, so treat the numbers as a fair estimate rather than a specific set of items.'));
 }
 
 // What changed since this build was last simulated, before simulating it

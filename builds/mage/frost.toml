@@ -1,27 +1,58 @@
-# Frost levelling/PvP mage, 10/0/41: shatter with Frost Nova, Ice Lance and Fingers of Frost.
-name = "Frost (10/0/41)"
+# The Frost leveling mage: Frostbolt, Frost Nova into Shatter, Ice Lance on frozen targets and on Fingers
+# of Frost procs, Cone of Cold fed by Winter's Chill, and Ice Barrier from 40, with all 51 points in
+# Frost. Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Method, WoW Forever Mage Leveling Guide (Frost, with its talent order to level 35):
+#   https://www.method.gg/wow-forever/wow-forever-mage-leveling-guide-and-talents
+# - Warcraft Tavern, WoW Forever Mage Leveling Guide (the level 30 Frost build and its rotation):
+#   https://www.warcrafttavern.com/forever/guides/mage-leveling/
+# - talentsforever.com, Frost Mage builds (the most planned level 60 Frost build, 0/0/51) and the Mage
+#   leveling order: https://talentsforever.com/mage/builds/frost and
+#   https://talentsforever.com/mage/leveling
+# Levels 10 to 35 follow Method. Theorycrafted (36 to 60): Winter's Chill, Ice Barrier at 40 (a level 40
+# spell), then the rest of the 0/0/51 build, the talents Frost players on talentsforever.com take earliest
+# first (Improved Frost Nova, Permafrost, Arctic Reach).
+# Race: Gnome, the Alliance pick in Method's guide and the best Mage race overall in Warcraft Tavern's:
+# Expansive Mind adds mana and Eureka! cuts costs and adds damage for 8 seconds.
+name = "Frost"
+kind = "standard"
 class = "mage"
-race = "undead"
+race = "gnome"
 level = 60
 gear = "cloth_caster"
 rotation = "frost"
 
+order = [
+  "improved_frostbolt", "improved_frostbolt", "elemental_precision", "elemental_precision", "elemental_precision",   # 10-14
+  "frostbite", "frostbite", "frostbite", "ice_shards", "ice_shards",   # 15-19
+  "ice_lance", "ice_shards", "ice_shards", "ice_shards", "piercing_ice",   # 20-24
+  "shatter", "shatter", "shatter", "ice_block", "piercing_ice",   # 25-29
+  "fingers_of_frost", "fingers_of_frost", "cold_snap", "improved_frostbolt", "improved_frostbolt",   # 30-34
+  "improved_frostbolt", "winters_chill", "winters_chill", "winters_chill", "winters_chill",   # 35-39
+  "ice_barrier", "winters_chill", "improved_frost_nova", "improved_frost_nova", "permafrost",   # 40-44
+  "permafrost", "permafrost", "arctic_reach", "arctic_reach", "piercing_ice",   # 45-49
+  "improved_cone_of_cold", "improved_cone_of_cold", "improved_cone_of_cold", "frost_channeling", "frost_channeling",   # 50-54
+  "frost_channeling", "elemental_precision", "elemental_precision", "improved_blizzard", "improved_blizzard",   # 55-59
+  "improved_blizzard",   # 60
+]
+
 [talents]
-wand_specialization = 2
-arcane_focus = 3
-arcane_concentration = 5
 improved_frostbolt = 5
-elemental_precision = 3
-ice_shards = 5
-improved_frost_nova = 2
+elemental_precision = 5
 frostbite = 3
-permafrost = 3
-piercing_ice = 3
-frost_channeling = 3
+ice_shards = 5
 ice_lance = 1
+piercing_ice = 3
 shatter = 3
 ice_block = 1
 fingers_of_frost = 2
 cold_snap = 1
 winters_chill = 5
 ice_barrier = 1
+improved_frost_nova = 2
+permafrost = 3
+arctic_reach = 2
+improved_cone_of_cold = 3
+frost_channeling = 3
+improved_blizzard = 3

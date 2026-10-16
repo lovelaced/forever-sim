@@ -1,29 +1,63 @@
-# Enhancement two-hander, 20/31/0: Windfury, Stormstrike, Maelstrom Lightning Bolts.
-name = "Enhancement (20/31/0)"
+# The two-handed melee shaman: Windfury Weapon, Stormstrike, Flurry and an instant Lightning Bolt at five
+# Maelstrom stacks, with Flame Shock, Earth Shock and Searing Totem. Rage of the Farseer at 40, then an
+# Elemental dip for cheaper shocks and Elemental Devastation. The guide plans all 60 levels, but nobody can
+# test past 30 until launch, and six of its Elemental points had to move after the Oct 15 patch.
+
+# Sources:
+# - Method, WoW Forever Shaman Leveling Guide & Talents (the full 10 to 60 order in its talent embed,
+#   rotation, Rockbiter to 30 then Windfury on a two-hander):
+#   https://www.method.gg/wow-forever/wow-forever-shaman-leveling-guide-and-talents
+# - Warcraft Tavern, WoW Forever Shaman Guide (level 30 build, the 8-point Elemental dip for Elemental
+#   Devastation, Orc as the Horde pick): https://www.warcrafttavern.com/forever/guides/shaman/
+# - wowtbc.gg, Enhancement Shaman guide (priority: Maelstrom Lightning Bolt, Stormstrike, Flame Shock or
+#   Earth Shock): https://wowtbc.gg/warcraftforever/class-guides/enhancement-shaman/
+# - Blizzard, WoW Forever beta development notes, Oct 15 Shaman changes (blue post mirror):
+#   https://www.bluetracker.gg/wow/topic/eu-en/631316-wow-forever-beta-development-notes-updated-15-october/
+# Levels 10 to 52 follow Method's order. Adapted to the Oct 15 tree: Method's levels 53 to 58 went to
+# Elemental Fury 5 and Call of Thunder, which this split can no longer reach (Elemental Fury needs 25 points
+# and Lightning Overload) or which is gone; those six points go to Call of Flame 3 (Flame Shock and Searing
+# Totem, the guide's opener) and Concussion 3 (Earth Shock and Lightning Bolt). Improved Fire Nova is now
+# Trial by Fire.
+# Race: Orc (Blood Fury, and the axe crit bonus with the kit's two-handed axe), Warcraft Tavern's Horde pick.
+name = "Enhancement"
+kind = "standard"
 class = "shaman"
 race = "orc"
 level = 60
 gear = "mail_enh"
 rotation = "enhancement"
 
+order = [
+  "thundering_strikes", "thundering_strikes", "thundering_strikes", "thundering_strikes", "thundering_strikes",
+  "mental_dexterity", "mental_dexterity", "mental_dexterity", "improved_ghost_wolf", "improved_ghost_wolf",
+  "shamanistic_focus", "elemental_weapons", "elemental_weapons", "elemental_weapons", "ancestral_knowledge",
+  "stormstrike", "flurry", "flurry", "flurry", "flurry", "flurry",
+  "spirit_weapons", "mental_quickness", "mental_quickness", "improved_stormstrike", "improved_stormstrike",
+  "maelstrom_weapon", "maelstrom_weapon", "maelstrom_weapon", "maelstrom_weapon", "rage_of_the_farseer", "maelstrom_weapon",
+  "convection", "convection", "convection", "convection", "convection",
+  "elemental_devastation", "elemental_devastation", "elemental_devastation", "reverberation", "reverberation",
+  "elemental_focus", "call_of_flame", "call_of_flame", "call_of_flame", "concussion", "concussion", "concussion",
+  "trial_by_fire", "trial_by_fire",
+]
+
 [talents]
-convection = 5
-concussion = 5
-call_of_flame = 3
-elemental_devastation = 2
-elemental_focus = 1
-elemental_alacrity = 3
-reverberation = 1
 thundering_strikes = 5
-ancestral_knowledge = 3
 mental_dexterity = 3
 improved_ghost_wolf = 2
-elemental_weapons = 3
 shamanistic_focus = 1
-anticipation = 1
-flurry = 5
+elemental_weapons = 3
+ancestral_knowledge = 1
 stormstrike = 1
+flurry = 5
 spirit_weapons = 1
+mental_quickness = 2
 improved_stormstrike = 2
-maelstrom_weapon = 3
+maelstrom_weapon = 5
 rage_of_the_farseer = 1
+convection = 5
+elemental_devastation = 3
+reverberation = 2
+elemental_focus = 1
+call_of_flame = 3
+concussion = 3
+trial_by_fire = 2

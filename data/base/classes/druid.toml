@@ -1,10 +1,23 @@
 # Druid. Talents and spell ranks: Forever client 1.60.1.70338
-# (wowforevertalents.com/druid and /abilities/druid, checked 2026-10-15).
+# (wowforevertalents.com/druid and /abilities/druid, checked 2026-10-15),
+# checked against Forever's spell data (data/reference/spellbook.json, build
+# 70338) with `fsim audit druid`; deliberate differences are listed in
+# data/reference/accepted/druid.toml.
 # Forever rules used: weapon DPS counts in forms; Furor keeps your Energy
 # when you shift out and regenerates it in caster form; Naturalist adds
 # damage; Swiftmend does not consume the heal over time; Barkskin and
-# Nature's Grasp work in forms. Rip/Rake/Bite Attack Power coefficients are
-# Classic. Omen of Clarity is not on the Forever spell list (opt.druid_omen).
+# Nature's Grasp work in forms; Rejuvenation, Regrowth's heal over time and
+# Wild Growth can crit (patch notes). Attack power bonuses of Rake, Rip,
+# Ferocious Bite, Lacerate and Swipe, Thorns' spell power ratio and the
+# threat of bear attacks are not in the client data; they are assumptions
+# (opt.druid_*). Omen of Clarity (16864, level 20) has no trainer row in
+# the client tables, but the Oct 15 notes fix a bug in it, so druids have it
+# (opt.druid_omen, on by default); its proc rates are assumptions.
+# Talent spells: most multi-rank Forever talents keep one spell whose value
+# is sometimes the per-rank step and sometimes the total, so rank values,
+# points and prerequisites follow the client's trait tables (the "talents"
+# section of the spellbook), which agree with the tooltips; which spells a
+# talent changes follows the spell data.
 name = "Druid"
 icon = "classicon_druid"
 resources = ["mana", "rage", "energy"]
@@ -46,14 +59,17 @@ icon = "spell_nature_sentinal"
 tree = "Balance"
 points = 5
 ranks = 3
-text = "Damage spells cost 25% less."
-spell_mods = [{ spells = ["wrath", "moonfire", "starfire", "insect_swarm"], prop = "cost", mul = "1 - rank / 12" }]
+text = "Balance spells, Thorns and Nature's Grasp cost 25% less."
+# Trait values: 8%, 17%, 25%.
+spell_mods = [{ spells = ["wrath", "moonfire", "starfire", "insect_swarm", "entangling_roots", "natures_grasp", "thorns"], prop = "cost", mul = "rank == 1 ? 0.92 : (rank == 2 ? 0.83 : 0.75)" }]
 [talents.improved_moonfire]
 icon = "spell_nature_starfall"
 tree = "Balance"
 points = 5
 ranks = 2
 text = "Moonfire damage and crit +10%."
+# Trait values: 5% a point for crit, damage and damage over time (the
+# talent's spell, 16821, holds 2).
 spell_mods = [{ spells = ["moonfire"], prop = "damage", mul = "1 + 0.05 * rank" }, { spells = ["moonfire"], prop = "crit", add = "5 * rank" }]
 [talents.natures_majesty]
 icon = "inv_staff_01"
@@ -61,25 +77,27 @@ tree = "Balance"
 points = 5
 ranks = 2
 text = "Spell and melee crit +4%."
+# Trait values: 2% a point (the talent's spell, 1223082, holds 1).
 mods = [{ stat = "crit", add = "2 * rank" }]
 [talents.natures_reach]
 icon = "spell_nature_naturetouchgrow"
 tree = "Balance"
-points = 10
+points = 5
 ranks = 2
-text = "Offensive Balance range +20%, hit +4% (applied as melee and spell hit here)."
-mods = [{ stat = "hit", add = "2 * rank" }, { stat = "spell_hit", add = "2 * rank" }]
+text = "Offensive Balance range +20%, hit +4%. Forever has one hit stat, so it counts for spells and attacks alike."
+mods = [{ stat = "hit", add = "2 * rank" }]
 [talents.improved_entangling_roots]
 icon = "spell_nature_stranglevines"
 tree = "Balance"
 points = 10
 ranks = 3
-text = "Roots damage and damage tolerance (not simulated)."
+text = "Entangling Roots damage +75%. The extra damage the root takes before breaking is not simulated (roots do nothing without distance)."
 [talents.natures_splendor]
 icon = "spell_nature_natureresistancetotem"
 tree = "Balance"
 points = 10
 ranks = 1
+requires = "natures_majesty"
 text = "Moonfire and Rejuvenation +3 sec, Regrowth +6 sec, Insect Swarm +2 sec."
 [talents.insect_swarm]
 icon = "spell_nature_insectswarm"
@@ -92,8 +110,9 @@ icon = "spell_nature_purge"
 tree = "Balance"
 points = 15
 ranks = 5
-text = "Arcane and Nature crit damage bonus +100%."
-spell_mods = [{ school = "arcane", prop = "crit_bonus", add = "0.2 * rank" }, { school = "nature", prop = "crit_bonus", add = "0.2 * rank" }]
+requires = "improved_moonfire"
+text = "Crit damage bonus of Wrath, Starfire, Moonfire, Insect Swarm and Entangling Roots +100%."
+spell_mods = [{ spells = ["wrath", "starfire", "moonfire", "insect_swarm", "entangling_roots"], prop = "crit_bonus", add = "0.2 * rank" }]
 [talents.improved_starfire]
 icon = "spell_arcane_starfire"
 tree = "Balance"
@@ -107,7 +126,7 @@ icon = "inv_misc_herb_15"
 tree = "Balance"
 points = 20
 ranks = 2
-text = "Roots targets (not simulated)."
+text = "Entangling Roots can hold 2 more targets at once (not simulated: roots hold one target and do nothing without distance)."
 [talents.natures_grace]
 icon = "spell_nature_naturesblessing"
 tree = "Balance"
@@ -121,6 +140,7 @@ tree = "Balance"
 points = 20
 ranks = 3
 text = "After Wrath, the next 2 Starfires cast 0.5 sec faster (15 sec)."
+# Trait values: 0.17, 0.33 and 0.50 sec (in the Eclipse aura below).
 procs = [{ on = "cast:wrath", effects = [{ type = "aura", aura = "eclipse" }] }]
 [talents.moonfury]
 icon = "spell_nature_moonglow"
@@ -134,7 +154,7 @@ icon = "spell_nature_forceofnature"
 tree = "Balance"
 points = 30
 ranks = 1
-text = "Moonkin Form: item armour +360%, +3% crit, Omen of Clarity procs doubled."
+text = "Moonkin Form: item armor +360%, +3% crit, Omen of Clarity procs twice as often (half the internal cooldown)."
 
 [talents.ferocity]
 icon = "ability_hunter_pet_hyena"
@@ -159,14 +179,15 @@ icon = "spell_nature_spiritwolf"
 tree = "Feral Combat"
 points = 5
 ranks = 2
-text = "Cat Form: +30% speed and +4% dodge."
-mods = [{ stat = "dodge", add = "form.cat_form ? 2 * rank : 0" }]
+text = "+4% dodge; +30% speed in Cat Form. The spell data puts no form requirement on the dodge, so it counts in every form here."
+mods = [{ stat = "dodge", add = "2 * rank" }]
 [talents.feral_instinct]
 icon = "ability_ambush"
 tree = "Feral Combat"
 points = 5
 ranks = 3
-text = "Swipe damage +30%."
+text = "Swipe damage +30%; harder to detect while Prowling (not simulated)."
+# Trait values: 10% a point (the talent's spell, 16947, holds 3).
 spell_mods = [{ spells = ["swipe"], prop = "damage", mul = "1 + 0.1 * rank" }]
 [talents.brutal_impact]
 icon = "ability_druid_bash"
@@ -180,46 +201,54 @@ icon = "inv_misc_pelt_bear_03"
 tree = "Feral Combat"
 points = 5
 ranks = 3
-text = "In forms: +3 armour per level."
-mods = [{ stat = "armor", add = "(form.cat_form || form.bear_form) ? rank * level : 0" }]
+text = "In Cat, Bear and Moonkin Form: +3 armor per level, and +2 armor for each point of defense skill above five times your level."
+# Trait values: 1/2/3 armor per level and 0.67/1.33/2.00 armor per point of
+# defense skill above five times your level (the spell's tooltip).
+mods = [{ stat = "armor", add = "(form.cat_form || form.bear_form || form.moonkin_form) ? rank * level + (rank == 1 ? 0.67 : (rank == 2 ? 1.33 : 2)) * defense : 0" }]
 [talents.shredding_attacks]
 icon = "spell_shadow_vampiricaura"
 tree = "Feral Combat"
 points = 10
 ranks = 3
 text = "Shred costs 18 less Energy, Lacerate 3 less Rage."
+# Trait values: 6 Energy and 1 Rage a point (the talent's spell, 16966,
+# holds 6 Rage).
 spell_mods = [{ spells = ["shred"], prop = "cost", add = "-6 * rank" }, { spells = ["lacerate"], prop = "cost", add = "-rank" }]
 [talents.savage_fury]
 icon = "ability_druid_ravage"
 tree = "Feral Combat"
 points = 10
 ranks = 2
-text = "Claw, Rake, Shred, Maul and Swipe +10%."
+text = "Claw, Rake (and its bleed), Shred, Maul and Swipe +10%."
+# Trait values: 5% a point (the talent's spell, 16998, holds 20).
 spell_mods = [{ spells = ["claw", "rake", "shred", "maul", "swipe"], prop = "damage", mul = "1 + 0.05 * rank" }]
 [talents.feral_charge]
 icon = "ability_hunter_pet_bear"
 tree = "Feral Combat"
 points = 10
 ranks = 1
-text = "Bear charge with immobilise and interrupt (movement is not simulated)."
+text = "Bear charge that roots and interrupts (movement is not simulated)."
 [talents.sharpened_claws]
 icon = "inv_misc_monsterclaw_04"
 tree = "Feral Combat"
 points = 10
 ranks = 2
 text = "Crit +6% in Bear and Cat Form."
+# Trait values: 3% a point (the talent's spell, 16942, holds 2).
 mods = [{ stat = "melee_crit", add = "(form.cat_form || form.bear_form) ? 3 * rank : 0" }]
 [talents.shifting_power]
 icon = "spell_druid_displacement"
 tree = "Feral Combat"
 points = 15
 ranks = 1
+requires = "shredding_attacks"
 text = "Shifting Power: 55% of base mana into 40 Energy, 16 sec cooldown."
 [talents.primal_bite]
 icon = "ability_racial_cannibalize"
 tree = "Feral Combat"
 points = 15
 ranks = 1
+requires = "savage_fury"
 text = "Primal Bite: weapon damage plus a bonus with high threat, 20 Rage, 6 sec cooldown."
 [talents.predatory_strikes]
 icon = "ability_hunter_pet_cat"
@@ -233,6 +262,7 @@ icon = "ability_ghoulfrenzy"
 tree = "Feral Combat"
 points = 15
 ranks = 2
+requires = "sharpened_claws"
 text = "Bear crits give 5 Rage; cat combo-point crits give an extra combo point (100% at 2)."
 procs = [{ on = "melee_crit", if = "form.bear_form", chance = "0.5 * rank", effects = [{ type = "resource", res = "rage", amount = 5 }] }]
 [talents.improved_shifting_power]
@@ -240,7 +270,9 @@ icon = "ability_hunter_aspectmastery"
 tree = "Feral Combat"
 points = 20
 ranks = 2
+requires = "shifting_power"
 text = "Shifting Power cooldown -8 sec."
+# Trait values: 4 sec a point (the talent's spell, 1322670, carries no number).
 spell_mods = [{ spells = ["shifting_power"], prop = "cooldown", add = "-4 * rank" }]
 [talents.leader_of_the_pack]
 icon = "spell_nature_unyeildingstamina"
@@ -254,14 +286,17 @@ icon = "ability_druid_predatoryinstincts"
 tree = "Feral Combat"
 points = 20
 ranks = 2
-text = "Melee crit damage +20%; healing +25% of Intellect."
-mods = [{ stat = "crit_bonus_melee", add = "0.1 * rank" }, { stat = "heal_power", add = "(rank == 2 ? 0.25 : 0.12) * int" }]
+text = "Crit damage of feral abilities +20% (not auto attacks); healing +25% of Intellect."
+spell_mods = [{ spells = ["claw", "shred", "rake", "rip", "ferocious_bite", "pounce", "ravage", "maul", "swipe", "lacerate", "primal_bite"], prop = "crit_bonus", add = "0.1 * rank" }]
+mods = [{ stat = "heal_power", add = "(rank == 2 ? 0.25 : 0.12) * int" }]
 [talents.natural_reaction]
 icon = "ability_bullrush"
 tree = "Feral Combat"
 points = 25
 ranks = 5
 text = "+5% dodge; dodges give 5 Rage."
+# Trait values: 1% dodge and a 20% chance a point (the talent's spell,
+# 417051, lists dodge 0 and unlabeled values).
 mods = [{ stat = "dodge", add = "rank" }]
 procs = [{ on = "dodge", if = "form.bear_form", chance = "0.2 * rank", effects = [{ type = "resource", res = "rage", amount = 5 }] }]
 [talents.rend_and_tear]
@@ -269,14 +304,18 @@ icon = "ability_druid_primalagression"
 tree = "Feral Combat"
 points = 25
 ranks = 5
+requires = "predatory_strikes"
 text = "Melee damage against bleeding targets +10%."
+# Trait values: 2% a point (the talent's spell, 1223246, filed under mages,
+# holds 20 with no spell list).
 spell_mods = [{ spells = ["claw", "shred", "ferocious_bite", "maul", "swipe", "primal_bite"], prop = "damage", mul = "(target.aura.rake.up || target.aura.rip.up || target.aura.lacerate.up || target.aura.pounce_bleed.up) ? 1 + 0.02 * rank : 1" }]
 [talents.berserk]
 icon = "ability_druid_berserk"
 tree = "Feral Combat"
 points = 30
 ranks = 1
-text = "Berserk: 15 sec of Fear immunity, Primal Bite with no cooldown hitting 3 targets, guaranteed combo-point crits. 3 min cooldown."
+requires = "leader_of_the_pack"
+text = "Berserk: 15 sec of Fear immunity, Primal Bite with no cooldown hitting 3 targets, guaranteed crits on Claw, Shred, Rake, Pounce and Ravage. 3 min cooldown."
 
 [talents.natures_focus]
 icon = "spell_nature_healingwavegreater"
@@ -290,7 +329,7 @@ icon = "spell_holy_blessingofstamina"
 tree = "Restoration"
 points = 0
 ranks = 5
-text = "Keep your Energy when you leave Cat Form (100% at 5) and regenerate it in caster form; Bear Form gives 10 Rage (100% at 5)."
+text = "Keep your Energy when you leave Cat Form for caster form (100% at 5) and regenerate it there; Bear Form empties it. Bear Form gives 10 Rage (100% at 5)."
 mods = [{ stat = "energy_active", add = "(rank >= 5 && !form.bear_form) ? 1 : 0" }]
 [talents.naturalist]
 icon = "spell_nature_healingtouch"
@@ -298,6 +337,8 @@ tree = "Restoration"
 points = 5
 ranks = 5
 text = "Healing Touch cast -0.5 sec; all damage +5%."
+# Trait values: 0.1 sec and 1% damage a point (the talent's spell, 17069,
+# holds 100 for the damage part).
 spell_mods = [{ spells = ["healing_touch"], prop = "cast_time", add = "-0.1 * rank" }]
 mods = [{ stat = "dmg_done", mul = "1 + 0.01 * rank" }]
 [talents.subtlety]
@@ -305,28 +346,32 @@ icon = "ability_eyeoftheowl"
 tree = "Restoration"
 points = 5
 ranks = 3
-text = "Threat (not simulated)."
+text = "Arcane and Nature threat -30%. Applied to damage here; healing threat is not reduced (no scenario uses threat yet)."
+# Trait values: 10% a point (the original game's Subtlety was healing
+# threat, 4% a point).
+spell_mods = [{ school = "arcane", prop = "threat", mul = "1 - 0.1 * rank" }, { school = "nature", prop = "threat", mul = "1 - 0.1 * rank" }]
 [talents.natural_shapeshifter]
 icon = "spell_nature_wispsplode"
 tree = "Restoration"
 points = 5
 ranks = 3
-text = "Shapeshifting costs 30% less."
-spell_mods = [{ spells = ["cat_form", "bear_form", "moonkin_form"], prop = "cost", mul = "1 - 0.1 * rank" }]
+text = "Shapeshifting and Shifting Power cost 30% less."
+spell_mods = [{ spells = ["cat_form", "bear_form", "moonkin_form", "shifting_power"], prop = "cost", mul = "1 - 0.1 * rank" }]
 [talents.reflection]
 icon = "spell_frost_windwalkon"
 tree = "Restoration"
 points = 10
 ranks = 3
 text = "50% of mana regeneration continues while casting."
-mods = [{ stat = "casting_regen", add = "rank / 6" }]
+# Trait values: 17%, 33%, 50%.
+mods = [{ stat = "casting_regen", add = "rank == 1 ? 0.17 : (rank == 2 ? 0.33 : 0.5)" }]
 [talents.gift_of_nature]
 icon = "spell_nature_protectionformnature"
 tree = "Restoration"
 points = 10
 ranks = 5
-text = "Healing +10%."
-mods = [{ stat = "heal_done", mul = "1 + 0.02 * rank" }]
+text = "Healing Touch, Regrowth, Rejuvenation, Swiftmend and Wild Growth heal 10% more."
+spell_mods = [{ spells = ["healing_touch", "regrowth", "rejuvenation", "swiftmend_heal", "wild_growth"], prop = "heal", mul = "1 + 0.02 * rank" }]
 [talents.gift_of_the_earthmother]
 icon = "spell_nature_spiritarmor"
 tree = "Restoration"
@@ -346,8 +391,8 @@ icon = "spell_nature_rejuvenation"
 tree = "Restoration"
 points = 15
 ranks = 3
-text = "Rejuvenation +15%."
-spell_mods = [{ spells = ["rejuvenation", "swiftmend"], prop = "heal", mul = "1 + 0.05 * rank" }]
+text = "Rejuvenation +15% (and so Swiftmend, which heals for Rejuvenation's amount)."
+spell_mods = [{ spells = ["rejuvenation"], prop = "heal", mul = "1 + 0.05 * rank" }]
 [talents.swiftmend]
 icon = "inv_relics_idolofrejuvenation"
 tree = "Restoration"
@@ -359,6 +404,7 @@ icon = "spell_nature_ravenform"
 tree = "Restoration"
 points = 20
 ranks = 1
+requires = "naturalist"
 text = "Next Nature spell is instant. 3 min cooldown."
 [talents.living_spirit]
 icon = "spell_nature_giftofthewaterspirit"
@@ -372,12 +418,13 @@ icon = "spell_nature_tranquility"
 tree = "Restoration"
 points = 20
 ranks = 2
-text = "Tranquility (not simulated)."
+text = "Tranquility threat -100% and cooldown -60% (Tranquility, a party heal, is not simulated)."
 [talents.improved_regrowth]
 icon = "spell_nature_resistnature"
 tree = "Restoration"
 points = 25
 ranks = 5
+requires = "improved_rejuvenation"
 text = "Regrowth crit +50%."
 spell_mods = [{ spells = ["regrowth"], prop = "crit", add = "10 * rank" }]
 [talents.wild_growth]
@@ -385,33 +432,63 @@ icon = "ability_druid_flourish"
 tree = "Restoration"
 points = 30
 ranks = 1
+requires = "living_spirit"
 text = "Wild Growth: heal over 7 sec on you and your party."
 
 # ------------------------------------------------------------------ passives
 [[passives]]
-name = "Omen of Clarity (if trainable)"
-procs = [{ on = "melee_landed", if = "opt.druid_omen > 0 && !event.extra", ppm = "opt.omen_ppm * (form.moonkin_form ? 2 : 1)", effects = [{ type = "aura", aura = "clearcasting" }] }]
+name = "Omen of Clarity"
+# Forever's spell (16864): "Your spells and attacks have a chance to grant you
+# Clearcasting". Its proc types (81940) are melee auto attacks, melee
+# abilities, and helpful and harmful magic spells; 100% chance in the data,
+# at most once per 10 sec (Moonkin Form: double chance, half the cooldown).
+# The game's server sets the real rate, so the chance per hit is
+# opt.omen_ppm and the chance per spell opt.omen_spell_chance; the internal
+# cooldown is the game's.
+# Spells: the magic spells that cost Mana (spells and abilities that cost
+# nothing can't trigger it, per the Oct 15 notes). Wrath triggers it but
+# can't use it (the tooltip). Shapeshifts and Shifting Power are not
+# magic spells (no damage class), so they don't count. In this build Faerie
+# Fire in Cat and Bear Form, free there, still triggers it (the bug the
+# Oct 15 notes fix).
+procs = [
+  { on = "melee_landed", if = "opt.druid_omen > 0 && !event.extra && !aura.omen_cooldown.up", ppm = "opt.omen_ppm * (form.moonkin_form ? 2 : 1)", effects = [{ type = "aura", aura = "clearcasting" }, { type = "aura", aura = "omen_cooldown" }] },
+  { on = "cast", if = "opt.druid_omen > 0 && !aura.omen_cooldown.up && (spell.wrath || spell.moonfire || spell.starfire || spell.insect_swarm || spell.entangling_roots || spell.natures_grasp || spell.thorns || spell.mark_of_the_wild || spell.faerie_fire || spell.healing_touch || spell.rejuvenation || spell.regrowth || spell.swiftmend || spell.wild_growth)", chance = "opt.omen_spell_chance * (form.moonkin_form ? 2 : 1)", effects = [{ type = "aura", aura = "clearcasting" }, { type = "aura", aura = "omen_cooldown" }] },
+]
 
 # ------------------------------------------------------------------ auras (forms)
 [auras.cat_form]
 name = "Cat Form"
 form = true
+# Cat Form (Passive) 3025: 12 attack power + 2 per level above 6 (r.ap), 29%
+# less threat; Agility counts as attack power in Cat Form.
 mods = [
-  { stat = "ap", add = "120 + agi" },
+  { stat = "ap", add = "r.ap + agi" },
+  { stat = "threat", mul = 0.71 },
   { stat = "weapon_speed_override", add = 1.0 },
   { stat = "energy_active", add = 1 },
 ]
+# Faerie Fire costs nothing in Cat Form (Oct 15 notes).
+spell_mods = [{ spells = ["faerie_fire"], prop = "cost", mul = 0 }]
 on_apply = [{ type = "chance", p = "1 - 0.2 * t.furor", then = [{ type = "resource", res = "energy", amount = 0, set = true }] }]
 [auras.bear_form]
 name = "Bear Form"
 form = true
+# Bear Form (Passive) 1178 / Dire Bear Form (Passive) 9635 give the rank's
+# attack power, armor and health; Bear Form (Passive2) 21178: +50% threat.
+# Shifting into Bear Form empties your Energy, Furor or not (the Oct 15 notes:
+# Furor "now allows the player to retain the Energy ... even if they go into
+# Bear or Dire Bear Form").
 mods = [
   { stat = "ap", add = "r.ap" },
   { stat = "armor_mult", mul = "1 + r.armor" },
   { stat = "max_hp_add", add = "r.hp" },
+  { stat = "threat", mul = 1.5 },
   { stat = "weapon_speed_override", add = 2.5 },
 ]
-on_apply = [{ type = "resource", res = "rage", amount = 0, set = true }, { type = "chance", p = "0.2 * t.furor", then = [{ type = "resource", res = "rage", amount = 10 }] }]
+# Faerie Fire costs nothing in Bear and Dire Bear Form (Oct 15 notes).
+spell_mods = [{ spells = ["faerie_fire"], prop = "cost", mul = 0 }]
+on_apply = [{ type = "resource", res = "rage", amount = 0, set = true }, { type = "chance", p = "0.2 * t.furor", then = [{ type = "resource", res = "rage", amount = 10 }] }, { type = "resource", res = "energy", amount = 0, set = true }]
 [auras.moonkin_form]
 name = "Moonkin Form"
 form = true
@@ -422,7 +499,12 @@ name = "Prowl"
 name = "Clearcasting"
 duration = 15
 consume_on_cast = true
-spell_mods = [{ spells = ["claw", "shred", "rake", "rip", "ferocious_bite", "maul", "swipe", "lacerate", "primal_bite", "wrath", "starfire", "moonfire", "healing_touch", "regrowth"], prop = "cost", mul = 0 }]
+# The spells Clearcasting (16870) makes free in Forever's data (not Wrath).
+spell_mods = [{ spells = ["claw", "shred", "rake", "rip", "ferocious_bite", "pounce", "ravage", "maul", "swipe", "lacerate", "primal_bite", "bash", "starfire", "moonfire", "insect_swarm", "entangling_roots", "natures_grasp", "thorns", "healing_touch", "regrowth", "rejuvenation", "swiftmend", "wild_growth"], prop = "cost", mul = 0 }]
+[auras.omen_cooldown]
+name = "Omen of Clarity cooldown"
+duration = "form.moonkin_form ? 5 : 10"
+text = "Omen of Clarity's internal cooldown: 10 sec, 5 sec in Moonkin Form."
 
 # ------------------------------------------------------------------ auras (other)
 [auras.mark_of_the_wild]
@@ -431,17 +513,28 @@ mods = [{ stat = "armor", add = "r.armor" }, { stat = "all_stats", add = "r.stat
 [auras.thorns]
 name = "Thorns"
 duration = 600
-procs = [{ on = "struck_melee", effects = [{ type = "damage", school = "nature", target = "target", hit = "auto", can_crit = false, no_proc = true, amount = "r.dmg", tag = "Thorns" }] }]
+procs = [{ on = "struck_melee", effects = [{ type = "damage", school = "nature", target = "target", hit = "auto", can_crit = false, no_proc = true, amount = "r.dmg", coef = "opt.druid_thorns_sp", tag = "Thorns" }] }]
 [auras.natures_grasp]
 name = "Nature's Grasp"
 duration = 45
 charges = 1
-procs = [{ on = "struck_melee", effects = [{ type = "aura", aura = "root", target = "target", duration = 12 }, { type = "consume" }] }]
+text = "The first melee attacker is caught in Entangling Roots of Nature's Grasp's rank; the roots' damage over time is applied at once."
+procs = [{ on = "struck_melee", effects = [
+  { type = "aura", aura = "root", target = "target", duration = "r.dur" },
+  { type = "damage", school = "nature", target = "target", hit = "spell", can_crit = false, no_proc = true, amount = "r.dot", coef = "0.02 * r.dur", mult = "(1 + 0.25 * t.improved_entangling_roots) * (1 + 0.01 * t.genesis)", tag = "Nature's Grasp" },
+  { type = "consume" },
+] }]
+[auras.faerie_fire]
+name = "Faerie Fire"
+debuff = true
+duration = 40
+text = "Armor reduced (the rank's armor). Also stops stealth (not simulated)."
+mods = [{ stat = "armor", add = "-r.armor" }]
 [auras.rake]
 name = "Rake"
 debuff = true
 duration = 9
-tick = { interval = 3, effects = [{ type = "damage", school = "physical", periodic = true, tag = "Rake", amount = "(r.dot + 0.06 * ap) / 3 * (1 + 0.01 * t.genesis)" }] }
+tick = { interval = 3, effects = [{ type = "damage", school = "physical", periodic = true, tag = "Rake", amount = "(r.dot + opt.druid_rake_ap * ap) / 3 * (1 + 0.01 * t.genesis)" }] }
 [auras.rip]
 name = "Rip"
 debuff = true
@@ -449,7 +542,7 @@ refresh = "replace"
 max_stacks = 5
 duration = 12
 text = "Stacks hold the combo points Rip was cast with."
-tick = { interval = 2, effects = [{ type = "damage", school = "physical", periodic = true, tag = "Rip", amount = "(interp(stacks, 1,r.c1, 2,r.c2, 3,r.c3, 4,r.c4, 5,r.c5) + 0.048 * stacks * ap) / 6 * (1 + 0.01 * t.genesis)" }] }
+tick = { interval = 2, effects = [{ type = "damage", school = "physical", periodic = true, tag = "Rip", amount = "(interp(stacks, 1,r.c1, 2,r.c2, 3,r.c3, 4,r.c4, 5,r.c5) + opt.druid_rip_ap * stacks * ap) / 6 * (1 + 0.01 * t.genesis)" }] }
 [auras.pounce_bleed]
 name = "Pounce Bleed"
 debuff = true
@@ -460,37 +553,42 @@ name = "Lacerate"
 debuff = true
 duration = 15
 max_stacks = 5
-tick = { interval = 3, effects = [{ type = "damage", school = "physical", periodic = true, tag = "Lacerate", amount = "(r.total + 0.05 * ap) / 5 * stacks * (1 + 0.01 * t.genesis)" }] }
+tick = { interval = 3, effects = [{ type = "damage", school = "physical", periodic = true, tag = "Lacerate", amount = "(r.total + opt.druid_lacerate_ap * ap) / 5 * stacks * (1 + 0.01 * t.genesis)" }] }
+# Ticks take their spell's modifiers (Improved Moonfire, Improved
+# Rejuvenation, Gift of Nature, Savage Fury), so only Genesis is written here.
+# Spell power coefficients are the game's, per tick.
 [auras.moonfire]
 name = "Moonfire"
 debuff = true
 duration = "r.dur + 3 * t.natures_splendor"
-tick = { interval = 3, effects = [{ type = "damage", school = "arcane", periodic = true, tag = "Moonfire (dot)", amount = "r.dot / (r.dur / 3)", coef = "0.13 * 3 / r.dur", mult = "(1 + 0.01 * t.genesis) * (1 + 0.05 * t.improved_moonfire)" }] }
+tick = { interval = 3, effects = [{ type = "damage", school = "arcane", periodic = true, tag = "Moonfire (dot)", amount = "r.dot / (r.dur / 3)", coef = 0.13, mult = "1 + 0.01 * t.genesis" }] }
 [auras.insect_swarm]
 name = "Insect Swarm"
 debuff = true
 duration = "12 + 2 * t.natures_splendor"
-tick = { interval = 2, effects = [{ type = "damage", school = "nature", periodic = true, tag = "Insect Swarm", amount = "r.total / 6", coef = "0.127", mult = "1 + 0.01 * t.genesis" }] }
+mods = [{ stat = "hit", add = -2 }]
+tick = { interval = 2, effects = [{ type = "damage", school = "nature", periodic = true, tag = "Insect Swarm", amount = "r.total / 6", coef = 0.158, mult = "1 + 0.01 * t.genesis" }] }
 [auras.rejuvenation]
 name = "Rejuvenation"
 duration = "12 + 3 * t.natures_splendor"
-tick = { interval = 3, effects = [{ type = "heal", target = "target", periodic = true, tag = "Rejuvenation", amount = "r.total / 4", coef = 0.2, mult = "(1 + 0.01 * t.genesis) * (1 + 0.05 * t.improved_rejuvenation)" }] }
+tick = { interval = 3, effects = [{ type = "heal", target = "target", periodic = true, can_crit = true, tag = "Rejuvenation", amount = "r.total / 4", coef = 0.2, mult = "1 + 0.01 * t.genesis" }] }
 [auras.regrowth]
 name = "Regrowth"
 duration = "21 + 6 * t.natures_splendor"
-tick = { interval = 3, effects = [{ type = "heal", target = "target", periodic = true, tag = "Regrowth (HoT)", amount = "r.hot / 7", coef = 0.1, mult = "1 + 0.01 * t.genesis" }] }
+tick = { interval = 3, effects = [{ type = "heal", target = "target", periodic = true, can_crit = true, tag = "Regrowth (HoT)", amount = "r.hot / 7", coef = 0.071, mult = "1 + 0.01 * t.genesis" }] }
 [auras.wild_growth]
 name = "Wild Growth"
 duration = 7
-tick = { interval = 1, effects = [{ type = "heal", target = "target", periodic = true, tag = "Wild Growth", amount = "r.total / 7", coef = 0.07, mult = "1 + 0.01 * t.genesis" }] }
+tick = { interval = 1, effects = [{ type = "heal", target = "target", periodic = true, can_crit = true, tag = "Wild Growth", amount = "r.total / 7", coef = 0.033, mult = "1 + 0.01 * t.genesis" }] }
 [auras.frenzied_regeneration]
 name = "Frenzied Regeneration"
 duration = 10
-tick = { interval = 1, effects = [{ type = "heal", target = "self", tag = "Frenzied Regeneration", amount = "min(rage, 10) * 0.01 * max_hp" }, { type = "resource", res = "rage", amount = "-min(rage, 10)" }] }
+tick = { interval = 1, effects = [{ type = "heal", target = "self", tag = "Frenzied Regeneration", amount = "min(rage, 10) * opt.druid_frenzied_regen / 100 * max_hp" }, { type = "resource", res = "rage", amount = "-min(rage, 10)" }] }
 [auras.enrage]
 name = "Enrage"
 duration = 10
-mods = [{ stat = "armor_mult", mul = "aura.bear_form.up ? (level >= 40 ? 0.84 : 0.73) : 1" }]
+# Enrage (25503): armor -26% in Bear and Dire Bear Form.
+mods = [{ stat = "armor_mult", mul = "aura.bear_form.up ? 0.74 : 1" }]
 tick = { interval = 1, effects = [{ type = "resource", res = "rage", amount = 2 }] }
 [auras.barkskin]
 name = "Barkskin"
@@ -500,38 +598,41 @@ mods = [{ stat = "phys_dmg_taken", mul = 0.8 }]
 name = "Nature's Grace"
 duration = 3
 mods = [{ stat = "cast_haste", mul = 1.1 }]
-spell_mods = [{ prop = "gcd", add = -0.15 }]
+spell_mods = [{ spells = ["wrath", "starfire", "moonfire", "insect_swarm", "entangling_roots", "natures_grasp", "thorns", "mark_of_the_wild", "healing_touch", "rejuvenation", "regrowth", "wild_growth"], prop = "gcd", add = -0.15 }]
 [auras.eclipse]
 name = "Eclipse"
 duration = 15
 charges = 2
 consume_on_cast = true
-spell_mods = [{ spells = ["starfire"], prop = "cast_time", add = "-t.eclipse / 6" }]
+spell_mods = [{ spells = ["starfire"], prop = "cast_time", add = "t.eclipse == 1 ? -0.17 : (t.eclipse == 2 ? -0.33 : -0.5)" }]
 [auras.natures_swiftness]
 name = "Nature's Swiftness"
 consume_on_cast = true
-spell_mods = [{ spells = ["healing_touch", "regrowth", "wrath", "starfire", "entangling_roots"], prop = "cast_time", mul = 0 }]
+spell_mods = [{ spells = ["healing_touch", "regrowth", "wrath", "entangling_roots"], prop = "cast_time", mul = 0 }]
 [auras.berserk]
 name = "Berserk"
 duration = 15
 mods = [{ stat = "immune_fear", add = 1 }]
-spell_mods = [{ spells = ["primal_bite"], prop = "cooldown", mul = 0 }, { spells = ["claw", "shred", "rake"], prop = "crit", add = 100 }]
+spell_mods = [{ spells = ["primal_bite"], prop = "cooldown", mul = 0 }, { spells = ["claw", "shred", "rake", "pounce", "ravage"], prop = "crit", add = 100 }]
 
 # ------------------------------------------------------------------ spells: forms and buffs
 [spells.cat_form]
 name = "Cat Form"
-level = 20
 target = "self"
 requires = "!form.cat_form"
 cost = { mana = "0.55 * base_mana" }
+ranks = [{ level = 20, id = 768, ap = 40, ap_per_level = 2 }]
 effects = [{ type = "remove_aura", aura = "prowl" }, { type = "aura", aura = "cat_form" }]
 [spells.bear_form]
 name = "Bear Form"
 target = "self"
 requires = "!form.bear_form"
 cost = { mana = "0.55 * base_mana" }
-ranks = [{ level = 10, ap = 120, armor = 1.8, hp = 180 }, { level = 40, ap = 180, armor = 3.6, hp = 1240 }]
-text = "Bear Form, and Dire Bear Form from level 40."
+ranks = [
+  { level = 10, id = 5487, ap = 30, ap_per_level = 3, armor = 1.8, hp = 20, hp_per_level = 18, max_level = 40 },
+  { level = 40, id = 9634, ap = 120, ap_per_level = 3, armor = 3.6, hp = 600, hp_per_level = 32, max_level = 70 },
+]
+text = "Bear Form, and Dire Bear Form (its own spell in the game) from level 40."
 effects = [{ type = "aura", aura = "bear_form" }]
 [spells.moonkin_form]
 name = "Moonkin Form"
@@ -539,6 +640,7 @@ talent = "moonkin_form"
 target = "self"
 requires = "!form.moonkin_form"
 cost = { mana = "0.35 * base_mana" }
+ranks = [{ level = 40, id = 24858 }]
 effects = [{ type = "aura", aura = "moonkin_form" }]
 [spells.caster_form]
 name = "Cancel Form"
@@ -549,19 +651,27 @@ requires = "form.any"
 effects = [{ type = "remove_aura", aura = "cat_form" }, { type = "remove_aura", aura = "bear_form" }, { type = "remove_aura", aura = "moonkin_form" }]
 [spells.prowl]
 name = "Prowl"
-level = 20
 cooldown = 10
 off_gcd = true
 target = "self"
 forms = ["cat_form"]
 requires = "!in_combat && !aura.prowl.up"
+ranks = [{ level = 20, id = 5215 }, { level = 40, id = 6783 }, { level = 60, id = 9913 }]
 effects = [{ type = "aura", aura = "prowl" }]
 [spells.mark_of_the_wild]
 name = "Mark of the Wild"
 target = "self"
 forms = ["none"]
 requires = "!aura.mark_of_the_wild.up"
-ranks = [{ level = 1, armor = 34, stats = 0, mana = 20 }, { level = 10, armor = 88, stats = 3, mana = 50 }, { level = 20, armor = 142, stats = 5, mana = 100 }, { level = 30, armor = 203, stats = 8, mana = 160 }, { level = 40, armor = 263, stats = 11, mana = 240 }, { level = 50, armor = 324, stats = 14, mana = 340 }, { level = 60, armor = 385, stats = 16, mana = 445 }]
+ranks = [
+  { level = 1, id = 1126, armor = 34, stats = 0, mana = 20 },
+  { level = 10, id = 5232, armor = 88, stats = 3, mana = 50 },
+  { level = 20, id = 6756, armor = 142, stats = 5, mana = 100 },
+  { level = 30, id = 5234, armor = 203, stats = 8, mana = 160 },
+  { level = 40, id = 8907, armor = 263, stats = 11, mana = 240 },
+  { level = 50, id = 9884, armor = 324, stats = 14, mana = 340 },
+  { level = 60, id = 9885, armor = 385, stats = 16, mana = 445 },
+]
 effects = [{ type = "aura", aura = "mark_of_the_wild" }]
 [spells.thorns]
 name = "Thorns"
@@ -569,89 +679,139 @@ school = "nature"
 target = "self"
 forms = ["none"]
 requires = "!aura.thorns.up"
-ranks = [{ level = 6, dmg = 3, mana = 35 }, { level = 14, dmg = 6, mana = 60 }, { level = 24, dmg = 9, mana = 105 }, { level = 34, dmg = 12, mana = 170 }, { level = 44, dmg = 15, mana = 240 }, { level = 54, dmg = 18, mana = 320 }]
+ranks = [
+  { level = 6, id = 467, dmg = 3, mana = 35 },
+  { level = 14, id = 782, dmg = 6, mana = 60 },
+  { level = 24, id = 1075, dmg = 9, mana = 105 },
+  { level = 34, id = 8914, dmg = 12, mana = 170 },
+  { level = 44, id = 9756, dmg = 15, mana = 240 },
+  { level = 54, id = 9910, dmg = 18, mana = 320 },
+]
 effects = [{ type = "aura", aura = "thorns" }]
 [spells.natures_grasp]
 name = "Nature's Grasp"
 school = "nature"
 cooldown = 60
-off_gcd = true
 target = "self"
 requires = "!aura.natures_grasp.up"
-ranks = [{ level = 10, mana = 50 }, { level = 18, mana = 65 }, { level = 28, mana = 80 }, { level = 38, mana = 95 }, { level = 48, mana = 110 }, { level = 58, mana = 125 }]
+# dur and dot: the Entangling Roots each rank triggers (19975 ... 19970)
+ranks = [
+  { level = 10, id = 16689, mana = 50, dur = 12, dot = 20 },
+  { level = 18, id = 16810, mana = 65, dur = 15, dot = 45 },
+  { level = 28, id = 16811, mana = 80, dur = 18, dot = 72 },
+  { level = 38, id = 16812, mana = 95, dur = 21, dot = 112 },
+  { level = 48, id = 16813, mana = 110, dur = 24, dot = 168 },
+  { level = 58, id = 17329, mana = 125, dur = 27, dot = 234 },
+]
 effects = [{ type = "aura", aura = "natures_grasp" }]
 [spells.barkskin]
 name = "Barkskin"
-level = 44
 cooldown = 60
-off_gcd = true
 target = "self"
+ranks = [{ level = 44, id = 22812 }]
 effects = [{ type = "aura", aura = "barkskin" }]
+[spells.faerie_fire]
+name = "Faerie Fire"
+school = "arcane"
+# Spells 770, 778, 9749, 9907: armor -175/-285/-395/-505 for 40 sec, usable
+# in caster, Cat, Bear, Dire Bear and Moonkin Form. It costs no Mana in Cat
+# and Bear Form (Oct 15 notes: "Faerie Fire costs no resources in those
+# forms"). In this build it adds no threat in Bear Form, and more than one
+# Faerie Fire can sit on a target (one druid here, so that changes nothing).
+# The free cast in Cat and Bear Form is on those forms' auras.
+forms = ["none", "cat_form", "bear_form", "moonkin_form"]
+ranks = [
+  { level = 18, id = 770, armor = 175, mana = 55 },
+  { level = 30, id = 778, armor = 285, mana = 75 },
+  { level = 42, id = 9749, armor = 395, mana = 95 },
+  { level = 54, id = 9907, armor = 505, mana = 115 },
+]
+effects = [{ type = "aura", aura = "faerie_fire", target = "target" }]
 
 # ------------------------------------------------------------------ spells: cat
+# Claw, Shred and Ravage: the flat bonus in the spell data is multiplied by
+# the weapon percentage too, as the original game's tooltips show (Shred
+# rank 1: 225% plus 54 = 24 x 2.25). Forever: Claw 110%, Shred 155%, Ravage 350%.
 [spells.claw]
+gcd = 1                           # the game's 1.0 sec global cooldown for this ability
 name = "Claw"
 forms = ["cat_form"]
 cost = { energy = 45 }
-ranks = [{ level = 20, bonus = 27 }, { level = 28, bonus = 39 }, { level = 38, bonus = 57 }, { level = 48, bonus = 88 }, { level = 58, bonus = 115 }]
-effects = [{ type = "damage", weapon = "mh", weapon_mult = 1.1, amount = "r.bonus", on_hit = [{ type = "combo", amount = 1 }], on_crit = [{ type = "chance", p = "0.5 * t.blood_frenzy", then = [{ type = "combo", amount = 1 }] }] }]
+ranks = [{ level = 20, id = 1082, bonus = 27 }, { level = 28, id = 3029, bonus = 39 }, { level = 38, id = 5201, bonus = 57 }, { level = 48, id = 9849, bonus = 88 }, { level = 58, id = 9850, bonus = 115 }]
+effects = [{ type = "damage", weapon = "mh", weapon_mult = 1.1, amount = "r.bonus * 1.1", on_hit = [{ type = "combo", amount = 1 }], on_crit = [{ type = "chance", p = "0.5 * t.blood_frenzy", then = [{ type = "combo", amount = 1 }] }] }]
 [spells.shred]
+gcd = 1                           # the game's 1.0 sec global cooldown for this ability
 name = "Shred"
 forms = ["cat_form"]
 cost = { energy = 60 }
 requires = "behind"
-ranks = [{ level = 22, bonus = 54 }, { level = 30, bonus = 72 }, { level = 38, bonus = 99 }, { level = 46, bonus = 144 }, { level = 54, bonus = 180 }]
-effects = [{ type = "damage", weapon = "mh", weapon_mult = 1.55, amount = "r.bonus", on_hit = [{ type = "combo", amount = 1 }], on_crit = [{ type = "chance", p = "0.5 * t.blood_frenzy", then = [{ type = "combo", amount = 1 }] }] }]
+ranks = [{ level = 22, id = 5221, bonus = 24 }, { level = 30, id = 6800, bonus = 32 }, { level = 38, id = 8992, bonus = 44 }, { level = 46, id = 9829, bonus = 64 }, { level = 54, id = 9830, bonus = 80 }]
+effects = [{ type = "damage", weapon = "mh", weapon_mult = 1.55, amount = "r.bonus * 1.55", on_hit = [{ type = "combo", amount = 1 }], on_crit = [{ type = "chance", p = "0.5 * t.blood_frenzy", then = [{ type = "combo", amount = 1 }] }] }]
 [spells.rake]
+gcd = 1                           # the game's 1.0 sec global cooldown for this ability
 name = "Rake"
 forms = ["cat_form"]
 cost = { energy = 40 }
-ranks = [{ level = 24, direct = 23, dot = 48 }, { level = 34, direct = 31, dot = 63 }, { level = 44, direct = 45, dot = 78 }, { level = 54, direct = 61, dot = 102 }]
-effects = [{ type = "damage", school = "physical", amount = "r.direct + 0.01 * ap", on_hit = [{ type = "combo", amount = 1 }, { type = "aura", aura = "rake", target = "target" }], on_crit = [{ type = "chance", p = "0.5 * t.blood_frenzy", then = [{ type = "combo", amount = 1 }] }] }]
+ranks = [{ level = 24, id = 1822, direct = 23, dot = 48 }, { level = 34, id = 1823, direct = 31, dot = 63 }, { level = 44, id = 1824, direct = 45, dot = 78 }, { level = 54, id = 9904, direct = 61, dot = 102 }]
+effects = [{ type = "damage", school = "physical", amount = "r.direct + opt.druid_rake_ap_direct * ap", on_hit = [{ type = "combo", amount = 1 }, { type = "aura", aura = "rake", target = "target" }], on_crit = [{ type = "chance", p = "0.5 * t.blood_frenzy", then = [{ type = "combo", amount = 1 }] }] }]
 [spells.rip]
+gcd = 1                           # the game's 1.0 sec global cooldown for this ability
 name = "Rip"
 forms = ["cat_form"]
 finisher = true
 cost = { energy = 30 }
 requires = "cp >= 1"
 ranks = [
-  { level = 20, c1 = 44.4, c2 = 70.8, c3 = 97.2, c4 = 123.6, c5 = 150 }, { level = 28, c1 = 67.2, c2 = 110.4, c3 = 153.6, c4 = 196.8, c5 = 240 },
-  { level = 36, c1 = 87, c2 = 138, c3 = 189, c4 = 240, c5 = 291 }, { level = 44, c1 = 124.2, c2 = 200.4, c3 = 276.6, c4 = 352.8, c5 = 429 },
-  { level = 52, c1 = 175.2, c2 = 284.4, c3 = 393.6, c4 = 502.8, c5 = 612 }, { level = 60, c1 = 243, c2 = 396, c3 = 549, c4 = 702, c5 = 855 },
+  { level = 20, id = 1079, c1 = 44.4, c2 = 70.8, c3 = 97.2, c4 = 123.6, c5 = 150 },
+  { level = 28, id = 9492, c1 = 67.2, c2 = 110.4, c3 = 153.6, c4 = 196.8, c5 = 240 },
+  { level = 36, id = 9493, c1 = 87, c2 = 138, c3 = 189, c4 = 240, c5 = 291 },
+  { level = 44, id = 9752, c1 = 124.2, c2 = 200.4, c3 = 276.6, c4 = 352.8, c5 = 429 },
+  { level = 52, id = 9894, c1 = 175.2, c2 = 284.4, c3 = 393.6, c4 = 502.8, c5 = 612 },
+  { level = 60, id = 9896, c1 = 243, c2 = 396, c3 = 549, c4 = 702, c5 = 855 },
 ]
 effects = [{ type = "aura", aura = "rip", target = "target", stacks = "cp" }]
 [spells.ferocious_bite]
+gcd = 1                           # the game's 1.0 sec global cooldown for this ability
 name = "Ferocious Bite"
 forms = ["cat_form"]
 finisher = true
 cost = { energy = 35 }
 requires = "cp >= 1"
-ranks = [{ level = 32, lo = 50, hi = 66, per = 36, conv = 1 }, { level = 40, lo = 79, hi = 103, per = 59, conv = 1.5 }, { level = 48, lo = 122, hi = 162, per = 92, conv = 2 }, { level = 56, lo = 173, hi = 223, per = 128, conv = 2.5 }]
+ranks = [
+  { level = 32, id = 22568, lo = 50, hi = 66, per = 36, conv = 1 },
+  { level = 40, id = 22827, lo = 79, hi = 103, per = 59, conv = 1.5 },
+  { level = 48, id = 22828, lo = 122, hi = 162, per = 92, conv = 2 },
+  { level = 56, id = 22829, lo = 173, hi = 223, per = 128, conv = 2.5 },
+  { level = 60, id = 31018, lo = 199, hi = 259, per = 147, conv = 2.7 },
+]
 effects = [
-  { type = "damage", school = "physical", min = "r.lo + r.per * (cp - 1) + 0.03 * cp * ap + r.conv * energy", max = "r.hi + r.per * (cp - 1) + 0.03 * cp * ap + r.conv * energy" },
+  { type = "damage", school = "physical", min = "r.lo + r.per * (cp - 1) + opt.druid_bite_ap * cp * ap + r.conv * energy", max = "r.hi + r.per * (cp - 1) + opt.druid_bite_ap * cp * ap + r.conv * energy" },
   { type = "resource", res = "energy", amount = 0, set = true },
 ]
 [spells.pounce]
+gcd = 1                           # the game's 1.0 sec global cooldown for this ability
 name = "Pounce"
 forms = ["cat_form"]
 cost = { energy = 50 }
 requires = "aura.prowl.up"
-ranks = [{ level = 36, dot = 90 }, { level = 46, dot = 120 }, { level = 56, dot = 150 }]
+ranks = [{ level = 36, id = 9005, dot = 90 }, { level = 46, id = 9823, dot = 120 }, { level = 56, id = 9827, dot = 150 }]
 effects = [{ type = "remove_aura", aura = "prowl" }, { type = "aura", aura = "stun", target = "target", duration = "2 + 0.5 * t.brutal_impact" }, { type = "aura", aura = "pounce_bleed", target = "target" }, { type = "combo", amount = 1 }]
 [spells.ravage]
+gcd = 1                           # the game's 1.0 sec global cooldown for this ability
 name = "Ravage"
 forms = ["cat_form"]
 cost = { energy = 60 }
 requires = "aura.prowl.up && behind"
-ranks = [{ level = 32, bonus = 147 }, { level = 42, bonus = 217 }, { level = 50, bonus = 273 }, { level = 58, bonus = 343 }]
-effects = [{ type = "remove_aura", aura = "prowl" }, { type = "damage", weapon = "mh", weapon_mult = 3.5, amount = "r.bonus", on_hit = [{ type = "combo", amount = 1 }] }]
+ranks = [{ level = 32, id = 6785, bonus = 42 }, { level = 42, id = 6787, bonus = 62 }, { level = 50, id = 9866, bonus = 78 }, { level = 58, id = 9867, bonus = 98 }]
+effects = [{ type = "remove_aura", aura = "prowl" }, { type = "damage", weapon = "mh", weapon_mult = 3.5, amount = "r.bonus * 3.5", on_hit = [{ type = "combo", amount = 1 }] }]
 [spells.shifting_power]
+gcd = 1                           # the game's 1.0 sec global cooldown for this ability
 name = "Shifting Power"
 talent = "shifting_power"
 forms = ["cat_form"]
-off_gcd = true
 cooldown = 16
 cost = { mana = "0.55 * base_mana" }
+ranks = [{ level = 1, id = 1322605 }]
 effects = [{ type = "resource", res = "energy", amount = 40 }]
 [spells.berserk]
 name = "Berserk"
@@ -660,6 +820,7 @@ off_gcd = true
 cooldown = 180
 target = "self"
 usable_while = ["fear"]
+ranks = [{ level = 1, id = 417141 }]
 effects = [{ type = "dispel", mechanics = ["fear"] }, { type = "aura", aura = "berserk" }]
 
 # ------------------------------------------------------------------ spells: bear
@@ -668,50 +829,49 @@ name = "Maul"
 forms = ["bear_form"]
 next_swing = true
 cost = { rage = 15 }
-ranks = [{ level = 10, bonus = 18 }, { level = 18, bonus = 27 }, { level = 26, bonus = 37 }, { level = 34, bonus = 49 }, { level = 42, bonus = 71 }, { level = 50, bonus = 101 }, { level = 58, bonus = 128 }]
-effects = [{ type = "damage", weapon = "mh", amount = "r.bonus", threat = 1.75 }]
+ranks = [{ level = 10, id = 6807, bonus = 18 }, { level = 18, id = 6808, bonus = 27 }, { level = 26, id = 6809, bonus = 37 }, { level = 34, id = 8972, bonus = 49 }, { level = 42, id = 9745, bonus = 71 }, { level = 50, id = 9880, bonus = 101 }, { level = 58, id = 9881, bonus = 128 }]
+effects = [{ type = "damage", weapon = "mh", amount = "r.bonus", threat = "opt.druid_maul_threat" }]
 [spells.swipe]
 name = "Swipe"
 forms = ["bear_form"]
 cost = { rage = 20 }
-ranks = [{ level = 16, dmg = 18 }, { level = 24, dmg = 25 }, { level = 34, dmg = 36 }, { level = 44, dmg = 60 }, { level = 54, dmg = 83 }]
-effects = [{ type = "damage", school = "physical", amount = "r.dmg + 0.07 * ap", target = "enemies", max_targets = 3 }]
+ranks = [{ level = 16, id = 779, dmg = 18 }, { level = 24, id = 780, dmg = 25 }, { level = 34, id = 769, dmg = 36 }, { level = 44, id = 9754, dmg = 60 }, { level = 54, id = 9908, dmg = 83 }]
+effects = [{ type = "damage", school = "physical", amount = "r.dmg + opt.druid_swipe_ap * ap", target = "enemies", max_targets = 3 }]
 [spells.lacerate]
 name = "Lacerate"
 forms = ["bear_form"]
 cost = { rage = 15 }
-ranks = [{ level = 42, total = 50 }, { level = 50, total = 60 }, { level = 58, total = 75 }]
-effects = [{ type = "damage", school = "physical", amount = 0, can_crit = false, threat = 2, on_hit = [{ type = "aura", aura = "lacerate", target = "target" }, { type = "threat", amount = 100 }] }]
+ranks = [{ level = 42, id = 414644, total = 50 }, { level = 50, id = 1235826, total = 60 }, { level = 58, id = 1235827, total = 75 }]
+effects = [{ type = "damage", school = "physical", amount = 0, can_crit = false, on_hit = [{ type = "aura", aura = "lacerate", target = "target" }, { type = "threat", amount = "opt.druid_lacerate_threat" }] }]
 [spells.primal_bite]
 name = "Primal Bite"
 talent = "primal_bite"
 forms = ["bear_form"]
 cooldown = 6
 cost = { rage = 20 }
-ranks = [{ level = 25, bonus = 26 }, { level = 36, bonus = 38 }, { level = 48, bonus = 59 }, { level = 60, bonus = 77 }]
-effects = [{ type = "damage", weapon = "mh", amount = "r.bonus", threat = 2.5, target = "enemies", max_targets = "aura.berserk.up ? 3 : 1" }]
+ranks = [{ level = 25, id = 407995, bonus = 26 }, { level = 36, id = 1238069, bonus = 38 }, { level = 48, id = 1238070, bonus = 59 }, { level = 60, id = 1238073, bonus = 77 }]
+effects = [{ type = "damage", weapon = "mh", amount = "r.bonus", threat = "opt.druid_primal_bite_threat", target = "enemies", max_targets = "aura.berserk.up ? 3 : 1" }]
 [spells.enrage]
 name = "Enrage"
-level = 12
 forms = ["bear_form"]
 cooldown = 60
 off_gcd = true
 target = "self"
+ranks = [{ level = 12, id = 5229 }]
 effects = [{ type = "resource", res = "rage", amount = 10 }, { type = "aura", aura = "enrage" }]
 [spells.bash]
 name = "Bash"
 forms = ["bear_form"]
 cooldown = 60
 cost = { rage = 10 }
-ranks = [{ level = 14, dur = 2 }, { level = 30, dur = 3 }, { level = 46, dur = 4 }]
+ranks = [{ level = 14, id = 5211, dur = 2 }, { level = 30, id = 6798, dur = 3 }, { level = 46, id = 8983, dur = 4 }]
 effects = [{ type = "aura", aura = "stun", target = "target", duration = "r.dur + 0.5 * t.brutal_impact" }]
 [spells.frenzied_regeneration]
 name = "Frenzied Regeneration"
-level = 36
 forms = ["bear_form"]
 cooldown = 180
-off_gcd = true
 target = "self"
+ranks = [{ level = 36, id = 22842 }]
 effects = [{ type = "aura", aura = "frenzied_regeneration" }]
 
 # ------------------------------------------------------------------ spells: caster
@@ -720,43 +880,56 @@ name = "Wrath"
 school = "nature"
 forms = ["none", "moonkin_form"]
 ranks = [
-  { level = 1, lo = 15, hi = 17, mana = 10, cast = 1.5 }, { level = 6, lo = 21, hi = 24, mana = 20, cast = 1.7 },
-  { level = 14, lo = 30, hi = 36, mana = 40, cast = 2 }, { level = 22, lo = 38, hi = 44, mana = 50, cast = 2 },
-  { level = 30, lo = 46, hi = 52, mana = 70, cast = 2 }, { level = 38, lo = 56, hi = 63, mana = 80, cast = 2 },
-  { level = 46, lo = 69, hi = 77, mana = 100, cast = 2 }, { level = 54, lo = 92, hi = 102, mana = 120, cast = 2 },
+  { level = 1, id = 5176, lo = 14, lo_per_level = 0.185, hi = 16, hi_per_level = 0.215, mana = 10, cast = 1.5, max_level = 5, coef = 0.429 },
+  { level = 6, id = 5177, lo = 19, lo_per_level = 0.278, hi = 23, hi_per_level = 0.322, mana = 20, cast = 1.7, max_level = 12, coef = 0.486 },
+  { level = 14, id = 5178, lo = 27, lo_per_level = 0.458, hi = 33, hi_per_level = 0.542, mana = 40, cast = 2, max_level = 20, coef = 0.571 },
+  { level = 22, id = 5179, lo = 34, lo_per_level = 0.556, hi = 40, hi_per_level = 0.644, mana = 50, cast = 2, max_level = 28, coef = 0.571 },
+  { level = 30, id = 5180, lo = 42, lo_per_level = 0.655, hi = 48, hi_per_level = 0.745, mana = 70, cast = 2, max_level = 36, coef = 0.571 },
+  { level = 38, id = 6780, lo = 51, lo_per_level = 0.845, hi = 57, hi_per_level = 0.955, mana = 80, cast = 2, max_level = 44, coef = 0.571 },
+  { level = 46, id = 8905, lo = 64, lo_per_level = 0.85, hi = 72, hi_per_level = 0.95, mana = 100, cast = 2, max_level = 52, coef = 0.571 },
+  { level = 54, id = 9912, lo = 86, lo_per_level = 0.944, hi = 96, hi_per_level = 1.056, mana = 120, cast = 2, max_level = 60, coef = 0.571 },
 ]
-effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = "r.cast / 3.5" }]
+effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = "r.coef" }]
 [spells.starfire]
 name = "Starfire"
 school = "arcane"
 cast_time = 3.5
 forms = ["none", "moonkin_form"]
 ranks = [
-  { level = 20, lo = 79, hi = 96, mana = 95 }, { level = 26, lo = 107, hi = 131, mana = 135 }, { level = 34, lo = 140, hi = 168, mana = 180 },
-  { level = 42, lo = 190, hi = 227, mana = 230 }, { level = 50, lo = 256, hi = 303, mana = 275 }, { level = 58, lo = 313, hi = 370, mana = 315 },
-  { level = 60, lo = 350, hi = 412, mana = 340 },
+  { level = 20, id = 2912, lo = 73, lo_per_level = 1.169, hi = 89, hi_per_level = 1.431, mana = 95, max_level = 25, coef = 1 },
+  { level = 26, id = 8949, lo = 99, lo_per_level = 1.352, hi = 121, hi_per_level = 1.648, mana = 135, max_level = 32, coef = 1 },
+  { level = 34, id = 8950, lo = 131, lo_per_level = 1.455, hi = 157, hi_per_level = 1.745, mana = 180, max_level = 40, coef = 1 },
+  { level = 42, id = 8951, lo = 181, lo_per_level = 1.642, hi = 215, hi_per_level = 1.958, mana = 230, max_level = 48, coef = 1 },
+  { level = 50, id = 9875, lo = 244, lo_per_level = 2.016, hi = 288, hi_per_level = 2.384, mana = 275, max_level = 56, coef = 1 },
+  { level = 58, id = 9876, lo = 309, lo_per_level = 2.11, hi = 365, hi_per_level = 2.49, mana = 315, max_level = 64, coef = 1 },
+  { level = 60, id = 25298, lo = 350, lo_per_level = 2.204, hi = 412, hi_per_level = 2.596, mana = 340, max_level = 66, coef = 1 },
 ]
-effects = [{ type = "damage", school = "arcane", min = "r.lo", max = "r.hi", coef = 1.0 }]
+effects = [{ type = "damage", school = "arcane", min = "r.lo", max = "r.hi", coef = "r.coef" }]
 [spells.moonfire]
 name = "Moonfire"
 school = "arcane"
 forms = ["none", "moonkin_form"]
 requires = "!target.aura.moonfire.up"
 ranks = [
-  { level = 4, lo = 9, hi = 12, dot = 12, dur = 9, mana = 25 }, { level = 10, lo = 15, hi = 19, dot = 24, dur = 12, mana = 50 },
-  { level = 16, lo = 24, hi = 30, dot = 36, dur = 12, mana = 75 }, { level = 22, lo = 36, hi = 43, dot = 52, dur = 12, mana = 105 },
-  { level = 28, lo = 50, hi = 59, dot = 76, dur = 12, mana = 150 }, { level = 34, lo = 61, hi = 73, dot = 92, dur = 12, mana = 190 },
-  { level = 40, lo = 74, hi = 89, dot = 124, dur = 12, mana = 235 }, { level = 46, lo = 96, hi = 113, dot = 156, dur = 12, mana = 280 },
-  { level = 52, lo = 112, hi = 131, dot = 196, dur = 12, mana = 325 }, { level = 58, lo = 129, hi = 150, dot = 240, dur = 12, mana = 375 },
+  { level = 4, id = 8921, lo = 7, lo_per_level = 0.438, hi = 9, hi_per_level = 0.562, dot = 12, dur = 9, mana = 25, max_level = 9, coef = 0.15 },
+  { level = 10, id = 8924, lo = 11, lo_per_level = 0.693, hi = 15, hi_per_level = 0.907, dot = 24, dur = 12, mana = 50, max_level = 15, coef = 0.15 },
+  { level = 16, id = 8925, lo = 20, lo_per_level = 0.893, hi = 24, hi_per_level = 1.107, dot = 36, dur = 12, mana = 75, max_level = 21, coef = 0.15 },
+  { level = 22, id = 8926, lo = 29, lo_per_level = 1.364, hi = 35, hi_per_level = 1.636, dot = 52, dur = 12, mana = 105, max_level = 27, coef = 0.15 },
+  { level = 28, id = 8927, lo = 43, lo_per_level = 1.366, hi = 51, hi_per_level = 1.634, dot = 76, dur = 12, mana = 150, max_level = 33, coef = 0.15 },
+  { level = 34, id = 8928, lo = 54, lo_per_level = 1.456, hi = 64, hi_per_level = 1.744, dot = 92, dur = 12, mana = 190, max_level = 39, coef = 0.15 },
+  { level = 40, id = 8929, lo = 67, lo_per_level = 1.552, hi = 79, hi_per_level = 1.848, dot = 124, dur = 12, mana = 235, max_level = 45, coef = 0.15 },
+  { level = 46, id = 9833, lo = 83, lo_per_level = 2.472, hi = 99, hi_per_level = 2.928, dot = 156, dur = 12, mana = 280, max_level = 51, coef = 0.15 },
+  { level = 52, id = 9834, lo = 102, lo_per_level = 1.928, hi = 120, hi_per_level = 2.272, dot = 196, dur = 12, mana = 325, max_level = 57, coef = 0.15 },
+  { level = 58, id = 9835, lo = 124, lo_per_level = 2.12, hi = 146, hi_per_level = 2.48, dot = 240, dur = 12, mana = 375, max_level = 63, coef = 0.15 },
 ]
-effects = [{ type = "damage", school = "arcane", min = "r.lo", max = "r.hi", coef = 0.15, on_hit = [{ type = "aura", aura = "moonfire", target = "target" }] }]
+effects = [{ type = "damage", school = "arcane", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "aura", aura = "moonfire", target = "target" }] }]
 [spells.insect_swarm]
 name = "Insect Swarm"
 talent = "insect_swarm"
 school = "nature"
 forms = ["none", "moonkin_form"]
 requires = "!target.aura.insect_swarm.up"
-ranks = [{ level = 25, total = 48, mana = 45 }, { level = 30, total = 90, mana = 85 }, { level = 40, total = 120, mana = 100 }, { level = 50, total = 150, mana = 140 }, { level = 60, total = 186, mana = 160 }]
+ranks = [{ level = 20, id = 5570, total = 48, mana = 45 }, { level = 30, id = 24974, total = 90, mana = 85 }, { level = 40, id = 24975, total = 120, mana = 100 }, { level = 50, id = 24976, total = 150, mana = 140 }, { level = 60, id = 24977, total = 186, mana = 160 }]
 effects = [{ type = "damage", school = "nature", amount = 0, can_crit = false, on_hit = [{ type = "aura", aura = "insect_swarm", target = "target" }] }]
 [spells.entangling_roots]
 name = "Entangling Roots"
@@ -764,23 +937,35 @@ school = "nature"
 cast_time = 1.5
 forms = ["none", "moonkin_form"]
 requires = "target.is_player && !target.rooted"
-ranks = [{ level = 8, total = 20, dur = 12, mana = 50 }, { level = 18, total = 45, dur = 15, mana = 65 }, { level = 28, total = 72, dur = 18, mana = 80 }, { level = 38, total = 112, dur = 21, mana = 95 }, { level = 48, total = 168, dur = 24, mana = 110 }, { level = 58, total = 234, dur = 27, mana = 125 }]
-text = "Root only (the sim has no distance, so roots do not stop melee); the damage is applied as one lump."
-effects = [{ type = "damage", school = "nature", amount = "r.total * (1 + 0.25 * t.improved_entangling_roots)", hit = "spell", can_crit = false, on_hit = [{ type = "aura", aura = "root", target = "target", duration = "r.dur" }] }]
+ranks = [
+  { level = 8, id = 339, total = 20, dur = 12, mana = 50 },
+  { level = 18, id = 1062, total = 45, dur = 15, mana = 65 },
+  { level = 28, id = 5195, total = 72, dur = 18, mana = 80 },
+  { level = 38, id = 5196, total = 112, dur = 21, mana = 95 },
+  { level = 48, id = 9852, total = 168, dur = 24, mana = 110 },
+  { level = 58, id = 9853, total = 234, dur = 27, mana = 125 },
+]
+text = "Root only (the sim has no distance, so roots do not stop melee); the damage over time (0.06 spell power per 3 sec tick) is applied as one lump."
+effects = [{ type = "damage", school = "nature", amount = "r.total", coef = "0.02 * r.dur", mult = "(1 + 0.25 * t.improved_entangling_roots) * (1 + 0.01 * t.genesis)", hit = "spell", can_crit = false, on_hit = [{ type = "aura", aura = "root", target = "target", duration = "r.dur" }] }]
 [spells.healing_touch]
 name = "Healing Touch"
 school = "nature"
 target = "self"
 forms = ["none"]
 ranks = [
-  { level = 1, lo = 40, hi = 55, mana = 25, cast = 1.5 }, { level = 8, lo = 94, hi = 119, mana = 55, cast = 2 },
-  { level = 14, lo = 187, hi = 234, mana = 110, cast = 2.5 }, { level = 20, lo = 337, hi = 414, mana = 190, cast = 3 },
-  { level = 26, lo = 509, hi = 618, mana = 280, cast = 3.5 }, { level = 32, lo = 659, hi = 795, mana = 350, cast = 3.5 },
-  { level = 38, lo = 838, hi = 1003, mana = 425, cast = 3.5 }, { level = 44, lo = 1095, hi = 1303, mana = 520, cast = 3.5 },
-  { level = 50, lo = 1415, hi = 1676, mana = 630, cast = 3.5 }, { level = 56, lo = 1786, hi = 2107, mana = 755, cast = 3.5 },
-  { level = 60, lo = 2139, hi = 2525, mana = 840, cast = 3.5 },
+  { level = 1, id = 5185, lo = 37, lo_per_level = 0.673, hi = 51, hi_per_level = 0.927, mana = 25, cast = 1.5, max_level = 5, coef = 0.429 },
+  { level = 8, id = 5186, lo = 88, lo_per_level = 1.144, hi = 112, hi_per_level = 1.456, mana = 55, cast = 2, max_level = 13, coef = 0.571 },
+  { level = 14, id = 5187, lo = 179, lo_per_level = 1.692, hi = 223, hi_per_level = 2.108, mana = 110, cast = 2.5, max_level = 19, coef = 0.714 },
+  { level = 20, id = 5188, lo = 325, lo_per_level = 2.426, hi = 399, hi_per_level = 2.974, mana = 190, cast = 3, max_level = 25, coef = 0.857 },
+  { level = 26, id = 5189, lo = 493, lo_per_level = 3.163, hi = 599, hi_per_level = 3.837, mana = 280, cast = 3.5, max_level = 31, coef = 1 },
+  { level = 32, id = 6778, lo = 641, lo_per_level = 3.628, hi = 773, hi_per_level = 4.372, mana = 350, cast = 3.5, max_level = 37, coef = 1 },
+  { level = 38, id = 8903, lo = 818, lo_per_level = 4.097, hi = 978, hi_per_level = 4.903, mana = 425, cast = 3.5, max_level = 43, coef = 1 },
+  { level = 44, id = 9758, lo = 1071, lo_per_level = 4.749, hi = 1275, hi_per_level = 5.651, mana = 520, cast = 3.5, max_level = 49, coef = 1 },
+  { level = 50, id = 9888, lo = 1388, lo_per_level = 5.401, hi = 1644, hi_per_level = 6.399, mana = 630, cast = 3.5, max_level = 55, coef = 1 },
+  { level = 56, id = 9889, lo = 1762, lo_per_level = 6.055, hi = 2078, hi_per_level = 7.144, mana = 755, cast = 3.5, max_level = 61, coef = 1 },
+  { level = 60, id = 25297, lo = 2139, lo_per_level = 6.694, hi = 2525, hi_per_level = 7.906, mana = 840, cast = 3.5, max_level = 65, coef = 1 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.cast / 3.5", tag = "Healing Touch" }]
+effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Healing Touch" }]
 [spells.rejuvenation]
 name = "Rejuvenation"
 school = "nature"
@@ -788,9 +973,17 @@ target = "self"
 forms = ["none"]
 requires = "!aura.rejuvenation.up"
 ranks = [
-  { level = 4, total = 32, mana = 25 }, { level = 10, total = 48, mana = 40 }, { level = 16, total = 92, mana = 75 }, { level = 22, total = 128, mana = 105 },
-  { level = 28, total = 168, mana = 135 }, { level = 34, total = 204, mana = 160 }, { level = 40, total = 284, mana = 195 }, { level = 46, total = 376, mana = 235 },
-  { level = 52, total = 496, mana = 280 }, { level = 58, total = 644, mana = 335 }, { level = 60, total = 776, mana = 360 },
+  { level = 4, id = 774, total = 32, mana = 25 },
+  { level = 10, id = 1058, total = 48, mana = 40 },
+  { level = 16, id = 1430, total = 92, mana = 75 },
+  { level = 22, id = 2090, total = 128, mana = 105 },
+  { level = 28, id = 2091, total = 168, mana = 135 },
+  { level = 34, id = 3627, total = 204, mana = 160 },
+  { level = 40, id = 8910, total = 284, mana = 195 },
+  { level = 46, id = 9839, total = 376, mana = 235 },
+  { level = 52, id = 9840, total = 496, mana = 280 },
+  { level = 58, id = 9841, total = 644, mana = 335 },
+  { level = 60, id = 25299, total = 776, mana = 360 },
 ]
 effects = [{ type = "aura", aura = "rejuvenation" }]
 [spells.regrowth]
@@ -800,11 +993,17 @@ target = "self"
 cast_time = 2
 forms = ["none"]
 ranks = [
-  { level = 12, lo = 89, hi = 103, hot = 91, mana = 70 }, { level = 18, lo = 164, hi = 189, hot = 154, mana = 125 }, { level = 24, lo = 234, hi = 267, hot = 224, mana = 170 },
-  { level = 30, lo = 309, hi = 349, hot = 294, mana = 210 }, { level = 36, lo = 389, hi = 440, hot = 364, mana = 250 }, { level = 42, lo = 496, hi = 559, hot = 476, mana = 305 },
-  { level = 48, lo = 633, hi = 710, hot = 616, mana = 370 }, { level = 54, lo = 800, hi = 894, hot = 791, mana = 445 }, { level = 60, lo = 965, hi = 1077, hot = 994, mana = 525 },
+  { level = 12, id = 8936, lo = 80, lo_per_level = 1.662, hi = 94, hi_per_level = 1.938, hot = 91, mana = 70, max_level = 17, coef = 0.286 },
+  { level = 18, id = 8938, lo = 153, lo_per_level = 2.329, hi = 175, hi_per_level = 2.671, hot = 154, mana = 125, max_level = 23, coef = 0.286 },
+  { level = 24, id = 8939, lo = 219, lo_per_level = 2.895, hi = 251, hi_per_level = 3.305, hot = 224, mana = 170, max_level = 29, coef = 0.286 },
+  { level = 30, id = 8940, lo = 292, lo_per_level = 3.377, hi = 330, hi_per_level = 3.823, hot = 294, mana = 210, max_level = 35, coef = 0.286 },
+  { level = 36, id = 8941, lo = 370, lo_per_level = 3.853, hi = 418, hi_per_level = 4.347, hot = 364, mana = 250, max_level = 41, coef = 0.286 },
+  { level = 42, id = 9750, lo = 474, lo_per_level = 4.423, hi = 534, hi_per_level = 4.977, hot = 476, mana = 305, max_level = 47, coef = 0.286 },
+  { level = 48, id = 9856, lo = 608, lo_per_level = 4.998, hi = 682, hi_per_level = 5.602, hot = 616, mana = 370, max_level = 53, coef = 0.286 },
+  { level = 54, id = 9857, lo = 771, lo_per_level = 5.664, hi = 863, hi_per_level = 6.336, hot = 791, mana = 445, max_level = 59, coef = 0.286 },
+  { level = 60, id = 9858, lo = 965, lo_per_level = 6.428, hi = 1077, hi_per_level = 7.172, hot = 994, mana = 525, max_level = 65, coef = 0.286 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 0.286, tag = "Regrowth" }, { type = "aura", aura = "regrowth", target = "self" }]
+effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Regrowth" }, { type = "aura", aura = "regrowth", target = "self" }]
 [spells.swiftmend]
 name = "Swiftmend"
 talent = "swiftmend"
@@ -813,7 +1012,8 @@ cooldown = 15
 target = "self"
 forms = ["none"]
 requires = "aura.rejuvenation.up || aura.regrowth.up"
-cost = { mana = "0.16 * base_mana" }
+cost = { mana = "0.2 * base_mana" }
+ranks = [{ level = 1, id = 18562 }]
 text = "Heals for the full Rejuvenation amount (your highest rank) without consuming it."
 effects = [{ type = "cast", spell = "swiftmend_heal", target = "self" }]
 [spells.swiftmend_heal]
@@ -822,11 +1022,19 @@ school = "nature"
 off_gcd = true
 target = "self"
 ranks = [
-  { level = 4, total = 32 }, { level = 10, total = 48 }, { level = 16, total = 92 }, { level = 22, total = 128 },
-  { level = 28, total = 168 }, { level = 34, total = 204 }, { level = 40, total = 284 }, { level = 46, total = 376 },
-  { level = 52, total = 496 }, { level = 58, total = 644 }, { level = 60, total = 776 },
+  { level = 4, total = 32 },
+  { level = 10, total = 48 },
+  { level = 16, total = 92 },
+  { level = 22, total = 128 },
+  { level = 28, total = 168 },
+  { level = 34, total = 204 },
+  { level = 40, total = 284 },
+  { level = 46, total = 376 },
+  { level = 52, total = 496 },
+  { level = 58, total = 644 },
+  { level = 60, total = 776 },
 ]
-effects = [{ type = "heal", target = "self", amount = "r.total", coef = 0.8, can_crit = true, mult = "1 + 0.05 * t.improved_rejuvenation", tag = "Swiftmend" }]
+effects = [{ type = "heal", target = "self", amount = "r.total", coef = 0.8, can_crit = true, mult = "(1 + 0.05 * t.improved_rejuvenation) * (1 + 0.01 * t.genesis)", tag = "Swiftmend" }]
 [spells.wild_growth]
 name = "Wild Growth"
 talent = "wild_growth"
@@ -834,7 +1042,12 @@ school = "nature"
 cooldown = 6
 target = "self"
 forms = ["none"]
-ranks = [{ level = 40, total = 336, mana = 550 }, { level = 50, total = 490, mana = 755 }, { level = 60, total = 679, mana = 1050 }]
+# total: seven 1 sec ticks, growing with level until max_level
+ranks = [
+  { level = 40, id = 408120, total = 280, total_per_level = 7, max_level = 48, mana = 550 },
+  { level = 50, id = 1238214, total = 420, total_per_level = 9.1, max_level = 58, mana = 755 },
+  { level = 60, id = 1238215, total = 679, total_per_level = 11.2, max_level = 68, mana = 1050 },
+]
 effects = [{ type = "aura", aura = "wild_growth", target = "self" }]
 [spells.natures_swiftness]
 name = "Nature's Swiftness"
@@ -843,11 +1056,17 @@ off_gcd = true
 cooldown = 180
 target = "self"
 forms = ["none"]
+ranks = [{ level = 1, id = 17116 }]
 effects = [{ type = "aura", aura = "natures_swiftness" }]
 
 # ------------------------------------------------------------------ rotations
+# Faerie Fire is free in Cat and Bear Form and lasts 40 sec, so cats and
+# bears keep it on every target, normal mobs included. In solo_1 it gains
+# kills per hour at levels 20 to 40 (cats +3 to +6%, bears +2 to +4%); at 60
+# cats lose under 1%, partly because the sim's Cat Form global cooldown is
+# 1.5 sec instead of the game's 1.0.
 [rotations.feral_cat]
-desc = "Cat with shift-healing: Pounce/Ravage/Rake opener, Rake, Rip on long fights, Ferocious Bite, Shred from behind or Claw, Shifting Power; leaves Cat Form to Rejuvenation/Swiftmend/Regrowth when low"
+desc = "Cat with shift-healing: Pounce/Ravage/Rake opener, Faerie Fire, Rake, Rip on long fights, Ferocious Bite, Shred from behind or Claw, Shifting Power; leaves Cat Form to Rejuvenation/Swiftmend/Regrowth when low"
 precombat = ["mark_of_the_wild", "thorns", "cat_form", "prowl"]
 opener = ["pounce", "ravage"]
 actions = [
@@ -865,6 +1084,7 @@ actions = [
   { cast = "cat_form", if = "!form.any" },
   { cast = "shifting_power", if = "energy < 30 && mana_pct > 0.35" },
   { cast = "berserk", if = "target.is_player || target.boss" },
+  { cast = "faerie_fire", if = "!target.aura.faerie_fire.up" },
   { cast = "rip", if = "cp >= 4 && !target.aura.rip.up && (target.boss || target.hp_pct > 0.5)" },
   { cast = "ferocious_bite", if = "cp >= 5 || (cp >= 2 && target.hp_pct < 0.2)" },
   { cast = "rake", if = "!target.aura.rake.up && (target.boss || target.hp_pct > 0.3)" },
@@ -885,7 +1105,7 @@ eat_below = 0.45
 drink_below = 0.35
 
 [rotations.bear]
-desc = "Bear tank: Primal Bite, Lacerate to five, Swipe on packs, Maul with spare Rage, Enrage, Frenzied Regeneration and Barkskin when low"
+desc = "Bear tank: Faerie Fire, Primal Bite, Lacerate to five, Swipe on packs, Maul with spare Rage, Enrage, Frenzied Regeneration and Barkskin when low"
 precombat = ["mark_of_the_wild", "thorns", "bear_form"]
 opener = []
 actions = [
@@ -904,6 +1124,7 @@ actions = [
   { cast = "enrage", if = "rage < 20" },
   { cast = "bash", if = "target.is_player || target.casting" },
   { cast = "berserk", if = "enemies >= 2" },
+  { cast = "faerie_fire", if = "!target.aura.faerie_fire.up" },
   { cast = "primal_bite" },
   { cast = "swipe", if = "enemies >= 2" },
   { cast = "lacerate", if = "target.aura.lacerate.stacks < 5 || target.aura.lacerate.remains < 4" },
@@ -922,7 +1143,7 @@ eat_below = 0.45
 drink_below = 0.3
 
 [rotations.balance]
-desc = "Balance: Moonkin Form, Moonfire, Insect Swarm, Wrath then Starfire (Eclipse); leaves Moonkin to heal"
+desc = "Balance: Moonkin Form, Moonfire, Insect Swarm, Wrath then two Starfires (Eclipse) while mana lasts, Wrath before Eclipse or when mana is low (Starfire without Improved Wrath); leaves Moonkin to heal"
 auto_melee = false
 precombat = ["mark_of_the_wild", "thorns", "moonkin_form"]
 opener = []
@@ -939,8 +1160,18 @@ actions = [
   { cast = "moonkin_form", if = "!form.any && hp_pct >= 0.5" },
   { cast = "moonfire", if = "target.hp_pct > 0.25 || target.boss" },
   { cast = "insect_swarm", if = "target.hp_pct > 0.3 || target.boss" },
-  { cast = "starfire", if = "aura.eclipse.up || !known.wrath" },
+  # Eclipse Starfires while there is mana for them, Wrath once mana runs low
+  # (Warcraft Tavern: two Starfires to one Wrath after 30; Wrath "until the
+  # enemy is nearly dead or you run low on mana"). On a boss this gains 9%
+  # at level 60 against Starfire down to empty.
+  { cast = "starfire", if = "(aura.eclipse.up && mana_pct > 0.3) || !known.wrath" },
   { cast = "wrath", if = "t.eclipse > 0 && !aura.eclipse.up" },
+  # Before Eclipse, and when mana is low, a druid with Improved Wrath casts
+  # Wrath (Warcraft Tavern: "Before level 30, cast Wrath"). With the talent's
+  # -50% cost Wrath does about the same damage per second as Starfire for half
+  # the mana per point of damage; without it (Restoration) Starfire is the
+  # better nuke.
+  { cast = "wrath", if = "t.improved_wrath >= 3" },
   { cast = "starfire" },
   { cast = "wrath" },
 ]
@@ -950,6 +1181,41 @@ rest = [
   { cast = "mark_of_the_wild", if = "!form.any" },
   { cast = "thorns", if = "!form.any" },
   { cast = "moonkin_form", if = "!form.any && hp_pct >= 0.8" },
+]
+eat_below = 0.45
+drink_below = 0.4
+
+# Restoration solo (builds/druid/restoration.toml): the Balance rotation's
+# damage and self-healing without Moonkin Form or Eclipse. Warcraft Tavern
+# levels Restoration with Wrath and Moonfire ("not recommended due to their
+# slow kill times"); without Improved Wrath, Starfire does more damage for
+# its mana than Wrath, so it is the main nuke from 20.
+[rotations.restoration]
+desc = "Restoration played solo: Thorns, Moonfire (and Insect Swarm if known), Starfire (Wrath before 20), Rejuvenation, Swiftmend and Regrowth when hurt, Nature's Swiftness with Healing Touch in an emergency"
+auto_melee = false
+precombat = ["mark_of_the_wild", "thorns"]
+opener = []
+actions = [
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "barkskin", if = "hp_pct < 0.5" },
+  { cast = "caster_form", if = "form.any" },
+  { cast = "natures_swiftness", if = "hp_pct < 0.3" },
+  { cast = "healing_touch", if = "aura.natures_swiftness.up" },
+  { cast = "rejuvenation", if = "hp_pct < 0.7" },
+  { cast = "swiftmend", if = "hp_pct < 0.6" },
+  { cast = "regrowth", if = "hp_pct < 0.5" },
+  { cast = "moonfire", if = "target.hp_pct > 0.25 || target.boss" },
+  { cast = "insect_swarm", if = "target.hp_pct > 0.3 || target.boss" },
+  { cast = "wrath", if = "t.improved_wrath >= 3" },
+  { cast = "starfire" },
+  { cast = "wrath" },
+]
+rest = [
+  { cast = "caster_form", if = "form.any" },
+  { cast = "rejuvenation", if = "hp_pct < 0.8" },
+  { cast = "mark_of_the_wild" },
+  { cast = "thorns" },
 ]
 eat_below = 0.45
 drink_below = 0.4

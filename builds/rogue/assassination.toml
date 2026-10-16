@@ -1,0 +1,50 @@
+# The Mutilate rogue: two daggers and poisons, with crit talents and Cold Blood on the way to Mutilate
+# at 30. Vile Poisons, Seal Fate, Venom at 40 and Improved Poisons come next, then a few Combat crit
+# talents; level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Mobalytics, Assassination Rogue guide (talent order 10-30; read from search excerpts, the page
+#   refuses automated readers): https://mobalytics.gg/wow-forever/classes/assassination-rogue-guide
+# - kami-labs, Assassination build (38/11/2 at 60, simulated: Seal Fate, Venom, Improved Poisons,
+#   Puncturing Wounds, Opportunity; the rotation):
+#   https://kami-labs.fr/en/wow-forever/build-voleur-assassinat-wow-forever/
+# - Blizzard forums, "Thoughts on Rogue" (the same 38/11/2 split):
+#   https://us.forums.blizzard.com/en/wow/t/thoughts-on-rogue/2366259
+# - Warcraft Tavern, Rogue leveling guide (Assassination 21/0/0 at 30):
+#   https://www.warcrafttavern.com/forever/guides/rogue-leveling/
+# - wowtbc.gg, Assassination Rogue (Slice and Dice and Venom first; Instant main hand, Deadly off hand):
+#   https://wowtbc.gg/warcraftforever/class-guides/assassination-rogue/
+# The 60 points are kami-labs' with Remorseless Attacks 2 (taken while leveling) in place of Murder 2.
+# Race: Gnome, Icy Veins' and leprestore's Alliance pick: Expansive Mind adds 5 Energy, and Eureka!
+# makes 8 sec of attacks cheaper and harder.
+name = "Assassination"
+kind = "standard"
+class = "rogue"
+race = "gnome"
+level = 60
+gear = "leather_daggers"
+rotation = "daggers"
+
+order = [
+  "malice", "malice", "malice", "malice", "malice",                             # 10-14
+  "ruthlessness", "ruthlessness", "ruthlessness",                               # 15-17
+  "improved_slice_and_dice", "improved_slice_and_dice",                         # 18-19
+  "lethality", "lethality", "lethality", "lethality", "lethality",              # 20-24
+  "relentless_strikes",                                                         # 25
+  "cold_blood",                                                                 # 26
+  "remorseless_attacks", "remorseless_attacks",                                 # 27-28
+  "improved_slice_and_dice",                                                    # 29
+  "mutilate",                                                                   # 30
+  "vile_poisons", "vile_poisons", "vile_poisons", "vile_poisons",               # 31-34
+  "seal_fate", "seal_fate", "seal_fate", "seal_fate", "seal_fate",              # 35-39
+  "venom",                                                                      # 40
+  "vile_poisons",                                                               # 41
+  "improved_poisons", "improved_poisons", "improved_poisons", "improved_poisons",
+  "improved_poisons",                                                           # 42-46
+  "vigor",                                                                      # 47
+  "improved_eviscerate", "improved_eviscerate", "improved_eviscerate",          # 48-50
+  "improved_sinister_strike", "improved_sinister_strike",                       # 51-52
+  "puncturing_wounds", "puncturing_wounds", "puncturing_wounds",                # 53-55
+  "precision", "precision", "precision",                                        # 56-58
+  "opportunity", "opportunity",                                                 # 59-60
+]

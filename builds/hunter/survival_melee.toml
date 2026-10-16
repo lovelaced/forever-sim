@@ -1,6 +1,7 @@
 # Survival melee "Strider" hunter with a cat, 20/0/31: Mongoose, Counterattack,
 # Strider Kick and Lacerating Strikes, two-hander from the kit.
 name = "Survival Melee (20/0/31)"
+kind = "experimental"
 class = "hunter"
 race = "orc"
 level = 60

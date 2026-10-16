@@ -70,6 +70,25 @@ struct McArgs {
 enum Cmd {
     /// Validate the data and optional build files; show which talents are modelled
     Check { builds: Vec<PathBuf> },
+    /// Check the class data against WoW: Forever's spell tables (data/reference/spellbook.json)
+    Audit {
+        /// Only this class
+        class: Option<String>,
+        #[arg(long, default_value = "data/reference/spellbook.json")]
+        spellbook: PathBuf,
+        /// Deliberate differences, each with a reason (a file, or a folder of <class>.toml files)
+        #[arg(long, default_value = "data/reference/accepted")]
+        accepted: PathBuf,
+        /// Also list what matches
+        #[arg(long)]
+        all: bool,
+        /// Exit with an error if anything differs without a reason
+        #[arg(long)]
+        strict: bool,
+        /// Write every row as JSON
+        #[arg(long)]
+        json: Option<PathBuf>,
+    },
     /// List classes, talents <class>, spells <class>, rotations, scenarios, gear, enemies, options, races
     List { what: String, class: Option<String> },
     /// Run a scenario for one or more builds (paired comparison when several)
@@ -233,7 +252,7 @@ fn main() {
             for (ci, c) in w.classes.iter().enumerate() {
                 let m = modelled_talents(&w, ci);
                 let n = m.iter().filter(|&&x| x).count();
-                println!("  {:<8} {:>2}/{:<2} talents modelled, {} rotations: {}", c.id, n, c.talents.len(), c.rotations.len(), c.rotations.keys().cloned().collect::<Vec<_>>().join(", "));
+                println!("  {:<8} {:>2}/{:<2} talents modeled, {} rotations: {}", c.id, n, c.talents.len(), c.rotations.len(), c.rotations.keys().cloned().collect::<Vec<_>>().join(", "));
             }
             let mut bad = false;
             for p in builds {
@@ -253,7 +272,7 @@ fn main() {
                             .map(|(i, t)| format!("{} {}", t.name, b.talents[i]))
                             .collect();
                         if un.is_empty() {
-                            println!("  every talent with points is modelled");
+                            println!("  every talent with points is modeled");
                         } else {
                             println!("  points in talents the sim does not model (no effect on results): {}", un.join(", "));
                         }
@@ -265,6 +284,31 @@ fn main() {
                 }
             }
             if bad {
+                exit(1);
+            }
+        }
+        Cmd::Audit { class, spellbook, accepted, all, strict, json } => {
+            use forever_sim::audit::{Accepted, Audit, Book};
+            let book = std::fs::read_to_string(&spellbook).map_err(|e| format!("{}: {e}", spellbook.display())).and_then(|t| Book::parse(&t)).unwrap_or_else(|e| die(e));
+            let mut texts = Vec::new();
+            if accepted.is_dir() {
+                let mut files: Vec<PathBuf> = std::fs::read_dir(&accepted).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.extension().map_or(false, |x| x == "toml")).collect();
+                files.sort();
+                for f in files {
+                    texts.push(std::fs::read_to_string(&f).unwrap_or_else(|e| die(format!("{}: {e}", f.display()))));
+                }
+            } else if let Ok(t) = std::fs::read_to_string(&accepted) {
+                texts.push(t);
+            }
+            let acc = Accepted::parse_all(&texts).unwrap_or_else(|e| die(e));
+            let mut a = Audit::run(&w, &book, &acc, class.as_deref());
+            a.run_talents(class.as_deref());
+            print!("{}", a.report(all));
+            if let Some(p) = json {
+                std::fs::write(&p, serde_json::to_string_pretty(&a.rows).unwrap()).unwrap_or_else(|e| die(format!("{}: {e}", p.display())));
+            }
+            if strict && a.failures() > 0 {
+                eprintln!("{} differences without a reason", a.failures());
                 exit(1);
             }
         }
@@ -346,7 +390,7 @@ fn main() {
             if matches!(sc.kind, ScenarioKind::Duel { .. }) && opp.is_none() {
                 die("duel scenarios need an opponent: --vs <build.toml>");
             }
-            let variants: Vec<Variant> = builds
+            let mut variants: Vec<Variant> = builds
                 .iter()
                 .map(|p| {
                     let b = load_build(&w, p, a.level).unwrap_or_else(|e| die(e));
@@ -354,6 +398,7 @@ fn main() {
                     Variant { world: 0, name: b.name.clone(), build: b, opponent: opp.clone(), opts }
                 })
                 .collect();
+            unique_names(&w, &mut variants);
             run_and_report(&[&w], &header, sc, variants, &a);
         }
         Cmd::Scan { scenario, build, levels, mc: a } => {
@@ -540,6 +585,17 @@ fn run_and_report(worlds: &[&World], header: &str, sc: &ScenarioDef, variants: V
         root.insert("results".into(), serde_json::Value::Object(json));
         std::fs::write(p, serde_json::to_string_pretty(&root).unwrap()).unwrap_or_else(|e| die(e));
         println!("\nwrote {}", p.display());
+    }
+}
+
+/// Builds of different classes can share a name ("Holy", "Protection"):
+/// those get their class added, so every result has its own name.
+fn unique_names(w: &World, variants: &mut [Variant]) {
+    let names: Vec<String> = variants.iter().map(|v| v.name.clone()).collect();
+    for v in variants.iter_mut() {
+        if names.iter().filter(|n| **n == v.name).count() > 1 {
+            v.name = format!("{} ({})", v.name, w.classes[v.build.class].id);
+        }
     }
 }
 

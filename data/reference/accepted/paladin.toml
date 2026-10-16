@@ -1,0 +1,119 @@
+# Deliberate differences between data/base/classes/paladin.toml and Forever's
+# spell data (build 1.60.1.70338). Every spell field `fsim audit` checks
+# matches the game. The `effect`, `range` and `unit` entries are notes on
+# behavior the audit can't check, kept here so every simplification is written
+# down in one place; the `talent_*` entries at the end are talent values and
+# prerequisites the audit can't confirm. Numbers the data doesn't give are
+# options (`paladin_*` in data/base/options.toml).
+
+[paladin.consecration]
+unit = "Per-target auras instead of a ground area: the first 4 enemies get both of the game's damage parts (the second with 0.042 spell power per tick since build 70425, 0.095 before), everyone else only the first. No placement, 8 yd radius or enemies walking in and out. Waits for ground units."
+effect = "The game also has a helper spell (1280353, a 0.6 sec aura, \"Taking increased damage from Consecration\", with the same 0.042 coefficient, 0.095 before 70425) whose job the data doesn't show beyond its name. Not modelled; waits for ground units and hit-order handling."
+
+[paladin.hammer_of_the_righteous]
+range = "Hits the first 4 enemies in the fight (the game: your target and up to 3 nearby). Choosing nearby targets waits for positioning and multi-target choice."
+effect = "Shares cooldown category 2404 with Holy Strike, as in the game's data. The tooltip says Crusader Strike, which Forever paladins don't have."
+
+[paladin.holy_shock_heal]
+effect = "Internal half of Holy Shock: the game has one spell (1311606 ...) that hurts an enemy or heals a friend. Linked to that spell's id; the heal values come from 1311605, 25914, 25913 and 25903."
+
+[paladin.lights_vigil]
+effect = "Cast as a damage follow-up while Holy Shock is cooling down. The game marks a target for 30 sec so your next Holy Shock on it starts no cooldown and adds this damage. Waits for rotation work."
+
+[paladin.lights_vigil_heal]
+effect = "Internal healing half of Light's Vigil, linked to the castable spell's id. Heals the paladin only; the game heals the party within 40 yd. Waits for party members."
+
+[paladin.retribution_aura]
+effect = "Damage per hit (5 to 20) matches the spell table, the tooltip and Blizzard's beta notes. The 6% spell power ratio is from the beta notes (Oct 8); the table has none."
+range = "Protects the paladin only; the game's aura covers the party within 30 yd. Waits for party members."
+
+[paladin.devotion_aura]
+range = "Buffs the paladin only; the game's aura covers the party within 30 yd. Waits for party members."
+
+[paladin.seal_of_righteousness]
+effect = "The tooltip's range per swing (seal value / 87 to / 25) is spread over weapon speeds from paladin_sor_speed_fast to paladin_sor_speed_slow. Rank 8 has no spell power coefficient in the data; paladin_sor_rank8_coef assumes the 0.1 of ranks 1 to 7. Build 70338 also had 0.1 on the per-hit damage spells (25713, 25735 to 25742), added as each rank's `hit_coef`; build 70425 removed it (Blizzard's notes, Oct 15: almost twice the intended spell damage benefit)."
+
+[paladin.seal_of_command]
+effect = "The data gives a 1 sec proc cooldown but no rate per minute (the game keeps those on its servers): 7 per minute from the original game, in paladin_soc_ppm."
+
+[paladin.seal_of_fury]
+effect = "The seal's shield (not on its tooltip; the game's dummy effect may size it) is not simulated, so Improved Seal of Fury has nothing to work with."
+
+[paladin.judgement_of_light_cast]
+effect = "Attacks on the judged target heal the attacker with the chance in paladin_judgement_proc_chance (the tooltip says \"a chance\"). Only melee hits count; the game also counts spells."
+
+[paladin.judgement_of_wisdom]
+effect = "Same as Judgement of Light, restoring mana. Only melee hits count; the game also counts spells."
+
+[paladin.divine_protection]
+effect = "Immune to all damage as in the game; the game's \"cannot attack\" (pacify) is stood in for by doing no physical damage. Waits for a pacify effect."
+
+[paladin.divine_shield]
+effect = "On the global cooldown and not usable while stunned, feared or incapacitated: the game's spell (642, 1020) lacks the usable-while-stunned attribute and its tooltip doesn't claim it."
+
+[paladin.templars_bulwark]
+effect = "Not blocked by Forbearance and doesn't cause it: the spell (1311015) has no invulnerability mechanic, which is what Forbearance blocks, and the tooltip names none."
+
+[paladin.lay_on_hands]
+effect = "Not blocked by Forbearance (no invulnerability mechanic; the tooltip names none). Drains all mana, then gives back the rank's mana to the target, here the paladin."
+
+[paladin.blessing_of_kings]
+effect = "Greater Blessing of Kings at 60 only. The data also has the level 20 Blessing of Kings (20217), which is the original game's Protection talent spell; Forever's talent trees don't have it and Forever's ability list shows only the Greater version."
+range = "Blessings buff the paladin only. Waits for party members."
+
+[paladin.righteous_fury]
+effect = "Raises threat from Holy damage only, as in the game. Threat matters in no current scenario."
+
+[paladin.holy_strike]
+effect = "Normalized weapon damage times the rank's percentage plus the Holy bonus, which gets the game's 0.429 spell power coefficient. The tooltip reads the bonus as added after the weapon percentage, so the sim doesn't scale it by that percentage."
+
+[paladin.repentance]
+effect = "The rotation uses it only on players (the spell carries that condition). The game works on any humanoid."
+
+[paladin.voice_of_truth]
+effect = "Silence immunity is modelled; interrupt immunity isn't (there's no interrupt-immunity stat), and no current enemy silences or interrupts."
+
+# ---------------------------------------------------------------- talents
+# `value.N` entries: the game's per-rank talent values (the trait data in the
+# spellbook's `talents` section) that `fsim audit` can't find among the numbers
+# a talent drives, either because the sim folds them into a formula that also
+# reads a stat, the weapon, an aura or the hit's damage, or because the sim has
+# nothing for them to act on. Every modelled value below matches the game's.
+
+[paladin.talent_purifying_power]
+"value.0" = "Not modelled: Cleanse and Purify cost 10/20% less. The sim has neither spell. Effect 1 (Exorcism cooldown -17/-33%) is modelled and matches."
+
+[paladin.talent_illumination]
+"value.1" = "Not used: the trait scales effect index 1 ($m2) to 10/20/30/40/50%, but the tooltip's refund is $m3 (spell 20210, effect index 2), 50% of the base cost at every rank, which the sim uses. Effect 0 (the 20-100% chance) is modelled and matches."
+
+[paladin.talent_divine_precision]
+requires = "The game's tree links Holy Shock to Divine Precision on the same row (TraitEdge 132633, type 2, Holy Shock to Divine Precision). The spellbook lists same-row links under `linked` rather than `requires`, so the audit sees no prerequisite. The sim requires Holy Shock 1/1."
+
+[paladin.talent_redoubt]
+"value.1" = "Not used: the trait lists 2/4/6/8/10% on effect index 1, which Redoubt's spell (20127) doesn't have. The tooltip's chance is the spell's own proc chance ($h, 10% at every rank), which the sim uses. Effect 0 (+4% block per rank) is modelled and matches."
+
+[paladin.talent_guardians_favor]
+"value.0" = "Not modelled: Blessing of Protection cooldown 1/2 min shorter. The sim has no Blessing of Protection."
+"value.1" = "Not modelled: Blessing of Freedom lasts 3/6 sec longer. The sim has no Blessing of Freedom."
+
+[paladin.talent_one_handed_weapon_specialization]
+"value.0" = "Modelled: +3/7/10% Physical damage with a one-handed weapon (spell 20196 has school mask 1), as `two_hand ? 1 : 1 + 0.03/0.07/0.1`, which the audit can't evaluate because it reads the weapon."
+
+[paladin.talent_sanctified_judgement]
+"value.1" = "Modelled: 20/40/60% of the judged seal's mana cost back, as `0.2 * t.sanctified_judgement * r.seal_mana` in each judgement, which the audit can't evaluate because it reads the seal's cost. Effect 0 (the 33/66/100% chance) is modelled and matches."
+
+[paladin.talent_pursuit_of_justice]
+"value.0" = "Not modelled: 8/15% movement speed. The sim has no movement."
+"value.1" = "Not modelled: 8/15% mounted speed. The sim has no movement."
+
+[paladin.talent_eye_for_an_eye]
+"value.0" = "Modelled: 5/10% of a critical hit's damage sent back, as `min(event.amount * 0.05 * rank, 0.5 * max_hp)`, which the audit can't evaluate because it reads the hit's damage."
+
+[paladin.talent_vengeance]
+"value.0" = "Modelled: +1/2/3% Physical and Holy damage per stack, up to 3 stacks, as `1 + 0.01 * t.vengeance * stacks` in the Vengeance aura, which the audit can't evaluate because it reads the stacks."
+
+[paladin.talent_champion_of_the_light]
+"value.0" = "Modelled: spell damage +10/20/30% of Intellect (20/40/60% before build 70425), as `0.1 * rank * int`, which the audit can't evaluate because it reads Intellect."
+
+[paladin.talent_instrument_of_law]
+"value.1" = "Modelled: 10/20% less threat while Righteous Fury is off, as `aura.righteous_fury.up ? 1 : 1 - 0.1 * rank`, which the audit can't evaluate because it reads the aura. Threat decides nothing for a paladin in any current scenario. Effect 0 (Hammer of Wrath cast 0.5/1 sec faster) is modelled and matches."

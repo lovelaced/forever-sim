@@ -1,0 +1,1477 @@
+# WoW: Forever beta build 1.60.1.70425 (Blizzard's October 15 beta update).
+# Sources: the beta development notes (us.forums.blizzard.com/en/wow/t/2360696,
+# the October 15 post) and the game's spell tables for this build, compared
+# with 1.60.1.70338 by tools/spellbook_diff.py. Each change says which.
+# `fsim --at-build 1.60.1.70338 ...` runs without this file.
+
+[meta]
+build = "1.60.1.70425"
+notes = "October 15 beta update: racials reworked, class changes for every class"
+
+# ======================================================================
+# races
+# ======================================================================
+
+# ------------------------------------------------------------------ racials
+# Oct 15 notes ("Racial abilities have been updated") and the 70425 data.
+# Not simulated: movement speed (Plainsrunning, Quickness stacking), Walk on
+# Air, Cultivation, Find Treasure, Read Leyline, Skysight.
+
+[races.human]
+source = "forever-70425"
+passives = [
+  # Sword Specialization replaced with Ruthless: +2% crit with all spells and
+  # attacks, any weapon (70425 data: spell 20597)
+  { name = "Ruthless", mods = [{ stat = "crit", add = 2 }] },
+  { name = "The Human Spirit", mods = [{ stat = "spi_pct", add = 0.05 }] },
+]
+
+[races.dwarf]
+source = "forever-70425"
+passives = [
+  # Mace Specialization replaced with Earth Fury: critical strike bonus to
+  # damage and healing +2% (70425 data: spell 1259719, auras 163 and 50)
+  { name = "Earth Fury", mods = [{ stat = "crit_bonus_melee", add = 0.02 }, { stat = "crit_bonus_spell", add = 0.02 }, { stat = "crit_bonus_heal", add = 0.02 }] },
+  { name = "Big Game Hunter", mods = [{ stat = "dmg_done", mul = "target.beast ? 1.05 : 1" }] },
+]
+
+[races.gnome]
+source = "forever-70425"
+# Eureka! is now an 8 sec buff with no charges, same cost and damage effect
+# (70425 data: spell 1259812 and its class versions). The notes add Power
+# Word: Shield, which the sim's absorb doesn't read yet.
+[races.gnome.spells.eureka]
+effects = [{ type = "aura", aura = "eureka_buff" }]
+[races.gnome.auras.eureka]
+__delete = true
+[races.gnome.auras.eureka_buff]
+name = "Eureka!"
+duration = 8
+spell_mods = [{ prop = "cost", mul = 0.9 }, { prop = "damage", mul = 1.1 }, { prop = "heal", mul = 1.1 }]
+
+[races.high_order]
+source = "forever-70425 (stat offsets assumed)"
+passives = [
+  # Wind Blessed haste 3% (was 1%) (70425 data: spell 1259710)
+  { name = "Wind Blessed", mods = [{ stat = "haste", mul = 1.03 }] },
+  { name = "Elemental Insight", mods = [{ stat = "dmg_done", mul = "target.elemental ? 1.05 : 1" }] },
+]
+
+[races.windshaper]
+source = "forever-70425 (stat offsets assumed)"
+passives = [
+  { name = "Wind Blessed", mods = [{ stat = "haste", mul = 1.03 }] },
+  { name = "Elemental Insight", mods = [{ stat = "dmg_done", mul = "target.elemental ? 1.05 : 1" }] },
+]
+
+[races.orc]
+source = "forever-70425"
+passives = [
+  # Axe Specialization replaced with Savage: +1% crit with all spells and
+  # abilities, any weapon (70425 data: spell 20574)
+  { name = "Savage", mods = [{ stat = "crit", add = 1 }] },
+  { name = "Hardiness", mods = [{ stat = "stun_duration", mul = 0.8 }] },
+]
+[races.orc.spells.blood_fury]
+cooldown = 180                    # was 120 (Oct 15 notes; spell 20572)
+[races.orc.spells.shatter_curse]
+text = "Removes Curses and Banes; 5% less magic damage taken for 8 sec."
+[races.orc.auras.shatter_curse]
+mods = [{ stat = "spell_dmg_taken", mul = 0.95 }]   # was 15% (Oct 15 notes; spell 1299026)
+
+[races.undead]
+source = "forever-70425"
+[[races.undead.passives]]
+name = "Touch of the Grave"
+text = "Your spells and attacks have a 20% (warriors, paladins, rogues) or 30% (priests, mages, warlocks) chance to drain health from the target, up to 5% of your maximum health. 25 sec internal cooldown."
+# Oct 15 notes: 30% for casters, 20% for paladins, rogues and warriors, a 25
+# sec internal cooldown (70425 data: spells 1260189 and 1260201), and it no
+# longer scales with Shadow damage increases on the target or the caster.
+procs = [
+  { on = "damage_dealt", if = "!event.periodic", icd = 25, chance = "(class.mage || class.priest || class.warlock) ? opt.tog_chance_caster : opt.tog_chance_melee", effects = [{ type = "damage", school = "shadow", hit = "auto", amount = "opt.tog_drain_pct / 100 * max_hp", can_crit = false, lifesteal = 1, no_proc = true, fixed = true, tag = "Touch of the Grave" }] },
+]
+
+[options.tog_chance_melee]
+default = 0.2
+help = "Warriors, paladins and rogues."
+cite = "Oct 15 beta notes and Forever spell data (spell 1260189: 20%, 25 sec internal cooldown)"
+[options.tog_chance_caster]
+default = 0.3
+help = "Priests, mages and warlocks."
+cite = "Oct 15 beta notes and Forever spell data (spell 1260201: 30%, 25 sec internal cooldown)"
+
+[races.tauren]
+source = "forever-70425"
+passives = [
+  # Endurance: critical strike bonus to damage and healing +2% (was 1% hit)
+  # (Oct 15 notes; 70425 data: spell 20550)
+  { name = "Endurance", mods = [{ stat = "max_hp_mult", mul = 1.05 }, { stat = "crit_bonus_melee", add = 0.02 }, { stat = "crit_bonus_spell", add = 0.02 }, { stat = "crit_bonus_heal", add = 0.02 }] },
+]
+[races.tauren.spells.war_stomp]
+cooldown = 90                     # was 120 (Oct 15 notes; spell 20549)
+
+[races.troll]
+source = "forever-70425"
+passives = [
+  # Regeneration 20% (was 10%), in and out of combat (Oct 15 notes; spell
+  # 20555). The sim reads only the in-combat part.
+  { name = "Regeneration", mods = [{ stat = "combat_hp_regen", add = 0.20 }] },
+  { name = "Beast Slaying", mods = [{ stat = "dmg_done", mul = "target.beast ? 1.05 : 1" }] },
+]
+
+# ======================================================================
+# paladin, warrior, rogue
+# ======================================================================
+
+# Paladin, warrior and rogue changes in client build 1.60.1.70425 (Oct 15
+# beta patch). Sources: Blizzard's notes of Oct 15 ("Oct 15 notes") and the
+# 70338 -> 70425 spell table diff ("70425 data: spell N").
+
+# ============================================================== paladin
+
+# ---------------------------------------------------------------- talents
+
+[classes.paladin.talents.champion_of_the_light]
+# Oct 15 notes and 70425 data (trait values of 1311084): 10/20/30% of
+# Intellect as spell damage (was 20/40/60%).
+text = "Spell damage +30% of Intellect."
+mods = [{ stat = "sp", add = "0.1 * rank * int" }]
+
+[classes.paladin.talents.shield_specialization]
+# Oct 15 notes and 70425 data: spell 1310925 effect 0, 4% of maximum mana
+# (was 6%), still once per 3 sec.
+text = "Shield block value +30%; blocks restore 4% of maximum mana (once per 3 sec)."
+procs = [{ on = "block", chance = "rank == 3 ? 1 : 0.33 * rank", icd = 3, effects = [{ type = "resource", res = "mana", amount = "0.04 * max_mana" }] }]
+
+[classes.paladin.talents.reckoning]
+# Oct 15 notes: each trigger stores a charge (up to 4) and your next auto
+# attack swing releases all of them as extra attacks. 70425 data: 20177
+# effect 0 is now a dummy (it used to cast 20178, an instant extra attack,
+# which is gone); the stored charges are spell 1326084 (4 stacks, used up by
+# your next melee auto attack). The 1.5 sec proc cooldown is unchanged
+# (the tooltip now names it for blocks only; kept on both triggers, as the
+# data has one proc cooldown for the talent's aura).
+text = "Blocks (8% per rank) and non-periodic crits against you (20% per rank) store an extra attack, up to 4, released on your next auto attack swing."
+procs = [
+  { on = "block", chance = "0.08 * rank", icd = 1.5, effects = [{ type = "aura", aura = "reckoning" }] },
+  { on = "struck_crit", if = "!event.periodic", chance = "0.2 * rank", icd = 1.5, effects = [{ type = "aura", aura = "reckoning" }] },
+]
+
+# ------------------------------------------------------------------ auras
+
+# New (70425 data: spell 1326084). Extra attacks don't reset the swing timer.
+[classes.paladin.auras.reckoning]
+name = "Reckoning"
+max_stacks = 4
+text = "Stored extra attacks, released on the next auto attack swing."
+procs = [{ on = "melee_swing", if = "event.mh && !event.extra", effects = [{ type = "extra_attack", hand = "mh", count = "aura.reckoning.stacks" }, { type = "remove_self" }] }]
+
+[classes.paladin.auras.righteous_fury]
+# Oct 15 notes and 70425 data: spell 25780 effect 0, +90% threat from Holy
+# damage (was 60%). Threat decides nothing for a paladin in any scenario yet.
+spell_mods = [{ school = "holy", prop = "threat", mul = 1.9 }]
+
+[classes.paladin.auras.consecration]
+# Oct 15 notes and 70425 data: spells 1280345 to 1280349 effect 1, 0.042 of
+# spell power per tick (was 0.095).
+tick = { interval = 1, effects = [{ type = "damage", school = "holy", periodic = true, tag = "Consecration", amount = "(r.dot + r.bonus) / 8", coef = 0.042 }] }
+
+# ------------------------------------------------------------------ spells
+
+[classes.paladin.spells.seal_of_righteousness]
+# Oct 15 notes: Seal of Righteousness gained "almost twice as much benefit
+# from Spell Damage than intended". 70425 data: the per-hit damage spells
+# (25713, 25735 to 25742) lost their 0.1 coefficient; the seal's own 0.1
+# (20154 ...) stays. hit_coef goes from 0.1 to 0.
+ranks = [
+  { level = 1, id = 20154, sor = 108, sor_per_level = 18, max_level = 7, coef = 0.1, hit_coef = 0, mana = 20 },
+  { level = 10, id = 20287, sor = 216, sor_per_level = 17, max_level = 16, coef = 0.1, hit_coef = 0, mana = 40 },
+  { level = 18, id = 20288, sor = 352, sor_per_level = 23, max_level = 24, coef = 0.1, hit_coef = 0, mana = 60 },
+  { level = 26, id = 20289, sor = 541, sor_per_level = 31, max_level = 32, coef = 0.1, hit_coef = 0, mana = 90 },
+  { level = 34, id = 20290, sor = 785, sor_per_level = 37, max_level = 40, coef = 0.1, hit_coef = 0, mana = 120 },
+  { level = 42, id = 20291, sor = 1082, sor_per_level = 41, max_level = 48, coef = 0.1, hit_coef = 0, mana = 140 },
+  { level = 50, id = 20292, sor = 1407, sor_per_level = 47, max_level = 56, coef = 0.1, hit_coef = 0, mana = 170 },
+  { level = 58, id = 20293, sor = 1786, sor_per_level = 47, max_level = 64, hit_coef = 0, mana = 200 },
+]
+
+[classes.paladin.spells.seal_of_fury]
+# Oct 15 notes and 70425 data: rank 3 (20163) is learned at 26 (was 25).
+# Its judgement (Judgement of Fury rank 3, 20183) still lists level 25.
+ranks = [
+  { level = 10, id = 1311649, dmg = 6, mana = 40 },
+  { level = 18, id = 1311656, dmg = 9, mana = 60 },
+  { level = 26, id = 20163, dmg = 14, mana = 90 },
+  { level = 34, id = 20419, dmg = 19, mana = 120 },
+  { level = 42, id = 20421, dmg = 25, mana = 140 },
+  { level = 50, id = 20422, dmg = 32, mana = 170 },
+  { level = 58, id = 20423, dmg = 35, mana = 200 },
+]
+
+[classes.paladin.spells.judgement_of_righteousness]
+# Oct 15 notes and 70425 data: 20187, 20280 to 20286 effect 0, coefficient
+# 0.429 (was 0.5), the instant-cast value.
+ranks = [
+  { level = 1, id = 20187, lo = 14, lo_per_level = 1.731, hi = 16, hi_per_level = 1.869, max_level = 7, coef = 0.429, seal_mana = 20 },
+  { level = 10, id = 20280, lo = 25, lo_per_level = 1.827, hi = 27, hi_per_level = 1.973, max_level = 16, coef = 0.429, seal_mana = 40 },
+  { level = 18, id = 20281, lo = 39, lo_per_level = 2.283, hi = 43, hi_per_level = 2.517, max_level = 24, coef = 0.429, seal_mana = 60 },
+  { level = 26, id = 20282, lo = 57, lo_per_level = 2.66, hi = 63, hi_per_level = 2.94, max_level = 32, coef = 0.429, seal_mana = 90 },
+  { level = 34, id = 20283, lo = 78, lo_per_level = 2.949, hi = 86, hi_per_level = 3.251, max_level = 40, coef = 0.429, seal_mana = 120 },
+  { level = 42, id = 20284, lo = 102, lo_per_level = 3.622, hi = 112, hi_per_level = 3.978, max_level = 48, coef = 0.429, seal_mana = 140 },
+  { level = 50, id = 20285, lo = 131, lo_per_level = 3.92, hi = 143, hi_per_level = 4.28, max_level = 56, coef = 0.429, seal_mana = 170 },
+  { level = 58, id = 20286, lo = 162, lo_per_level = 3.907, hi = 178, hi_per_level = 4.293, max_level = 64, coef = 0.429, seal_mana = 200 },
+]
+
+[classes.paladin.spells.judgement_of_fury]
+# Oct 15 notes and 70425 data: 1311650, 1311655, 20183, 20411 to 20414
+# effect 0, coefficient 0.429 (was 0.45).
+ranks = [
+  { level = 10, id = 1311650, lo = 22, lo_per_level = 1.624, hi = 24, hi_per_level = 1.796, max_level = 16, coef = 0.429, seal_mana = 40 },
+  { level = 18, id = 1311655, lo = 35, lo_per_level = 2.052, hi = 39, hi_per_level = 2.268, max_level = 24, coef = 0.429, seal_mana = 60 },
+  { level = 25, id = 20183, lo = 51, lo_per_level = 2.394, hi = 57, hi_per_level = 2.646, max_level = 31, coef = 0.429, seal_mana = 90 },
+  { level = 34, id = 20411, lo = 70, lo_per_level = 2.654, hi = 78, hi_per_level = 2.926, max_level = 40, coef = 0.429, seal_mana = 120 },
+  { level = 42, id = 20412, lo = 91, lo_per_level = 3.253, hi = 101, hi_per_level = 3.587, max_level = 48, coef = 0.429, seal_mana = 140 },
+  { level = 50, id = 20413, lo = 118, lo_per_level = 3.528, hi = 128, hi_per_level = 3.852, max_level = 56, coef = 0.429, seal_mana = 170 },
+  { level = 58, id = 20414, lo = 146, lo_per_level = 3.528, hi = 160, hi_per_level = 3.852, max_level = 64, coef = 0.429, seal_mana = 200 },
+]
+
+# Already as the notes describe, nothing to change:
+# - Sanctified Judgement's mana no longer causes threat: the sim's resource
+#   effects never cause threat.
+# - Infusion of Light no longer gives Holy Shock +50% damage: the sim never
+#   modelled that bug; it only shortens Holy Light.
+# Not modelled (no party, no Power Word: Shield on a paladin): Salvation and
+# Mass Salvation (renamed blessings, 1038 and 25895), Revoke (1325499), Seal
+# of Fury vs Power Word: Shield, Light's Vigil focus macros, Sense Undead.
+
+# ============================================================== warrior
+
+[classes.warrior.talents.weaponmaster]
+# Oct 15 notes: Shield Bash and Shield Slam no longer trigger the sword
+# extra attack.
+procs = [{ on = "melee_landed", if = "!event.extra && !spell.shield_bash && !spell.shield_slam && ((event.mh && mh.sword) || (event.oh && oh.sword))", chance = "0.01 * rank", effects = [{ type = "extra_attack", hand = "mh" }] }]
+
+[classes.warrior.talents.improved_berserker_rage]
+# Oct 15 notes: now removes movement impairing effects as its tooltip says
+# (20500: 50/100% chance). Roots and slows change nothing in the sim yet.
+text = "Berserker Rage generates 10 Rage and frees you from roots and slows (roots and slows change nothing in the sim)."
+
+[classes.warrior.talents.lingering_rage]
+# Oct 15 notes: no longer stops health regeneration after combat. 70425 data:
+# spell 1323965 changed from aura 94 (which stopped regeneration) to
+# mod_power_regen_percent -100% on Rage (misc 1) for 2/4/6/8/10 sec after
+# combat, which pauses Rage decay. The sim keeps all Rage between pulls.
+text = "Rage starts decaying 2 sec later per rank after combat (not simulated: the sim keeps all Rage between pulls)."
+
+[classes.warrior.spells.berserker_rage]
+effects = [
+  { type = "dispel", mechanics = ["fear", "incap"] },
+  { type = "aura", aura = "berserker_rage" },
+  { type = "resource", res = "rage", amount = "5 * t.improved_berserker_rage" },
+  { type = "chance", p = "0.5 * t.improved_berserker_rage", then = [{ type = "dispel", mechanics = ["root", "slow"] }] },
+  { type = "emit", event = "gore_trigger" },
+]
+
+# Oct 15 notes: Slam is no longer subject to spell pushback. The engine has
+# no per-spell pushback flag, so this is a class passive; Slam is the only
+# warrior spell with a cast time. The first three passives are unchanged.
+[[classes.warrior.passives]]
+name = "Victory"
+procs = [{ on = "kill", effects = [{ type = "aura", aura = "victory_rush_ready" }] }]
+[[classes.warrior.passives]]
+name = "Overpower window"
+procs = [{ on = "attack_dodged", effects = [{ type = "aura", aura = "overpower_ready" }] }]
+[[classes.warrior.passives]]
+name = "Revenge window"
+procs = [
+  { on = "dodge", effects = [{ type = "aura", aura = "revenge_ready" }] },
+  { on = "parry", effects = [{ type = "aura", aura = "revenge_ready" }] },
+  { on = "block", effects = [{ type = "aura", aura = "revenge_ready" }] },
+]
+[[classes.warrior.passives]]
+name = "Slam ignores pushback"
+mods = [{ stat = "pushback_resist", add = 1 }]
+
+# Not modelled: Battle Shout is raid wide (5242 ...: targets 20 -> 56; the sim
+# has no party). Overpower against much lower level enemies: the sim's
+# Overpower window never depended on level. Savior's Sacrifice (18826, +300
+# armor, 10 -> 20 sec) is not cast by any warrior spell or talent.
+
+# ============================================================== rogue
+# Nothing to change. Already as the notes describe: poisons only trigger on
+# your own hits; Cold Blood is used up by the Mutilate cast whether or not it
+# crits. Not modelled: Sap (no weapon procs), spec swaps keeping Energy.
+# Relentless Strikes (14179) now also covers Death Mark (1316709, 1325756 to
+# 1325758: family flag 4 in word 2), a finisher that no trainer or talent
+# teaches in 70425 and whose stored-damage numbers are not in the local data.
+# The new Stealth (1326175) is a dummy aura with no cost or effect.
+
+# ======================================================================
+# druid, hunter
+# ======================================================================
+
+# Druid and hunter changes in WoW: Forever build 1.60.1.70425 (Oct 15 beta
+# patch), on top of data/base (build 70338). Sources: the Oct 15 notes and
+# the 70425 spell and trait tables (data/reference/spellbook.json).
+
+# ================================================================== druid
+
+[classes.druid.spells.shred]
+# Oct 15 notes: Shred (Rank 1) is now learned at level 20 (was 22).
+# 70425 data: spell 5221 level 22 -> 20, effect 0 (flat damage) 24 -> 22.
+ranks = [
+  { level = 20, id = 5221, bonus = 22 },
+  { level = 30, id = 6800, bonus = 32 },
+  { level = 38, id = 8992, bonus = 44 },
+  { level = 46, id = 9829, bonus = 64 },
+  { level = 54, id = 9830, bonus = 80 },
+]
+
+[classes.druid.auras.bear_form]
+# Oct 15 notes: Furor now keeps the Energy you had when you were last in Cat
+# Form even through Bear and Dire Bear Form; those forms still stop Energy
+# regeneration. 70425 data: Bear Form 5487 and Dire Bear Form 9634 gain
+# effect 4, Energy regeneration -100% (Furor's energy_active already leaves
+# Bear Form out). So Bear Form no longer empties your Energy.
+on_apply = [{ type = "resource", res = "rage", amount = 0, set = true }, { type = "chance", p = "0.2 * t.furor", then = [{ type = "resource", res = "rage", amount = 10 }] }]
+
+[classes.druid.talents.furor]
+text = "Keep your Energy when you leave Cat Form (100% at 5), even through Bear Form, and regenerate it in caster form (not in Bear Form); Bear Form gives 10 Rage (100% at 5)."
+
+[classes.druid.auras.moonkin_form]
+# Oct 15 notes: Moonkin Aura now only increases spell crit, and is raid wide.
+# 70425 data: spell 24907 effect 0 is now mod_spell_crit_chance +3 (was aura
+# 290, every kind of crit) and an area_aura_raid (65).
+mods = [{ stat = "armor_mult", mul = 4.6 }, { stat = "spell_crit", add = 3 }]
+
+[classes.druid.talents.moonkin_form]
+text = "Moonkin Form: item armor +360%, +3% spell crit (raid aura), Omen of Clarity procs twice as often (half the internal cooldown)."
+
+[classes.druid.talents.leader_of_the_pack]
+# Oct 15 notes: Leader of the Pack now only increases melee and ranged crit,
+# and is raid wide. 70425 data: spell 24932 effect 0 is now mod_crit_percent
+# (was aura 290, every kind of crit) and an area_aura_raid (65). The sim
+# already gave melee crit only; ranged crit is added for completeness.
+text = "+3% melee and ranged crit in Cat and Bear Form (party and raid aura)."
+mods = [
+  { stat = "melee_crit", add = "(form.cat_form || form.bear_form) ? 3 : 0" },
+  { stat = "ranged_crit", add = "(form.cat_form || form.bear_form) ? 3 : 0" },
+]
+
+[classes.druid.auras.faerie_fire]
+# Oct 15 notes: "Fixed an issue allowing multiple Faerie Fire debuffs to be
+# active on a target." One Faerie Fire per target, whoever cast it.
+# Also in the notes: Faerie Fire now generates threat in Bear and Dire Bear
+# Form. 70425 data: spells 770, 778, 9749, 9907 gain effect 3, a threat
+# effect (type 63) with no amount, so the server sets it. Not modeled: no
+# number to use, and no scenario reads a druid's threat.
+per_source = false
+
+[[classes.druid.passives]]
+# Oct 15 notes: Faerie Fire in Cat, Bear and Dire Bear Form costs nothing,
+# so it can no longer trigger Omen of Clarity. Same as data/base otherwise.
+name = "Omen of Clarity"
+procs = [
+  { on = "melee_landed", if = "opt.druid_omen > 0 && !event.extra && !aura.omen_cooldown.up", ppm = "opt.omen_ppm * (form.moonkin_form ? 2 : 1)", effects = [{ type = "aura", aura = "clearcasting" }, { type = "aura", aura = "omen_cooldown" }] },
+  { on = "cast", if = "opt.druid_omen > 0 && !aura.omen_cooldown.up && (spell.wrath || spell.moonfire || spell.starfire || spell.insect_swarm || spell.entangling_roots || spell.natures_grasp || spell.thorns || spell.mark_of_the_wild || (spell.faerie_fire && !(form.cat_form || form.bear_form)) || spell.healing_touch || spell.rejuvenation || spell.regrowth || spell.swiftmend || spell.wild_growth)", chance = "opt.omen_spell_chance * (form.moonkin_form ? 2 : 1)", effects = [{ type = "aura", aura = "clearcasting" }, { type = "aura", aura = "omen_cooldown" }] },
+]
+
+# ================================================================== hunter
+[classes.hunter.pets.cat]
+# Oct 15 notes: pets now inherit the higher of the hunter's melee and ranged
+# crit (they only ever took melee crit before). Like data/base, no base crit
+# of the pet's own on top (a judgment call). In the sim a hunter's melee and
+# ranged crit are always equal, so this changes no numbers today.
+crit = "max(melee_crit, ranged_crit) + 2 * t.ferocity"
+
+
+[classes.hunter.spells.multi_shot]
+# 70425 data: spell 2643 cast 0.5 sec -> instant. Not in the Oct 15 notes.
+cast_time = 0
+
+[classes.hunter.talents.efficiency]
+# Oct 15 notes: Sniper Shot now benefits from "a few Marksmanship talents".
+# 70425 data: Efficiency (19416) and Mortal Shots (19485) add Sniper Shot's
+# family flag (word 3, 8388608) to their spell lists. The other Marksmanship
+# talents either already covered it (Hawk Eye's range, Rapid Killing's buff
+# 415407), are global (Lethal Attacks, Ranged Weapon Specialization), or
+# still leave it out (Barrage, Improved Stings).
+spell_mods = [{ spells = ["arcane_shot", "aimed_shot", "multi_shot", "serpent_sting", "scatter_shot", "summon_hawk", "sniper_shot", "raptor_strike", "mongoose_bite", "counterattack", "wing_clip", "lacerate"], prop = "cost", mul = "1 - 0.03 * rank" }]
+
+[classes.hunter.talents.mortal_shots]
+# Oct 15 notes / 70425 data: Mortal Shots now covers Sniper Shot too (see
+# Efficiency above), so the 70338 exception is removed.
+text = "Ranged crit damage bonus +30%, Auto Shot and Sniper Shot included (the sim gives it to melee crits too)."
+spell_mods = []
+
+[classes.hunter.talents.improved_mend_pet]
+# Oct 15 notes: "Fixed an issue causing the Improved Mend Pet talent to
+# increase the Mana cost of Mend Pet instead of decrease." 70425 trait data:
+# effect 1 (Mend Pet cost) +10/+20% -> -10/-20%.
+text = "Mend Pet costs 20% less, and each heal has a 50% chance to cleanse a curse, disease, magic or poison effect from your pet (the cleanse is not simulated)."
+spell_mods = [{ spells = ["mend_pet"], prop = "cost", mul = "1 - 0.1 * rank" }]
+
+[classes.hunter.talents.resourcefulness]
+# Oct 15 notes: Resourcefulness now reduces Strider Kick's mana cost, and now
+# activates on critical strikes, but only on melee and ranged ability crits
+# (not auto attacks, not traps).
+# 70425 data: spell 440529 effect 0 adds Strider Kick (word 2, 2097152) to
+# its list; trait data for effect 1 (the proc, which triggers #1242688)
+# -20/-40 -> 50/100, the chance per crit.
+# Counterattack's damage is a spell-style hit here (hit = "auto"), so its
+# crits come as spell_crit events.
+text = "Melee abilities and Strider Kick cost 60% less mana; melee and ranged ability crits (not Auto Shot or auto attacks) have a 50% chance a point to give 50% mana regeneration while casting for 30 sec."
+spell_mods = [{ spells = ["raptor_strike", "mongoose_bite", "counterattack", "wing_clip", "strider_kick"], prop = "cost", mul = "1 - 0.3 * rank" }]
+procs = [
+  { on = "melee_crit", if = "event.special", chance = "0.5 * rank", effects = [{ type = "aura", aura = "resourcefulness" }] },
+  { on = "ranged_landed", if = "event.crit && event.special", chance = "0.5 * rank", effects = [{ type = "aura", aura = "resourcefulness" }] },
+  { on = "spell_crit", if = "spell.counterattack", chance = "0.5 * rank", effects = [{ type = "aura", aura = "resourcefulness" }] },
+]
+
+[classes.hunter.talents.trueshot_aura]
+# Oct 15 notes: Trueshot Aura is now raid wide (70425 data: spells 1299346,
+# 1299348, 19506, 20905, 20906 effect 0 area_aura_party -> area_aura_raid).
+text = "Trueshot Aura: you and your party or raid gain ranged Attack Power (+30 at level 25, rising with rank to +75)."
+
+# Summon Hawk. Oct 15 notes: the hawk now spawns at the target you cast it on
+# (position: not simulated) and sticks to that target. The hawks are now a
+# debuff on the target they were summoned on, so they stop when it dies and
+# don't follow you to the next one (before, they hit whatever you targeted).
+# The notes don't say what a hawk does once its target dies; stopping is an
+# assumption. The sim's hunter only changes targets when one dies, so that
+# is the only case where sticking matters here.
+[classes.hunter.talents.summon_hawk]
+text = "Summon a hawk that dive-bombs the target for (32 + 5% ranged AP), 18 sec, up to 2. Shares a cooldown with Arcane Shot. The hawk stays on the target it was summoned on."
+
+[classes.hunter.spells.summon_hawk]
+target = "enemy"
+effects = [{ type = "aura", aura = "hawk", target = "target" }]
+
+[classes.hunter.auras.hawk]
+debuff = true
+text = "Each hawk dive-bombs the target it was summoned on every opt.hawk_dive_interval sec (not on the tooltip; assumption)."
+tick = { interval = "opt.hawk_dive_interval", effects = [{ type = "damage", school = "physical", hit = "auto", tag = "Hawk", amount = "(r.base + 0.05 * rap) * stacks", mult = "1 + 0.03 * t.unleashed_fury", crit = "2 * t.ferocity" }] }
+
+[classes.hunter.rotations.ranged_pet]
+# Summon Hawk counts the hawks on the current target (they stick to it now),
+# and only goes on bosses and players: a hawk summoned on a regular mob dies
+# with it (12 sec or so) and costs a global cooldown and mana each time. In
+# the sim, summoning on regular mobs loses kills per hour against not doing
+# it (BM Ranged, solo_1: about 6% at level 30, 2% at level 60).
+actions = [
+  { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
+  { cast = "deterrence", if = "hp_pct < 0.35" },
+  { cast = "intimidation", target = "enemy", if = "target.is_player" },
+  { cast = "bestial_wrath" },
+  { cast = "rapid_fire" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "scatter_shot", if = "target.is_player" },
+  { cast = "serpent_sting", if = "target.hp_pct > 0.3" },
+  { cast = "summon_hawk", if = "target.aura.hawk.stacks < 2 && (target.boss || target.is_player)" },
+  { cast = "sniper_shot" },
+  { cast = "multi_shot", if = "enemies >= 2 || !known.aimed_shot" },
+  { cast = "aimed_shot" },
+  { cast = "arcane_shot", if = "mana_pct > 0.3" },
+  { cast = "aspect_of_the_hawk" },
+]
+
+[classes.hunter.rotations.survival_melee]
+# Summon Hawk counts the hawks on the current target (they stick to it now),
+# and only goes on bosses and players: a hawk summoned on a regular mob dies
+# with it (12 sec or so) and costs a global cooldown and mana each time. In
+# the sim, summoning on regular mobs loses kills per hour against not doing
+# it (BM Ranged, solo_1: about 6% at level 30, 2% at level 60).
+actions = [
+  { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
+  { cast = "deterrence", if = "hp_pct < 0.35" },
+  { cast = "intimidation", target = "enemy", if = "target.is_player" },
+  { cast = "bestial_wrath" },
+  { cast = "rapid_fire" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "counterattack" },
+  { cast = "mongoose_bite" },
+  { cast = "raptor_strike" },
+  { cast = "strider_kick" },
+  { cast = "wing_clip" },
+  { cast = "lacerate", if = "target.hp_pct > 0.3" },
+  { cast = "serpent_sting", if = "target.hp_pct > 0.3" },
+  { cast = "summon_hawk", if = "target.aura.hawk.stacks < 2 && (target.boss || target.is_player)" },
+  { cast = "aspect_of_the_monkey" },
+]
+
+# ======================================================================
+# mage
+# ======================================================================
+
+# Mage: WoW Forever beta build 1.60.1.70425 (Oct 15 patch notes, post 6).
+# Sources: the notes' Mage section, and every mage number that moved in the
+# game's tables from 70338 to 70425 (data/reference/spellbook.json).
+
+# ======================================================================
+# Arcane talents
+# ======================================================================
+
+[classes.mage.talents.missile_barrage]
+# 70425 data: trait Missile Barrage moved to the first row (points 15 -> 0)
+# and has 2 ranks (was 1), effect 0 = 20/40 per rank. Oct 15 notes: Arcane
+# Missiles hits can now trigger it too. Tooltip (spell 400588): Arcane Blast
+# $m1% (20/40), each Arcane Missiles hit $m1/4% (5/10), Arcane Wrath,
+# Fireball, Frostbolt and Frostfire Bolt $m1/2% (10/20). The proc spell's
+# own chance is now 100% (was 50%), so the tooltip's numbers are the chances.
+# Frost Blast is not in the tooltip, so it does not trigger it here.
+points = 0
+ranks = 2
+text = "Arcane Blast (20/40%), each Arcane Missiles hit (5/10%), and Arcane Wrath, Fireball, Frostbolt and Frostfire Bolt (10/20%) make the next Arcane Missiles twice as fast and free."
+procs = [
+  { on = "cast:arcane_blast", chance = "0.2 * rank", effects = [{ type = "aura", aura = "missile_barrage" }] },
+  { on = "spell_landed", if = "spell.arcane_missiles", chance = "0.05 * rank", effects = [{ type = "aura", aura = "missile_barrage" }] },
+  { on = "cast:arcane_wrath", chance = "0.1 * rank", effects = [{ type = "aura", aura = "missile_barrage" }] },
+  { on = "cast:fireball", chance = "0.1 * rank", effects = [{ type = "aura", aura = "missile_barrage" }] },
+  { on = "cast:frostbolt", chance = "0.1 * rank", effects = [{ type = "aura", aura = "missile_barrage" }] },
+  { on = "cast:frostfire_bolt", chance = "0.1 * rank", effects = [{ type = "aura", aura = "missile_barrage" }] },
+]
+
+[classes.mage.talents.arcane_blast]
+# Oct 15 notes: Arcane Blast redesigned (see the spell and its buff below)
+text = "Arcane Blast: 1.5 sec Arcane nuke. Each cast adds 15% of your Intellect as spell damage and makes Arcane Blast cost 175% more, up to 4 times, for 15 sec from the first cast."
+
+[classes.mage.talents.arcane_wrath]
+# Oct 15 notes: new "16-point gold medal talent". 70425 data: trait node
+# Arcane Wrath (spell 1326079), 1 rank, no points needed in the tree, linked
+# from Arcane Blast (the spellbook lists that edge under `linked`). The sim
+# requires Arcane Blast; the notes' 16 points is an open question.
+icon = "spell_arcane_arcane04"
+tree = "Arcane"
+points = 0
+ranks = 1
+requires = "arcane_blast"
+text = "Arcane Wrath: 3.5 sec Arcane nuke, 6 sec cooldown, with extra spell damage equal to 5% of your maximum mana."
+
+[classes.mage.talents.arcane_concentration]
+# Oct 15 notes: Clearcasting no longer rolls for every target a spell hits.
+# One roll per cast: the first target's hit rolls, and a 9 ms marker
+# (clearcasting_roll) set by the area spells stops the other targets of the
+# same cast (or Blizzard tick) from rolling.
+text = "2% per rank chance on damage spell hits to make the next damage spell free (Clearcasting), at most once a second and one roll per cast however many targets it hits."
+procs = [
+  { on = "spell_landed", if = "!event.periodic && !aura.clearcasting_roll.up", chance = "0.02 * rank", icd = 1, effects = [{ type = "aura", aura = "clearcasting" }] },
+  { on = "spell_landed", if = "!event.periodic && (spell.arcane_explosion || spell.cone_of_cold || spell.frost_nova || spell.blast_wave || spell.flamestrike || spell.blizzard)", effects = [{ type = "aura", aura = "clearcasting_roll" }] },
+]
+
+[classes.mage.talents.improved_channeling]
+# 70425 data: spell 11237 effect 1 now also lists Arcane Wrath
+text = "20% per rank chance that damage does not push back Arcane Missiles, 14% per rank for Arcane Blast and Arcane Wrath (pushback resistance for single spells is not simulated)."
+
+# ======================================================================
+# Fire talents
+# ======================================================================
+
+[classes.mage.talents.wake_of_fire]
+# Oct 15 notes: reverted to Improved Fire Blast (renamed below)
+__delete = true
+
+[classes.mage.talents.improved_fire_blast]
+# Oct 15 notes: Wake of Fire reverted to Improved Fire Blast; no bonus after
+# a kill any more, and Fire Blast range +8/15 yd. 70425 data: trait Improved
+# Fire Blast (spell 11078), effect 0 = -1000/-2000 ms cooldown, effect 1 =
+# +8/15 yd range (not simulated).
+icon = "spell_fire_fireball"
+tree = "Fire"
+points = 0
+ranks = 2
+text = "Fire Blast cooldown -1/2 sec (its range +8/15 yd is not simulated)."
+spell_mods = [{ spells = ["fire_blast"], prop = "cooldown", add = "-rank" }]
+
+[classes.mage.talents.impact]
+# Fire Power (below) counts the mage's own Impact stun, so the stun is the
+# mage's `impact` aura (same mechanic and length as the shared stun)
+procs = [{ on = "spell_landed", if = "!event.periodic && (spell.fireball || spell.fire_blast || spell.scorch || spell.pyroblast || spell.blast_wave || spell.frostfire_bolt)", chance = "rank == 1 ? 0.03 : rank == 2 ? 0.07 : 0.1", effects = [{ type = "aura", aura = "impact", target = "target" }] }]
+
+[classes.mage.talents.heating_up]
+# Oct 15 notes: Heating Up always gains an extra stack each time Fire Blast
+# is cast, so a Fire Blast crit gives 2. The 70425 tooltip (spell 400624)
+# says "every time it deals damage", so it counts on a landed Fire Blast.
+text = "Non-periodic crits from Fireball, Frostfire Bolt, Fire Blast and Scorch, and every Fire Blast that lands, cut the next Pyroblast's cast by 25% per stack (3 stacks, 20 sec). A Fire Blast crit gives 2 stacks."
+procs = [
+  { on = "spell_landed", if = "!event.periodic && spell.fire_blast", effects = [{ type = "aura", aura = "heating_up" }] },
+  { on = "spell_crit", if = "!event.periodic && (spell.fireball || spell.frostfire_bolt || spell.fire_blast || spell.scorch)", effects = [{ type = "aura", aura = "heating_up" }] },
+]
+
+[classes.mage.talents.critical_mass]
+# Oct 15 notes and 70425 data: 5 ranks (was 3), 2/4/6/8/10%
+ranks = 5
+text = "Fire spell crit +10%."
+
+[classes.mage.talents.fire_power]
+# Oct 15 notes: redesigned, 3 ranks (70425 data: was 5, effect 0 = 1/2/3).
+# Fire spells deal 1/2/3% more per Fire effect of the mage's on the target,
+# at most 4 effects (12%). The developers' note names the effects that count:
+# Ignite, Improved Scorch (Fire Vulnerability), Fireball and Pyroblast (their
+# burns) and Impact (its stun). Frostfire Bolt's burn does not count, but
+# Frostfire Bolt (Fire in the sim) gets the bonus. The tooltip's cap is
+# ${$s1*4}%, so 4 effects.
+ranks = 3
+text = "Fire spells deal 1/2/3% more damage per Fire effect of yours on the target (Ignite, Fire Vulnerability, Fireball's and Pyroblast's burns, Impact's stun), up to 4 effects."
+mods = []
+spell_mods = [{ school = "fire", prop = "damage", mul = "1 + 0.01 * rank * min(4, (target.aura.ignite.up > 0) + (target.aura.fire_vulnerability.up > 0) + (target.aura.fireball_burn.up > 0) + (target.aura.pyroblast_burn.up > 0) + (target.aura.impact.up > 0))" }]
+
+# ======================================================================
+# Frost talents
+# ======================================================================
+
+[classes.mage.talents.improved_frostbolt]
+# Oct 15 notes: Frost Blast is affected by every talent that affects
+# Frostbolt (70425 data: spell 11070's mask covers Frost Blast)
+text = "Frostbolt and Frost Blast cast time -0.5 sec."
+spell_mods = [{ spells = ["frostbolt", "frost_blast"], prop = "cast_time", add = "-0.1 * rank" }]
+
+[classes.mage.talents.frostbite]
+# Oct 15 notes: Frostbite and Fingers of Frost now trigger from Frost and Ice
+# Armor (70425 data: spell 11071 is now a plain proc, no spell mask). The
+# sim already let both armors' chill trigger them. Frost Blast's slow is a
+# chill too.
+text = "Chill effects (Frostbolt, Frost Blast, Cone of Cold, Frostfire Bolt, Frost and Ice Armor, Blizzard with Improved Blizzard) have a 15% chance to freeze for 5 sec."
+
+[classes.mage.talents.ice_lance]
+# Oct 15 notes: Ice Lance deals 200% more to frozen targets (was 300%)
+text = "Ice Lance: instant Frost damage, three times as much against frozen targets."
+
+[classes.mage.talents.fingers_of_frost]
+text = "Chill effects have a 15% chance to make your next 1/2 spells treat the target as frozen (Shatter's crit and Ice Lance's 3x)."
+
+[classes.mage.talents.winters_chill]
+# Oct 15 notes describe the redesign twice. The tables decide the numbers:
+# 70425 data, spell 12579 effect 0 is now aura 271 (damage taken from the
+# caster) at 40% per stack on Cone of Cold only (was +2% crit for Frostbolt
+# and Ice Lance), max 5 stacks; trait effect 0 is 5 stacks at every rank (was
+# 1-5), effect 1 the 20-100% chance. The notes' second, more specific version
+# decides the proc rules: Frostbolt, Frost Blast and Ice Lance with Fingers
+# of Frost apply it, and the next Cone of Cold uses it up (Cone of Cold
+# below). That version's numbers (+5% and 7% of spell damage per stack)
+# disagree with the tables; option mage_winters_chill_notes switches to them.
+text = "Frostbolt, Frost Blast and Fingers of Frost Ice Lances have a 20% per rank chance to apply Winter's Chill: your next Cone of Cold deals 40% more damage to the target per stack, up to 5 stacks, 15 sec."
+procs = [{ on = "spell_landed", if = "spell.frostbolt || spell.frost_blast || (spell.ice_lance && aura.fingers_of_frost.up)", chance = "0.2 * rank", effects = [{ type = "aura", aura = "winters_chill", target = "target" }] }]
+spell_mods = []
+
+# ======================================================================
+# Auras
+# ======================================================================
+
+[classes.mage.auras.clearcasting]
+# 70425 data: spell 12536's mask covers Frost Blast and Arcane Wrath
+spell_mods = [{ spells = ["fireball", "frostbolt", "fire_blast", "arcane_missiles", "arcane_explosion", "scorch", "pyroblast", "cone_of_cold", "ice_lance", "arcane_blast", "frostfire_bolt", "flamestrike", "blizzard", "frost_nova", "blast_wave", "frost_blast", "arcane_wrath"], prop = "cost", mul = 0 }]
+
+[classes.mage.auras.clearcasting_roll]
+name = "Clearcasting (rolled)"
+duration = 0.009
+text = "Marker: this cast already rolled for Clearcasting (Oct 15 notes: one roll per spell, not per target)."
+
+[classes.mage.auras.presence_of_mind]
+# Oct 15 notes: Presence of Mind is now used up by spell casts (the sim
+# already did this). 70425 data: spell 12043's mask covers Frost Blast and
+# Arcane Wrath.
+spell_mods = [{ spells = ["fireball", "frostbolt", "pyroblast", "arcane_blast", "frostfire_bolt", "scorch", "flamestrike", "frost_blast", "arcane_wrath"], prop = "cast_time", mul = 0 }]
+
+[classes.mage.auras.arcane_power]
+# 70425 data: spell 12042 effect 1 (cost) covers Frost Blast and Arcane Wrath
+spell_mods = [{ spells = ["fireball", "frostbolt", "fire_blast", "arcane_missiles", "arcane_explosion", "scorch", "pyroblast", "cone_of_cold", "ice_lance", "arcane_blast", "frostfire_bolt", "flamestrike", "blizzard", "frost_nova", "blast_wave", "frost_blast", "arcane_wrath"], prop = "cost", mul = 1.3 }]
+
+[classes.mage.auras.arcane_blast]
+# Oct 15 notes: each Arcane Blast gives 15% of Intellect as spell damage and
+# still raises Arcane Blast's cost, up to 4 stacks; it lasts 15 sec from the
+# first application and no other spell uses it up. 70425 data: spell 400573,
+# duration 15 (was 8), effect 0 aura 174 (spell damage from 15% of
+# Intellect, all schools), effect 1 +175% Arcane Blast cost, no charges; the
+# old +10% damage to other spells (effect 2) is gone. A new stack keeps the
+# first one's expiry.
+duration = "aura.arcane_blast.up > 0 ? aura.arcane_blast.remains : 15"
+text = "Each stack: +15% of Intellect as spell damage and +175% Arcane Blast cost. Up to 4 stacks; lasts 15 sec from the first cast (new stacks do not extend it)."
+mods = [{ stat = "sp", add = "0.15 * stacks * int" }]
+spell_mods = [{ spells = ["arcane_blast"], prop = "cost", mul = "1 + 1.75 * stacks" }]
+procs = []
+
+[classes.mage.auras.wake_of_fire]
+# Oct 15 notes: Improved Fire Blast no longer gives a bonus after a kill
+__delete = true
+
+[classes.mage.auras.heating_up]
+# Oct 15 notes: Heating Up is no longer used up when Presence of Mind made
+# the Pyroblast instant. Presence of Mind is still up when Pyroblast's cast
+# event fires (it is used up right after), so the check sees it.
+consume_on_cast = false
+text = "Used up by Pyroblast, unless Presence of Mind made that Pyroblast instant."
+procs = [{ on = "cast:pyroblast", if = "!aura.presence_of_mind.up", effects = [{ type = "remove_self" }] }]
+
+[classes.mage.auras.impact]
+name = "Impact"
+debuff = true
+mechanic = "stun"
+duration = 2
+text = "Impact's 2 sec stun (a Fire effect for Fire Power)."
+
+[classes.mage.auras.fingers_of_frost]
+# Oct 15 notes: Ice Lance against frozen targets 200% more (was 300%), so 3x
+text = "Your damage spells treat a target that is not frozen as frozen: Shatter's crit and Ice Lance's 3x damage. Each damage spell cast after it is gained uses a charge (the chilling spell itself does not)."
+spell_mods = [
+  { spells = ["fireball", "frostbolt", "fire_blast", "arcane_missiles", "arcane_explosion", "scorch", "pyroblast", "cone_of_cold", "ice_lance", "arcane_blast", "frostfire_bolt", "flamestrike", "blizzard", "frost_nova", "blast_wave", "frost_blast", "arcane_wrath"], prop = "crit", add = "target.frozen ? 0 : (t.shatter == 1 ? 17 : t.shatter == 2 ? 33 : t.shatter >= 3 ? 50 : 0)" },
+  { spells = ["ice_lance"], prop = "damage", mul = "target.frozen ? 1 : 3" },
+]
+
+[classes.mage.auras.winters_chill]
+# 70425 data: spell 12579, up to 5 stacks at every talent rank, 15 sec; each
+# application adds a stack and refreshes the duration
+refresh = "refresh"
+text = "Your next Cone of Cold deals 40% more damage to the target per stack (used up by it); up to 5 stacks."
+
+# ======================================================================
+# Spells
+# ======================================================================
+
+[classes.mage.spells.arcane_blast]
+# Oct 15 notes: 1.5 sec cast (was 2.5); damage and coefficient 40% lower;
+# mana cost unchanged. 70425 data: spells 400574 and 1239696-1239700.
+cast_time = 1.5
+ranks = [
+  { level = 20, id = 400574, lo = 30, lo_per_level = 0.462, hi = 34, hi_per_level = 0.538, max_level = 28, coef = 0.429 },
+  { level = 30, id = 1239696, lo = 72, lo_per_level = 0.74, hi = 84, hi_per_level = 0.86, max_level = 38, coef = 0.429 },
+  { level = 40, id = 1239697, lo = 93, lo_per_level = 0.924, hi = 109, hi_per_level = 1.075, max_level = 48, coef = 0.429 },
+  { level = 50, id = 1239699, lo = 155, lo_per_level = 1.202, hi = 181, hi_per_level = 1.398, max_level = 58, coef = 0.429 },
+  { level = 60, id = 1239700, lo = 218, lo_per_level = 1.479, hi = 254, hi_per_level = 1.721, max_level = 68, coef = 0.429 },
+]
+
+[classes.mage.spells.arcane_wrath]
+# Oct 15 notes: new talent spell, Fireball-like damage, 3.5 sec cast, 6 sec
+# cooldown, plus spell damage equal to 5% of maximum mana. 70425 data:
+# spells 1326079-1326082 (effect 0 damage with coefficient 1, effect 1 the
+# 5%); the extra 5% of maximum mana counts as spell damage at the same
+# coefficient.
+name = "Arcane Wrath"
+talent = "arcane_wrath"
+school = "arcane"
+cooldown = 6
+ranks = [
+  { level = 25, id = 1326079, lo = 108, lo_per_level = 1.259, hi = 132, hi_per_level = 1.541, mana = 140, cast = 3.5, max_level = 35, coef = 1 },
+  { level = 36, id = 1326080, lo = 168, lo_per_level = 2.069, hi = 206, hi_per_level = 2.531, mana = 220, cast = 3.5, max_level = 47, coef = 1 },
+  { level = 48, id = 1326081, lo = 270, lo_per_level = 2.159, hi = 330, hi_per_level = 2.641, mana = 305, cast = 3.5, max_level = 59, coef = 1 },
+  { level = 60, id = 1326082, lo = 406, lo_per_level = 2.699, hi = 496, hi_per_level = 3.301, mana = 395, cast = 3.5, max_level = 71, coef = 1 },
+]
+text = "Its extra spell damage is 5% of your maximum mana, at the spell's coefficient."
+effects = [{ type = "damage", school = "arcane", min = "r.lo", max = "r.hi", coef = "r.coef", amount = "0.05 * max_mana * r.coef" }]
+
+[classes.mage.spells.frost_blast]
+# Oct 15 notes: new spell learned at level 24, 1.5 sec cast, damage and a
+# 40% slow, affected by every talent that affects Frostbolt (70425 data:
+# spells 1326053-1326055 carry Frostbolt's family flags; 9 sec slow).
+name = "Frost Blast"
+school = "frost"
+ranks = [
+  { level = 24, id = 1326053, lo = 25, lo_per_level = 0.284, hi = 27, hi_per_level = 0.316, mana = 40, cast = 1.5, max_level = 35, coef = 0.343 },
+  { level = 36, id = 1326054, lo = 43, lo_per_level = 0.474, hi = 47, hi_per_level = 0.526, mana = 65, cast = 1.5, max_level = 47, coef = 0.343 },
+  { level = 48, id = 1326055, lo = 73, lo_per_level = 0.568, hi = 81, hi_per_level = 0.632, mana = 90, cast = 1.5, max_level = 60, coef = 0.343 },
+]
+text = "Its slow is a Chill effect (movement is not simulated)."
+effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "emit", event = "mage_chill" }], on_crit = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }] }]
+
+[classes.mage.spells.ice_lance]
+# Oct 15 notes and 70425 data (effect 1 of every rank, 300 -> 200): frozen
+# targets take 200% more, so 3x
+text = "Forever's Ice Lance ranks list no spell power coefficient (assumption mage_ice_lance_coef). Fingers of Frost gives the 3x against a target that is not frozen."
+effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = "opt.mage_ice_lance_coef", mult = "target.frozen ? 3 : 1", on_crit = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }] }]
+
+[classes.mage.spells.cone_of_cold]
+# Winter's Chill (Oct 15 notes and 70425 data, spell 12579): +40% damage per
+# stack on the target, used up by this Cone of Cold. With the option
+# mage_winters_chill_notes, the notes' second description instead: +5% and
+# 7% of spell damage per stack. Oct 15 notes: the first 4 targets are slowed
+# 10% more for 3 sec longer (70425 data: rank 10161 effects 2-4); movement is
+# not simulated.
+text = "Its slow is a Chill effect (movement is not simulated). Winter's Chill stacks on a target add to its damage there and are used up."
+effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = "r.coef + (opt.mage_winters_chill_notes > 0 ? 0.07 * target.aura.winters_chill.stacks : 0)", mult = "1 + (opt.mage_winters_chill_notes > 0 ? 0.05 : 0.4) * target.aura.winters_chill.stacks", target = "enemies", on_hit = [{ type = "remove_aura", aura = "winters_chill", target = "target" }, { type = "emit", event = "mage_chill" }], on_crit = [{ type = "if", cond = "!aura.master_of_elements.up", then = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }, { type = "aura", aura = "master_of_elements" }] }] }]
+
+# ======================================================================
+# Assumptions
+# ======================================================================
+
+[options.mage_winters_chill_notes]
+default = 0
+kind = "toggle"
+label = "Winter's Chill works as the patch notes' second description says"
+help = "The Oct 15 notes describe Winter's Chill twice. The game's tables give Cone of Cold 40% more damage per stack, which is the default. Turn this on for the notes' second version instead: 5% more damage and 7% of your spell damage per stack."
+desc = "1 = Winter's Chill gives Cone of Cold +5% and 7% of spell damage per stack (notes) instead of +40% (tables)"
+source = "game"
+cite = "Spell 12579 effect 0 (build 70425): 40% per stack on Cone of Cold; the Oct 15 notes' second description: 5% plus 7% of spell damage"
+applies = ["mage"]
+
+# ======================================================================
+# Rotations (tested with fsim run on boss, solo_1, solo_2 and pressure)
+# ======================================================================
+
+[classes.mage.rotations.frost]
+# Winter's Chill now feeds Cone of Cold (+40% a stack, used up), and
+# Frostbolt applies it at 100% with 5/5. A frost mage now spends Cone of Cold
+# on one target once the stacks are up: 3 when the target is hitting back,
+# 5 on a boss (the tank holds it, so there is time to build them). Frost
+# Blast (1 sec cast with Improved Frostbolt) adds the last stack in the
+# 1.5 sec before Cone of Cold is ready, instead of a 2.5 sec Frostbolt that
+# would delay it. Its slow, its main purpose (it replaces rank 1 Frostbolt),
+# does nothing in the sim. Tested against Cone of Cold at 2-5 stacks and
+# other Frost Blast rules: best or tied in every scenario.
+# Gnomes use Eureka! on cooldown, like the other racials (other races skip
+# the line, so no existing build changes).
+desc = "Frost: Ice Barrier, Frost Nova into Ice Lance/Frostbolt shatter, Frostbolt filler that stacks Winter's Chill, Cone of Cold at 3 stacks (5 on a boss) with Frost Blast adding the last one, Evocation when dry"
+actions = [
+  { cast = "counterspell" },
+  { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "evocation", if = "mana_pct < 0.12" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "eureka" },
+  { cast = "presence_of_mind" },
+  { cast = "arcane_power" },
+  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15" },
+  { cast = "cone_of_cold", if = "enemies >= 2 || target.aura.winters_chill.stacks >= (target.boss ? 5 : 3)" },
+  { cast = "ice_lance", if = "target.frozen || aura.fingers_of_frost.up" },
+  { cast = "fire_blast", if = "target.hp_pct < 0.15" },
+  { cast = "frost_blast", if = "t.winters_chill > 0 && !target.boss && cd.cone_of_cold.remains < 1.5 && target.aura.winters_chill.stacks >= 1" },
+  { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (target.hp_pct < 0.3 || mana_pct < 0.3)" },   # leveling: a few casts, then wand to finish
+  { cast = "frostbolt" },
+  { cast = "fireball", if = "!known.frostbolt" },
+  { cast = "shoot", if = "gcd_remains <= 0" },   # out of mana: the wand is free
+]
+
+[classes.mage.rotations.fire]
+# Heating Up is no longer used up by a Pyroblast that Presence of Mind made
+# instant, so Presence of Mind goes into Pyroblast (only builds with both
+# talents). Pyroblast at 2 stacks instead of 3 was tested: no better on a
+# boss, worse in pressure. Gnomes use Eureka! on cooldown (other races skip
+# the line).
+# The standard Fire build (builds/mage/fire.toml, 0/29/22, the most planned
+# Fire build on talentsforever.com) takes Ice Shards, Shatter and Fingers of
+# Frost. With Fingers of Frost (level 58 in its order) it fills with
+# Frostfire Bolt, whose chill feeds Fingers of Frost and whose crits Ice
+# Shards boosts, and spends a Fingers of Frost charge on Ice Lance (3x)
+# against monsters. At 60 against Fireball filler: boss 357 DPS against 322,
+# solo_2_hard 90 kills/h against 77. Frostfire Bolt before 60 (rank 1 at 40,
+# rank 2 at 50) lost to Fireball at 40, 50 and 55; Ice Lance on a boss lost
+# 14 DPS to Frostfire Bolt; Ice Lance on a Frost Nova'd target lost kills.
+# Builds without Fingers of Frost play as before.
+desc = "Fire: Scorch to five stacks on long fights, Fireball (Frostfire Bolt once Fingers of Frost is taken), Fire Blast, Pyroblast with three Heating Up stacks or Presence of Mind, Ice Lance on Fingers of Frost against monsters, Combustion"
+actions = [
+  { cast = "counterspell" },
+  { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "evocation", if = "mana_pct < 0.12" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "eureka" },
+  { cast = "combustion" },
+  { cast = "presence_of_mind" },
+  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15" },
+  { cast = "blast_wave", if = "enemies >= 2" },
+  { cast = "pyroblast", if = "aura.presence_of_mind.up || aura.heating_up.stacks >= 3" },
+  { cast = "ice_lance", if = "aura.fingers_of_frost.up && !target.frozen && !target.boss" },
+  { cast = "scorch", if = "known.scorch && t.improved_scorch > 0 && target.max_hp > 20000 && (target.aura.fire_vulnerability.stacks < 5 || target.aura.fire_vulnerability.remains < 4)" },
+  { cast = "fire_blast" },
+  { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (target.hp_pct < 0.3 || mana_pct < 0.3)" },   # leveling: a few casts, then wand to finish
+  { cast = "frostfire_bolt", if = "t.fingers_of_frost > 0" },
+  { cast = "fireball" },
+  { cast = "shoot", if = "gcd_remains <= 0" },   # out of mana: the wand is free
+]
+
+[classes.mage.rotations.arcane]
+# Arcane Blast's stacks now last 15 sec from the first cast and are not used
+# up, while each one makes Arcane Blast cost 175% more: two casts per window,
+# then Arcane Missiles. Arcane Wrath (3.5 sec cast, 6 sec cooldown) when the
+# target is not hitting the mage (a tanked boss, or stunned): there it
+# matches Arcane Missiles' damage for less mana; under melee pushback it
+# lost 10-20% (solo_2, pressure). Tested with a 34/0/17 scratch build: Arcane
+# Blast to 1-4 stacks, Arcane Wrath always / on boss / on frozen targets.
+# Gnomes use Eureka! on cooldown (other races skip the line). Arcane Wrath
+# into a Frost Nova was tested again with the standard Arcane build
+# (builds/mage/arcane.toml, 47/4/0): 2-4% worse in solo_2 and pressure.
+desc = "Arcane: Arcane Blast to two stacks (they last 15 sec), Arcane Wrath on a tanked boss, Arcane Missiles (free with Missile Barrage)"
+actions = [
+  { cast = "counterspell" },
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "evocation", if = "mana_pct < 0.12" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "eureka" },
+  { cast = "arcane_power" },
+  { cast = "presence_of_mind" },
+  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15" },
+  { cast = "arcane_missiles", if = "aura.missile_barrage.up" },
+  { cast = "arcane_wrath", if = "target.boss || target.stunned" },
+  { cast = "arcane_blast", if = "aura.arcane_blast.stacks < 2 && mana_pct > 0.25" },
+  { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (target.hp_pct < 0.3 || mana_pct < 0.3)" },   # leveling: a few casts, then wand to finish
+  { cast = "arcane_missiles" },
+  { cast = "fireball", if = "!known.arcane_missiles" },
+  { cast = "shoot", if = "gcd_remains <= 0" },   # out of mana: the wand is free
+]
+
+[classes.mage.rotations.battlemage]
+# With Winter's Chill, a 1 sec Frost Blast (Improved Frostbolt) is a better
+# single-target filler than Arcane Explosion: it stacks Winter's Chill for
+# Cone of Cold and its chill feeds Fingers of Frost (Ice Lance 3x). Melee
+# waits while it casts. Against players (pressure, duel) the cast loses to
+# instants (duel vs Frost: 81% wins with it, 93% without), so there Arcane
+# Explosion stays the filler, as it does on two or more targets and when
+# Winter's Chill is not taken. (Erin's call: play it this way.)
+desc = "Battlemage: sword in melee plus instants (Frost Nova, Ice Lance on frozen, Fire Blast, Cone of Cold), Frost Blast to stack Winter's Chill on one monster, Arcane Explosion otherwise, Ice Barrier"
+actions = [
+  { cast = "counterspell" },
+  { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "evocation", if = "mana_pct < 0.12" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "arcane_power" },
+  { cast = "frost_nova", if = "!target.frozen && !target.boss" },
+  { cast = "ice_lance", if = "target.frozen || aura.fingers_of_frost.up" },
+  { cast = "fire_blast" },
+  { cast = "cone_of_cold" },
+  { cast = "arcane_explosion", if = "mana_pct > 0.3 && enemies >= 2" },
+  { cast = "frost_blast", if = "t.winters_chill > 0 && !target.is_player" },
+  { cast = "arcane_explosion", if = "mana_pct > 0.3" },
+]
+
+[options.mage_ice_lance_coef]
+# Oct 15 notes: frozen targets take 3x from Ice Lance now (was 4x). 70425
+# data: the ranks still list no coefficient.
+desc = "Share of spell power added to Ice Lance (before its 3x against frozen targets)"
+cite = "Ice Lance spells 1312002, 400640 and 1240044 to 1240047 (builds 70338 and 70425) have no coefficient; Frostbolt and Frostfire Bolt in the same data have 0.814"
+
+# ======================================================================
+# priest, warlock
+# ======================================================================
+
+# Priest and warlock changes in WoW: Forever build 1.60.1.70425 (Oct 15 beta
+# patch). Sources: Blizzard's Oct 15 notes and the game's tables (70425 data,
+# compared with 70338).
+
+# ======================================================================= priest
+
+# ----------------------------------------------------------- priest: talents
+
+[classes.priest.talents.power_in_light]
+# Oct 15 notes: also works on targets with Shadow Word: Pain (was Holy Fire
+# only). 70425 tooltip (spell 1309969): "afflicted with your Holy Fire or
+# Shadow Word: Pain". The talent spell's 15 is still not used (trait data
+# 2/4/6/8/10).
+text = "Smite and Penance deal 2% more per point (10% at 5/5) to targets with your Holy Fire or Shadow Word: Pain."
+spell_mods = [{ spells = ["smite", "penance"], prop = "damage", mul = "(target.aura.holy_fire.up || target.aura.shadow_word_pain.up) ? 1 + 0.02 * rank : 1" }]
+
+[classes.priest.talents.twin_disciplines]
+# Oct 15 notes: now benefits Shadow Word: Death, Mind Flay, Starshards and
+# Penance. 70425 data: spell 1225132 effect 0 (damage and healing) adds family
+# flags 1:2 (Shadow Word: Death) and 1:32768, 1:65536 (Penance's damage and
+# healing bolts); effect 1 (periodic damage) adds 0:8388608 (Mind Flay) and
+# 0:2097152 (Starshards, not in the sim).
+text = "Instant spells deal and heal 5% more. In the game data: Holy Nova, Shadowguard, Desperate Prayer, Prayer of Mending, Contingency Plan, Shadow Word: Death, both kinds of Penance bolt, and the ticks of Shadow Word: Pain, Devouring Plague, Renew and Mind Flay (not Power Word: Shield)."
+spell_mods = [
+  { spells = ["shadow_word_pain", "devouring_plague", "holy_nova", "shadowguard", "shadow_word_death", "mind_flay", "penance"], prop = "damage", mul = "1 + 0.01 * rank" },
+  { spells = ["renew", "holy_nova", "prayer_of_mending", "desperate_prayer", "contingency_plan", "penance_heal"], prop = "heal", mul = "1 + 0.01 * rank" },
+]
+
+[classes.priest.talents.silent_resolve]
+# Oct 15 notes: the threat reduction now applies to all spells. 70425 data:
+# spell 14523 effect 0 school mask 2 (Holy) -> 34 (Holy and Shadow).
+text = "Stun, Fear and Silence effects on you are 5% shorter per point (the sim shortens stuns and fears; nothing here silences). Spell threat -10% per point (Holy and Shadow) is not simulated: the priest fights alone, so threat never changes who an enemy attacks."
+
+[classes.priest.talents.mental_strength]
+# Oct 15 notes: moved to row 2 (was row 4), Intellect +2/4/6/8/10% (was
+# 3/6/9/12/15%). 70425 trait data: points 15 -> 5, values 2, 4, 6, 8, 10.
+points = 5
+text = "Intellect +10%."
+mods = [{ stat = "int_pct", add = "0.02 * rank" }]
+
+[classes.priest.talents.improved_power_word_shield]
+# Oct 15 notes: moved to row 3 (was row 2). 70425 trait data: points 5 -> 10.
+points = 10
+
+[classes.priest.talents.improved_mind_blast]
+# Oct 15 notes: moved to row 2 (was row 3). 70425 trait data: node 105831
+# (Shadow Affinity's spot) now holds Improved Mind Blast at points 5; the old
+# row 3 node (105827) is gone.
+points = 5
+
+[classes.priest.talents.shadow_affinity]
+# Oct 15 notes: "Shadow Infinity removed" (they mean Shadow Affinity). 70425
+# trait data: its node now holds Improved Mind Blast.
+__delete = true
+
+[classes.priest.talents.improved_fade]
+# Oct 15 notes: removed. 70425 trait data: its node (105823) now holds Dark
+# Inspiration.
+__delete = true
+
+[classes.priest.talents.dark_inspiration]
+# Oct 15 notes: new row 4 talent. 70425 trait data: node 105823, spell
+# 1326159, points 15, 5 ranks, 3/6/9/12/15%. The buff is spell 1326168
+# (Spirit +15% at 5/5, 10 sec, party aura). Icon: a guess; the game's icon
+# file id is 463284 (used by no other spell).
+icon = "spell_priest_shadoworbs"
+tree = "Shadow Magic"
+points = 15
+ranks = 5
+text = "Mind Blast and a fully channeled Mind Flay raise your Spirit by 3% per point (15% at 5/5) for 10 sec. The party's share is not simulated (the priest fights alone)."
+procs = [
+  { on = "cast:mind_blast", effects = [{ type = "aura", aura = "dark_inspiration", target = "self" }] },
+  { on = "custom:mind_flay_full", effects = [{ type = "aura", aura = "dark_inspiration", target = "self" }] },
+]
+
+[classes.priest.talents.improved_mind_flay]
+# Oct 15 notes: redesigned, each Mind Flay tick deals 10/20% more than the
+# one before. 70425 data: spell 1225139 effect 0 is now a dummy (20 at 2/2,
+# trait data 10/20); the damage modifier and the range and slow effects are
+# gone. The ramp is in Mind Flay's channel (see the spell below); whether the
+# steps compound is an assumption (priest_mind_flay_compound).
+text = "Each Mind Flay tick deals 10% more per point than the tick before it (1, 1.2 and 1.44 times at 2/2)."
+spell_mods = []
+
+[classes.priest.talents.vampiric_embrace]
+# Oct 15 notes: 30 sec cooldown (was 1 min), can't be resisted.
+text = "Heal for 20% of your Shadow damage for 30 sec. 30 sec cooldown."
+
+[classes.priest.talents.devouring_contagion]
+# Oct 15 notes: spreads to 2 targets; the spread no longer costs mana or
+# resets Devouring Plague's cooldown. 70425 data: spell 1309950 effect 2 (a
+# new dummy, 2 targets). The spread is still not simulated.
+text = "Devouring Plague costs 25% less per point (50% at 2/2). When its target dies, the plague jumps to 2 enemies within 5 or 10 yards for its remaining time, at no cost (not simulated: needs a way to move a DoT and its rank to other enemies)."
+
+[classes.priest.talents.shadowform]
+text = "Shadowform: +10% Shadow damage, Shadow spells cost 50% less, Mind Blast, Mind Flay, Shadow Word: Pain, Shadow Word: Death, Devouring Plague and Shadowguard crit for +100%, -15% physical damage taken; no healing spells."
+
+[classes.priest.talents.divine_aegis]
+# 70425 data: spell 431622 gains effect 1 (20), and the tooltip now reads
+# "Shields up to ${$s2*$pl} damage": 20 times your level (1200 at 60). Oct 15
+# notes: "Added to the tooltip ... what the maximum value for the shield is".
+text = "Non-periodic critical heals shield the target for 5% of the heal per point (15% at 3/3), up to 20 times your level."
+procs = [{ on = "heal_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "divine_aegis", target = "self", stacks = "min(event.amount * 0.05 * rank, 20 * level)" }] }]
+
+# ------------------------------------------------------------ priest: auras
+
+[classes.priest.auras.shadowform]
+# Oct 15 notes: Shadow Word: Death now gets Shadowform's critical damage
+# bonus. 70425 data: spell 15473 effect 4 adds family flag 1:2 (Shadow Word:
+# Death).
+spell_mods = [{ school = "shadow", prop = "cost", mul = 0.5 }, { spells = ["mind_blast", "mind_flay", "shadow_word_pain", "devouring_plague", "shadowguard", "shadow_word_death"], prop = "crit_bonus", add = 1.0 }]
+
+[classes.priest.auras.dark_inspiration]
+# 70425 data: spell 1326168, Spirit (aura 80, stat 4) for 10 sec.
+name = "Dark Inspiration"
+duration = 10
+mods = [{ stat = "spi_pct", add = "0.03 * t.dark_inspiration" }]
+
+[classes.priest.auras.mind_flay_ramp]
+name = "Mind Flay ticks"
+duration = 4
+max_stacks = 3
+text = "Counts the ticks of the current Mind Flay channel, for Improved Mind Flay and Dark Inspiration. Cleared when Mind Flay is cast."
+
+# ------------------------------------------------------------ priest: spells
+
+[classes.priest.spells.holy_fire]
+# Oct 15 notes: rank 5's periodic damage was higher than rank 6's. 70425
+# data: spell 15265 effect 1, 13 -> 9 per tick.
+ranks = [
+  { level = 20, id = 14914, lo = 51, lo_per_level = 1.152, hi = 65, hi_per_level = 1.448, dot = 4, mana = 85, max_level = 24, coef = 0.75 },
+  { level = 24, id = 15262, lo = 56, lo_per_level = 1.244, hi = 70, hi_per_level = 1.556, dot = 5, mana = 95, max_level = 30, coef = 0.75 },
+  { level = 30, id = 15263, lo = 71, lo_per_level = 1.329, hi = 89, hi_per_level = 1.671, dot = 6, mana = 125, max_level = 36, coef = 0.75 },
+  { level = 36, id = 15264, lo = 81, lo_per_level = 1.324, hi = 103, hi_per_level = 1.676, dot = 7, mana = 145, max_level = 42, coef = 0.75 },
+  { level = 42, id = 15265, lo = 94, lo_per_level = 1.325, hi = 118, hi_per_level = 1.675, dot = 9, mana = 170, max_level = 48, coef = 0.75 },
+  { level = 48, id = 15266, lo = 123, lo_per_level = 1.499, hi = 155, hi_per_level = 1.901, dot = 10, mana = 200, max_level = 54, coef = 0.75 },
+  { level = 54, id = 15267, lo = 152, lo_per_level = 1.674, hi = 194, hi_per_level = 2.126, dot = 13, mana = 230, max_level = 60, coef = 0.75 },
+  { level = 60, id = 15261, lo = 184, lo_per_level = 1.766, hi = 232, hi_per_level = 2.234, dot = 15, mana = 255, max_level = 66, coef = 0.75 },
+]
+
+[classes.priest.spells.devouring_plague]
+# Oct 15 notes: cooldown 24 sec (was 1 min). 70425 data: spells 2944, 19276
+# to 19280, category cooldown 60 -> 24.
+cooldown = 24
+
+[classes.priest.spells.shadow_word_death]
+# 70425 data: spells 1309595, 1309633, 1309635, 1309636, category cooldown
+# 15 -> 18. The Oct 15 notes say "was 12 seconds"; the 70338 tables had 15.
+cooldown = 18
+
+[classes.priest.spells.vampiric_embrace]
+# Oct 15 notes and 70425 data (spell 15286): cooldown 60 -> 30. "Can't be
+# resisted" changes nothing here: the sim casts it on the priest, with no hit
+# roll.
+cooldown = 30
+
+[classes.priest.spells.mind_flay]
+# Improved Mind Flay's ramp (Oct 15 notes; 70425 data: spell 1225139) and
+# Dark Inspiration's "fully channeled" trigger (spell 1326159): the channel
+# counts its ticks in the mind_flay_ramp aura. A channel cut short (pushback,
+# a dead target) never reaches its third tick.
+text = "One hit roll when cast (a miss ends the channel), then a periodic tick every second for 3 sec that cannot crit, as in the game's periodic aura. With Improved Mind Flay each tick deals more than the one before. The slow is not simulated."
+effects = [
+  { type = "remove_aura", aura = "mind_flay_ramp" },
+  { type = "damage", school = "shadow", amount = 0, can_crit = false, on_miss = [{ type = "interrupt", target = "self" }] },
+]
+channel = { duration = 3, interval = 1, effects = [
+  { type = "damage", school = "shadow", periodic = true, amount = "r.tick", coef = 0.167, tag = "Mind Flay", mult = "opt.priest_mind_flay_compound > 0 ? pow(1 + 0.1 * t.improved_mind_flay, aura.mind_flay_ramp.stacks) : 1 + 0.1 * t.improved_mind_flay * aura.mind_flay_ramp.stacks" },
+  { type = "if", cond = "aura.mind_flay_ramp.stacks >= 2", then = [{ type = "emit", event = "mind_flay_full" }] },
+  { type = "aura", aura = "mind_flay_ramp", target = "self" },
+] }
+
+# ------------------------------------------------------------ priest: options
+
+[options.priest_mind_flay_compound]
+default = 1
+kind = "toggle"
+label = "Improved Mind Flay's steps compound"
+help = "Improved Mind Flay makes each Mind Flay tick deal 10% (20% at 2/2) more than the tick before it. Read literally, the steps build on each other: 1, 1.2 and 1.44 times at 2/2. The game runs it as a server script, so it could also add the same step each time: 1, 1.2 and 1.4 times. Set to 0 for that."
+desc = "1 = each Improved Mind Flay step multiplies the previous tick (1, 1.2, 1.44 at 2/2); 0 = equal steps (1, 1.2, 1.4)"
+source = "game"
+cite = "Oct 15 notes and the 70425 tooltip of spell 1225139: \"Each instance of damage of Mind Flay deals $s1% more damage than its previous instance of damage\"; the effect is a dummy (server script)"
+applies = ["priest"]
+
+# ====================================================================== warlock
+
+# ---------------------------------------------------------- warlock: talents
+
+[classes.warlock.talents.malediction]
+# Oct 15 notes: replaced with Grim Reach. 70425 trait data: node 105923 now
+# holds Grim Reach (spell 18218, 2 ranks).
+__delete = true
+
+[classes.warlock.talents.grim_reach]
+# Oct 15 notes: Affliction spell range +10/20%. 70425 trait data: node 105923,
+# spell 18218, points 5, 2 ranks, 10/20. Icon: the game's file id 136127, the
+# one Classic's Grim Reach used.
+icon = "spell_shadow_callofbone"
+tree = "Affliction"
+points = 5
+ranks = 2
+text = "Affliction spell range +10% per point (not simulated: no range or positioning)."
+
+[classes.warlock.talents.shadow_mastery]
+# Oct 15 notes: Shadow damage +2/4/6/8/10% (was 1/2/3/4/5%). 70425 trait
+# data: effects 0 and 1, 2, 4, 6, 8, 10.
+text = "Shadow damage +10%."
+mods = [{ stat = "shadow_dmg_done", mul = "1 + 0.02 * rank" }]
+
+[classes.warlock.talents.destructive_reach]
+# Oct 15 notes: range only. 70425 data: spell 17917 loses effect 1 (one
+# spell's area radius).
+text = "Destruction spell range +10% per point (not simulated: no range or positioning)."
+
+[classes.warlock.talents.amplify_curse]
+# 70425 data: spell 18288 loses effect 1 (Curse of Exhaustion -20%); the
+# tooltip still names it.
+text = "Amplify Curse (3 min cooldown, no global cooldown): your next Bane of Agony within 30 sec deals 50% more. Its effect on Curse of Weakness is not simulated."
+
+# Demonic Embrace: 70425 data drops spell 18697's second effect (Spirit -1%,
+# Classic's rank-1 penalty). The sim already left it out (Stamina only, as in
+# the trait data and the tooltip), so nothing changes.
+
+# ----------------------------------------------- warlock: Malediction's removal
+# Everything below restates periodic effects without Malediction's
+# `1 + 0.01 * t.malediction` (the talent is gone); nothing else changes.
+
+[classes.warlock.auras.corruption.tick]
+interval = 3
+effects = [
+  { type = "damage", school = "shadow", periodic = true, tag = "Corruption", amount = "r.tick", coef = 0.2, mult = "target.aura.wrack.up ? 1.1 : 1", can_crit = true, crit = "t.pandemic > 0 ? 0 : -100", crit_bonus = "interp(t.pandemic, 0,0, 1,0.33, 2,0.67, 3,1)" },
+  { type = "chance", p = "opt.nightfall_chance * t.nightfall", then = [{ type = "aura", aura = "shadow_trance", target = "self" }] },
+]
+
+[classes.warlock.auras.bane_of_agony.tick]
+interval = 2
+effects = [
+  { type = "damage", school = "shadow", periodic = true, tag = "Bane of Agony", amount = "r.tick", coef = 0.133, mult = "(opt.warlock_agony_ramp > 0 ? (target.aura.bane_of_agony.remains > 15.5 ? 0.5 : (target.aura.bane_of_agony.remains > 7.5 ? 1 : 1.5)) : 1) * (target.aura.amplified_agony.up ? 1.5 : 1) * (target.aura.wrack.up ? 1.1 : 1)", can_crit = true, crit = "t.pandemic > 0 ? 0 : -100", crit_bonus = "interp(t.pandemic, 0,0, 1,0.33, 2,0.67, 3,1)" },
+]
+
+[classes.warlock.auras.immolate]
+tick = { interval = 3, effects = [{ type = "damage", school = "fire", periodic = true, tag = "Immolate (burn)", amount = "r.tick", coef = 0.13 }] }
+
+[classes.warlock.auras.siphon_life]
+tick = { interval = 3, effects = [{ type = "damage", school = "shadow", periodic = true, tag = "Siphon Life", amount = "r.tick", coef = 0.05, lifesteal = 1, mult = "target.aura.wrack.up ? 1.1 : 1", can_crit = true, crit = "t.pandemic > 0 ? 0 : -100", crit_bonus = "interp(t.pandemic, 0,0, 1,0.33, 2,0.67, 3,1)" }] }
+
+[classes.warlock.auras.wrack.tick]
+interval = 1
+effects = [
+  { type = "damage", school = "shadow", periodic = true, tag = "Wrack", amount = 36, coef = 0.143, mult = "1 + min(0.04 * t.soul_siphon * (target.aura.corruption.up + target.aura.bane_of_agony.up + target.aura.siphon_life.up), 0.12 * t.soul_siphon)", can_crit = true, crit = "t.pandemic > 0 ? 0 : -100", crit_bonus = "interp(t.pandemic, 0,0, 1,0.33, 2,0.67, 3,1)" },
+  { type = "chance", p = "opt.nightfall_chance * t.nightfall", then = [{ type = "aura", aura = "shadow_trance", target = "self" }] },
+]
+
+[classes.warlock.spells.drain_life.channel]
+duration = 5
+interval = 1
+effects = [
+  { type = "damage", school = "shadow", amount = "r.per", coef = 0.1, lifesteal = 1, tag = "Drain Life", mult = "1 + min(0.04 * t.soul_siphon * (target.aura.corruption.up + target.aura.bane_of_agony.up + target.aura.siphon_life.up + target.aura.wrack.up), 0.12 * t.soul_siphon)", can_crit = true, crit = "t.pandemic > 0 ? 0 : -100", crit_bonus = "interp(t.pandemic, 0,0, 1,0.33, 2,0.67, 3,1)" },
+  { type = "chance", p = "opt.nightfall_chance * t.nightfall", then = [{ type = "aura", aura = "shadow_trance", target = "self" }] },
+]
+
+[classes.warlock.spells.drain_soul.channel]
+duration = 15
+interval = 3
+effects = [
+  { type = "damage", school = "shadow", amount = "r.tick", coef = 0.1, tag = "Drain Soul", mult = "1 + min(0.04 * t.soul_siphon * (target.aura.corruption.up + target.aura.bane_of_agony.up + target.aura.siphon_life.up + target.aura.wrack.up), 0.12 * t.soul_siphon)", can_crit = true, crit = "t.pandemic > 0 ? 0 : -100", crit_bonus = "interp(t.pandemic, 0,0, 1,0.33, 2,0.67, 3,1)" },
+  { type = "chance", p = "opt.nightfall_chance * t.nightfall", then = [{ type = "aura", aura = "shadow_trance", target = "self" }] },
+]
+
+[classes.warlock.spells.hellfire.channel]
+duration = 15
+interval = 1
+effects = [
+  { type = "damage", school = "fire", target = "enemies", amount = "r.per", coef = 0.022, hit = "auto", can_crit = true, tag = "Hellfire", on_hit = [{ type = "chance", p = "1 - pow(1 - 0.13 * t.pyroclasm, 1 / 15)", then = [{ type = "aura", aura = "stun", target = "target", duration = 3 }] }] },
+  { type = "damage", school = "fire", target = "self", amount = "r.per", coef = 0.022, hit = "auto", can_crit = false, periodic = true, no_proc = true, tag = "Hellfire (self)" },
+]
+
+# ----------------------------------------------------------- warlock: spells
+
+[classes.warlock.spells.soul_link]
+# Oct 15 notes: Soul Link can now be cast on your demon. 70425 data: spell
+# 19028 loses its level 40 (spell level 40 -> 1), so it works as soon as the
+# talent is learned; the sim already allowed that. The spell has no class in
+# the spellbook, so the audit needs its id (level = the talent's tier, as for
+# Wrack).
+ranks = [{ level = 30, id = 19028 }]
+
+# ======================================================================
+# shaman
+# ======================================================================
+
+# ==================================================================== shaman
+# WoW: Forever build 1.60.1.70425 (Oct 15 beta patch). Sources: the Oct 15
+# notes (Shaman section) and the 70338 -> 70425 spell and trait tables.
+# Totems stay buffs on the shaman until the engine has totem units.
+
+# ------------------------------------------------------------ talents
+# Elemental tree rearranged (Oct 15 notes, "Column Arrangement"). Rows from the
+# 70425 trait data: 0 Convection, Concussion; 5 Reverberation, Call of Flame,
+# Elemental Devastation, Elemental Alacrity; 10 Elemental Focus, Elemental
+# Warding; 15 Trial by Fire, Eye of the Storm, Earthbound; 20 Elemental Reach,
+# Lightning Overload, Lava Burst; 25 Elemental Fury; 30 Elemental Mastery.
+
+[classes.shaman.talents.elemental_alacrity]
+# Oct 15 notes: moved from the 3rd row to the 2nd row (70425 trait data: 5 points)
+points = 5
+
+[classes.shaman.talents.elemental_warding]
+# Oct 15 notes: moved from the 2nd row to the 3rd row (70425 trait data: 10 points)
+points = 10
+
+[classes.shaman.talents.call_of_thunder]
+# Oct 15 notes: talent removed (gone from the 70425 trait data)
+__delete = true
+
+[classes.shaman.talents.earthbound]
+# Oct 15 notes: moved to the 4th row as the 16-point talent (70425 trait data: 15 points, no prerequisite)
+points = 15
+
+[classes.shaman.talents.lightning_overload]
+# Oct 15 notes and 70425 trait data: now requires Elemental Alacrity
+requires = "elemental_alacrity"
+
+[classes.shaman.talents.elemental_fury]
+# Oct 15 notes and 70425 trait data: now requires Lightning Overload (was Call of Thunder)
+requires = "lightning_overload"
+
+[classes.shaman.talents.lava_burst]
+# Oct 15 notes: moved from the 7th row to the 5th row as the 21-point talent,
+# no prerequisite (70425 trait data: 20 points, none). New rank 4 and the
+# reflowed ranks are in spells.lava_burst below.
+points = 20
+requires = { __delete = true }
+
+[classes.shaman.talents.elemental_mastery]
+# Oct 15 notes: returns as the 31-point talent, Lava Burst is the prerequisite
+# (70425 trait data: 30 points, requires Lava Burst, spell 16166)
+icon = "spell_nature_wispheal"
+tree = "Elemental Combat"
+points = 30
+ranks = 1
+requires = "lava_burst"
+text = "Elemental Mastery: for 15 sec, Lightning Bolt and Lava Burst cast 0.5 sec faster and Chain Lightning has no cooldown. 3 min cooldown."
+
+[classes.shaman.talents.improved_fire_nova]
+# renamed Trial by Fire (70425 data: spell 16086 is now named Trial by Fire; Oct 15 notes call it
+# "the talent formerly known as Improved Fire Nova")
+__delete = true
+
+[classes.shaman.talents.trial_by_fire]
+name = "Trial by Fire"
+icon = "spell_fire_sealoffire"
+tree = "Elemental Combat"
+points = 15
+ranks = 2
+# trait data 10/20% and 2/4 sec, as before. New in 70425 (spell 16086 effect 3,
+# trait data 10000/20000): Magma Totem lasts 10/20 sec longer, applied in the
+# magma_totem aura below. The Oct 15 notes don't mention it.
+text = "Fire Nova deals 10/20% more damage and its cooldown is 2/4 sec shorter; Magma Totem lasts 10/20 sec longer."
+spell_mods = [{ spells = ["fire_nova"], prop = "damage", mul = "1 + 0.1 * rank" }, { spells = ["fire_nova"], prop = "cooldown", add = "-2 * rank" }]
+
+[classes.shaman.talents.call_of_flame]
+# Oct 15 notes: now also extends Flame Shock by 3/6/9 sec (70425 data: spell 16038 effect 3,
+# trait data 3000/6000/9000); applied in the flame_shock aura below
+text = "Fire totems, Flame Shock, Fire Nova and Lava Burst deal 15% more damage; Flame Shock lasts 3/6/9 sec longer."
+
+[classes.shaman.talents.elemental_reach]
+# Oct 15 notes: now also cuts Totemic Projection's cooldown by 10/20 sec (70425 data: spell 28999
+# effect 3). 70425 data also turns the Flame Shock range effect (effect 2) into a dummy and drops
+# it from the tooltip; the notes don't mention that. None of it is simulated.
+text = "+3/6 yd range for Lightning Bolt, Chain Lightning, Fire Nova and Lava Burst, Totemic Projection cooldown 10/20 sec shorter (not simulated: no range yet, and Totemic Projection is not in the sim)."
+
+[classes.shaman.talents.tidal_focus]
+# Oct 15 notes: swapped with Totemic Focus, now in the 1st row (70425 trait data: 0 points)
+points = 0
+
+[classes.shaman.talents.totemic_focus]
+# Oct 15 notes: swapped with Tidal Focus, now in the 2nd row (70425 trait data: 5 points)
+points = 5
+
+[classes.shaman.talents.stormstrike]
+text = "Stormstrike: instant weapon strike; your next Lightning Bolt, Chain Lightning or Earth Shock that lands within 12 sec deals 20% more. 8% of base mana, 8 sec cooldown."
+
+[classes.shaman.talents.water_shield]
+text = "Water Shield: three globes; each hit you take, or spell critical strike you land (damage or healing), restores 2% of maximum mana (one globe every few seconds)."
+
+# Restorative Totems (Oct 15 notes: now raises all of Healing Stream, was the
+# base value; 70425 data: spell 16187 effect 2 modifier 8 -> 22): the sim already
+# multiplied the whole tick, spell power included, so nothing changes here.
+
+# ------------------------------------------------------------ auras
+
+[classes.shaman.auras.flame_shock]
+# Call of Flame: +3/6/9 sec (Oct 15 notes; 70425 data: spell 16038 effect 3). More ticks of the same size.
+duration = "12 + 3 * t.call_of_flame"
+
+[classes.shaman.auras.magma_totem]
+# Trial by Fire: +10/20 sec (70425 data: spell 16086 effect 3)
+duration = "20 + 10 * t.trial_by_fire"
+
+[classes.shaman.auras.stormstrike]
+# Oct 15 notes: the debuff is no longer used up by a spell that doesn't land.
+# Used up when Lightning Bolt, Chain Lightning or Earth Shock lands, after its damage.
+consume_on_cast = false
+procs = [{ on = "spell_landed", if = "spell.lightning_bolt || spell.chain_lightning || spell.earth_shock", effects = [{ type = "consume" }] }]
+
+[classes.shaman.auras.water_shield]
+# Oct 15 notes: any critical spell you cast now uses a globe (was critical heals only).
+# Hits you take, healing crits and spell damage crits share the globe cooldown (opt.water_shield_icd).
+procs = [
+  { on = "struck", if = "!aura.water_shield_globe.up", effects = [{ type = "resource", res = "mana", amount = "0.02 * max_mana" }, { type = "aura", aura = "water_shield_globe" }, { type = "consume" }] },
+  { on = "heal_crit", if = "!aura.water_shield_globe.up", effects = [{ type = "resource", res = "mana", amount = "0.02 * max_mana" }, { type = "aura", aura = "water_shield_globe" }, { type = "consume" }] },
+  { on = "spell_crit", if = "!aura.water_shield_globe.up", effects = [{ type = "resource", res = "mana", amount = "0.02 * max_mana" }, { type = "aura", aura = "water_shield_globe" }, { type = "consume" }] },
+]
+
+[classes.shaman.auras.elemental_mastery]
+name = "Elemental Mastery"
+# 70425 data: spell 16166, 15 sec; effect 1 -0.5 sec cast on Lightning Bolt and Lava Burst,
+# effect 2 -100% cooldown on Chain Lightning. The spell row also lists one proc charge,
+# which would end the buff after one spell; the Oct 15 notes and the tooltip say it
+# lasts 15 sec, so it has no charges here (an open question).
+duration = 15
+spell_mods = [{ spells = ["lightning_bolt", "lava_burst"], prop = "cast_time", add = -0.5 }, { spells = ["chain_lightning"], prop = "cooldown", mul = 0 }]
+
+# ------------------------------------------------------------ spells
+
+[classes.shaman.spells.chain_lightning]
+# Oct 15 notes: about 35% less mana on all four ranks (70425 data: 225/305/390/485 -> 145/200/250/315)
+ranks = [
+  { level = 32, id = 421, lo = 82, lo_per_level = 0.562, hi = 94, hi_per_level = 0.638, mana = 145, cast = 2, max_level = 37, coef = 0.571 },
+  { level = 40, id = 930, lo = 94, lo_per_level = 0.565, hi = 106, hi_per_level = 0.635, mana = 200, cast = 2, max_level = 45, coef = 0.571 },
+  { level = 48, id = 2860, lo = 106, lo_per_level = 0.66, hi = 118, hi_per_level = 0.74, mana = 250, cast = 2, max_level = 53, coef = 0.517 },
+  { level = 56, id = 10605, lo = 116, lo_per_level = 0.756, hi = 130, hi_per_level = 0.844, mana = 315, cast = 2, max_level = 61, coef = 0.571 },
+]
+
+[classes.shaman.spells.fire_nova]
+# Oct 15 notes: coefficient 0.143 (was 0.214), base damage and mana much lower.
+# 70425 data: mana 95/170/280/395/520 -> 65/120/210/290/375 (408341-408345);
+# burst base 50/102/183/284/403 -> 33/55/130/179/239 and per level
+# 1.1/1.6/2.2/2.8/3.4 -> 0.4/0.6/0.9/1.1/1.3 (408423, 408424, 408426, 408427, 408428)
+ranks = [
+  { level = 12, id = 408341, lo = 30, lo_per_level = 0.369, hi = 36, hi_per_level = 0.431, mana = 65, max_level = 17, coef = 0.143 },
+  { level = 22, id = 408342, lo = 51, lo_per_level = 0.561, hi = 59, hi_per_level = 0.639, mana = 120, max_level = 27, coef = 0.143 },
+  { level = 32, id = 408343, lo = 122, lo_per_level = 0.845, hi = 138, hi_per_level = 0.955, mana = 210, max_level = 37, coef = 0.143 },
+  { level = 42, id = 408344, lo = 168, lo_per_level = 1.034, hi = 190, hi_per_level = 1.166, mana = 290, max_level = 47, coef = 0.143 },
+  { level = 52, id = 408345, lo = 226, lo_per_level = 1.229, hi = 252, hi_per_level = 1.371, mana = 375, max_level = 57, coef = 0.143 },
+]
+
+[classes.shaman.spells.lava_burst]
+# Oct 15 notes: new rank 4, ranks reflowed. 70425 data: 408490 now level 30
+# (base 123, 135 mana); 1238299 level 40 and 1238300 level 50 take the numbers
+# of the old ranks below them; new rank 4 is 1326047 at level 60 (base 220,
+# 265 mana). At level 60 the spell is the same as before.
+ranks = [
+  { level = 30, id = 408490, lo = 107, lo_per_level = 0.699, hi = 139, hi_per_level = 0.901, mana = 135, cast = 2.5, max_level = 38, coef = 0.714 },
+  { level = 40, id = 1238299, lo = 143, lo_per_level = 0.786, hi = 185, hi_per_level = 1.014, mana = 165, cast = 2.5, max_level = 48, coef = 0.714 },
+  { level = 50, id = 1238300, lo = 171, lo_per_level = 0.961, hi = 221, hi_per_level = 1.239, mana = 230, cast = 2.5, max_level = 58, coef = 0.714 },
+  { level = 60, id = 1326047, lo = 192, lo_per_level = 1.135, hi = 248, hi_per_level = 1.465, mana = 265, cast = 2.5, max_level = 68, coef = 0.714 },
+]
+
+[classes.shaman.spells.mana_tide_totem]
+# Oct 15 notes: new rank at level 38; ranks at 25, 38, 48, 58. 70425 data:
+# 16190 level 1 (taught by the 15-point talent, so level 25 at the earliest);
+# 17354 level 38, 20 mana, 133 mana a pulse (17355); 17359 level 48, 30 mana,
+# 197 a pulse (17360); new 1325256 level 58, 60 mana, 290 a pulse (1325257)
+ranks = [
+  { level = 1, id = 16190, regen = 88, mana = 10 },
+  { level = 38, id = 17354, regen = 133, mana = 20 },
+  { level = 48, id = 17359, regen = 197, mana = 30 },
+  { level = 58, id = 1325256, regen = 290, mana = 60 },
+]
+
+[classes.shaman.spells.stormstrike]
+# Oct 15 notes: costs 8% of base mana (was 125 mana); 70425 data: spell 17364 cost pctOfBase 8
+cost = { mana = "0.08 * base_mana" }
+ranks = [{ level = 1, id = 17364 }]
+
+[classes.shaman.spells.grace_of_air_totem]
+# Oct 15 notes: no longer exclusive with Windfury Totem and Flametongue Totem.
+# Windfury Totem still shares its air totem slot.
+requires = "!aura.grace_of_air_totem.up && !aura.windfury_totem.up"
+
+[classes.shaman.spells.flametongue_totem]
+# Oct 15 notes: Grace of Air no longer exclusive with it; Windfury Totem still is
+requires = "!aura.flametongue_totem.up && !aura.windfury_totem.up"
+
+[classes.shaman.spells.elemental_mastery]
+name = "Elemental Mastery"
+talent = "elemental_mastery"
+school = "nature"
+# 70425 data: spell 16166, 3 min cooldown, no global cooldown
+off_gcd = true
+cooldown = 180
+target = "self"
+ranks = [{ level = 1, id = 16166 }]
+effects = [{ type = "aura", aura = "elemental_mastery" }]
+
+# ------------------------------------------------------------ rotations
+
+[classes.shaman.rotations.elemental]
+# Elemental Mastery on cooldown, like the other damage cooldowns. While it is
+# up, Lightning Bolt (1.5 sec with Elemental Alacrity) does more per second
+# than Chain Lightning on one target, so Chain Lightning waits for it to end.
+# On one target Chain Lightning does about half of Lightning Bolt's damage
+# per mana, so it waits for mana above 60% there (boss 207 -> 220 DPS at 60).
+desc = "Elemental: Elemental Mastery, Flame Shock, Lava Burst, Earth Shock, Chain Lightning, Lightning Bolt, Searing Totem; heals when hurt"
+actions = [
+  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "natures_swiftness", if = "hp_pct < 0.3" },
+  { cast = "healing_wave", if = "hp_pct < 0.3 && aura.natures_swiftness.up" },
+  { cast = "lesser_healing_wave", if = "hp_pct < 0.35" },
+  { cast = "healing_wave", if = "hp_pct < 0.35 && !known.lesser_healing_wave" },
+  { cast = "blood_fury" },
+  { cast = "berserking" },
+  { cast = "elemental_mastery" },
+  { cast = "flame_shock", if = "!target.aura.flame_shock.up && (target.hp_pct > 0.35 || target.boss)" },
+  { cast = "lava_burst" },
+  { cast = "earth_shock", if = "target.hp_pct < 0.35 || !known.flame_shock" },
+  { cast = "chain_lightning", if = "!aura.elemental_mastery.up && (enemies >= 2 || mana_pct > 0.6)" },
+  { cast = "searing_totem", if = "target.hp_pct > 0.4 || target.boss" },
+  { cast = "fire_nova", if = "enemies >= 2" },
+  { cast = "lightning_bolt" },
+]

@@ -1,29 +1,59 @@
-# Affliction levelling with the Voidwalker, 31/20/0.
-name = "Affliction Drain (31/20)"
+# The Affliction leveler with the Voidwalker tanking: Corruption, Bane of Agony and Siphon Life, the wand
+# to finish, Drain Life when hurt, and Wrack from 40. Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Method, WoW Forever Warlock Leveling Guide (the Affliction talent order to level 35, the Voidwalker as
+#   tank, DoTs then the wand or Drain Life):
+#   https://www.method.gg/wow-forever/wow-forever-warlock-leveling-guide-and-talents
+# - Warcraft Tavern, WoW Forever Warlock Leveling Guide (DoTs and the wand to 30, then the drain talents):
+#   https://www.warcrafttavern.com/forever/guides/warlock-leveling/
+# - talentsforever.com, Affliction Warlock builds (the most planned Affliction build, 35/11/0) and the
+#   Warlock leveling order: https://talentsforever.com/warlock/builds/affliction and
+#   https://talentsforever.com/warlock/leveling
+# Levels 10 to 30 follow Method. Theorycrafted (31 to 60): talentsforever.com's 35/11/0 (Improved Drains,
+# Nightfall, Soul Siphon, Shadow Mastery and Wrack, then Demonic Embrace, Demonic Aegis, Fel Vitality and
+# Demonic Sacrifice), with Wrack at 40, when its spell comes. Build 70425 took out Malediction, which held
+# 5 of that build's points; they go to Fel Concentration and Improved Life Tap, two talents of Warcraft
+# Tavern's drain build, which makes it 40/11/0.
+# Race: Human, the top warlock race in Method's guide: Ruthless adds 2% crit, which DoTs use through
+# Pandemic.
+name = "Affliction"
+kind = "standard"
 class = "warlock"
-race = "undead"
+race = "human"
 level = 60
 gear = "cloth_caster"
 rotation = "affliction_drain"
 
+order = [
+  "suppression", "suppression", "suppression", "suppression", "suppression",   # 10-14
+  "improved_corruption", "improved_corruption", "improved_corruption", "improved_corruption", "improved_corruption",   # 15-19
+  "pandemic", "pandemic", "pandemic", "improved_bane_of_agony", "improved_bane_of_agony",   # 20-24
+  "malevolence", "malevolence", "malevolence", "malevolence", "malevolence",   # 25-29
+  "siphon_life", "improved_drains", "improved_drains", "improved_drains", "nightfall",   # 30-34
+  "nightfall", "soul_siphon", "soul_siphon", "soul_siphon", "shadow_mastery",   # 35-39
+  "wrack", "shadow_mastery", "shadow_mastery", "shadow_mastery", "shadow_mastery",   # 40-44
+  "demonic_embrace", "demonic_embrace", "demonic_embrace", "demonic_embrace", "demonic_embrace",   # 45-49
+  "demonic_aegis", "demonic_aegis", "fel_vitality", "fel_vitality", "fel_vitality",   # 50-54
+  "demonic_sacrifice", "fel_concentration", "fel_concentration", "fel_concentration", "improved_life_tap",   # 55-59
+  "improved_life_tap",   # 60
+]
+
 [talents]
-improved_corruption = 5
 suppression = 5
-improved_drains = 3
-malediction = 5
-improved_bane_of_agony = 2
+improved_corruption = 5
 pandemic = 3
-nightfall = 2
-malevolence = 2
+improved_bane_of_agony = 2
+malevolence = 5
 siphon_life = 1
-soul_siphon = 2
+improved_drains = 3
+nightfall = 2
+soul_siphon = 3
+shadow_mastery = 5
 wrack = 1
 demonic_embrace = 5
+demonic_aegis = 2
 fel_vitality = 3
-demonic_energies = 2
 demonic_sacrifice = 1
-master_summoner = 2
-improved_sayaad = 2
-demonic_brand = 3
-fel_domination = 1
-unholy_power = 1
+fel_concentration = 3
+improved_life_tap = 2

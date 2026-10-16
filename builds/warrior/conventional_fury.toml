@@ -1,5 +1,8 @@
-# The usual 20/31 dual-wield Fury build, for comparison.
+# The usual 20/31 dual-wield Fury build, for comparison. Forever puts Deep
+# Wounds behind Improved Rend 3/3, so those 3 points come from Improved
+# Overpower (2, unused by the fury_dw rotation) and Deflection (1).
 name = "Conventional Fury (20/31)"
+kind = "experimental"
 class = "warrior"
 race = "undead"
 level = 60
@@ -16,19 +19,19 @@ order = [
   "flurry", "flurry", "flurry", "flurry", "flurry",
   "bloodthirst",
   "improved_heroic_strike", "improved_heroic_strike", "improved_heroic_strike",
-  "deflection", "deflection",
+  "deflection", "improved_rend",
   "improved_tactical_mastery", "improved_tactical_mastery", "improved_tactical_mastery",
   "improved_tactical_mastery", "improved_tactical_mastery",
-  "improved_charge", "improved_charge", "improved_overpower", "improved_overpower",
+  "improved_charge", "improved_charge", "improved_rend", "improved_rend",
   "anger_management", "deep_wounds", "deep_wounds", "deep_wounds", "impale", "impale",
 ]
 
 [talents]
 improved_heroic_strike = 3
-deflection = 2
+deflection = 1
+improved_rend = 3
 improved_tactical_mastery = 5
 improved_charge = 2
-improved_overpower = 2
 anger_management = 1
 deep_wounds = 3
 impale = 2

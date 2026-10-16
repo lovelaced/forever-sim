@@ -1,0 +1,49 @@
+# The dual-wield warrior: Cruelty, Unbridled Wrath and Dual Wield Specialization to Death Wish at 30,
+# then Enrage, Flurry and Bloodthirst at 40. It fights in Battle Stance until Whirlwind at 36, then in
+# Berserker Stance; level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Warcraft Tavern, Warrior guide (Fury 0/26/0 at 30: Cruelty, Unbridled Wrath, Furious Precision,
+#   Blood Craze 2, Dual Wield Specialization, Enrage, Death Wish):
+#   https://www.warcrafttavern.com/forever/guides/warrior/
+# - stillsixty, Fury (dual wield 15/36/0 at 60, the rotation, races):
+#   https://www.stillsixty.com/classes/warrior/fury
+# - kami-labs, Fury build (18/31/2 at 60, simulated):
+#   https://kami-labs.fr/en/wow-forever/build-guerrier-fureur-wow-forever/
+# - Icy Veins, Fury Warrior guide (dual wield to Death Wish at 30; read from search excerpts):
+#   https://www.icy-veins.com/wow-forever/fury-warrior-melee-dps-pve-guide
+# The level 60 points are stillsixty's 15/36/0 with Blood Craze 2 and Booming Voice 1 in place of
+# Booming Voice 3, so the order never takes points back.
+# Race: Orc, stillsixty's first pick for Fury: Blood Fury lines up with Death Wish, and Savage adds
+# 1% crit.
+name = "Fury"
+kind = "standard"
+class = "warrior"
+race = "orc"
+level = 60
+gear = "plate_dw"
+rotation = "fury"
+
+order = [
+  "cruelty", "cruelty", "cruelty", "cruelty", "cruelty",                        # 10-14
+  "unbridled_wrath", "unbridled_wrath", "unbridled_wrath", "unbridled_wrath",
+  "unbridled_wrath",                                                            # 15-19
+  "furious_precision", "furious_precision", "furious_precision",                # 20-22
+  "blood_craze", "blood_craze",                                                 # 23-24
+  "dual_wield_specialization", "dual_wield_specialization", "dual_wield_specialization",
+  "dual_wield_specialization", "dual_wield_specialization",                     # 25-29
+  "death_wish",                                                                 # 30
+  "enrage", "enrage", "enrage", "enrage", "enrage",                             # 31-35
+  "flurry", "flurry", "flurry", "flurry",                                       # 36-39
+  "bloodthirst",                                                                # 40
+  "flurry",                                                                     # 41
+  "improved_execute", "improved_execute",                                       # 42-43
+  "raging_blows",                                                               # 44
+  "improved_heroic_strike", "improved_heroic_strike", "improved_heroic_strike", # 45-47
+  "improved_rend", "improved_rend", "improved_rend",                            # 48-50
+  "improved_tactical_mastery", "improved_tactical_mastery", "improved_tactical_mastery",
+  "improved_tactical_mastery", "improved_tactical_mastery",                     # 51-55
+  "anger_management",                                                           # 56
+  "deep_wounds", "deep_wounds", "deep_wounds",                                  # 57-59
+  "booming_voice",                                                              # 60
+]

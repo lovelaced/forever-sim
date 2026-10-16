@@ -1,6 +1,7 @@
 # Moonclaw+ (Feral 31 / Balance 9 / Restoration 11): Warden-9's cat with
 # Leader of the Pack, Rend and Tear and Berserk instead of Swiftmend.
 name = "Moonclaw+ (31/9/11)"
+kind = "experimental"
 class = "druid"
 race = "tauren"
 level = 60

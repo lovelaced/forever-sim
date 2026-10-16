@@ -1,0 +1,66 @@
+# The healing build: Holy Specialization, Divine Fury, Inspiration and Improved Healing, Holy Nova at 30
+# and Prayer of Mending at 42, then Discipline points for Meditation and shields. Solo it opens with a
+# shield and Holy Fire, uses Shadow Word: Pain, Mind Blast and Smite, and finishes with the wand.
+# Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - talentsforever.com, Priest leveling orders (the most planned Holy order, levels 10 to 29) and Priest
+#   builds (the most used Holy build at 60, 19/32/0):
+#   https://talentsforever.com/priest/leveling and https://talentsforever.com/priest/builds
+# - Overgear, WoW Forever Holy Priest Guide (level 60 build, written 19/32/0 but adding up to 18/33/0,
+#   which this build follows; Holy Fire, Mind Blast, Shadow Word: Pain, Smite, wand; Gnome or Undead):
+#   https://overgear.com/guides/wow-forever/holy-priest-how-to-play/
+# - Warcraft Tavern, WoW Forever Priest Leveling Guide (level 30 Holy build with Holy Nova, Binding Heal,
+#   Inspiration and Improved Healing): https://www.warcrafttavern.com/forever/guides/priest-leveling/
+# Levels 10 to 29 follow the planner. Theorycrafted (30 to 60): Holy Nova, then Overgear's order to
+# Prayer of Mending (Litany of Light, Spirit of Redemption, Spiritual Guidance, Spiritual Healing), then
+# the Discipline points. Build 70425 moved Improved Power Word: Shield to row 3, so Mental Strength 3
+# stands in for Overgear's Mental Agility and opens that row; Holy Nova takes the place of Holy Reach,
+# which the sim does not model.
+# Race: Gnome, Overgear's Alliance pick for Holy: Eureka! makes spells cheaper and stronger for 8 sec, and
+# Expansive Mind adds mana.
+name = "Holy"
+kind = "standard"
+role = "healer"
+class = "priest"
+race = "gnome"
+level = 60
+gear = "cloth_healer"
+rotation = "smite"
+
+order = [
+  "holy_specialization", "holy_specialization", "holy_specialization", "holy_specialization", "holy_specialization",
+  "divine_fury", "divine_fury", "divine_fury", "divine_fury", "divine_fury",
+  "improved_renew", "improved_renew", "improved_renew", "inspiration", "inspiration",
+  "inspiration", "improved_healing", "improved_healing", "improved_healing", "binding_heal",
+  "holy_nova",
+  "litany_of_light", "litany_of_light", "spirit_of_redemption",
+  "spiritual_guidance", "spiritual_guidance", "spiritual_guidance", "spiritual_guidance", "spiritual_guidance",
+  "spiritual_healing", "spiritual_healing", "spiritual_healing",
+  "prayer_of_mending",
+  "twin_disciplines", "twin_disciplines", "twin_disciplines", "twin_disciplines", "twin_disciplines",
+  "silent_resolve", "silent_resolve", "mental_strength", "mental_strength", "mental_strength",
+  "improved_power_word_shield", "improved_power_word_shield", "improved_power_word_shield",
+  "meditation", "meditation", "meditation", "inner_focus", "soul_warding",
+]
+
+[talents]
+holy_specialization = 5
+divine_fury = 5
+improved_renew = 3
+inspiration = 3
+improved_healing = 3
+binding_heal = 1
+holy_nova = 1
+litany_of_light = 2
+spirit_of_redemption = 1
+spiritual_guidance = 5
+spiritual_healing = 3
+prayer_of_mending = 1
+twin_disciplines = 5
+silent_resolve = 2
+mental_strength = 3
+improved_power_word_shield = 3
+meditation = 3
+inner_focus = 1
+soul_warding = 1

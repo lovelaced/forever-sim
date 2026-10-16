@@ -293,7 +293,7 @@ impl Expr {
         eval(&self.node, env)
     }
 
-    /// Walk every variable used (for "which talents are modelled" reports).
+    /// Walk every variable used (for "which talents are modeled" reports).
     pub fn visit_vars(&self, f: &mut dyn FnMut(&VarRef)) {
         visit(&self.node, f)
     }

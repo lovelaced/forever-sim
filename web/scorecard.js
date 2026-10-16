@@ -277,7 +277,8 @@ function detailFor(test, row, cols) {
   const opponentPicker = () => {
     const own = S.builds[0];
     const groups = env.catalog.classes.map((cl) => h('optgroup', { label: cl.name },
-      presetsFor(cl.id).map((p) => h('option', { value: `preset:${p.file}`, selected: S.opponent === `preset:${p.file}` }, baseName(p.name)))));
+      presetsFor(cl.id).map((p) => h('option', { value: `preset:${p.file}`, selected: S.opponent === `preset:${p.file}` },
+        baseName(p.name) + (p.kind === 'experimental' ? ' (experimental)' : p.role === 'healer' ? ' (healer)' : p.role === 'tank' ? ' (tank)' : '')))));
     return h('div.opponent',
       h('label', { for: 'opponent' }, 'Opponent'),
       h('select.select#opponent', { onchange: (e) => { S.opponent = e.target.value || null; saveLocal(); render(); } },

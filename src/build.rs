@@ -74,6 +74,7 @@ pub fn gear_at(kit: &GearKit, level: u32) -> GearStats {
                     max: x.max + f * (y.max - x.max),
                     speed: if f < 0.5 { x.speed } else { y.speed },
                     wtype: if f < 0.5 { x.wtype } else { y.wtype },
+                    school: if f < 0.5 { x.school } else { y.school },
                 }),
                 (x, y) => if f < 0.5 { x } else { y },
             };

@@ -452,6 +452,7 @@ impl Reg {
             "level" => return Ok(VarRef::Level(who)),
             "alive" => return Ok(VarRef::Alive(who)),
             "casting" => return Ok(VarRef::Casting(who)),
+            "wanding" => return Ok(VarRef::Wanding(who)),
             "is_player" => return Ok(VarRef::IsPlayer(who)),
             "boss" => return Ok(VarRef::Boss(who)),
             "base_mana" => return Ok(VarRef::BaseMana(who)),
@@ -556,6 +557,7 @@ impl Reg {
                     Some("ranged") => HitKind::RangedSpecial,
                     Some("ranged_white") => HitKind::RangedWhite,
                     Some("spell") => HitKind::Spell,
+                    Some("wand") => HitKind::Wand,
                     Some("auto") | Some("none") => HitKind::Auto,
                     Some(x) => return Err(format!("{path}.hit: unknown '{x}'")),
                     None => {
@@ -593,6 +595,7 @@ impl Reg {
                     lifesteal: self.ex(t, "lifesteal", ctx, path)?,
                     periodic,
                     no_proc: bl(t, "no_proc", false),
+                    fixed: bl(t, "fixed", false),
                 };
                 Effect::Damage(Box::new(fx))
             }
@@ -924,6 +927,8 @@ fn rank_list(v: Option<&Value>, fields: &mut Vec<String>, path: &str) -> R<Vec<R
     for (k, t) in items {
         let level = t.get("level").and_then(|v| v.as_integer()).ok_or_else(|| format!("{path}.{k}: rank needs `level`"))?;
         let mut fl = Vec::new();
+        let mut grow = Vec::new();
+        let mut max_level = None;
         for (fk, fv) in t {
             if fk == "level" {
                 continue;
@@ -933,9 +938,18 @@ fn rank_list(v: Option<&Value>, fields: &mut Vec<String>, path: &str) -> R<Vec<R
                 Value::Float(x) => *x,
                 _ => return Err(format!("{path}.{k}.{fk}: rank fields must be numbers")),
             };
-            fl.push((Reg::intern(fields, fk), x));
+            if fk == "max_level" {
+                max_level = Some(x as u32);
+            } else if let Some(base) = fk.strip_suffix("_per_level") {
+                if !t.contains_key(base) {
+                    return Err(format!("{path}.{k}.{fk}: there is no `{base}` for it to grow"));
+                }
+                grow.push((Reg::intern(fields, base), x));
+            } else {
+                fl.push((Reg::intern(fields, fk), x));
+            }
         }
-        out.push(RankDef { level: level as u32, fields: fl });
+        out.push(RankDef { level: level as u32, fields: fl, grow, max_level });
     }
     out.sort_by_key(|r| r.level);
     Ok(out)
@@ -957,6 +971,10 @@ fn parse_weapon(v: Option<&Value>, path: &str) -> R<Option<Weapon>> {
         max: f(t, "max", 2.0),
         speed: f(t, "speed", 2.0),
         wtype: WeaponType::from_name(&wt).ok_or_else(|| format!("{path}.type: unknown weapon type '{wt}'"))?,
+        school: match s(t, "school") {
+            Some(sc) => School::from_name(&sc).ok_or_else(|| format!("{path}.school: unknown school '{sc}'"))?,
+            None => School::Physical,
+        },
     }))
 }
 
@@ -989,7 +1007,7 @@ pub fn parse_gear_stats(t: &Table, path: &str) -> R<GearStats> {
 
 const SPELL_KEYS: &[&str] = &[
     "name", "school", "talent", "level", "race", "ranks", "cost", "cast_time", "channel", "gcd", "off_gcd",
-    "cooldown", "cd_group", "requires", "forms", "next_swing", "target", "effects", "finisher", "usable_while",
+    "cooldown", "cd_group", "requires", "forms", "next_swing", "auto_repeat", "target", "effects", "finisher", "usable_while",
     "source", "text",
 ];
 const AURA_KEYS: &[&str] = &[
@@ -1017,6 +1035,7 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         },
         rage_dealt: f(c, "rage_dealt", 7.5),
         rage_taken: f(c, "rage_taken", 2.5),
+        rage_crit_mult: f(c, "rage_crit_mult", 1.0),
         melee_miss: num_list(c.get("melee_miss")),
         mob_dodge: num_list(c.get("mob_dodge")),
         mob_parry: num_list(c.get("mob_parry")),
@@ -1029,6 +1048,7 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         defense_per_point: f(c, "defense_per_point", 0.04),
         gcd: f(c, "gcd", 1.5),
         energy_gcd: f(c, "energy_gcd", 1.0),
+        auto_repeat_windup: f(c, "auto_repeat_windup", 0.5),
         pushback: f(c, "pushback", 0.5),
         max_pushbacks: f(c, "max_pushbacks", 2.0) as u32,
         heal_to_spell_damage: f(c, "heal_to_spell_damage", 1.0 / 3.0),
@@ -1054,11 +1074,34 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
     let mut opts = Vec::new();
     if let Some(o) = sub(root, "options") {
         for (k, v) in o {
-            let (d, desc) = match v {
-                Value::Table(t) => (f(t, "default", 0.0), s(t, "desc").unwrap_or_default()),
-                other => (src_of(other).and_then(|x| x.parse().ok()).unwrap_or(0.0), String::new()),
+            let mut o = OptDef {
+                name: k.clone(), default: 0.0, desc: String::new(), label: String::new(), help: String::new(), kind: "num".into(),
+                unit: String::new(), source: "estimate".into(), cite: String::new(), applies: vec![],
             };
-            opts.push(OptDef { name: k.clone(), default: d, desc });
+            match v {
+                Value::Table(t) => {
+                    check_keys(t, &["default", "desc", "label", "help", "kind", "unit", "source", "cite", "applies"], &format!("options.{k}"))?;
+                    o.default = f(t, "default", 0.0);
+                    o.desc = s(t, "desc").unwrap_or_default();
+                    o.label = s(t, "label").unwrap_or_else(|| o.desc.clone());
+                    o.help = s(t, "help").unwrap_or_default();
+                    o.kind = s(t, "kind").unwrap_or_else(|| "num".into());
+                    o.unit = s(t, "unit").unwrap_or_default();
+                    o.source = s(t, "source").unwrap_or_else(|| "estimate".into());
+                    o.cite = s(t, "cite").unwrap_or_default();
+                    if !["toggle", "pct", "num"].contains(&o.kind.as_str()) {
+                        return Err(format!("options.{k}.kind: use toggle, pct or num"));
+                    }
+                    if !["game", "community", "classic", "estimate"].contains(&o.source.as_str()) {
+                        return Err(format!("options.{k}.source: use game, community, classic or estimate"));
+                    }
+                    if let Some(a) = t.get("applies").and_then(|x| x.as_array()) {
+                        o.applies = a.iter().filter_map(|x| x.as_str().map(String::from)).collect();
+                    }
+                }
+                other => o.default = src_of(other).and_then(|x| x.parse().ok()).unwrap_or(0.0),
+            }
+            opts.push(o);
         }
     }
     let rest = {
@@ -1347,6 +1390,7 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
             requires: None,
             forms,
             next_swing: bl(st, "next_swing", false),
+            auto_repeat: bl(st, "auto_repeat", false),
             target: SpellTarget::Enemy,
             effects: vec![],
             finisher: bl(st, "finisher", false),

@@ -1,0 +1,52 @@
+# The leveling rogue: a sword and Sinister Strike, Slice and Dice and Eviscerate, with Riposte and Blade
+# Flurry by 30. Hack and Slash, Aggression and Adrenaline Rush follow by 40, then Assassination's crit
+# talents and Cold Blood; level 60 points are theorycrafted until launch.
+
+# Sources:
+# - wow4evernews, Rogue leveling build (Max Calder, Oct 7): talent order 10-30, the same 21 points as
+#   leprestore: https://wow4evernews.com/en/articles/wow-forever-rogue-leveling-build
+# - leprestore, Combat Rogue guide (21 points at 30, 18/33/0 at 60, slow main hand and fast off hand):
+#   https://leprestore.com/guides/world-of-warcraft-forever/wow-forever-combat-rogue-guide-best-builds-race-professions/
+# - foreverwisp, Rogue leveling talents (the order 31-60: Hack and Slash, Aggression, Adrenaline Rush,
+#   then Malice, Improved Slice and Dice, Ruthlessness, Relentless Strikes, Lethality, Cold Blood):
+#   https://www.foreverwisp.com/guides/wow-forever-rogue-leveling-talents
+# - Warcraft Tavern, Rogue leveling guide (Combat 0/21/0 at 30, races):
+#   https://www.warcrafttavern.com/forever/guides/rogue-leveling/
+# - wowtbc.gg, Combat Rogue (rotation, poisons): https://wowtbc.gg/warcraftforever/class-guides/combat-rogue/
+# Race: Orc, Warcraft Tavern's best Horde rogue and Icy Veins' Horde pick for Combat: Blood Fury and
+# Savage (+1% crit).
+name = "Combat"
+kind = "standard"
+class = "rogue"
+race = "orc"
+level = 60
+gear = "leather_agi"
+rotation = "combat_swords"
+
+order = [
+  "improved_sinister_strike", "improved_sinister_strike",                       # 10-11
+  "improved_eviscerate", "improved_eviscerate", "improved_eviscerate",          # 12-14
+  "precision", "precision",                                                     # 15-16
+  "deflection", "deflection", "deflection",                                     # 17-19
+  "riposte",                                                                    # 20
+  "precision",                                                                  # 21
+  "endurance", "endurance",                                                     # 22-23
+  "lightning_reflexes",                                                         # 24
+  "flawless_execution",                                                         # 25
+  "dual_wield_specialization", "dual_wield_specialization",
+  "dual_wield_specialization", "dual_wield_specialization",                     # 26-29
+  "blade_flurry",                                                               # 30
+  "hack_and_slash", "hack_and_slash", "hack_and_slash", "hack_and_slash",
+  "hack_and_slash",                                                             # 31-35
+  "aggression", "aggression", "aggression",                                     # 36-38
+  "weapon_expertise",                                                           # 39
+  "adrenaline_rush",                                                            # 40
+  "weapon_expertise",                                                           # 41
+  "dual_wield_specialization",                                                  # 42
+  "malice", "malice", "malice", "malice", "malice",                             # 43-47
+  "improved_slice_and_dice", "improved_slice_and_dice", "improved_slice_and_dice",  # 48-50
+  "ruthlessness", "ruthlessness", "ruthlessness",                               # 51-53
+  "relentless_strikes",                                                         # 54
+  "lethality", "lethality", "lethality", "lethality", "lethality",              # 55-59
+  "cold_blood",                                                                 # 60
+]

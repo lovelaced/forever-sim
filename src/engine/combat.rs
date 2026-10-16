@@ -183,7 +183,8 @@ impl<'w> Sim<'w> {
         let c = &self.w.combat;
         let x = &self.actors[a];
         let Some(wp) = x.weapons[hand as usize] else { return 0.0 };
-        let ap = if hand == Hand::Ranged { x.st[Stat::Rap as usize] } else { x.st[Stat::Ap as usize] } + ap_bonus;
+        // wands take nothing from attack power
+        let ap = if wp.wtype == WeaponType::Wand { 0.0 } else if hand == Hand::Ranged { x.st[Stat::Rap as usize] } else { x.st[Stat::Ap as usize] } + ap_bonus;
         let ov = x.st[Stat::WeaponSpeedOverride as usize];
         let roll = self.actors[a].rng[0].range(wp.min, wp.max);
         if ov > 0.0 && hand != Hand::Ranged {
@@ -219,10 +220,12 @@ impl<'w> Sim<'w> {
             if let Some(rd) = self.w.spells[s as usize].ranks.get(r) {
                 let c = &self.w.combat;
                 let rl = rd.level as f64;
-                // Classic: spells learned below level 20 lose 3.75% of their coefficient per level below 20.
-                let low = (1.0 - (c.low_level_penalty_level - rl).max(0.0) * c.low_level_penalty_per).max(0.0);
+                // Classic: spells learned below level 20 lose 3.75% of their
+                // coefficient per level below 20 (assumption `low_level_penalty`;
+                // Forever's spell data gives low ranks their full coefficient).
+                let low = (1.0 - self.low_level_penalty * (c.low_level_penalty_level - rl).max(0.0) * c.low_level_penalty_per).max(0.0);
                 let next_higher_exists = self.w.spells[s as usize].ranks.len() > r + 1;
-                if next_higher_exists {
+                if next_higher_exists && self.downrank_penalty >= 0.5 {
                     let lvl = self.actors[a].level as f64;
                     return ((rl + c.downrank_offset) / lvl).min(1.0) * low;
                 }
@@ -233,6 +236,17 @@ impl<'w> Sim<'w> {
     }
 
     pub fn auto_attack(&mut self, a: usize, hand: Hand) {
+        if hand == Hand::Ranged {
+            if let Some(spell) = self.actors[a].wanding {
+                let sp = &self.w.spells[spell as usize];
+                let mut cx = Cx::new(a, self.actors[a].target, sp.name.as_str());
+                cx.spell = Some(spell);
+                cx.sm = self.spell_mod_vals(a, Some(spell), None);
+                self.actors[a].in_combat = true;
+                self.run_effects(&sp.effects, cx);
+                return;
+            }
+        }
         if hand == Hand::Mh {
             if let Some(q) = self.actors[a].queued.take() {
                 if self.fire_queued(a, q) {
@@ -291,6 +305,10 @@ impl<'w> Sim<'w> {
         if self.actors[a].has_res[Res::Rage as usize] {
             let conv = self.w.combat.rage_conversion(self.actors[a].level as f64);
             let mut r = self.w.combat.rage_dealt * dealt / conv * self.actors[a].st[Stat::RageGen as usize];
+            // Forever: critical strikes with basic attacks give extra rage
+            if crit {
+                r *= self.w.combat.rage_crit_mult;
+            }
             if hand == Hand::Oh {
                 r *= self.actors[a].st[Stat::OffhandRage as usize];
             }
@@ -409,7 +427,9 @@ impl<'w> Sim<'w> {
         let a = cx0.me;
         let mut cx = cx0;
         cx.tgt = Some(tgt);
-        let school = fx.school.unwrap_or_else(|| cx.spell.map_or(School::Physical, |s| self.w.spells[s as usize].school));
+        // a weapon effect without its own school deals the weapon's (a wand's)
+        let weapon_school = fx.weapon.and_then(|h| self.actors[a].weapons[h as usize]).map(|wp| wp.school).filter(|s| *s != School::Physical);
+        let school = fx.school.or(weapon_school).unwrap_or_else(|| cx.spell.map_or(School::Physical, |s| self.w.spells[s as usize].school));
         let crit_add = self.evo(&fx.crit, &cx, 0.0) + cx.sm.crit;
         let hand = fx.weapon.unwrap_or(Hand::Mh);
         if fx.weapon.is_some() && hand != Hand::Ranged && self.actors[a].has_mech(self.w, Mechanic::Disarm)
@@ -423,6 +443,17 @@ impl<'w> Sim<'w> {
             HitKind::RangedWhite => self.roll_melee(a, tgt, Hand::Ranged, true, crit_add),
             HitKind::RangedSpecial => self.roll_melee(a, tgt, Hand::Ranged, false, crit_add),
             HitKind::Spell => self.roll_spell(a, tgt, fx.can_crit, crit_add, false),
+            HitKind::Wand => {
+                let (miss, _, _, _) = self.avoid(a, tgt, false, true, false, false);
+                let crit = self.crit_vs(a, tgt, self.actors[a].st[Stat::RangedCrit as usize] + crit_add);
+                if self.actors[a].rng[0].f64() * 100.0 < miss {
+                    Roll::Miss
+                } else if fx.can_crit && self.actors[a].rng[0].f64() * 100.0 < crit {
+                    Roll::Crit
+                } else {
+                    Roll::Hit
+                }
+            }
             HitKind::Auto => {
                 if fx.can_crit {
                     let base = if school == School::Physical {
@@ -441,7 +472,8 @@ impl<'w> Sim<'w> {
             }
         };
         let melee_like = matches!(fx.hit, HitKind::White | HitKind::Special | HitKind::RangedWhite | HitKind::RangedSpecial);
-        if melee_like {
+        let weapon_like = melee_like || fx.hit == HitKind::Wand;
+        if weapon_like {
             if self.avoided(a, tgt, roll, hand) {
                 self.run_effects(&fx.on_miss, cx);
                 return false;
@@ -479,6 +511,9 @@ impl<'w> Sim<'w> {
         if x.kind == Kind::Enemy {
             mult *= x.dmg_scale;
         }
+        if fx.fixed {
+            mult = self.evo(&fx.mult, &cx, 1.0);
+        }
         dmg *= mult;
         if crit {
             let spell_like = school != School::Physical && !melee_like;
@@ -491,7 +526,9 @@ impl<'w> Sim<'w> {
             dmg *= 1.0 + base * bonus;
             dmg *= self.actors[tgt].st[Stat::CritDmgTaken as usize];
         }
-        dmg = self.mitigate(a, tgt, dmg, school, fx.periodic);
+        if !fx.fixed {
+            dmg = self.mitigate(a, tgt, dmg, school, fx.periodic);
+        }
         if roll == Roll::Block {
             dmg = (dmg - self.actors[tgt].st[Stat::BlockValue as usize]).max(0.0);
         }
@@ -520,8 +557,8 @@ impl<'w> Sim<'w> {
         }
         if fx.no_proc {
             // proc-generated damage does not trigger further procs on the attacker
-        } else if melee_like {
-            self.after_hit(a, tgt, ev, matches!(fx.hit, HitKind::RangedSpecial | HitKind::RangedWhite), true);
+        } else if weapon_like {
+            self.after_hit(a, tgt, ev, matches!(fx.hit, HitKind::RangedSpecial | HitKind::RangedWhite | HitKind::Wand), true);
         } else {
             self.emit(a, EventKind::SpellLanded, ev, cx.depth);
             if fx.periodic {
@@ -620,7 +657,7 @@ impl<'w> Sim<'w> {
         // rage from damage taken
         if self.actors[dst].has_res[Res::Rage as usize] && rest > 0.0 {
             let conv = self.w.combat.rage_conversion(self.actors[dst].level as f64);
-            let r = self.w.combat.rage_taken * rest / conv * self.actors[dst].st[Stat::RageGen as usize];
+            let r = self.w.combat.rage_taken * self.rage_taken_mult * rest / conv * self.actors[dst].st[Stat::RageGen as usize];
             let x = &mut self.actors[dst];
             x.res[Res::Rage as usize] = (x.res[Res::Rage as usize] + r).min(x.max_res[Res::Rage as usize]);
         }
@@ -732,7 +769,7 @@ impl<'w> Sim<'w> {
                 false
             };
             if crit {
-                amt *= self.w.combat.spell_crit_mult;
+                amt *= 1.0 + (self.w.combat.spell_crit_mult - 1.0) * (1.0 + self.actors[a].st[Stat::CritBonusHeal as usize]);
             }
             let tag: &'w str = fx.tag.as_deref().unwrap_or(cx.tag);
             let eff = self.heal_raw(a, t, amt, tag, crit);

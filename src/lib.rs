@@ -5,6 +5,7 @@
 //! under `data/`; this crate is the engine that reads and runs them.
 
 pub mod api;
+pub mod audit;
 pub mod build;
 pub mod engine;
 pub mod expr;

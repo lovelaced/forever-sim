@@ -12,7 +12,21 @@ pub type AuraId = u32;
 pub struct OptDef {
     pub name: String,
     pub default: f64,
+    /// What the number means, in full.
     pub desc: String,
+    /// Short label for the page, a longer note under it, and how to show it:
+    /// "toggle" (0/1), "pct" (0..1 shown as a percentage) or "num" with `unit`.
+    pub label: String,
+    pub help: String,
+    pub kind: String,
+    pub unit: String,
+    /// Where the default comes from: "game" (Forever's own data), "community"
+    /// (players' measurements), "classic" (the original game's value) or
+    /// "estimate"; `cite` says exactly where.
+    pub source: String,
+    pub cite: String,
+    /// Classes and races it matters to (empty: everyone).
+    pub applies: Vec<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -20,6 +34,8 @@ pub struct CombatCfg {
     pub rage_conv: [f64; 3],
     pub rage_dealt: f64,
     pub rage_taken: f64,
+    /// Rage from a critical basic attack, as a multiple of a normal hit's.
+    pub rage_crit_mult: f64,
     pub melee_miss: Vec<f64>,
     pub mob_dodge: Vec<f64>,
     pub mob_parry: Vec<f64>,
@@ -32,6 +48,8 @@ pub struct CombatCfg {
     pub defense_per_point: f64,
     pub gcd: f64,
     pub energy_gcd: f64,
+    /// Seconds a wand winds up (standing still) before its first shot.
+    pub auto_repeat_windup: f64,
     pub pushback: f64,
     pub max_pushbacks: u32,
     pub heal_to_spell_damage: f64,
@@ -192,6 +210,9 @@ pub enum HitKind {
     RangedWhite,
     RangedSpecial,
     Spell,
+    /// A wand shot: can miss (ranged table), can't be dodged, parried or
+    /// blocked; crits with ranged crit, for the spell crit bonus.
+    Wand,
     /// Cannot miss (DoT ticks, procs that already hit).
     Auto,
 }
@@ -220,6 +241,9 @@ pub struct DamageFx {
     pub lifesteal: Option<Expr>,
     pub periodic: bool,
     pub no_proc: bool,
+    /// Ignores every damage modifier on the attacker and the target (spell
+    /// modifiers, damage done and taken): Touch of the Grave in Forever.
+    pub fixed: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -275,6 +299,21 @@ pub enum Effect {
 pub struct RankDef {
     pub level: u32,
     pub fields: Vec<(u16, f64)>,
+    /// Per-level growth of fields (`<field>_per_level` in the data): the
+    /// game raises a rank's numbers with the caster's level until the rank's
+    /// `max_level`.
+    pub grow: Vec<(u16, f64)>,
+    pub max_level: Option<u32>,
+}
+
+impl RankDef {
+    /// A field's value for a caster of `level`.
+    pub fn value(&self, field: u16, level: u32) -> Option<f64> {
+        let v = self.fields.iter().find(|(f, _)| *f == field)?.1;
+        let Some(&(_, g)) = self.grow.iter().find(|(f, _)| *f == field) else { return Some(v) };
+        let top = self.max_level.unwrap_or(u32::MAX).min(level);
+        Some(v + g * top.saturating_sub(self.level) as f64)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -320,6 +359,9 @@ pub struct SpellDef {
     pub requires: Option<Expr>,
     pub forms: FormReq,
     pub next_swing: bool,
+    /// Starts an auto-repeating ranged attack (a wand's Shoot): its effects
+    /// fire on every ranged swing until another spell is cast.
+    pub auto_repeat: bool,
     pub target: SpellTarget,
     pub effects: Vec<Effect>,
     pub finisher: bool,
@@ -522,6 +564,8 @@ pub struct Weapon {
     pub max: f64,
     pub speed: f64,
     pub wtype: WeaponType,
+    /// Damage school: physical, or a wand's school.
+    pub school: School,
 }
 
 impl Weapon {

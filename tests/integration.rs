@@ -154,3 +154,88 @@ fn a_patch_overlay_changes_only_what_it_says() {
     let (v1, _) = run_rep(&RepInput { w: &patched, sc: &patched.scenarios["boss"], build: &b1, opponent: None, opts: &opts, seed: 3, log: false });
     assert_eq!(v0["dps"], v1["dps"]);
 }
+
+/// Build 70425: Touch of the Grave drains a fixed share of health (no Shadow
+/// damage bonuses on either side) and has a 25 sec internal cooldown.
+#[test]
+fn touch_of_the_grave_is_fixed_and_waits_25_sec() {
+    let w = world();
+    let sc = &w.scenarios["boss"];
+    let b = load_build(&w, Path::new("builds/priest/shadow.toml"), None).unwrap();
+    assert_eq!(w.races[b.race].id, "undead");
+    let opts = defaults(&w, sc);
+    let mut seen = 0;
+    for seed in 1..6 {
+        let (_, log) = run_rep(&RepInput { w: &w, sc, build: &b, opponent: None, opts: &opts, seed, log: true });
+        let procs: Vec<(f64, String)> = log
+            .unwrap()
+            .iter()
+            .filter(|l| l.contains("Touch of the Grave ->"))
+            .map(|l| {
+                let t: f64 = l.split_whitespace().next().unwrap().parse().unwrap();
+                let amount = l.split(" -> ").nth(1).unwrap().split(" [").next().unwrap().rsplit(' ').next().unwrap().to_string();
+                (t, amount)
+            })
+            .collect();
+        for p in procs.windows(2) {
+            assert!(p[1].0 - p[0].0 >= 25.0 - 1e-6, "procs {:.2} and {:.2} closer than 25 sec", p[0].0, p[1].0);
+            assert_eq!(p[0].1, p[1].1, "the drain should not grow with Shadow Weaving or Shadowform");
+        }
+        seen += procs.len();
+    }
+    assert!(seen >= 5, "Touch of the Grave should proc in a 2 minute fight");
+}
+
+/// Wands: the first shot comes 0.5 sec after Shoot starts, then one per wand
+/// speed; casting stops it, and nothing shoots during a cast.
+#[test]
+fn wands_shoot_on_their_own_timer_and_stop_for_casts() {
+    let w = world();
+    let sc = &w.scenarios["solo_1"];
+    let b = load_build(&w, Path::new("builds/warlock/affliction.toml"), Some(20)).unwrap();
+    let opts = defaults(&w, sc);
+    let (_, log) = run_rep(&RepInput { w: &w, sc, build: &b, opponent: None, opts: &opts, seed: 7, log: true });
+    let me = "Affliction";
+    let mut last_shot: Option<f64> = None;
+    let mut last_cast: f64 = -1.0;
+    let mut shots = 0;
+    for l in log.unwrap() {
+        let t: f64 = l.split_whitespace().next().unwrap().parse().unwrap();
+        if l.contains(me) && l.contains(" casts ") {
+            last_cast = t;
+            last_shot = None;
+        } else if l.contains(me) && l.contains(" Shoot -> ") {
+            match last_shot {
+                Some(p) => assert!((t - p - 1.7).abs() < 0.011, "wand shots {p:.2} and {t:.2} should be one wand speed (1.7 sec) apart"),
+                None => assert!(t - last_cast >= 0.5 - 1e-6, "first shot at {t:.2}, only {:.2} sec after a cast", t - last_cast),
+            }
+            last_shot = Some(t);
+            shots += 1;
+        }
+    }
+    assert!(shots >= 10, "a leveling warlock should wand ({shots} shots)");
+}
+
+/// Every talent tree has a standard build (its main tree), with a leveling
+/// order, so each spec can be picked and run at any level.
+#[test]
+fn every_talent_tree_has_a_standard_build() {
+    let w = world();
+    for c in &w.classes {
+        let mut covered = vec![false; c.trees.len()];
+        for p in builds() {
+            let t: toml::Table = toml::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap();
+            if t.get("kind").and_then(|v| v.as_str()) != Some("standard") || t.get("class").and_then(|v| v.as_str()) != Some(c.id.as_str()) {
+                continue;
+            }
+            assert!(t.get("order").is_some(), "{} has no leveling order", p.display());
+            let b = load_build(&w, &p, None).unwrap();
+            let per: Vec<u32> = c.trees.iter().map(|tr| c.talents.iter().enumerate().filter(|(_, x)| &x.tree == tr).map(|(i, _)| b.talents[i] as u32).sum()).collect();
+            let main = per.iter().enumerate().max_by_key(|(_, n)| **n).unwrap().0;
+            covered[main] = true;
+        }
+        for (i, tr) in c.trees.iter().enumerate() {
+            assert!(covered[i], "{} has no standard build for {tr}", c.name);
+        }
+    }
+}

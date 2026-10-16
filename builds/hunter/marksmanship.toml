@@ -1,0 +1,52 @@
+# A ranged hunter built on shots instead of the pet, which still tanks: Lethal Attacks, Careful Aim and
+# Mortal Shots for Aimed Shot, Multi-Shot on packs, Trueshot Aura at 30 and Sniper Shot at 41. Level 60
+# points are theorycrafted until launch.
+
+# Sources:
+# - Warcraft Tavern, Hunter guide (Sponge): the Marksmanship talent order for 10-30 (0/21/0, with a
+#   pet, Efficiency and Trueshot Aura): https://www.warcrafttavern.com/forever/guides/hunter/
+# - wowtbc.gg, Marksmanship hunter (a 1-60 order with a pet that ends 9/37/5, with the 37
+#   Marksmanship points this build takes before its last two; the play: Trueshot Aura, Hunter's
+#   Mark, Serpent Sting, Sniper Shot, Aimed Shot):
+#   https://wowtbc.gg/warcraftforever/class-guides/marksmanship-hunter/
+# - wow.gg, Marksmanship beta guide (Serpent Sting, Aimed Shot on cooldown, Arcane Shot if mana
+#   allows, Multi-Shot for packs): https://wow.gg/guides/wow-forever-marksmanship-hunter-beta
+# - Blizzard forums, hunter feedback (a level 30 test: Marksmanship with a pet slightly ahead of Lone
+#   Wolf): https://us.forums.blizzard.com/en/wow/t/hunter-feedback/2373238
+# Guides split on Lone Wolf (Icy Veins and wowtbc.gg's level 60 build go petless); Warcraft Tavern,
+# Mobalytics and wowtbc.gg's leveling order keep the pet, which tanks while you level.
+# Levels 31 to 60: the rest of Marksmanship as wowtbc.gg takes it (Rapid Recuperation, Barrage,
+# Ranged Weapon Specialization, Sniper Shot, Improved Stings, Efficiency 5), then Deadly Aspects,
+# Focused Fire and Improved Tracking; the last two points go to Scatter Shot (Warcraft Tavern's
+# alternative) and Improved Arcane Shot instead of wowtbc.gg's Pathfinding.
+# Race: Human (Alliance). Warcraft Tavern names Night Elf or Human for PvE hunters for their crit
+# racials; Human's Ruthless (+2% crit with any weapon since build 70425) is always on.
+name = "Marksmanship"
+kind = "standard"
+class = "hunter"
+race = "human"
+level = 60
+gear = "mail_hunter"
+rotation = "marksmanship"
+
+order = [
+  "lethal_attacks", "lethal_attacks", "lethal_attacks", "lethal_attacks", "lethal_attacks",   # 10-14
+  "careful_aim", "careful_aim", "careful_aim", "careful_aim", "careful_aim",                  # 15-19
+  "efficiency", "efficiency", "efficiency",                                                   # 20-22
+  "rapid_killing", "rapid_killing",                                                           # 23-24
+  "mortal_shots", "mortal_shots", "mortal_shots", "mortal_shots", "mortal_shots",             # 25-29
+  "trueshot_aura",                                                                            # 30
+  "rapid_recuperation", "rapid_recuperation",                                                 # 31-32
+  "barrage", "barrage", "barrage",                                                            # 33-35
+  "ranged_weapon_specialization", "ranged_weapon_specialization", "ranged_weapon_specialization",
+  "ranged_weapon_specialization", "ranged_weapon_specialization",                             # 36-40
+  "sniper_shot",                                                                              # 41
+  "improved_stings", "improved_stings", "improved_stings",                                    # 42-44
+  "efficiency", "efficiency",                                                                 # 45-46
+  "deadly_aspects", "deadly_aspects", "deadly_aspects", "deadly_aspects", "deadly_aspects",   # 47-51
+  "focused_fire", "focused_fire",                                                             # 52-53
+  "improved_tracking", "improved_tracking", "improved_tracking", "improved_tracking",
+  "improved_tracking",                                                                        # 54-58
+  "scatter_shot",                                                                             # 59
+  "improved_arcane_shot",                                                                     # 60
+]

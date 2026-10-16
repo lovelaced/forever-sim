@@ -1,5 +1,6 @@
 # Shockadin, 31/0/20: Holy Shock and Light's Vigil for damage and self-healing, Seal of Righteousness.
 name = "Shockadin (31/0/20)"
+kind = "experimental"
 class = "paladin"
 race = "undead"
 level = 60

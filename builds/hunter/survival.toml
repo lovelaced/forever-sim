@@ -1,0 +1,57 @@
+# Forever's melee Survival hunter: a polearm with Aspect of the Beast, Raptor Strike, Strider Kick and
+# Mongoose Bite, Predator's Edge for big melee crits and Lacerating Strikes at 40, with the cat at your
+# side. Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Warcraft Tavern, Hunter guide (Sponge): the Survival talent order for 10-30 (0/0/21) and "the spec
+#   has been developed further into a melee-focused playstyle":
+#   https://www.warcrafttavern.com/forever/guides/hunter/
+# - wowtbc.gg, Survival hunter ("a full talent tree overhaul to turn them into a melee DPS"; the 35
+#   Survival points at 60 and the play: Aspect of the Beast, Hunter's Mark, Mongoose Bite, Strider
+#   Kick, Raptor Strike): https://wowtbc.gg/warcraftforever/class-guides/survival-hunter/
+# - Icy Veins, Survival hunter melee guide (Strider Kick by 30, "a decent melee spec at 30"; read from
+#   search excerpts, the page refuses automated readers):
+#   https://www.icy-veins.com/wow-forever/survival-hunter-melee-dps-pve-guide
+# - wow.gg, Survival beta guide (melee play: Aspect of the Beast, Hunter's Mark, send the pet, Serpent
+#   Sting, then Raptor Strike on cooldown): https://wow.gg/guides/wow-forever-survival-hunter-beta
+# - classicwowforever.com, Survival hunter (Aspect of the Monkey until 30, then Beast):
+#   https://classicwowforever.com/class-guides/hunter/survival/
+# Ranged or melee: the guides play Forever's Survival in melee from 30 on. Below 30 several say
+# shooting is still stronger (wow.gg; forum thread 2373238), but the talents are melee talents.
+# Levels 31 to 60 take the rest of the melee core wowtbc.gg lists (Strider Kick, Resourcefulness 2,
+# Expose Prey, Lightning Reflexes, Lacerating Strikes, Survivalist), keep the pet (Deadly Aspects,
+# Focused Fire) instead of wowtbc.gg's petless Lone Wolf at 60, and end with Lethal Attacks and
+# Careful Aim. Entrapment and Clever Traps (traps) do nothing in the sim. Weapons: the hunter kit's
+# two-handed polearm; wow.gg suggests dual wield, forum posters expect two-handers.
+# Race: Tauren, the race wow.gg calls strongest for hunters: in melee range War Stomp (90 sec since
+# build 70425) and Endurance's +5% health count most. Endurance's +1% hit, which guides cite, became
+# +2% crit damage in build 70425.
+name = "Survival"
+kind = "standard"
+class = "hunter"
+race = "tauren"
+level = 60
+gear = "mail_hunter"
+rotation = "survival"
+
+order = [
+  "improved_tracking", "improved_tracking", "improved_tracking", "improved_tracking",
+  "improved_tracking",                                                                        # 10-14
+  "savage_strikes", "savage_strikes",                                                         # 15-16
+  "entrapment", "entrapment", "entrapment",                                                   # 17-19
+  "surefooted", "surefooted", "surefooted",                                                   # 20-22
+  "clever_traps", "clever_traps",                                                             # 23-24
+  "predators_edge", "predators_edge", "predators_edge", "predators_edge", "predators_edge",   # 25-29
+  "resourcefulness",                                                                          # 30
+  "strider_kick",                                                                             # 31
+  "resourcefulness",                                                                          # 32
+  "expose_prey", "expose_prey",                                                               # 33-34
+  "lightning_reflexes", "lightning_reflexes", "lightning_reflexes", "lightning_reflexes",
+  "lightning_reflexes",                                                                       # 35-39
+  "lacerating_strikes",                                                                       # 40
+  "survivalist", "survivalist", "survivalist",                                                # 41-43
+  "deadly_aspects", "deadly_aspects", "deadly_aspects", "deadly_aspects", "deadly_aspects",   # 44-48
+  "focused_fire", "focused_fire",                                                             # 49-50
+  "lethal_attacks", "lethal_attacks", "lethal_attacks", "lethal_attacks", "lethal_attacks",   # 51-55
+  "careful_aim", "careful_aim", "careful_aim", "careful_aim", "careful_aim",                  # 56-60
+]

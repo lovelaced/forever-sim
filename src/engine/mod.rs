@@ -123,6 +123,9 @@ pub struct AuraInst {
     pub def: AuraId,
     pub src: usize,
     pub rank: Option<(SpellId, usize)>,
+    /// The spell whose own effects applied the aura (with or without ranks):
+    /// its spell modifiers apply to the aura's ticks.
+    pub spell: Option<SpellId>,
     pub expires: f64,
     pub stacks: u32,
     pub charges: Option<f64>,
@@ -132,6 +135,9 @@ pub struct AuraInst {
     pub applied: f64,
     pub dmg_since: f64,
     pub uid: u64,
+    /// Counter value when the aura was last applied or refreshed: a spell
+    /// doesn't use up an aura its own effects just granted.
+    pub fresh: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -182,6 +188,8 @@ pub struct Actor<'w> {
     pub cast: Option<CastState>,
     pub swing: [f64; 3],
     pub queued: Option<SpellId>,
+    /// The auto-repeat spell (a wand's Shoot) firing on each ranged swing.
+    pub wanding: Option<SpellId>,
     pub target: Option<usize>,
     pub alive: bool,
     pub rotation: Option<&'w Rotation>,
@@ -287,6 +295,11 @@ pub struct Sim<'w> {
     pub metrics: Vec<Metrics<'w>>,
     pub uid: u64,
     pub log: Option<Vec<String>>,
+    /// Coefficient penalties switched by assumptions (see downrank()).
+    pub low_level_penalty: f64,
+    pub downrank_penalty: f64,
+    /// Scales rage from damage taken (assumption `rage_taken_mult`).
+    pub rage_taken_mult: f64,
 }
 
 struct EnvRef<'a, 'w> {
@@ -307,7 +320,13 @@ fn b(x: bool) -> f64 {
 
 impl<'w> Sim<'w> {
     pub fn new(w: &'w World, seed: u64, opts: Vec<f64>) -> Self {
+        let opt = |name: &str| w.opt_index(name).and_then(|i| opts.get(i as usize).copied()).unwrap_or(1.0);
+        let (low_level_penalty, downrank_penalty) = (opt("low_level_penalty"), opt("downrank_penalty"));
+        let rage_taken_mult = opt("rage_taken_mult");
         Sim {
+            low_level_penalty,
+            downrank_penalty,
+            rage_taken_mult,
             w,
             t: 0.0,
             actors: vec![],
@@ -447,17 +466,10 @@ impl<'w> Sim<'w> {
         sp.rank_at(lvl)
     }
 
-    pub fn rank_field(&self, rank: Option<(SpellId, usize)>, field: u16) -> f64 {
-        if let Some((s, r)) = rank {
-            if let Some(rd) = self.w.spells[s as usize].ranks.get(r) {
-                for (f, v) in &rd.fields {
-                    if *f == field {
-                        return *v;
-                    }
-                }
-            }
-        }
-        0.0
+    /// A field of the rank being used, for the caster's level (ranks grow
+    /// with level up to their `max_level`).
+    pub fn rank_field(&self, rank: Option<(SpellId, usize)>, field: u16, level: u32) -> f64 {
+        rank.and_then(|(s, r)| self.w.spells[s as usize].ranks.get(r)).and_then(|rd| rd.value(field, level)).unwrap_or(0.0)
     }
 
     pub fn var(&self, v: &VarRef, cx: &Cx<'w>) -> f64 {
@@ -467,7 +479,7 @@ impl<'w> Sim<'w> {
                 let o = self.talent_owner(cx.me);
                 self.actors[o].talents.get(*i as usize).copied().unwrap_or(0) as f64
             }
-            VarRef::Rank(f) => self.rank_field(cx.rank, *f),
+            VarRef::Rank(f) => self.rank_field(cx.rank, *f, self.actors[cx.me].level),
             VarRef::Opt(i) => self.opts[*i as usize],
             VarRef::Stat(who, s) => self.who(cx, *who).map_or(0.0, |a| self.actors[a].st[*s as usize]),
             VarRef::Res(who, r) => self.who(cx, *who).map_or(0.0, |a| {
@@ -521,6 +533,7 @@ impl<'w> Sim<'w> {
             VarRef::Known(s) => b(self.known(cx.me, *s).is_some()),
             VarRef::Mech(who, m) => self.who(cx, *who).map_or(0.0, |a| b(self.actors[a].has_mech(w, *m))),
             VarRef::Casting(who) => self.who(cx, *who).map_or(0.0, |a| b(self.actors[a].cast.is_some())),
+            VarRef::Wanding(who) => self.who(cx, *who).map_or(0.0, |a| b(self.actors[a].wanding.is_some())),
             VarRef::IsPlayer(who) => self.who(cx, *who).map_or(0.0, |a| {
                 let x = &self.actors[a];
                 b(x.kind == Kind::Player || x.enemy.map_or(false, |e| e.player_like))
@@ -636,6 +649,7 @@ impl<'w> Sim<'w> {
             cast: None,
             swing: [INF; 3],
             queued: None,
+            wanding: None,
             target: None,
             alive: true,
             rotation: None,
@@ -723,7 +737,7 @@ impl<'w> Sim<'w> {
             a.enemy = Some(e);
             a.creature = e.creature;
             a.fixed = Some([hp, armor, 0.0, e.crit, dodge, 0.0, parry]);
-            a.weapons = [Some(Weapon { min: dmg * (1.0 - e.dmg_spread), max: dmg * (1.0 + e.dmg_spread), speed: e.speed, wtype: WeaponType::Natural }), None, None];
+            a.weapons = [Some(Weapon { min: dmg * (1.0 - e.dmg_spread), max: dmg * (1.0 + e.dmg_spread), speed: e.speed, wtype: WeaponType::Natural, school: School::Physical }), None, None];
             a.auto_melee = e.attacks;
             a.rotation = e.rotation.as_ref();
             a.behind = e.behind;
@@ -761,7 +775,7 @@ impl<'w> Sim<'w> {
             a.pet_def = Some(pd);
             a.creature = pd.creature;
             a.fixed = Some([hp, armor, ap, crit, dodge, mana, 5.0]);
-            a.weapons = [Some(Weapon { min: mn, max: mx, speed: pd.speed, wtype: WeaponType::Natural }), None, None];
+            a.weapons = [Some(Weapon { min: mn, max: mx, speed: pd.speed, wtype: WeaponType::Natural, school: School::Physical }), None, None];
             a.auto_melee = pd.auto_melee;
             a.rotation = pd.rotation.as_ref();
             a.has_res = [true, mana > 0.0, false, false];
@@ -999,6 +1013,9 @@ impl<'w> Sim<'w> {
                 self.actors.iter().find(|x| x.alive && x.team != team && !x.is_pet()).map(|x| x.id)
             }
         });
+        if self.actors[a].target != new {
+            self.actors[a].wanding = None;
+        }
         self.actors[a].target = new;
     }
 
@@ -1042,10 +1059,15 @@ impl<'w> Sim<'w> {
 
     pub fn can_swing(&self, a: usize, hand: Hand) -> bool {
         let x = &self.actors[a];
-        if !x.alive || x.cast.is_some() || self.rest_phase {
+        // Auto Shot keeps firing while the hunter casts (Forever's Oct 15
+        // notes); melee swings and wands wait for the cast to end.
+        let shoots_through_casts = hand == Hand::Ranged && x.weapons[2].map_or(false, |wp| wp.wtype != WeaponType::Wand);
+        if !x.alive || (x.cast.is_some() && !shoots_through_casts) || self.rest_phase {
             return false;
         }
-        let on = if hand == Hand::Ranged { x.auto_ranged } else { x.auto_melee };
+        let wand = hand == Hand::Ranged && x.weapons[2].map_or(false, |wp| wp.wtype == WeaponType::Wand);
+        // shooting a wand stops melee auto attacks
+        let on = if wand { x.wanding.is_some() } else if hand == Hand::Ranged { x.auto_ranged } else { x.auto_melee && x.wanding.is_none() };
         if !on || x.weapons[hand as usize].is_none() {
             return false;
         }
@@ -1097,6 +1119,7 @@ impl<'w> Sim<'w> {
             x.in_combat = false;
             x.swing = [INF; 3];
             x.queued = None;
+            x.wanding = None;
             x.cast = None;
             x.threat.clear();
             x.taunt = None;
@@ -1181,7 +1204,7 @@ impl<'w> Sim<'w> {
                     cx.rank = inst.rank;
                     cx.stacks = inst.stacks as f64;
                     cx.aura = Some((a, inst.uid));
-                    cx.sm = self.spell_mod_vals(src, inst.rank.map(|r| r.0), None);
+                    cx.sm = self.spell_mod_vals(src, inst.rank.map(|r| r.0).or(inst.spell), None);
                     self.run_effects(effs, cx);
                 }
                 if !self.actors[a].alive {

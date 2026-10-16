@@ -1,0 +1,50 @@
+# The stealth rogue: two daggers, Premeditation and Ambush to open, Ghostly Strike, and Hemorrhage at 30
+# to make Rupture hit harder. Quietus and Thousand Cuts by 40 turn it into a bleed build; level 60
+# points are theorycrafted until launch.
+
+# Sources:
+# - Mobalytics, Subtlety Rogue guide (0/0/21 at 30 and its order; read from search excerpts, the page
+#   refuses automated readers): https://mobalytics.gg/wow-forever/classes/subtlety-rogue-guide
+# - leprestore, Subtlety Rogue guide (the same 21 points; Hemorrhage as the builder, Backstab from
+#   behind, Rupture on durable targets):
+#   https://leprestore.com/guides/world-of-warcraft-forever/wow-forever-subtlety-rogue-guide-best-builds-race-professions/
+# - kami-labs, Subtlety build (12/8/31 at 60, simulated: Hemorrhage, Quietus, Thousand Cuts):
+#   https://kami-labs.fr/en/wow-forever/build-voleur-finesse-wow-forever/
+# - Warcraft Tavern, Rogue leveling guide (Subtlety Ambush and Bleed builds at 30):
+#   https://www.warcrafttavern.com/forever/guides/rogue-leveling/
+# - wowtbc.gg, Subtlety Rogue (Slice and Dice, Rupture, keep Hemorrhage up, Ambush, Backstab):
+#   https://wowtbc.gg/warcraftforever/class-guides/subtlety-rogue/
+# The 60 points are kami-labs' Subtlety 31 with Setup 3 and Improved Ambush 3 (taken while leveling)
+# in place of Master of Deception 3, Elusiveness 2 and one Improved Ambush point.
+# Race: Troll, Icy Veins' pick for Subtlety in PvE: Berserking and faster health regeneration.
+name = "Subtlety"
+kind = "standard"
+class = "rogue"
+race = "troll"
+level = 60
+gear = "leather_daggers"
+rotation = "subtlety"
+
+order = [
+  "opportunity", "opportunity",                                                 # 10-11
+  "camouflage", "camouflage", "camouflage", "camouflage",                       # 12-15
+  "improved_ambush", "improved_ambush", "improved_ambush",                      # 16-18
+  "setup", "setup", "setup",                                                    # 19-21
+  "ghostly_strike",                                                             # 22
+  "initiative", "initiative", "initiative",                                     # 23-25
+  "serrated_blades", "serrated_blades", "serrated_blades",                      # 26-28
+  "premeditation",                                                              # 29
+  "hemorrhage",                                                                 # 30
+  "camouflage",                                                                 # 31
+  "dirty_deeds", "dirty_deeds",                                                 # 32-33
+  "preparation",                                                                # 34
+  "quietus", "quietus", "quietus", "quietus", "quietus",                        # 35-39
+  "thousand_cuts",                                                              # 40
+  "malice", "malice", "malice", "malice", "malice",                             # 41-45
+  "ruthlessness", "ruthlessness", "ruthlessness",                               # 46-48
+  "improved_slice_and_dice", "improved_slice_and_dice", "improved_slice_and_dice",  # 49-51
+  "relentless_strikes",                                                         # 52
+  "improved_eviscerate", "improved_eviscerate", "improved_eviscerate",          # 53-55
+  "improved_sinister_strike", "improved_sinister_strike",                       # 56-57
+  "precision", "precision", "precision",                                        # 58-60
+]

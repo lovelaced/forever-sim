@@ -1,28 +1,68 @@
-# Shadow priest, 20/0/31: Shadowform, Vampiric Embrace, Shadow Weaving.
-name = "Shadow (20/0/31)"
+# The damage build: Wand Specialization and Spirit Tap first, then Mind Flay, Vampiric Embrace, Shadow
+# Weaving, Darkness and Shadowform at 42, with Twilight Focus and Discipline points at the end. It pulls
+# with a shield, Mind Blast and Shadow Word: Pain, keeps Vampiric Embrace and Devouring Plague up and fills
+# with Mind Flay. Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Mobalytics, WoW Forever Priest Leveling Guide and Shadow Priest Guide (Wand Specialization 2/2 first,
+#   then Spirit Tap, Improved Shadow Word: Pain, Mind Flay and Improved Mind Flay, Shadow Reach, Vampiric
+#   Embrace, Shadow Weaving: 2/0/19 at 30; 17/3/31 at 60):
+#   https://mobalytics.gg/wow-forever/classes/priest-leveling-guide and
+#   https://mobalytics.gg/wow-forever/classes/shadow-priest-guide
+# - Warcraft Tavern, WoW Forever Priest Leveling Guide (level 30 Shadow build: Spirit Tap, Improved Shadow
+#   Word: Pain, Shadow Focus, Improved Mind Blast, Mind Flay, Vampiric Embrace, Shadow Weaving):
+#   https://www.warcrafttavern.com/forever/guides/priest-leveling/
+# - wow.gg, WoW Forever Shadow Priest (beta) (Spirit Tap and Improved Shadow Word: Pain at 20; Undead for
+#   Horde): https://wow.gg/guides/wow-forever-shadow-priest-beta
+# - Method, WoW Forever Priest Leveling Guide (40 to 60: Shield, Mind Blast, Shadow Word: Pain, Shadow
+#   Word: Death, Mind Flay): https://www.method.gg/wow-forever/wow-forever-priest-leveling-guide-and-talents
+# Levels 10 to 30 follow Mobalytics' order (Shadow Focus comes in where the rows need it). Theorycrafted
+# (31 to 60): Improved Mind Blast, Devouring Contagion, Darkness and Shadowform at 42, then Twilight Focus
+# 3 and Discipline points for a 17/3/31 split; the guides give the split but not every point.
+# Race: Undead, the strongest Horde priest in Warcraft Tavern's and wow.gg's view: Touch of the Grave and
+# Cannibalize.
+name = "Shadow"
+kind = "standard"
 class = "priest"
 race = "undead"
 level = 60
 gear = "cloth_caster"
 rotation = "shadow"
 
+order = [
+  "wand_specialization", "wand_specialization", "spirit_tap", "spirit_tap", "spirit_tap",
+  "spirit_tap", "spirit_tap", "improved_shadow_word_pain", "improved_shadow_word_pain", "shadow_reach",
+  "shadow_reach", "shadow_focus", "mind_flay", "improved_mind_flay", "improved_mind_flay",
+  "shadow_focus", "shadow_focus", "vampiric_embrace", "shadow_weaving", "shadow_weaving",
+  "shadow_weaving",
+  "improved_mind_blast", "improved_mind_blast", "improved_mind_blast", "improved_mind_blast",
+  "devouring_contagion", "devouring_contagion",
+  "darkness", "darkness", "darkness", "darkness", "darkness",
+  "shadowform",
+  "twilight_focus", "twilight_focus", "twilight_focus",
+  "twin_disciplines", "twin_disciplines", "twin_disciplines", "twin_disciplines", "twin_disciplines",
+  "mental_strength", "mental_strength", "mental_strength",
+  "improved_power_word_shield", "improved_power_word_shield", "improved_power_word_shield",
+  "meditation", "meditation", "meditation", "inner_focus",
+]
+
 [talents]
-twin_disciplines = 5
-improved_power_word_shield = 3
-silent_resolve = 2
-meditation = 3
-inner_focus = 1
-mental_agility = 1
-mental_strength = 5
-shadow_focus = 5
+wand_specialization = 2
+spirit_tap = 5
 improved_shadow_word_pain = 2
-shadow_affinity = 3
-improved_mind_blast = 5
+shadow_reach = 2
+shadow_focus = 3
 mind_flay = 1
 improved_mind_flay = 2
 vampiric_embrace = 1
 shadow_weaving = 3
-improved_fade = 1
+improved_mind_blast = 4
 devouring_contagion = 2
 darkness = 5
 shadowform = 1
+twilight_focus = 3
+twin_disciplines = 5
+mental_strength = 3
+improved_power_word_shield = 3
+meditation = 3
+inner_focus = 1

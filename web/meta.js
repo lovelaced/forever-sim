@@ -32,17 +32,20 @@ export const RACE_ICONS = {
 };
 
 export const RACE_BLURB = {
-  'Sword Specialization': 'Better with swords.',
+  'Ruthless': 'More critical strikes with everything.',
   'The Human Spirit': 'More Spirit.',
-  'Mace Specialization': 'Better with maces.',
+  'Earth Fury': 'Critical hits and heals land harder.',
+  'Big Game Hunter': 'Extra damage to beasts.',
   'Quickness': 'Harder to hit.',
-  'Expansive Mind': 'More Intellect.',
+  'Expansive Mind': 'A bigger mana, rage or energy pool.',
   'Wind Blessed': 'Faster attacks and casts.',
-  'Axe Specialization': 'Better with axes.',
+  'Elemental Insight': 'Extra damage to elementals.',
+  'Savage': 'A few more critical strikes.',
   'Hardiness': 'Shrugs off stuns more often.',
-  'Touch of the Grave': 'Melee hits and spells can drain health from the enemy.',
-  'Endurance': 'More health.',
-  'Regeneration': 'Faster health regeneration.',
+  'Touch of the Grave': 'Attacks and spells sometimes drain health from the enemy.',
+  'Endurance': 'More health, and critical hits and heals land harder.',
+  'Regeneration': 'Faster health regeneration, some of it during combat.',
+  'Beast Slaying': 'Extra damage to beasts.',
 };
 
 // Background colour, drawn watermark and game icon for each talent tree, in
@@ -178,41 +181,6 @@ export const STAT_LABELS = {
   'physical damage x': 'Physical damage done', 'damage taken x': 'Damage taken',
 };
 
-// How each assumption is shown: kind 'toggle' (0/1), 'pct' (stored 0..1,
-// shown as a percentage) or 'num'. Unknown options fall back to their
-// description from data/base/options.toml and a plain number box.
-export const OPTION_UI = {
-  gore_refresh_rearms: { kind: 'toggle', label: 'Refreshing Enrage re-arms Gore Drinker', help: 'Untested in the game beyond level 30.' },
-  tog_drain_pct: { kind: 'num', unit: '%', label: 'Touch of the Grave drain, as a share of maximum health', help: 'The tooltip says “up to 5%”. 3.75 is the average if it rolls between 2.5 and 5.' },
-  tog_chance_melee: { kind: 'pct', label: 'Touch of the Grave chance for weapon users', help: 'The game files list both 5% and 10%.' },
-  tog_chance_caster: { kind: 'pct', label: 'Touch of the Grave chance for casters' },
-  corpse_chance: { kind: 'pct', label: 'Chance a corpse is usable for Cannibalize after a fight' },
-  bloodrage_hp_cost: { kind: 'pct', label: 'Bloodrage health cost, as a share of base health', help: 'Patch notes removed it, but the spell data still lists 20%.' },
-  maelstrom_chance: { kind: 'pct', label: 'Maelstrom Weapon chance per hit', help: 'The tooltip only says “a chance”.' },
-  windfury_chance: { kind: 'pct', label: 'Windfury Weapon chance per hit' },
-  omen_ppm: { kind: 'num', unit: 'per min', label: 'Omen of Clarity procs per minute', help: 'The value from the original game.' },
-  water_shield_icd: { kind: 'num', unit: 'sec', label: 'Seconds between Water Shield globes', help: 'The tooltip says “only one globe every few seconds”.' },
-  pet_owner_ap: { kind: 'pct', label: 'Share of the hunter’s ranged attack power given to the pet' },
-  pet_owner_sta: { kind: 'pct', label: 'Share of the owner’s Stamina given to pets' },
-  demon_owner_sp: { kind: 'pct', label: 'Share of the warlock’s spell damage given to demons' },
-  nightfall_chance: { kind: 'pct', label: 'Nightfall chance per talent rank' },
-  healthstone_in_fight: { kind: 'toggle', label: 'Warlocks use a Healthstone below 30% health' },
-  hawk_dive_interval: { kind: 'num', unit: 'sec', label: 'Seconds between a hawk’s dive attacks', help: 'Not on the tooltip. 6 seconds makes two hawks roughly match the Arcane Shot they replace.' },
-  seal_on_hit_chance: { kind: 'pct', label: 'Seal of Light and Seal of Wisdom chance per hit', help: 'Forever’s tooltip says “on hit”; the original game used about 20%.' },
-  druid_omen: { kind: 'toggle', label: 'Druids have Omen of Clarity', help: 'Moonkin Form’s tooltip mentions it, but it is not on the trainer or the talent list.' },
-};
-
-// Which classes or races an assumption matters to (empty = everyone).
-export const OPTION_SCOPE = {
-  gore_refresh_rearms: ['warrior'], bloodrage_hp_cost: ['warrior'],
-  tog_drain_pct: ['undead'], tog_chance_melee: ['undead'], tog_chance_caster: ['undead'], corpse_chance: ['undead'],
-  maelstrom_chance: ['shaman'], windfury_chance: ['shaman'], water_shield_icd: ['shaman'],
-  omen_ppm: ['druid'], druid_omen: ['druid'],
-  pet_owner_ap: ['hunter'], pet_owner_sta: ['hunter', 'warlock'], hawk_dive_interval: ['hunter'],
-  demon_owner_sp: ['warlock'], nightfall_chance: ['warlock'], healthstone_in_fight: ['warlock'],
-  seal_on_hit_chance: ['paladin'],
-};
-
 // Talent icons. The first rule whose pattern matches the talent's id and
 // name wins (then the same rules against its text). Each rule has a school
 // (the icon's background colour) and a list of icons used in turn, so a tree
@@ -342,7 +310,7 @@ export function splitDesc(desc) {
 // Short names for the gear kits in data/base/gear.toml (the kit's own
 // description is shown underneath). Unknown kits fall back to that description.
 export const GEAR_TITLES = {
-  cloth_battlemage: 'Cloth with a sword', cloth_caster: 'Caster cloth with a staff', cloth_healer: 'Healer cloth',
+  cloth_battlemage: 'Cloth with a sword and a wand', cloth_caster: 'Caster cloth with a staff and a wand', cloth_healer: 'Healer cloth with a wand',
   leather_agi: 'Agility leather, two weapons', leather_caster: 'Caster leather', leather_daggers: 'Agility leather, two daggers',
   leather_feral: 'Feral leather with a two-hander', mail_caster: 'Caster mail', mail_enh: 'Mail with a two-hander',
   mail_hunter: 'Agility mail with a bow', mail_shield: 'Mail with a one-hander and shield', plate_2h: 'Plate with a two-hander',
@@ -350,7 +318,14 @@ export const GEAR_TITLES = {
   plate_tank: 'Tank plate with a shield',
 };
 
-// Game icons for the gear kits (a chest piece of the right armour type).
+// Weapon types as the gear list names them.
+export const WEAPON_WORDS = {
+  sword: 'Sword', axe: 'Axe', mace: 'Mace', dagger: 'Dagger', fist: 'Fist weapon', polearm: 'Polearm', staff: 'Staff',
+  sword2h: 'Two-handed sword', axe2h: 'Two-handed axe', mace2h: 'Two-handed mace', bow: 'Bow', gun: 'Gun',
+  crossbow: 'Crossbow', thrown: 'Thrown weapon', wand: 'Wand',
+};
+
+// Game icons for the gear kits (a chest piece of the right armor type).
 export function gearWowIcon(id) {
   if (id.startsWith('cloth')) return 'inv_chest_cloth_21';
   if (id.startsWith('leather')) return 'inv_chest_leather_09';

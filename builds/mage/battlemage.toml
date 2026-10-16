@@ -1,5 +1,6 @@
 # Battlemage: a sword in melee with instant Frost/Fire/Arcane spells, 10/0/41 Frost talents.
 name = "Battlemage (10/0/41)"
+kind = "experimental"
 class = "mage"
 race = "undead"
 level = 60

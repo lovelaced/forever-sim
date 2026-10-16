@@ -1,0 +1,67 @@
+# The tanking build: Redoubt and Shield Specialization for blocks, Templar's Bulwark at 30, then
+# Reckoning, Iron Creed and Holy Shield at 40. It levels with a sword and shield, using Seal of Fury,
+# Judgement, Holy Shield, Holy Strike and Consecration. Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Overgear, WoW Forever Protection Paladin Guide (levels 10 to 30 in order, the level 60 build 8/43/0,
+#   Holy Shield at 40, Seal of Fury and Judgement for solo play):
+#   https://overgear.com/guides/wow-forever/protection-paladin-how-to-play/
+# - talentsforever.com, Paladin leveling orders (the most planned Protection order, levels 10 to 49) and
+#   Paladin builds (the most used level 60 Protection build, 0/42/7, the same Protection points):
+#   https://talentsforever.com/paladin/leveling and https://talentsforever.com/paladin/builds
+# - Mobalytics, WoW Forever Protection Paladin Guide (level 30 build):
+#   https://mobalytics.gg/wow-forever/classes/protection-paladin-guide
+# - wow.gg, WoW Forever Protection Paladin (beta) (level 20 build; Consecration, Seal of Fury, Judgement
+#   and Holy Strike): https://wow.gg/guides/wow-forever-protection-paladin-beta
+# Levels 10 to 30 follow Overgear and talentsforever.com, which agree: Redoubt, Precision, Anticipation 2,
+# Shield Specialization, Improved Seal of Fury, Improved Righteous Fury, Sacred Duty, Swift Judgement,
+# Templar's Bulwark. Levels 31 to 39 follow the planner (Reckoning 4, Iron Creed); Holy Shield comes at 40
+# as Overgear has it (its first rank is a level 40 spell; the planner waits until 47). Theorycrafted (41 to
+# 60): the rest of Overgear's level 60 build. Its Holy points include Improved Holy Strike, which build
+# 70425 no longer has, so those 2 points finish Divine Intellect.
+# Race: Dwarf, the defensive pick of the guides (Overgear, and mmoexp's Protection guide:
+# https://www.mmoexp.com/News/wow-forever-protection-paladin-guide-1-30-talents-rotation-tanking.html):
+# Stoneform cuts physical damage taken.
+name = "Protection"
+kind = "standard"
+role = "tank"
+class = "paladin"
+race = "dwarf"
+level = 60
+gear = "plate_tank"
+rotation = "protection"
+
+order = [
+  "redoubt", "redoubt", "redoubt", "redoubt", "redoubt",
+  "precision", "precision", "precision", "anticipation", "anticipation",
+  "shield_specialization", "shield_specialization", "shield_specialization", "improved_seal_of_fury", "improved_righteous_fury",
+  "improved_righteous_fury", "improved_righteous_fury", "sacred_duty", "sacred_duty", "swift_judgement",
+  "templars_bulwark",
+  "reckoning", "reckoning", "reckoning", "reckoning",
+  "iron_creed", "iron_creed", "iron_creed", "iron_creed", "iron_creed",
+  "holy_shield",
+  "anticipation", "anticipation", "anticipation",
+  "one_handed_weapon_specialization", "one_handed_weapon_specialization", "one_handed_weapon_specialization",
+  "reckoning",
+  "toughness", "toughness", "toughness", "toughness", "toughness",
+  "divine_intellect", "divine_intellect", "divine_intellect", "divine_intellect", "divine_intellect",
+  "improved_seals", "improved_seals", "improved_seals",
+]
+
+[talents]
+redoubt = 5
+precision = 3
+anticipation = 5
+shield_specialization = 3
+improved_seal_of_fury = 1
+improved_righteous_fury = 3
+sacred_duty = 2
+swift_judgement = 1
+templars_bulwark = 1
+one_handed_weapon_specialization = 3
+iron_creed = 5
+holy_shield = 1
+reckoning = 5
+toughness = 5
+divine_intellect = 5
+improved_seals = 3

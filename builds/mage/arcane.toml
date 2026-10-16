@@ -1,0 +1,60 @@
+# Deep Arcane: Arcane Blast stacks for spell damage, Arcane Missiles on Missile Barrage procs, Arcane
+# Wrath on bosses, Presence of Mind and Arcane Power, plus Incineration from Fire for Arcane Blast crits.
+# Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - talentsforever.com, Arcane Mage builds (the most planned Arcane build, 47/4/0) and the Arcane leveling
+#   order to level 39: https://talentsforever.com/mage/builds/arcane and
+#   https://talentsforever.com/mage/leveling
+# - Warcraft Tavern, WoW Forever Mage Leveling Guide (the level 30 Arcane build and its rotation: Arcane
+#   Blast for stacks, Arcane Missiles with Missile Barrage):
+#   https://www.warcrafttavern.com/forever/guides/mage-leveling/
+# Levels 10 to 39 follow talentsforever.com's Arcane order, with Arcane Wrath (new in build 70425, its
+# spell comes at 25) at 25 in place of the second Arcane Geometry point. Theorycrafted (40 to 60): Arcane
+# Power at 40, then the rest of the 47/4/0 build. Build 70425 also gave Missile Barrage a second rank, so
+# Arcane Wrath and that rank take the two Magic Absorption points.
+# Race: Troll, close behind Orc in Warcraft Tavern's Horde ranking: Berserking's 10% cast speed suits
+# back-to-back 1.5 sec Arcane Blasts.
+name = "Arcane"
+kind = "standard"
+class = "mage"
+race = "troll"
+level = 60
+gear = "cloth_caster"
+rotation = "arcane"
+
+order = [
+  "improved_channeling", "improved_channeling", "improved_channeling", "improved_channeling", "improved_channeling",   # 10-14
+  "arcane_concentration", "arcane_concentration", "arcane_concentration", "arcane_concentration", "arcane_concentration",   # 15-19
+  "arcane_blast", "arcane_impact", "arcane_impact", "arcane_impact", "arcane_geometry",   # 20-24
+  "arcane_wrath", "arcane_meditation", "arcane_meditation", "arcane_meditation", "missile_barrage",   # 25-29
+  "arcane_mind", "arcane_mind", "arcane_mind", "arcane_mind", "arcane_mind",   # 30-34
+  "presence_of_mind", "arcane_instability", "arcane_instability", "arcane_instability", "arcane_focus",   # 35-39
+  "arcane_power", "arcane_geometry", "missile_barrage", "arcane_focus", "arcane_focus",   # 40-44
+  "arcane_focus", "arcane_focus", "incineration", "incineration", "incineration",   # 45-49
+  "arcane_subtlety", "arcane_subtlety", "wand_specialization", "wand_specialization", "arcane_resilience",   # 50-54
+  "arcane_resilience", "improved_counterspell", "improved_counterspell", "arcane_shielding", "arcane_shielding",   # 55-59
+  "improved_fire_blast",   # 60
+]
+
+[talents]
+improved_channeling = 5
+arcane_concentration = 5
+arcane_blast = 1
+arcane_impact = 3
+arcane_geometry = 2
+arcane_wrath = 1
+arcane_meditation = 3
+missile_barrage = 2
+arcane_mind = 5
+presence_of_mind = 1
+arcane_instability = 3
+arcane_focus = 5
+arcane_power = 1
+incineration = 3
+arcane_subtlety = 2
+wand_specialization = 2
+arcane_resilience = 2
+improved_counterspell = 2
+arcane_shielding = 2
+improved_fire_blast = 1

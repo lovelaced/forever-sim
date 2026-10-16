@@ -1,6 +1,7 @@
-# Vampire Fury v2 — Undead warrior, Fury 36 / Protection 15.
+# Vampire Fury v2: Undead warrior, Fury 36 / Protection 15.
 # Self-healing from Gore Drinker, Victory Rush, Touch of the Grave and Blood Craze.
 name = "Vampire v2 (36/15)"
+kind = "experimental"
 class = "warrior"
 race = "undead"
 level = 60

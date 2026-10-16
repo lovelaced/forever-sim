@@ -1,75 +1,624 @@
 # Assumptions: numbers the game has not published (or that can't be tested
 # on the beta yet). Formulas read them as `opt.<name>`. Override per run
 # with `--opt name=value`, per build under [opts], or per scenario.
+#
+# Each one says where its default comes from:
+#   source = "game"       Forever's own data or tooltip
+#            "community"  players' measurements or reports
+#            "classic"    the original game's value, not confirmed for Forever
+#            "estimate"   our best guess
+# and `cite` says exactly where. `label`, `help`, `kind` (toggle | pct | num)
+# and `unit` are how the website shows it; `applies` lists the classes and
+# races it matters to (leave it out for everyone).
 
 [options.gore_refresh_rearms]
 default = 1
-desc = "1 = a refreshed Enrage re-arms Gore Drinker (untested beyond level 30)"
+kind = "toggle"
+label = "Refreshing Enrage re-arms Gore Drinker"
+help = "Untested in the game beyond level 30."
+desc = "1 = a refreshed Enrage re-arms Gore Drinker"
+source = "estimate"
+cite = "Talent tooltip is ambiguous; beta is capped at level 30"
+applies = ["warrior"]
 
 [options.tog_drain_pct]
 default = 3.75
-desc = "Touch of the Grave drain, % of max health ('up to 5%'; 3.75 = average if uniform 2.5-5)"
+unit = "%"
+label = "Touch of the Grave drain, as a share of maximum health"
+help = "The tooltip says “up to 5%”. 3.75 is the average if it rolls between 2.5 and 5."
+desc = "Touch of the Grave drain, % of max health"
+source = "estimate"
+cite = "Racial tooltip: “up to 5%”"
+applies = ["undead"]
 
 [options.tog_chance_melee]
 default = 0.05
-desc = "Touch of the Grave proc chance for weapon users (client ships 5% and 10% versions)"
+kind = "pct"
+label = "Touch of the Grave chance for weapon users"
+help = "The game files list both 5% and 10%."
+desc = "Touch of the Grave proc chance for weapon users"
+source = "game"
+cite = "Forever spell data ships 5% and 10% versions of the proc"
+applies = ["undead"]
 
 [options.tog_chance_caster]
 default = 0.10
+kind = "pct"
+label = "Touch of the Grave chance for casters"
 desc = "Touch of the Grave proc chance for casters"
+source = "game"
+cite = "Forever spell data ships 5% and 10% versions of the proc"
+applies = ["undead"]
 
 [options.corpse_chance]
 default = 0.6
-desc = "Chance a humanoid/undead corpse is available for Cannibalize after a pull"
+kind = "pct"
+label = "Chance a corpse is usable for Cannibalize after a fight"
+desc = "Chance a humanoid or undead corpse is available for Cannibalize after a pull"
+source = "estimate"
+applies = ["undead"]
 
 [options.bloodrage_hp_cost]
 default = 0
-desc = "Bloodrage health cost as a fraction of base health (patch notes removed it; the spell row still lists 20%)"
+kind = "pct"
+label = "Bloodrage health cost, as a share of base health"
+help = "Patch notes removed it, but the spell data still lists 20%."
+desc = "Bloodrage health cost as a fraction of base health"
+source = "game"
+cite = "Forever patch notes remove the cost; the spell row still lists 20%"
+applies = ["warrior"]
 
 [options.maelstrom_chance]
 default = 0.2
-desc = "Maelstrom Weapon stack chance per melee hit (tooltip only says 'a chance')"
+kind = "pct"
+label = "Maelstrom Weapon chance per hit"
+help = "The tooltip only says “a chance”."
+desc = "Maelstrom Weapon stack chance per melee hit"
+source = "estimate"
+cite = "Talent tooltip: “a chance”; the talent spell (408498) carries the values 20, 50 and 5 without saying which, if any, is the chance"
+applies = ["shaman"]
 
 [options.windfury_chance]
 default = 0.2
-desc = "Windfury Weapon proc chance (tooltip: 20%)"
+kind = "pct"
+label = "Windfury Weapon chance per hit"
+desc = "Windfury Weapon proc chance per main-hand hit"
+source = "community"
+cite = "Players report about 20% on the beta (games.gg); Classic was 20%; Forever's spell data has a 20% Windfury Weapon proc with a 1.5 s cooldown (439431, rank 1 only)"
+applies = ["shaman"]
 
 [options.omen_ppm]
 default = 3.5
-desc = "Omen of Clarity procs per minute (Classic value)"
+unit = "per min"
+label = "Omen of Clarity procs per minute"
+help = "The value from the original game. Forever's spell data adds an internal cooldown, which the sim applies: at most one proc every 10 seconds, every 5 in Moonkin Form."
+desc = "Omen of Clarity procs per minute (before the game's 10 sec internal cooldown, 5 sec in Moonkin Form)"
+source = "classic"
+cite = "Original game: 3.5 per minute. Forever spell data: Omen of Clarity (16864) 100% chance, 10 sec internal cooldown; Moonkin Form doubles the chance and halves the cooldown"
+applies = ["druid"]
+
+[options.omen_spell_chance]
+default = 0.06
+kind = "pct"
+label = "Omen of Clarity chance per spell"
+help = "Forever’s tooltip says spells can grant Clearcasting too, but gives no rate. The original game’s Omen came from melee hits only. 6% is the rate players quoted for spells in Wrath of the Lich King. It still waits for the 10 second internal cooldown (5 in Moonkin Form, where the chance doubles)."
+desc = "Chance that a druid spell costing Mana grants Clearcasting (before the 10 sec internal cooldown)"
+source = "estimate"
+cite = "Forever spell data: Omen of Clarity (16864) procs from helpful and harmful magic spells (proc types 81940) with a 100% chance and a 10 sec internal cooldown, a rate the server overrides. No Forever or Classic number for spells; about 6% per spell is the figure players quoted for Wrath of the Lich King (recalled, not rechecked)"
+applies = ["druid"]
 
 [options.water_shield_icd]
-default = 3
-desc = "Seconds between Water Shield globes ('only one globe every few seconds')"
+default = 3.5
+unit = "sec"
+label = "Seconds between Water Shield globes"
+help = "The tooltip says “only one globe every few seconds”. The game’s spell data gives the shield a 3.5 second cooldown between globes."
+desc = "Seconds between Water Shield globes"
+source = "game"
+cite = "Forever spell data: Water Shield (408510) proc cooldown 3.5 s; tooltip: “only one globe every few seconds”"
+applies = ["shaman"]
 
 [options.pet_owner_ap]
 default = 0.22
+kind = "pct"
+label = "Share of the hunter’s ranged attack power given to the pet"
 desc = "Share of the hunter's ranged attack power given to the pet (Forever: pets scale with hunter gear)"
+source = "estimate"
+applies = ["hunter"]
 
 [options.pet_owner_sta]
 default = 0.3
+kind = "pct"
+label = "Share of the owner’s Stamina given to pets"
 desc = "Share of the owner's stamina given to pets"
+source = "classic"
+applies = ["hunter", "warlock"]
 
 [options.demon_owner_sp]
 default = 0.15
+kind = "pct"
+label = "Share of the warlock’s spell damage given to demons"
 desc = "Share of the warlock's spell power given to demons"
+source = "estimate"
+applies = ["warlock"]
 
 [options.nightfall_chance]
 default = 0.02
+kind = "pct"
+label = "Nightfall chance per talent rank"
+help = "The chance each Corruption, Drain Life, Drain Soul or Wrack tick makes your next Shadow Bolt instant. The game’s talent data gives 2% at 1 point and 4% at 2."
 desc = "Nightfall chance per talent rank"
+source = "game"
+cite = "Forever trait data: Nightfall (18094) 2, 4 by rank; spell value 4; tooltip: 4% at 2/2"
+applies = ["warlock"]
 
 [options.healthstone_in_fight]
 default = 1
+kind = "toggle"
+label = "Warlocks use a Healthstone below 30% health"
 desc = "1 = warlocks use a healthstone in fights below 30% health"
+source = "estimate"
+applies = ["warlock"]
 
 [options.hawk_dive_interval]
 default = 6
-desc = "Seconds between a Summon Hawk hawk's dive-bombs (not on the tooltip; 6 s makes two hawks roughly match the Arcane Shot they replace)"
+unit = "sec"
+label = "Seconds between a hawk’s dive attacks"
+help = "Not on the tooltip. 6 seconds makes two hawks roughly match the Arcane Shot they replace."
+desc = "Seconds between a Summon Hawk hawk's dive-bombs"
+source = "estimate"
+applies = ["hunter"]
 
 [options.seal_on_hit_chance]
-default = 1.0
-desc = "Chance per main-hand hit for Seal of Light / Seal of Wisdom to trigger. The Forever tooltip says 'on hit'; Classic used about 0.2"
+default = 0.2
+kind = "pct"
+label = "Seal of Light and Seal of Wisdom chance per hit"
+help = "Forever’s tooltips say each melee attack has “a chance” to heal or restore mana; the original game used about 20%."
+desc = "Chance per main-hand hit for Seal of Light / Seal of Wisdom to trigger"
+source = "classic"
+cite = "Forever tooltip (70338): “giving each melee attack a chance to heal the Paladin”"
+applies = ["paladin"]
 
 [options.druid_omen]
+default = 1
+kind = "toggle"
+label = "Druids have Omen of Clarity"
+help = "It isn’t on the trainer or the talent list (it may come from a quest), but the October 15 patch notes fix a bug in it, so druids have it. Turn it off to see a druid without it."
+desc = "1 = druids have Omen of Clarity"
+source = "game"
+cite = "Oct 15 patch notes (build 70425): “Omen of Clarity: Fixed a bug where this could be triggered by Faerie Fire while in Cat Form, Bear Form, or Dire Bear Form”. Forever spell data: Omen of Clarity (16864), level 20, with no trainer row"
+applies = ["druid"]
+
+[options.low_level_penalty]
 default = 0
-desc = "1 = druids have Omen of Clarity (Moonkin Form's tooltip mentions it, but it is not on the Forever trainer or talent list)"
+kind = "toggle"
+label = "Low-level spells get the original game’s reduced coefficient"
+help = "Forever’s spell data gives spells learned below level 20 their full spell power coefficient (Lightning Bolt rank 1: 0.429). The original game cut it by 3.75% per level below 20."
+desc = "1 = spells learned below level 20 get Classic's reduced coefficient (3.75% less per level below 20)"
+source = "game"
+cite = "Forever spell data: Lightning Bolt rank 1 coefficient 0.429; Classic Era's data has 0.123 with the penalty built in"
+
+[options.downrank_penalty]
+default = 1
+kind = "toggle"
+label = "Lower ranks lose spell power while a higher rank is known"
+help = "The original game’s rule: coefficient × (rank level + 11) ÷ your level."
+desc = "1 = a lower rank used while a higher one is known gets Classic's downranking penalty"
+source = "classic"
+
+[options.shaman_searing_interval]
+default = 2.2
+unit = "sec"
+label = "Seconds between Searing Totem attacks"
+help = "The totem casts its fire bolt back to back, and the bolt has a 2.2 second cast in the game’s spell data."
+desc = "Seconds between Searing Totem bolts"
+source = "game"
+cite = "Forever spell data: Searing Totem's Attack (3606, 6350, ...) has a 2.2 s cast"
+applies = ["shaman"]
+
+[options.shaman_magma_interval]
+default = 2
+unit = "sec"
+label = "Seconds between Magma Totem pulses"
+help = "The game’s spell data gives the pulse’s damage but not how often it fires. The original game pulsed every 2 seconds."
+desc = "Seconds between Magma Totem pulses"
+source = "classic"
+cite = "Classic tooltip: “every 2 seconds”; Forever's spell data lists no period"
+applies = ["shaman"]
+
+[options.shaman_windfury_totem_chance]
+default = 0.2
+kind = "pct"
+label = "Windfury Totem chance per hit"
+help = "The game’s spell data gives the extra attack but not its chance. The original game used 20%."
+desc = "Windfury Totem extra-attack chance per main-hand hit"
+source = "classic"
+cite = "Not in Forever's spell data (8516 has the attack, not the chance); Classic was 20%"
+applies = ["shaman"]
+
+[options.shaman_totem_imbue_stack]
+default = 0
+kind = "toggle"
+label = "Windfury and Flametongue Totems work alongside the matching weapon imbue"
+help = "In Forever these totems are party buffs, not weapon enchants. Untested whether Windfury Totem procs while Windfury Weapon is on your weapon (or Flametongue Totem alongside Flametongue Weapon); the original game allowed only one."
+desc = "1 = Windfury Totem and Flametongue Totem also work while Windfury Weapon or Flametongue Weapon is on your main hand"
+source = "estimate"
+cite = "Forever made these totems party buffs; Classic's totem enchant replaced the imbue"
+applies = ["shaman"]
+
+[options.shaman_spirit_weapons_parry]
+default = 5
+unit = "%"
+label = "Parry chance from Spirit Weapons"
+help = "The tooltip says it gives “a chance to parry” without a number. Learning Parry in the original game gave 5%."
+desc = "Parry chance (%) Spirit Weapons gives"
+source = "classic"
+cite = "Forever tooltip: “a chance to parry”; Classic base parry 5%"
+applies = ["shaman"]
+
+[options.warrior_flurry_duration]
+default = 15
+unit = "sec"
+label = "Seconds Flurry lasts if its 3 swings are not used"
+help = "The tooltip gives the 3 swings but no time limit. The original game used 15 seconds."
+desc = "Flurry duration in seconds (it also ends after 3 swings)"
+source = "classic"
+cite = "Forever tooltip: “next 3 swings”, no duration; Classic Flurry lasted 15 sec"
+applies = ["warrior"]
+
+[options.warrior_heroic_strike_threat]
+default = 1.3
+unit = "x"
+label = "Heroic Strike threat, as a multiple of its damage"
+help = "The game gives Heroic Strike extra threat, but its spell data does not say how much."
+desc = "Threat multiplier on Heroic Strike damage"
+source = "estimate"
+cite = "Not in Forever's spell data; Classic added a flat amount of threat"
+applies = ["warrior"]
+
+[options.warrior_thunder_clap_threat]
+default = 2.5
+unit = "x"
+label = "Thunder Clap threat, as a multiple of its damage"
+help = "The game gives Thunder Clap extra threat, but its spell data does not say how much."
+desc = "Threat multiplier on Thunder Clap damage"
+source = "estimate"
+cite = "Not in Forever's spell data; Classic used 1.75x to 2.5x depending on the patch"
+applies = ["warrior"]
+
+[options.warrior_revenge_threat]
+default = 2.0
+unit = "x"
+label = "Revenge threat, as a multiple of its damage"
+help = "The game gives Revenge extra threat, but its spell data does not say how much."
+desc = "Threat multiplier on Revenge damage"
+source = "estimate"
+cite = "Not in Forever's spell data; Classic added a flat amount of threat"
+applies = ["warrior"]
+
+[options.warrior_shield_slam_threat]
+default = 2.5
+unit = "x"
+label = "Shield Slam threat, as a multiple of its damage"
+help = "The game gives Shield Slam extra threat, but its spell data does not say how much."
+desc = "Threat multiplier on Shield Slam damage"
+source = "estimate"
+cite = "Not in Forever's spell data; Classic added a flat amount of threat"
+applies = ["warrior"]
+
+[options.hunter_pet_claw_interval]
+default = 4
+unit = "sec"
+label = "Seconds between a hunter pet’s Claws"
+help = "Pet focus isn’t simulated. Claw costs 25 focus and pets regain about 6 focus a second, so a pet can Claw about every 4 seconds. Bestial Discipline makes it up to 20% sooner."
+desc = "Seconds between Claws for a hunter pet without Bestial Discipline (stands in for pet focus)"
+source = "estimate"
+cite = "Claw costs 25 focus in Forever's spell data; about 6 focus a second is the original game's pet regeneration"
+applies = ["hunter"]
+
+[options.hunter_pet_ability_ap]
+default = 0.0714
+kind = "pct"
+label = "Share of the pet’s attack power added to Claw"
+help = "Not on the tooltip. 1/14 of attack power is what one second of a weapon swing gets from it."
+desc = "Share of the pet's attack power added to each Claw"
+source = "estimate"
+cite = "Not in Forever's spell data; AP/14 per second of weapon speed is the original game's melee rule"
+applies = ["hunter"]
+
+[options.rogue_eviscerate_ap]
+default = 0.03
+kind = "pct"
+label = "Share of attack power Eviscerate adds per combo point"
+help = "The tooltip says Eviscerate is “increased by Attack Power” but gives no number. 3% a combo point (15% at 5 points) is the value from The Burning Crusade."
+desc = "Eviscerate: share of attack power added per combo point"
+source = "estimate"
+cite = "Forever tooltip (Eviscerate 2098-11300): “increased by Attack Power”, no coefficient in the spell data; TBC used 3% per combo point"
+applies = ["rogue"]
+
+[options.rogue_rupture_ap]
+default = 1.0
+kind = "pct"
+label = "Rupture attack power scaling, compared with The Burning Crusade’s"
+help = "The tooltip says Rupture is “increased by your Attack Power” but gives no number. At 100%, a full Rupture adds 4%, 10%, 18%, 21% and 24% of your attack power at 1 to 5 combo points, as it did in The Burning Crusade. 0% means no attack power scaling."
+desc = "Rupture: attack power scaling as a share of TBC's (4/10/18/21/24% of AP over the full duration at 1-5 combo points)"
+source = "estimate"
+cite = "Forever tooltip (Rupture 1943-11275): “increased by your Attack Power”, no coefficient in the spell data"
+applies = ["rogue"]
+
+[options.rogue_garrote_ap]
+default = 0.18
+kind = "pct"
+label = "Share of attack power a full Garrote adds"
+help = "The tooltip says Garrote is “increased by your Attack Power” but gives no number. 18% over the full 18 seconds is the value from The Burning Crusade."
+desc = "Garrote: share of attack power added over the full duration"
+source = "estimate"
+cite = "Forever tooltip (Garrote 703-11290): “increased by your Attack Power”, no coefficient in the spell data"
+applies = ["rogue"]
+
+[options.rogue_mutilate_offhand_penalty]
+default = 1
+kind = "toggle"
+label = "Mutilate’s off-hand strike takes the off-hand damage cut"
+help = "In the original game every off-hand weapon strike deals half damage (more with Dual Wield Specialization), flat bonus included. Forever’s spell data doesn’t say whether Mutilate is an exception."
+desc = "1 = Mutilate's off-hand strike is scaled by the off-hand damage multiplier (50%, raised by Dual Wield Specialization)"
+source = "classic"
+cite = "Classic rules: off-hand weapon damage is halved for all attacks; Mutilate's off-hand strike (1310705/1310706) has no exception in the spell data"
+applies = ["rogue"]
+
+[options.druid_rake_ap_direct]
+default = 0.01
+kind = "pct"
+label = "Share of attack power Rake's hit adds"
+help = "Forever's spell data has no attack power bonus for Rake; the game works it out on its servers. 1% is the value the sim has always used for the hit."
+desc = "Rake: share of attack power added to the initial hit"
+source = "classic"
+cite = "No attack power coefficient in the spell data for Rake (1822, 1823, 1824, 9904); the sim's earlier value"
+applies = ["druid"]
+
+[options.druid_rake_ap]
+default = 0.06
+kind = "pct"
+label = "Share of attack power a full Rake bleed adds"
+help = "Forever's spell data has no attack power bonus for Rake's bleed. 6% over the full 9 seconds is the value the sim has always used."
+desc = "Rake: share of attack power added over the bleed's full 9 sec"
+source = "classic"
+cite = "No attack power coefficient in the spell data for Rake (1822, 1823, 1824, 9904); the sim's earlier value"
+applies = ["druid"]
+
+[options.druid_rip_ap]
+default = 0.048
+kind = "pct"
+label = "Share of attack power Rip adds per combo point"
+help = "Forever's spell data has no attack power bonus for Rip. 4.8% per combo point over the full 12 seconds (24% at five) is the value the sim has always used."
+desc = "Rip: share of attack power per combo point, over the full 12 sec"
+source = "classic"
+cite = "No attack power coefficient in the spell data for Rip (1079 ... 9896); the sim's earlier value"
+applies = ["druid"]
+
+[options.druid_bite_ap]
+default = 0.03
+kind = "pct"
+label = "Share of attack power Ferocious Bite adds per combo point"
+help = "Forever's spell data has no attack power bonus for Ferocious Bite. 3% per combo point is the value the sim has always used."
+desc = "Ferocious Bite: share of attack power per combo point"
+source = "classic"
+cite = "No attack power coefficient in the spell data for Ferocious Bite (22568 ... 31018); the sim's earlier value"
+applies = ["druid"]
+
+[options.druid_lacerate_ap]
+default = 0.05
+kind = "pct"
+label = "Share of attack power each Lacerate stack adds"
+help = "Forever's spell data has no attack power bonus for Lacerate. 5% per stack over the full 15 seconds is our guess."
+desc = "Lacerate: share of attack power per stack, over the full 15 sec"
+source = "estimate"
+cite = "No attack power coefficient in the spell data for Lacerate (414644, 1235826, 1235827)"
+applies = ["druid"]
+
+[options.druid_swipe_ap]
+default = 0.03
+kind = "pct"
+label = "Share of attack power Swipe adds"
+help = "Blizzard's patch notes say Swipe now gains 3% of your attack power. The spell data itself carries no number for it."
+desc = "Swipe: share of attack power added to each target's damage"
+source = "game"
+cite = "Forever patch notes: Swipe gains 3% of attack power; no coefficient in the spell data (779 ... 9908)"
+applies = ["druid"]
+
+[options.druid_thorns_sp]
+default = 0.06
+kind = "pct"
+label = "Share of spell power Thorns adds to each hit"
+help = "Blizzard's Oct 8 patch notes cut Thorns' spell power ratio from 13.3% to 6%. The spell data itself carries no number for it."
+desc = "Thorns: spell power coefficient of each reflected hit"
+source = "game"
+cite = "Forever patch notes (Oct 8): Thorns spell power ratio 6%, was 13.3%; no coefficient in the spell data (467 ... 9910)"
+applies = ["druid"]
+
+[options.druid_frenzied_regen]
+default = 1
+unit = "%"
+label = "Health from each Rage spent by Frenzied Regeneration, as a share of maximum health"
+help = "Frenzied Regeneration turns up to 10 Rage a second into health. The game's spell data doesn't say how much health each point gives, so 1% of your maximum health is our guess."
+desc = "Frenzied Regeneration: % of maximum health per Rage converted"
+source = "estimate"
+cite = "Frenzied Regeneration (22842) triggers a heal (22845) with no amount in the spell data"
+applies = ["druid"]
+
+[options.druid_maul_threat]
+default = 1.75
+unit = "x"
+label = "Maul threat, as a multiple of its damage"
+help = "No scenario uses threat yet. 1.75 times the damage is the original game's value."
+desc = "Maul: threat as a multiple of damage"
+source = "classic"
+cite = "Not in Forever's spell data (threat lives on the server)"
+applies = ["druid"]
+
+[options.druid_primal_bite_threat]
+default = 2.5
+unit = "x"
+label = "Primal Bite threat, as a multiple of its damage"
+help = "No scenario uses threat yet. The tooltip only says “high threat”, so 2.5 times the damage is our guess."
+desc = "Primal Bite: threat as a multiple of damage"
+source = "estimate"
+cite = "Forever tooltip: “high threat”; no number in the spell data"
+applies = ["druid"]
+
+[options.druid_lacerate_threat]
+default = 100
+label = "Threat from each Lacerate"
+help = "No scenario uses threat yet. The game gives no number, so 100 threat per application is our guess."
+desc = "Lacerate: flat threat per application"
+source = "estimate"
+cite = "Not in Forever's spell data (threat lives on the server)"
+applies = ["druid"]
+
+[options.warlock_agony_ramp]
+default = 1
+kind = "toggle"
+label = "Bane of Agony starts weak and builds up"
+help = "In the original game Curse of Agony’s first 4 ticks dealt half, the last 4 one and a half times the listed amount, for the same total. The game’s spell data lists one amount per tick and can’t show this either way."
+desc = "1 = Bane of Agony ticks 1-4 deal 50%, 5-8 100%, 9-12 150%"
+source = "classic"
+cite = "Classic server behaviour for Curse of Agony; Forever spell data (980 to 11713) lists a flat amount per tick"
+applies = ["warlock"]
+
+[options.warlock_healthstone_cooldown]
+default = 120
+unit = "sec"
+label = "Seconds between Healthstones"
+help = "The cooldown sits on the Healthstone item, which the spell data doesn’t include. The original game used 2 minutes."
+desc = "Healthstone cooldown in seconds"
+source = "classic"
+cite = "Not in Forever's spell data (the heal spells 6262 to 11732 have no cooldown); Classic Healthstones had a 2 min cooldown"
+applies = ["warlock"]
+
+[options.warlock_searing_pain_threat]
+default = 2
+unit = "x"
+label = "Searing Pain threat, as a multiple of its damage"
+help = "Searing Pain causes extra threat, but its spell data does not say how much. The original game doubled it."
+desc = "Threat multiplier on Searing Pain damage"
+source = "classic"
+cite = "Not in Forever's spell data; Classic Searing Pain caused double threat"
+applies = ["warlock"]
+
+[options.paladin_soc_ppm]
+default = 7
+unit = "per minute"
+label = "Seal of Command procs per minute"
+help = "Forever’s spell data lists the seal at 100% per hit with a 1 sec cooldown, but the game keeps proc rates per minute on its servers (no spell in the data has one). The original game used 7 per minute."
+desc = "Seal of Command procs per minute (chance per hit = this × weapon speed ÷ 60), at most once per second"
+source = "classic"
+cite = "Classic 1.12: 7 procs per minute; Forever spell 20375 lists a 1 sec proc cooldown and no rate"
+applies = ["paladin"]
+
+[options.paladin_sor_speed_fast]
+default = 1.5
+unit = "sec"
+label = "Seal of Righteousness: weapon speed for the low end of its tooltip range"
+help = "The tooltip gives a damage range per swing and says slower weapons do more. We read the low end as a 1.5 sec weapon, the high end as a 4.0 sec one, and scale in between."
+desc = "Weapon speed at which Seal of Righteousness does the low end of its tooltip range"
+source = "estimate"
+cite = "Forever tooltip: “Slower weapons cause more Holy damage per swing”; the range is the seal value ÷ 87 to ÷ 25"
+applies = ["paladin"]
+
+[options.paladin_sor_speed_slow]
+default = 4.0
+unit = "sec"
+label = "Seal of Righteousness: weapon speed for the high end of its tooltip range"
+help = "See the option above. Slower weapons than this get the top of the range."
+desc = "Weapon speed at which Seal of Righteousness does the high end of its tooltip range"
+source = "estimate"
+cite = "Forever tooltip: “Slower weapons cause more Holy damage per swing”"
+applies = ["paladin"]
+
+[options.paladin_sor_rank8_coef]
+default = 0.1
+label = "Seal of Righteousness rank 8: spell power per hit"
+help = "Ranks 1 to 7 get 10% of your spell power per hit in Forever’s data; rank 8 lists nothing, which looks like an omission. Set 0 to take the data literally."
+desc = "Spell power coefficient per hit of Seal of Righteousness rank 8"
+source = "estimate"
+cite = "Forever spell 20293 has no coefficient; 20154 to 20292 have 0.1"
+applies = ["paladin"]
+
+[options.paladin_judgement_proc_chance]
+default = 0.5
+kind = "pct"
+label = "Judgement of Light and Judgement of Wisdom chance per hit"
+help = "The tooltips say attacks on the judged enemy have “a chance” to heal or restore mana. The original game is usually quoted at about 50%."
+desc = "Chance per melee hit on a target with Judgement of Light or Wisdom for the attacker to be healed or get mana"
+source = "estimate"
+cite = "Forever tooltip: “a chance”; Classic players’ reports of about 50%"
+applies = ["paladin"]
+
+[options.paladin_vindication_chance]
+default = 0.2
+kind = "pct"
+label = "Vindication chance per hit"
+help = "The tooltip only says “a chance”. Each hit that triggers it gives you 1% attack power per rank for 30 sec, and lowers the target's attack power, which only matters against players: monsters here deal fixed damage."
+desc = "Chance per melee hit for Vindication to trigger (target loses attack power, you gain 1-3% attack power)"
+source = "estimate"
+cite = "Forever tooltip: “a chance”"
+applies = ["paladin"]
+
+[options.warrior_dws_offhand_rage]
+default = 0
+kind = "pct"
+label = "Extra off-hand Rage per rank of Dual Wield Specialization"
+help = "Blizzard’s beta notes say the talent no longer gives off-hand Rage, and the talent’s spell shows none. The game’s talent tree data and the talent calculator’s tooltip still say 10% per rank."
+desc = "Off-hand Rage bonus per rank of Dual Wield Specialization (0.1 = the talent tree's 10% per rank)"
+source = "game"
+cite = "Blizzard beta notes (Oct 1) and spell 23584: none; trait data and tooltip: +10% per rank (trait data also lists +2% off-hand hit per rank, which the notes removed too)"
+applies = ["warrior"]
+
+[options.warlock_fire_and_brimstone]
+default = 10
+unit = "%"
+label = "Fire and Brimstone Incinerate bonus at 3 points"
+help = "Extra Incinerate damage on targets with your Immolate. The talent tooltip only mentions Conflagrate’s crit chance, but the talent’s data in the game files also scales a hidden value to 3%, 7% and 10% by rank: the bonus the rune this spell comes from gave Incinerate. Set it to 0 if the game turns out to ignore it."
+desc = "Fire and Brimstone: % more Incinerate damage on targets with your Immolate, at 3/3 (3, 7, 10 by rank)"
+source = "game"
+cite = "Trait data (talent spell 412751, effect 0): 3, 7, 10 by rank; the talent tooltip (wowforevertalents.com) mentions only Conflagrate's crit"
+applies = ["warlock"]
+
+[options.mage_ice_lance_coef]
+default = 0
+kind = "num"
+label = "Ice Lance: spell power coefficient"
+help = "Forever’s Ice Lance ranks list no spell power coefficient, so by default Ice Lance does not grow with spell power. The Burning Crusade gave it 0.143. To check on the beta, cast Ice Lance with and without spell power gear."
+desc = "Share of spell power added to Ice Lance (before its 4x against frozen targets)"
+source = "game"
+cite = "Ice Lance spells 1312002, 400640 and 1240044 to 1240047 (build 70338) have no coefficient; Frostbolt and Frostfire Bolt in the same data have 0.814"
+applies = ["mage"]
+
+[options.rage_taken_mult]
+default = 1.0
+unit = "x"
+label = "Rage from taking damage, compared with the original game"
+help = "Forever rebalanced it to values “in the 20% to 40% range, varying by level” without publishing them; 1 keeps the original game’s formula."
+desc = "Multiplier on rage gained from damage taken"
+source = "estimate"
+cite = "Beta notes, Oct 8: “We have rebalanced Rage gains based on appropriate values per level in the 20% to 40% range, varying by level”"
+applies = ["warrior", "druid"]
+
+[options.wand_spell_crit]
+default = 0
+kind = "toggle"
+label = "Wands crit with spell critical strike chance"
+help = "Players report Agility raising wand crits, so by default a wand shot uses your ranged critical strike chance. Turn this on to use your spell critical strike chance instead."
+desc = "1 = wand shots use spell crit chance instead of ranged crit chance"
+source = "community"
+cite = "Blizzard forum threads on wand crits (us.forums.blizzard.com/en/wow/t/2016150, eu.forums.blizzard.com/en/wow/t/110741); vmangos uses ranged crit for Shoot"
+applies = ["priest", "mage", "warlock"]
+
+[options.wand_melee_crit]
+default = 0
+kind = "toggle"
+label = "Wand crits deal double damage"
+help = "Wand shots are magic attacks, so their critical strikes most likely deal 150% damage, like spells. Turn this on for 200%, like weapon attacks."
+desc = "1 = wand crits deal 200% instead of 150%"
+source = "estimate"
+cite = "vmangos gives magic attacks, wands included, the spell crit bonus; no test from the original game found"
+applies = ["priest", "mage", "warlock"]

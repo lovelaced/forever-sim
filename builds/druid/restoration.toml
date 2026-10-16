@@ -1,0 +1,47 @@
+# The healing druid: Rejuvenation, Regrowth and Swiftmend with Nature's Swiftness at 32 and Wild Growth
+# at 40, solo with Moonfire and Starfire. Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Warcraft Tavern, Druid leveling guide ("Mid-Level Restoration", 26 points: the order here for
+#   10-35; "Leveling primarily as a healer is not recommended due to their slow kill times"):
+#   https://www.warcrafttavern.com/forever/guides/druid-leveling/
+# - Warcraft Tavern, Restoration druid guide (key talents: Gift of the Earthmother, Wild Growth,
+#   Nature's Splendor; healing priority; Skyborne for the race):
+#   https://www.warcrafttavern.com/forever/guides/restoration-druid/
+# - Mobalytics, Druid leveling guide (Resto 21 points with the same core; read from search excerpts,
+#   the page refuses automated readers): https://mobalytics.gg/wow-forever/classes/druid-leveling-guide
+# - wow.gg, Restoration beta guide: https://wow.gg/guides/wow-forever-restoration-druid-beta
+# No guide has a level 60 Restoration build yet. From 36 this one takes Gift of the Earthmother,
+# Improved Regrowth, Wild Growth at 40 and Tranquil Spirit, then a Balance dip for Genesis, Moonglow,
+# Nature's Majesty, Nature's Splendor and Improved Moonfire: 13/0/38.
+# Race: High Order Skyborne (Alliance). Warcraft Tavern's Restoration guide gives Skyborne the edge for
+# Read Leyline (mana; not simulated); Wind Blessed gives 3% haste since build 70425.
+name = "Restoration"
+kind = "standard"
+role = "healer"
+class = "druid"
+race = "high_order"
+level = 60
+gear = "leather_caster"
+rotation = "restoration"
+
+order = [
+  "natures_focus", "natures_focus", "natures_focus", "natures_focus", "natures_focus",        # 10-14
+  "naturalist", "naturalist", "naturalist", "naturalist", "naturalist",                       # 15-19
+  "reflection", "reflection", "reflection",                                                   # 20-22
+  "gift_of_nature", "gift_of_nature", "gift_of_nature", "gift_of_nature", "gift_of_nature",   # 23-27
+  "swiftmend",                                                                                # 28
+  "improved_rejuvenation", "improved_rejuvenation", "improved_rejuvenation",                  # 29-31
+  "natures_swiftness",                                                                        # 32
+  "living_spirit", "living_spirit", "living_spirit",                                          # 33-35
+  "gift_of_the_earthmother",                                                                  # 36
+  "improved_regrowth", "improved_regrowth", "improved_regrowth",                              # 37-39
+  "wild_growth",                                                                              # 40
+  "improved_regrowth", "improved_regrowth",                                                   # 41-42
+  "tranquil_spirit", "tranquil_spirit", "tranquil_spirit", "tranquil_spirit", "tranquil_spirit", # 43-47
+  "genesis", "genesis", "genesis", "genesis", "genesis",                                      # 48-52
+  "moonglow", "moonglow", "moonglow",                                                         # 53-55
+  "natures_majesty", "natures_majesty",                                                       # 56-57
+  "natures_splendor",                                                                         # 58
+  "improved_moonfire", "improved_moonfire",                                                   # 59-60
+]

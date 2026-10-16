@@ -1,0 +1,47 @@
+# The tank: one-hander and shield in Defensive Stance, with Shield Specialization, Revenge and Thunder
+# Clap first, Concussion Blow at 30 and Shield Slam at 40. Here it plays solo; level 60 points are
+# theorycrafted until launch.
+
+# Sources:
+# - Method, Warrior leveling guide (Protection order: Shield Specialization, Improved Thunder Clap,
+#   Improved Bloodrage, then Master of Defense and Improved Revenge at 20, then Vanguard):
+#   https://www.method.gg/wow-forever/wow-forever-warrior-leveling-guide-and-talents
+# - Warcraft Tavern, Warrior guide (Protection 0/0/26 at 30):
+#   https://www.warcrafttavern.com/forever/guides/warrior/
+# - stillsixty, Protection (level 30 dungeon tank, the 6/0/45 raid tank at 60, Dwarf):
+#   https://www.stillsixty.com/classes/warrior/protection
+# - wow.gg, Protection Warrior (level 20 build): https://wow.gg/guides/wow-forever-protection-warrior-beta
+# - Blizzard forums, "Try prot from level 16" (Revenge and Shield Specialization as the core):
+#   https://us.forums.blizzard.com/en/wow/t/frustrated-with-warrior-leveling-try-prot-from-level-16/2375568
+# Race: Dwarf, stillsixty's first pick for tanks: Stoneform takes 10% less physical damage.
+name = "Protection"
+kind = "standard"
+role = "tank"
+class = "warrior"
+race = "dwarf"
+level = 60
+gear = "plate_tank"
+rotation = "prot_shield"
+
+order = [
+  "shield_specialization", "shield_specialization", "shield_specialization",
+  "shield_specialization", "shield_specialization",                             # 10-14
+  "improved_thunder_clap", "improved_thunder_clap", "improved_thunder_clap",    # 15-17
+  "improved_bloodrage", "improved_bloodrage",                                   # 18-19
+  "master_of_defense", "master_of_defense",                                     # 20-21
+  "improved_revenge", "improved_revenge", "improved_revenge",                   # 22-24
+  "vanguard",                                                                   # 25
+  "defiance", "defiance", "defiance",                                           # 26-28
+  "last_stand",                                                                 # 29
+  "concussion_blow",                                                            # 30
+  "focused_rage", "focused_rage", "focused_rage",                               # 31-33
+  "improved_sunder_armor",                                                      # 34
+  "bastion", "bastion", "bastion", "bastion", "bastion",                        # 35-39
+  "shield_slam",                                                                # 40
+  "improved_sunder_armor", "improved_sunder_armor",                             # 41-42
+  "anticipation", "anticipation", "anticipation", "anticipation", "anticipation",  # 43-47
+  "improved_shield_wall", "improved_shield_wall",                               # 48-49
+  "iron_will", "iron_will", "iron_will", "iron_will", "iron_will",              # 50-54
+  "deflection", "deflection", "deflection", "deflection", "deflection",        # 55-59
+  "improved_heroic_strike",                                                     # 60
+]

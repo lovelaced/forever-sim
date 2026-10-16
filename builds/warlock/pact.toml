@@ -1,6 +1,7 @@
 # "Pact" warlock, 20/31/0: sacrifice the Voidwalker for mana, keep it with
 # Demonic Pact, fight with the Felhunter, Soul Link, Demonic Knowledge.
 name = "Pact (20/31)"
+kind = "experimental"
 class = "warlock"
 race = "undead"
 level = 60
@@ -11,7 +12,10 @@ rotation = "pact"
 improved_corruption = 5
 suppression = 5
 improved_drains = 3
-malediction = 2
+# Build 70425 replaced Malediction (2 points) with Grim Reach (range only).
+# The 2 points go to Improved Life Tap (+20% mana from Life Tap), which suits
+# this build's sustain play better than a range talent the sim ignores.
+improved_life_tap = 2
 improved_bane_of_agony = 2
 pandemic = 3
 demonic_embrace = 5

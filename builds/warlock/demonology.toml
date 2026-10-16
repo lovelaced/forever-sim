@@ -1,0 +1,64 @@
+# Demonology with the Succubus: Searing Pain brands the target for the demon's attacks, then DoTs, Searing
+# Pain as the filler, Soul Link and Demonic Knowledge. From 40, Demonic Pact keeps the sacrificed Imp's
+# Burning Shadow while the Succubus fights, and Shadow Bolt with Destruction's Bane, Improved Shadow Bolt
+# and Ruin takes over. Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - Warcraft Tavern, Demonology Warlock guide (level 30: Unholy Power, Demonic Brand, Demonic Knowledge
+#   and Soul Link, the Succubus as tank, Searing Pain as the filler):
+#   https://www.warcrafttavern.com/forever/guides/demonology-warlock/
+# - Warcraft Tavern, Warlock guide (Demonic Pact: sacrifice the Imp, keep the Sayaad out):
+#   https://www.warcrafttavern.com/forever/guides/warlock/
+# - talentsforever.com, Demonology Warlock builds (the most planned Demonology builds go to Demonic Pact
+#   with about 19 points in Destruction) and the Demonology leveling order to level 39:
+#   https://talentsforever.com/warlock/builds/demonology and https://talentsforever.com/warlock/leveling
+# - Method, WoW Forever Warlock Leveling Guide (Demonology: Soul Fire with Decimation; Method starts with
+#   4 points in Suppression instead):
+#   https://www.method.gg/wow-forever/wow-forever-warlock-leveling-guide-and-talents
+# Levels 10 to 39 follow talentsforever.com's Demonology order, which holds Warcraft Tavern's level 30
+# talents. Theorycrafted (40 to 60): Demonic Pact at 40, the last Master Demonologist point, then 19
+# points in Destruction (Bane, Improved Shadow Bolt, Ruin, Shadowburn, Agonizing Flames), as in the most
+# planned Demonology and Destruction builds.
+# Race: Undead, Warcraft Tavern's best Horde warlock: Cannibalize and Touch of the Grave help a warlock
+# whose demon does not hold the monsters.
+name = "Demonology"
+kind = "standard"
+class = "warlock"
+race = "undead"
+level = 60
+gear = "cloth_caster"
+rotation = "demonology"
+
+order = [
+  "unholy_power", "unholy_power", "unholy_power", "unholy_power", "unholy_power",   # 10-14
+  "demonic_energies", "demonic_energies", "fel_vitality", "fel_vitality", "fel_vitality",   # 15-19
+  "improved_sayaad", "improved_sayaad", "improved_sayaad", "master_summoner", "master_summoner",   # 20-24
+  "demonic_sacrifice", "demonic_brand", "demonic_brand", "demonic_brand", "fel_domination",   # 25-29
+  "decimation", "decimation", "soul_link", "demonic_knowledge", "demonic_knowledge",   # 30-34
+  "demonic_knowledge", "master_demonologist", "master_demonologist", "master_demonologist", "master_demonologist",   # 35-39
+  "demonic_pact", "master_demonologist", "bane", "bane", "bane",   # 40-44
+  "bane", "bane", "improved_shadow_bolt", "improved_shadow_bolt", "improved_shadow_bolt",   # 45-49
+  "improved_shadow_bolt", "improved_shadow_bolt", "ruin", "ruin", "ruin",   # 50-54
+  "ruin", "ruin", "shadowburn", "agonizing_flames", "agonizing_flames",   # 55-59
+  "agonizing_flames",   # 60
+]
+
+[talents]
+unholy_power = 5
+demonic_energies = 2
+fel_vitality = 3
+improved_sayaad = 3
+master_summoner = 2
+demonic_sacrifice = 1
+demonic_brand = 3
+fel_domination = 1
+decimation = 2
+soul_link = 1
+demonic_knowledge = 3
+master_demonologist = 5
+demonic_pact = 1
+bane = 5
+improved_shadow_bolt = 5
+ruin = 5
+shadowburn = 1
+agonizing_flames = 3

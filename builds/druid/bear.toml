@@ -1,5 +1,6 @@
 # Bear tank (Feral 35 / Restoration 16) with Swiftmend for emergencies.
 name = "Bear (35/0/16)"
+kind = "experimental"
 class = "druid"
 race = "tauren"
 level = 60

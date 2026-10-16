@@ -1,28 +1,65 @@
-# Retribution, 20/0/31: Seal of Command, Vengeance, Twist of Light.
-name = "Retribution (20/0/31)"
+# The two-handed damage build: Seal of Command, Sanctified Judgement and Vengeance, Twist of Light at 40,
+# then Toughness, Precision and a few Holy points. It fights with Seal of Command, Judgement, Holy Strike
+# and Consecration. Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - talentsforever.com, Paladin leveling orders (the most planned Retribution order, levels 10 to 49) and
+#   Paladin builds (the most used level 60 Retribution build, 8/8/35, which this build ends on):
+#   https://talentsforever.com/paladin/leveling and https://talentsforever.com/paladin/builds
+# - Warcraft Tavern, WoW Forever Paladin Guide (the 26-point Seal of Command build: Benediction and
+#   Conviction, Pursuit of Justice, Sanctified Judgement, Sacred Arbiter, Improved Judgement, then
+#   Vengeance and Two-Handed Weapon Specialization): https://www.warcrafttavern.com/forever/guides/paladin/
+# - Method, WoW Forever Paladin Leveling Guide (Seal of Righteousness, Judgement, Holy Strike; Twist of
+#   Light as the Retribution capstone):
+#   https://www.method.gg/wow-forever/wow-forever-paladin-leveling-guide-and-talents
+# Levels 10 to 45 follow the planner's order, which agrees with Warcraft Tavern's build. Theorycrafted
+# (46 to 60): Precision 3, Holy Conduit 2, Instrument of Law 2, Divine Strength 5 and Improved Seals 3,
+# which complete the 8/8/35 build.
+# Race: Undead, the Horde paladin (Icy Veins' race breakdown picks it for Horde, Human for Alliance):
+# Touch of the Grave and Cannibalize.
+# https://www.icy-veins.com/wow-forever/news/best-race-for-every-class-in-wow-forever-watch-our-breakdown/
+name = "Retribution"
+kind = "standard"
 class = "paladin"
 race = "undead"
 level = 60
 gear = "plate_ret"
 rotation = "retribution"
 
+order = [
+  "benediction", "benediction", "benediction", "benediction", "benediction",
+  "conviction", "conviction", "conviction", "conviction", "conviction",
+  "improved_judgement", "improved_judgement", "seal_of_command", "sanctified_judgement", "sanctified_judgement",
+  "sanctified_judgement", "pursuit_of_justice", "pursuit_of_justice", "sacred_arbiter", "vindication",
+  "vengeance",
+  "vengeance", "vengeance", "two_handed_weapon_specialization", "two_handed_weapon_specialization",
+  "two_handed_weapon_specialization", "repentance", "champion_of_the_light", "champion_of_the_light",
+  "champion_of_the_light",
+  "twist_of_light",
+  "toughness", "toughness", "toughness", "toughness", "toughness",
+  "precision", "precision", "precision", "holy_conduit", "holy_conduit",
+  "instrument_of_law", "instrument_of_law",
+  "divine_strength", "divine_strength", "divine_strength", "divine_strength", "divine_strength",
+  "improved_seals", "improved_seals", "improved_seals",
+]
+
 [talents]
-divine_strength = 5
-divine_intellect = 5
-improved_seals = 3
-healing_light = 2
-reverence = 3
-purifying_power = 2
 benediction = 5
-improved_judgement = 2
 conviction = 5
-holy_conduit = 1
+improved_judgement = 2
 seal_of_command = 1
 sanctified_judgement = 3
+pursuit_of_justice = 2
 sacred_arbiter = 1
-eye_for_an_eye = 2
-two_handed_weapon_specialization = 3
+vindication = 1
 vengeance = 3
+two_handed_weapon_specialization = 3
+repentance = 1
 champion_of_the_light = 3
-instrument_of_law = 1
 twist_of_light = 1
+toughness = 5
+precision = 3
+holy_conduit = 2
+instrument_of_law = 2
+divine_strength = 5
+improved_seals = 3

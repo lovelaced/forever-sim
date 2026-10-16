@@ -1,0 +1,65 @@
+# The healing build: shields and Meditation, Penance at 30, Renewed Hope and Divine Aegis, and Power
+# Infusion at 40, then Holy Specialization and Divine Fury. Solo it opens with a shield and Holy Fire, uses
+# Shadow Word: Pain, Penance, Mind Blast and Smite, and finishes with the wand.
+# Level 60 points are theorycrafted until launch.
+
+# Sources:
+# - talentsforever.com, Priest leveling orders (the most planned Discipline order, levels 10 to 49) and
+#   Priest builds (the most used healing Discipline build at 60, 33/18/0):
+#   https://talentsforever.com/priest/leveling and https://talentsforever.com/priest/builds
+# - Warcraft Tavern, WoW Forever Priest Leveling Guide (level 30 Discipline build with Penance; Shield,
+#   Smite, Shadow Word: Pain, Penance, wand): https://www.warcrafttavern.com/forever/guides/priest-leveling/
+# - Method, WoW Forever Priest Leveling Guide (Penance at 30; Shield, Holy Fire, Shadow Word: Pain,
+#   Penance, wand): https://www.method.gg/wow-forever/wow-forever-priest-leveling-guide-and-talents
+# - Warcraft Tavern, WoW Forever Priest Guide (races; the healing route ends with Power Infusion):
+#   https://www.warcrafttavern.com/forever/guides/priest/
+# The planner's order was made on the 70338 trees. Build 70425 moved Improved Power Word: Shield to row 3
+# and Mental Strength to row 2, so Mental Strength now comes before the shield talent, and Penance lands
+# at 30 as both guides take it. Theorycrafted (50 to 60): the last Mental Agility points, Improved Renew,
+# Inspiration and Improved Healing, which complete the 33/18/0 build. That build puts 2 points in Silent
+# Resolve where this one keeps the leveling Wand Specialization.
+# Race: Night Elf, which Warcraft Tavern calls the strongest priest race: Elune's Light adds 10% crit for
+# 15 sec (Starshards is not in the sim).
+name = "Discipline"
+kind = "standard"
+role = "healer"
+class = "priest"
+race = "night_elf"
+level = 60
+gear = "cloth_healer"
+rotation = "smite"
+
+order = [
+  "twin_disciplines", "twin_disciplines", "twin_disciplines", "twin_disciplines", "twin_disciplines",
+  "wand_specialization", "wand_specialization", "mental_strength", "mental_strength", "mental_strength",
+  "improved_power_word_shield", "improved_power_word_shield", "improved_power_word_shield", "meditation", "meditation",
+  "meditation", "inner_focus", "mental_agility", "soul_warding", "mental_strength",
+  "penance",
+  "mental_strength", "renewed_hope", "renewed_hope", "renewed_hope", "renewed_hope",
+  "renewed_hope", "divine_aegis", "divine_aegis", "divine_aegis",
+  "power_infusion",
+  "holy_specialization", "holy_specialization", "holy_specialization", "holy_specialization", "holy_specialization",
+  "divine_fury", "divine_fury", "divine_fury", "divine_fury", "divine_fury",
+  "mental_agility", "mental_agility", "improved_renew", "improved_renew",
+  "inspiration", "inspiration", "inspiration",
+  "improved_healing", "improved_healing", "improved_healing",
+]
+
+[talents]
+twin_disciplines = 5
+wand_specialization = 2
+mental_strength = 5
+improved_power_word_shield = 3
+meditation = 3
+inner_focus = 1
+mental_agility = 3
+soul_warding = 1
+penance = 1
+renewed_hope = 5
+divine_aegis = 3
+power_infusion = 1
+holy_specialization = 5
+divine_fury = 5
+improved_renew = 2
+inspiration = 3
+improved_healing = 3

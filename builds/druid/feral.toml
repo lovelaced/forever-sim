@@ -1,0 +1,48 @@
+# The cat druid most players level with: Claw, Rake and Rip, Leader of the Pack at 30, Shifting Power for
+# Energy and Berserk at 40, then Furor and a Balance dip for Genesis and crit. Level 60 points are
+# theorycrafted until launch.
+
+# Sources:
+# - Method, Druid leveling guide and talents (updated Sep 29): the order for 10-30 (0/21/0) and its
+#   projected level 60 build (9/35/7), followed point for point; the cat play (Prowl, Faerie Fire,
+#   Rake, Claw for combo points, Rip only on targets that live through it):
+#   https://www.method.gg/wow-forever/wow-forever-druid-leveling-guide-and-talents
+# - Warcraft Tavern, Druid leveling guide (the same 21 Feral points at 30; Shifting Power below 50
+#   Energy, Rip at 4-5 combo points, no bleeds on targets about to die; Feral is "the smoothest
+#   route"): https://www.warcrafttavern.com/forever/guides/druid-leveling/
+# - wowtbc.gg, Feral DPS druid (level 60 play: Faerie Fire, Berserk, Shifting Power, Rip at 5,
+#   Rake, Shred): https://wowtbc.gg/warcraftforever/class-guides/feral-dps-druid/
+# - wow.gg, Feral beta guide: https://wow.gg/guides/wow-forever-feral-druid-beta
+# Race: Windshaper Skyborne (Horde). Method picks Skyborne for a PvE cat; Wind Blessed gives 3%
+# haste since build 70425. Tauren is the usual Horde pick for bears and PvP.
+name = "Feral"
+kind = "standard"
+class = "druid"
+race = "windshaper"
+level = 60
+gear = "leather_feral"
+rotation = "feral_cat"
+
+order = [
+  "ferocity", "ferocity", "ferocity", "ferocity", "ferocity",                                 # 10-14
+  "heart_of_the_wild", "heart_of_the_wild", "heart_of_the_wild",                              # 15-17
+  "feral_swiftness", "feral_swiftness",                                                       # 18-19
+  "feral_charge",                                                                             # 20
+  "savage_fury", "savage_fury",                                                               # 21-22
+  "sharpened_claws", "sharpened_claws",                                                       # 23-24
+  "predatory_strikes", "predatory_strikes", "predatory_strikes",                              # 25-27
+  "blood_frenzy", "blood_frenzy",                                                             # 28-29
+  "leader_of_the_pack",                                                                       # 30
+  "shredding_attacks", "shredding_attacks", "shredding_attacks",                              # 31-33
+  "shifting_power",                                                                           # 34
+  "improved_shifting_power", "improved_shifting_power",                                       # 35-36
+  "natural_instinct", "natural_instinct",                                                     # 37-38
+  "rend_and_tear",                                                                            # 39
+  "berserk",                                                                                  # 40
+  "rend_and_tear", "rend_and_tear", "rend_and_tear", "rend_and_tear",                         # 41-44
+  "furor", "furor", "furor", "furor", "furor",                                                # 45-49
+  "naturalist", "naturalist",                                                                 # 50-51
+  "genesis", "genesis", "genesis", "genesis", "genesis",                                      # 52-56
+  "natures_majesty", "natures_majesty",                                                       # 57-58
+  "natures_reach", "natures_reach",                                                           # 59-60
+]

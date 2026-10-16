@@ -1,15 +1,18 @@
 # fsim: a Monte Carlo combat simulator for WoW: Forever
 
 `fsim` simulates characters of all nine classes in four kinds of situation
-(levelling, a dungeon boss, world-PvP pressure, duels) and reports every
+(leveling, a dungeon boss, world-PvP pressure, duels) and reports every
 result with a confidence interval. Every class, talent, spell, race, gear kit,
 enemy and scenario lives in plain TOML files under `data/`. When a new client
 build changes something, you add one small patch file; no Rust is touched.
 
-Data: Forever client build **1.60.1.70338** (talents, spell ranks and racials
-read from wowforevertalents.com on 15 Oct 2026). Base stats, attack tables,
-armour, rage and most spell coefficients are Classic 1.12, because the client
-tooltips do not show them.
+Data: Forever client build **1.60.1.70425** (Blizzard's October 15 beta
+update, as a patch over 1.60.1.70338). Spell ranks, costs, cast times,
+cooldowns, durations, coefficients, target caps, proc chances, talent trees
+and racials come from the game's own spell and talent tables and are checked
+by `fsim audit` (see "Where the numbers come from"). Base stats,
+attack tables and armor are Classic 1.12, because the client does not include
+them; every number that is a guess is an assumption you can change.
 
 ## Quick start
 
@@ -115,7 +118,7 @@ say so.
 
 ## How the Monte Carlo works
 
-* **Replications.** One replication is one complete hour of levelling, one
+* **Replications.** One replication is one complete hour of leveling, one
   boss fight, one duel, or one PvP pressure test. Results are averaged over
   replications, never over the fights inside one, so every replication is an
   independent draw.
@@ -159,10 +162,33 @@ they say).
 Scenarios, enemies and gear kits are data too (`data/base/scenarios.toml`,
 `enemies.toml`, `gear.toml`); add your own the same way.
 
+## Where the numbers come from
+
+* **Forever's spell tables.** `tools/forever_db.mjs` fetches the client's
+  spell tables for a build from [wago.tools](https://wago.tools) (a cache under
+  `.db2/`, never committed) and writes `data/reference/spellbook.json`: every
+  class spell, racial, talent spell and the spells they trigger, with each rank's id,
+  level, cost, cast time, cooldowns, duration, range, radius, target cap, chain
+  targets, base value with its variance and per-level growth, spell and attack
+  power coefficients, periodic interval, proc chance and summons.
+  `python3 tools/spell.py "Name" [class|race]` looks spells up (`--text` adds
+  the tooltip from the cache).
+* **The audit.** `fsim audit [class]` works out every spell rank's numbers with
+  the engine's own formulas and compares them with the spellbook. Differences
+  that are deliberate (a helper spell that only exists in the simulator, a
+  simplification waiting for engine work) are listed with a reason in
+  `data/reference/accepted/<class>.toml`; `fsim audit --strict` fails on
+  anything else. `tools/apply_spellbook.py` fills rank tables from the
+  spellbook where a spell uses the standard fields.
+* **Assumptions.** Numbers the game does not publish are options in
+  `data/base/options.toml`, each with where its default comes from (`game`,
+  `community`, `classic` or `estimate`) and a citation. The website lists them
+  under Assumptions with that source.
+
 ## The data
 
 ```
-data/base/core.toml          combat rules: attack tables, armour, rage, GCD, DR, rest food
+data/base/core.toml          combat rules: attack tables, armor, rage, GCD, DR, rest food
 data/base/options.toml       assumptions you can change with --opt
 data/base/common.toml        shared auras (stun, fear, ...) and potions
 data/base/races.toml         ten races with Forever racials
@@ -224,6 +250,15 @@ actions = [
 rest = [{ cast = "cannibalize", if = "hp_pct < 0.75" }]   # between pulls
 ```
 
+Each rank can carry the game's spell `id` (so `fsim audit` can trace it) and,
+for any field `x`, an `x_per_level` growth with the rank's `max_level`: the
+game raises a rank's numbers with the caster's level until the next rank, and
+the engine does the same. For example Lightning Bolt rank 10 is
+`{ level = 56, id = 15208, lo = 185, lo_per_level = 1.135, hi = 207,
+hi_per_level = 1.265, max_level = 61, ... }`: 185-207 when learned, about
+190-212 at level 60.
+
+
 A talent listed with no `mods`, `spell_mods` or `procs`, and not used by any
 spell or formula, is legal in builds but has no effect; `fsim check` reports
 these per build ("points in talents the sim does not model").
@@ -246,7 +281,8 @@ Unknown names are errors at load time, with the path to the offending line.
 
 **Effects:** `damage` (school, hit = white/melee/ranged/spell/auto, weapon,
 weapon_mult, normalized, min/max/amount, coef, mult, crit, crit_bonus,
-can_crit, threat, target, lifesteal, periodic, no_proc, on_hit/on_crit/on_miss),
+can_crit, threat, target, lifesteal, periodic, no_proc, fixed (ignores every
+damage modifier on both sides), on_hit/on_crit/on_miss),
 `heal`, `resource` (add or `set`), `combo`, `aura` (stacks, duration, target),
 `remove_aura`, `remove_self`, `consume`, `emit` (custom event), `cooldown`
 (reset/reduce/set), `summon`, `dismiss`, `sacrifice`, `extra_attack`, `cast`,
@@ -266,15 +302,19 @@ or a whole `school`. An aura with `consume_on_cast = true` is used up by the
 spells its modifiers apply to.
 
 **Coefficients.** `coef` multiplies spell power (healing power for heals).
-Ranks learned below level 20 lose 3.75% per level (Classic), and a rank with
-a higher rank available is scaled by (rank level + 11) / your level.
-Forever's rule that healing power counts 1/3 towards spell damage is in
-`core.toml` (`heal_to_spell_damage`).
+Forever's spell data gives ranks learned below level 20 their full
+coefficient, so the original game's 3.75% cut per level below 20 is off by
+default (option `low_level_penalty`). A lower rank used while a higher one is
+known is scaled by (rank level + 11) / your level, as in the original game
+(option `downrank_penalty`). Forever's rule that healing power counts 1/3
+towards spell damage is in `core.toml` (`heal_to_spell_damage`).
 
 ### A build file
 
 ```toml
 name = "Warden-9 (26/9/16)"
+kind = "experimental"             # or "standard": one standard build per talent tree
+# role = "healer"                 # for healing or tank specs: "healer" or "tank"
 class = "druid"
 race = "tauren"
 level = 60
@@ -295,10 +335,20 @@ one, points go to the main tree first, top rows first (and the run says so).
 
 ## When a new client build ships
 
-1. Read the changes (the talent site's diff pages are a good source).
+1. Find the build number on wago.tools (the build menu of any table page),
+   then write the old and new spellbooks and compare them:
+   `node tools/forever_db.mjs --build <old> --out old.json`,
+   `node tools/forever_db.mjs --build <new>` (the new one becomes
+   `data/reference/spellbook.json`), and
+   `python3 tools/spellbook_diff.py old.json data/reference/spellbook.json`
+   lists every spell, racial and talent number that moved, by class.
+   `fsim audit` then shows what the class files disagree with. Read the patch
+   notes for what the tables don't show (server-side rules, proc behavior).
 2. Write `data/patches/<build>.toml` with `[meta] build = "<build>"` and only
    the changed keys. `data/patches/README.md` has a worked example: changing
    a duration, replacing a rank table, deleting a talent.
+   `data/base` keeps describing the older build, so `--at-build` can
+   reproduce it; the builds in `builds/` follow the newest one.
 3. `fsim check builds/*/*.toml` - every typo comes back with its path.
 4. `fsim whatif <scenario> <builds> --with data/patches/<build>.toml` before
    you commit it, to see exactly what the change does to each build on the
@@ -310,11 +360,21 @@ class file), with `mods`, `spell_mods`, `procs` or `effects`.
 
 ## Assumptions to know about (change them with `--opt`)
 
-`fsim list options` shows each with its default and source. The ones that
-move results most: Touch of the Grave drain and chance, Gore Drinker re-arming
-on Enrage refresh, Seal of Light/Wisdom trigger chance (tooltip says "on hit";
-Classic was about 20%), Maelstrom stack chance, Summon Hawk dive interval,
-pet scaling from the owner's stats, and whether druids get Omen of Clarity.
+`fsim list options` shows each with its default and where it comes from. The
+ones that move results most:
+
+* `warrior_dws_offhand_rage`: whether Dual Wield Specialization still gives
+  off-hand Rage. The talent tree says yes, Blizzard's notes say it was
+  removed; off by default, worth about 6% of a Fury warrior's damage.
+* `omen_ppm` and `omen_spell_chance`: how often Omen of Clarity procs for
+  druids. Forever's data gives only its 10 sec internal cooldown.
+* `tog_drain_pct`: how much Touch of the Grave drains ("up to 5%").
+* `seal_on_hit_chance`, `paladin_soc_ppm`: how often paladin seals trigger.
+* `pet_owner_ap`, `pet_owner_sta`, `demon_owner_sp`, `hawk_dive_interval`:
+  how pets scale with their owner and how often a hawk attacks.
+* `rage_taken_mult`: Rage from damage taken (Blizzard: "20% to 40%").
+* `wand_spell_crit`, `wand_melee_crit`: which crit chance wands use and how
+  hard their crits hit.
 
 ## Limits
 
@@ -323,9 +383,12 @@ pet scaling from the owner's stats, and whether druids get Omen of Clarity.
   until it takes 25% of its health, standing in for kiting.
 * Totems are buffs on the shaman. Chain Lightning and Chain Heal hit one
   target. Ground effects (Consecration, Flamestrike's burn) are per-target
-  auras. Pet focus is not modelled (fixed ability cadence).
+  auras. Pet focus is not modeled (fixed ability cadence).
 * Gear kits are generic stat totals, the same for every build of a role, so
-  results compare talents and rotations, not items.
+  results compare talents and rotations, not items. Cloth kits carry a
+  typical wand for the level. The website shows each kit's stats.
+* Wands are played the typical way: started once nothing better is ready,
+  never squeezed into a global cooldown, and stopped by any cast.
 * In a `duel` the challenger opens first, which is worth several percentage
   points of win rate (Mutilate beats Vampire v2 76% of the time as the
   challenger, 63% as the opponent). The website runs every duel both ways
@@ -337,7 +400,7 @@ pet scaling from the owner's stats, and whether druids get Omen of Clarity.
 * Spell coefficients, Classic base stats and some proc rates are assumptions
   where the Forever client shows no number.
 
-## Results on the shipped data (build 70338, default options)
+## Results on the shipped data (build 70425, default options)
 
 See `RESULTS.md` (regenerate with the commands at its top).
 
@@ -347,7 +410,7 @@ See `RESULTS.md` (regenerate with the commands at its top).
 (Battle Shout 232, Bloodthirst +30, Victory Rush 45% AP without cooldown, no
 crit suppression). With it, the boss scenario gives Vampire v2 271 DPS and
 Conventional Fury 305 DPS at level 60, against 272 and 304 from the
-prototype. Levelling comes out 5-8% higher (158 and 151 kills per hour
+prototype. Leveling comes out 5-8% higher (158 and 151 kills per hour
 against 151 and 140), from differences in resting and death handling. PvP
 breakeven is 17% higher for Vampire v2 (678 against 578), because this version
 applies PvP diminishing returns to the attacker's second stun and lets the

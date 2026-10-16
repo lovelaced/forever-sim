@@ -47,6 +47,24 @@ per_source = false
 name = "Healthstone used"
 duration = 120
 
+[common.spells.shoot]
+name = "Shoot"
+# Attack with an equipped wand (spell 5019). No mana and no global cooldown;
+# the first shot comes after a 0.5 sec wind-up standing still (core.toml
+# auto_repeat_windup), then one per wand speed (ranged haste counts), until
+# the player casts anything else. The shot deals the wand's school: bonuses
+# to that school (Shadowform, Shadow Weaving) apply, spell power and
+# spell-family talents don't. It hits like a ranged attack (it can miss, but
+# can't be dodged, parried or blocked) and crits with ranged crit for the
+# spell crit bonus: community servers' rules, not confirmed by Blizzard.
+auto_repeat = true
+off_gcd = true
+level = 1
+target = "enemy"
+requires = "ranged.wand"
+text = "Shoots your wand every few seconds until you cast something else. Costs no mana."
+effects = [{ type = "damage", weapon = "ranged", hit = "wand", crit = "opt.wand_spell_crit * (spell_crit - ranged_crit)", crit_bonus = "opt.wand_melee_crit", tag = "Shoot" }]
+
 [common.spells.healing_potion]
 name = "Healing Potion"
 off_gcd = true

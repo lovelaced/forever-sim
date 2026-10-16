@@ -1,0 +1,49 @@
+# The leveling warrior: a two-handed axe in Battle Stance with Rend, Overpower and Deep Wounds, and
+# Sweeping Strikes for double pulls at 30. Bloodthrill gives more Overpowers after that and Mortal Strike
+# comes at 40; level 60 points are theorycrafted until launch.
+
+# Sources:
+# - wowforeverguides.com, Warrior leveling (Harenil, Oct 13): talent order 10-30 and the plan to 60
+#   (Bloodthrill, Weaponmaster, Mortal Strike at 40, then the rest of Arms and Cruelty, 47/4/0):
+#   https://wowforeverguides.com/leveling/warrior
+# - Icy Veins, Arms Warrior guide (same 21 points at 30; read from search excerpts, the page refuses
+#   automated readers): https://www.icy-veins.com/wow-forever/arms-warrior-melee-dps-pve-guide
+# - Warcraft Tavern, Warrior guide (26/0/0 with Bloodthrill; Human and Orc):
+#   https://www.warcrafttavern.com/forever/guides/warrior/
+# - stillsixty, Arms (single-target and pack play, races): https://www.stillsixty.com/classes/warrior/arms
+# - wow.gg, Arms overview (47/4/0 at 60): https://wow.gg/guides/warrior-arms-forever-overview
+# Race: Human, for Ruthless (+2% crit with any weapon since build 70425) and The Human Spirit between
+# pulls; the guides list Human and Orc for Arms.
+name = "Arms"
+kind = "standard"
+class = "warrior"
+race = "human"
+level = 60
+gear = "plate_2h"
+rotation = "arms_2h"
+
+order = [
+  "improved_rend", "improved_rend", "improved_rend",                            # 10-12
+  "deflection", "deflection",                                                   # 13-14
+  "improved_tactical_mastery", "improved_tactical_mastery", "improved_tactical_mastery",
+  "improved_tactical_mastery", "improved_tactical_mastery",                     # 15-19
+  "anger_management",                                                           # 20
+  "deep_wounds", "deep_wounds", "deep_wounds",                                  # 21-23
+  "improved_overpower",                                                         # 24
+  "spearing_strike",                                                            # 25
+  "two_handed_weapon_specialization", "two_handed_weapon_specialization",
+  "two_handed_weapon_specialization",                                           # 26-28
+  "improved_overpower",                                                         # 29
+  "sweeping_strikes",                                                           # 30
+  "bloodthrill", "bloodthrill", "bloodthrill", "bloodthrill", "bloodthrill",    # 31-35
+  "weaponmaster", "weaponmaster", "weaponmaster",                               # 36-38
+  "impale",                                                                     # 39
+  "mortal_strike",                                                              # 40
+  "impale", "weaponmaster", "weaponmaster",                                     # 41-43
+  "improved_heroic_strike", "improved_heroic_strike", "improved_heroic_strike", # 44-46
+  "improved_charge", "improved_charge",                                         # 47-48
+  "improved_slam", "improved_slam",                                             # 49-50
+  "improved_hamstring", "improved_hamstring", "improved_hamstring",             # 51-53
+  "deflection", "deflection", "deflection",                                     # 54-56
+  "cruelty", "cruelty", "cruelty", "cruelty",                                   # 57-60
+]
