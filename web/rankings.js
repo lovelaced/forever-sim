@@ -7,8 +7,12 @@ import { S, env, bus, classOf, presetOf, presetTags, isExperimental, baseName, a
 import { metricOf, rangeTip } from './results.js';
 
 // The ranking's three tests, in the order the switcher shows them.
-export const RANK_TESTS = ['solo_1', 'solo_2_hard', 'boss'];
-const RANK_TITLES = { solo_1: 'One mob', solo_2_hard: 'Two tough mobs', boss: 'Dungeon boss' };
+export const RANK_TESTS = ['solo_1', 'solo_2_hard', 'solo_3', 'boss', 'pressure'];
+// Quickest first, so lists appear while the slow three-mob test runs.
+const RANK_RUN_ORDER = ['boss', 'solo_1', 'solo_2_hard', 'pressure', 'solo_3'];
+// Rough share of the run each test takes (timed on Standard), for the progress bar.
+const RANK_COST = { boss: 1, solo_1: 4, solo_2_hard: 11, pressure: 13, solo_3: 80 };
+const RANK_TITLES = { solo_1: 'One mob', solo_2_hard: 'Two tough mobs', solo_3: 'Three mobs', boss: 'Dungeon boss', pressure: 'World PvP' };
 const LEVELS = [20, 30, 40, 50, 60];
 const STORE = 'forever-sim/rankings-v2';
 
@@ -50,6 +54,14 @@ const anyRunning = () => (S.run && !S.run.finished) || (S.rank.run && !S.rank.ru
 
 // ------------------------------------------------------------------ running
 
+// Replications a session will need, from how precise it is so far (the
+// half-width shrinks with the square root of the replications).
+function estimateReps(st, est) {
+  const worst = Math.max(0, ...(st.precision || []).filter((x) => x != null));
+  if (st.reps >= 32 && worst > 0 && st.target) return Math.min(st.max_reps, Math.max(st.reps, st.reps * (worst / st.target) ** 2));
+  return Math.max(est, st.reps);
+}
+
 export async function runRankings() {
   if (anyRunning()) { flash('Another simulation is still running. Wait for it or stop it first.'); return; }
   const st = S.rank;
@@ -57,10 +69,12 @@ export async function runRankings() {
   const builds = presets.map((p) => presetApi(p, st.level));
   const a = accuracyOf(st.acc);
   const key = settingsKey(st);
-  const run = { i: 0, frac: 0, test: RANK_TESTS[0], t0: performance.now(), cancelled: false, finished: false, n: RANK_TESTS.length };
+  const total = RANK_RUN_ORDER.reduce((a, t) => a + RANK_COST[t], 0);
+  let done = 0;
+  const run = { i: 0, frac: 0, test: RANK_RUN_ORDER[0], t0: performance.now(), cancelled: false, finished: false, n: RANK_RUN_ORDER.length };
   st.run = run;
   bus.render();
-  for (const test of RANK_TESTS) {
+  for (const test of RANK_RUN_ORDER) {
     if (run.cancelled) break;
     run.test = test;
     bus.render();
@@ -70,8 +84,8 @@ export async function runRankings() {
     try {
       let est = a.max_reps;
       const res = await env.engine.simulate(req, (p) => {
-        est = Math.max(p.reps, Math.min(est, p.reps * 2));
-        run.frac = (run.i + Math.min(0.95, p.reps / Math.max(est, 1))) / run.n;
+        est = estimateReps(p, est);
+        run.frac = (done + RANK_COST[test] * Math.min(0.97, p.reps / Math.max(est, 1))) / total;
         bus.progress();
       }, () => run.cancelled, { columns: [] });
       if (!res) break;
@@ -79,11 +93,14 @@ export async function runRankings() {
       const keep = new Set([primaryOf(test), 'deaths_per_hour']);
       const slim = { reps: res.reps, variants: res.variants.map((v) => ({ metrics: v.metrics.filter((m) => keep.has(m.name)) })) };
       st.results[test] = { key, files: presets.map((p) => p.file), res: slim, ms: performance.now() - t0, level: st.level, acc: st.acc };
+      // show the first list that's ready if the chosen one has nothing current yet
+      if (st.results[st.test]?.key !== key) st.test = test;
     } catch (e) {
       st.results[test] = { key, error: e.message || String(e) };
     }
     run.i++;
-    run.frac = run.i / run.n;
+    done += RANK_COST[test];
+    run.frac = done / total;
     bus.render();
   }
   run.finished = true;
@@ -211,7 +228,7 @@ export function renderRankings(root) {
   const count = pool(st.experiments).length;
   const out = [
     h('h2.view-title', 'Every spec, ranked'),
-    h('p.lede', `Runs every build on the site through three tests and ranks them: leveling one mob at a time, leveling two tough mobs at once, and a dungeon boss. That's ${count} builds, so it takes longer than comparing a few: about half a minute on a fast laptop and several minutes on a phone. Quick is several times faster; Precise takes much longer.`),
+    h('p.lede', `Runs every build on the site through five tests and ranks them: leveling one mob at a time, two tough mobs at once and three mobs at once, a dungeon boss, and a world PvP ambush. That's ${count} builds, so it takes a while: about three minutes on a fast laptop on Standard (the three-mob test takes longest and runs last), and much longer on a phone. Quick is several times faster; Precise takes much longer. Each list appears as soon as its test finishes.`),
     controls(st, { go: runRankings, goLabel: `Rank ${count} builds`, running, stopLabel: 'Stop' }),
   ];
   if (running) out.push(progressBlock(st.run, `${RANK_TITLES[st.run.test]} · ${Math.min(st.run.i + 1, st.run.n)} of ${st.run.n}`));
@@ -258,11 +275,12 @@ function rankList(st, r, test) {
         classIcon(x.p),
         h('span.who', h('span.who-name', baseName(x.p.name)), h('span.who-class', { style: { color: classColor(x.p.class) } }, classOf(x.p.class)?.name)),
         tagsOf(x.p)),
-      h('div.val', fmtMetric(x.m.mean, pm), test === 'solo_2_hard' && x.deaths ? h('small', `${fmtNum(x.deaths.mean, 1)} deaths/h`) : h('small', `±${fmtMetric((x.m.hi - x.m.lo) / 2, pm)}`)),
+      h('div.val', fmtMetric(x.m.mean, pm), (test === 'solo_2_hard' || test === 'solo_3') && x.deaths ? h('small', `${fmtNum(x.deaths.mean, 1)} deaths/h`) : h('small', `±${fmtMetric((x.m.hi - x.m.lo) / 2, pm)}`)),
       h('div.bar', h('i', { style: { width: `${(100 * Math.max(0, x.m.mean)) / max}%` } }),
         h('s', { style: { left: `${(100 * Math.max(0, x.m.lo)) / max}%`, width: `${(100 * (x.m.hi - x.m.lo)) / max}%` } }))))),
     h('p.hint.bar-hint', 'Builds marked = are within the margin of error of the first build with that rank. The thin marks show the range the true average very likely sits in. ',
       withTip(h('span.q', { tabindex: '0' }, 'What does that mean?'), rangeTip)),
+    test === 'pressure' ? h('p.hint', 'The attacker is a scripted, geared melee player who opens with a stun. A very high number means it can’t get through that build’s crowd control and immunities at all, not an exact figure.') : null,
     h('p.hint', 'Healers and tanks are measured on their solo play here. Every build wears the typical gear for its role and level.'));
 }
 
