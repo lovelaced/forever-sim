@@ -1040,8 +1040,8 @@ auto_ranged = true
 precombat = ["aspect_of_the_hawk", "trueshot_aura", "call_pet"]
 opener = ["hunters_mark"]
 actions = [
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
   { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
   { cast = "intimidation", target = "enemy", if = "target.is_player" },
   { cast = "bestial_wrath" },
@@ -1073,8 +1073,8 @@ auto_ranged = true
 precombat = ["aspect_of_the_hawk", "trueshot_aura", "call_pet"]
 opener = ["hunters_mark"]
 actions = [
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
   { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
   { cast = "scatter_shot", if = "target.is_player" },
   { cast = "rapid_fire" },
@@ -1111,8 +1111,8 @@ auto_ranged = false
 precombat = ["call_pet", "aspect_of_the_beast", { cast = "aspect_of_the_monkey", if = "!known.aspect_of_the_beast" }]
 opener = ["hunters_mark"]
 actions = [
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
   { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
   { cast = "deterrence", if = "hp_pct < 0.35" },
   { cast = "war_stomp", if = "target.is_player || enemies >= 2" },

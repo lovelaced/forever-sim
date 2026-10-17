@@ -349,3 +349,24 @@ fn fight_logs_keep_hits_on_your_pet() {
         .filter(|e| e["team"] != 0 && e["kind"] == "hit" && pets.contains(&e["target"].as_str().unwrap_or(""))).count();
     assert!(on_pet > 0, "the mob's hits on the pet are in the log");
 }
+
+/// Potions are a choice, off by default: nobody drinks one unless the
+/// `potions` option is on.
+#[test]
+fn potions_only_when_turned_on() {
+    let w = world();
+    let sc = &w.scenarios["solo_2_hard"];
+    let b = load_build(&w, Path::new("builds/mage/arcane.toml"), None).unwrap();
+    let k = w.opts.iter().position(|o| o.name == "potions").expect("a potions option");
+    let drinks = |on: f64| -> usize {
+        let mut opts = defaults(&w, sc);
+        opts[k] = on;
+        (0..6u64).map(|seed| {
+            let (_, log) = run_rep(&RepInput { w: &w, sc, build: &b, opponent: None, opts: &opts, seed, log: true });
+            log.unwrap().iter().filter(|l| l.ends_with(" casts Healing Potion") || l.ends_with(" casts Mana Potion")).count()
+        }).sum()
+    };
+    assert_eq!(w.opts[k].default, 0.0, "potions are off by default");
+    assert_eq!(drinks(0.0), 0, "no potions with the option off");
+    assert!(drinks(1.0) > 0, "an Arcane mage on tough pulls drinks potions when they're on");
+}

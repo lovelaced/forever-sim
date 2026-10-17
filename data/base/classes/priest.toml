@@ -968,13 +968,13 @@ auto_melee = false
 precombat = ["inner_fire", "fortitude", "shadowguard", "shadowform", "power_word_shield"]
 opener = []
 actions = [
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
   { cast = "desperate_prayer", if = "hp_pct < 0.35" },
   { cast = "contingency_plan", if = "hp_pct < 0.6" },
-  { cast = "power_word_shield", if = "!target.boss && (in_combat || hp_pct < 0.9)" },
+  { cast = "power_word_shield", if = "(!target.boss && (in_combat || hp_pct < 0.9)) && !(!target.is_player && enemies < 2 && target.hp < 0.5 * hp && hp_pct > 0.4)" },
   { cast = "psychic_scream", if = "hp_pct < 0.4" },
-  { cast = "flash_heal", if = "hp_pct < 0.35" },
+  { cast = "flash_heal", if = "(hp_pct < 0.35) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "vampiric_embrace" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -1009,15 +1009,15 @@ auto_melee = false
 precombat = ["inner_fire", "fortitude", "shadowguard", "power_word_shield"]
 opener = []
 actions = [
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
   { cast = "desperate_prayer", if = "hp_pct < 0.35" },
   { cast = "contingency_plan", if = "hp_pct < 0.6" },
-  { cast = "power_word_shield", if = "!target.boss && (in_combat || hp_pct < 0.9)" },
-  { cast = "penance_heal", if = "hp_pct < 0.45" },
-  { cast = "flash_heal", if = "hp_pct < 0.4" },
+  { cast = "power_word_shield", if = "(!target.boss && (in_combat || hp_pct < 0.9)) && !(!target.is_player && enemies < 2 && target.hp < 0.5 * hp && hp_pct > 0.4)" },
+  { cast = "penance_heal", if = "(hp_pct < 0.45) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
+  { cast = "flash_heal", if = "(hp_pct < 0.4) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "renew", if = "hp_pct < 0.7" },
-  { cast = "prayer_of_mending", if = "!target.boss" },
+  { cast = "prayer_of_mending", if = "(!target.boss) && !(!target.is_player && enemies < 2 && target.hp < 0.5 * hp && hp_pct > 0.4)" },
   { cast = "psychic_scream", if = "hp_pct < 0.4" },
   { cast = "blood_fury" },
   { cast = "berserking" },

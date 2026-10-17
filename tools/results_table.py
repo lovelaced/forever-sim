@@ -52,6 +52,9 @@ def run(scenario, level, precision, paths, at_build=None):
     with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as t:
         out = t.name
     cmd = [FSIM, *(['--at-build', at_build] if at_build else []), 'run', scenario, *paths, '--precision', str(precision), '--json', out]
+    # FSIM_OPTS="potions=1 x=2" runs every column with those assumptions
+    for o in os.environ.get('FSIM_OPTS', '').split():
+        cmd += ['--opt', o]
     if level:
         cmd += ['--level', str(level)]
     subprocess.run(cmd, cwd=ROOT, check=True, stdout=subprocess.DEVNULL)

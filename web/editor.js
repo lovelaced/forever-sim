@@ -5,7 +5,7 @@ import * as M from './meta.js';
 import { h, art, ability, withTip, tt, flash, fmtNum } from './ui.js';
 import { prepareClass, renderTrees, learnBlock, unlearnBlock, budgetFor, spent } from './talents.js';
 import {
-  S, env, bus, classOf, raceOf, presetOf, presetsFor, presetTags, isExperimental, baseName, classColor, editingBuild, names, nameOf, slotOf, autoName,
+  S, env, bus, classOf, raceOf, presetOf, presetsFor, keepRace, presetTags, isExperimental, baseName, classColor, editingBuild, names, nameOf, slotOf, autoName,
   apiBuild, buildFromPreset, emptyBuild, sig, buildDiff, diffText, saveLocal,
 } from './state.js';
 
@@ -88,8 +88,10 @@ function pickClass(cls) {
   const b = editingBuild();
   if (b.cls === cls) return;
   const p = presetsFor(cls)[0];
-  const nb = p ? buildFromPreset(p, b.level) : emptyBuild(cls, b.level);
+  // the race you last picked comes back when the class allows it again
+  const nb = keepRace(p ? buildFromPreset(p, b.level) : emptyBuild(cls, b.level), b.wantRace || b.race);
   nb.uid = b.uid;
+  nb.wantRace = b.wantRace || b.race;
   S.builds[S.builds.indexOf(b)] = nb;
   S.tree = null;
   changed(nb);
@@ -101,8 +103,9 @@ function pickPreset(file) {
   if (file === '') {
     nb = { ...b, talents: {}, plan: null, preset: null, order: null, popts: null, edited: false, customName: null };
   } else {
-    nb = buildFromPreset(presetOf(file), b.level);
+    nb = keepRace(buildFromPreset(presetOf(file), b.level), b.wantRace || b.race);
     nb.uid = b.uid;
+    nb.wantRace = b.wantRace || b.race;
   }
   S.builds[S.builds.indexOf(b)] = nb;
   S.tree = null;
@@ -186,7 +189,7 @@ export function renderEditor(root, actions) {
       h('button.pick', {
         type: 'button', 'aria-pressed': String(r.id === b.race), 'aria-label': open ? r.name : `${r.name} (not available to ${c.name}s)`,
         'aria-disabled': open ? null : 'true', class: open ? '' : 'unavailable',
-        onclick: () => { if (open && b.race !== r.id) { b.race = r.id; changed(b); } },
+        onclick: () => { if (open && b.race !== r.id) { b.race = r.id; b.wantRace = r.id; changed(b); } },
       }, art(M.RACE_ICONS[r.id] || 'rune-stone', r.icon)),
       () => [tt.title(r.name), tt.line(r.faction === 'alliance' ? 'Alliance' : 'Horde', 'grey'),
         open ? null : tt.line(`${r.name}s can’t be ${c.name}s in Forever.`, 'red'),

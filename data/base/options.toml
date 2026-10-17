@@ -7,6 +7,7 @@
 #            "community"  players' measurements or reports
 #            "classic"    the original game's value, not confirmed for Forever
 #            "estimate"   our best guess
+#            "choice"     how you play, not a game number
 # and `cite` says exactly where. `label`, `help`, `kind` (toggle | pct | num)
 # and `unit` are how the website shows it; `applies` lists the classes and
 # races it matters to (leave it out for everyone).
@@ -622,3 +623,12 @@ desc = "1 = wand crits deal 200% instead of 150%"
 source = "estimate"
 cite = "vmangos gives magic attacks, wands included, the spell crit bonus; no test from the original game found"
 applies = ["priest", "mage", "warlock"]
+
+[options.potions]
+default = 0
+kind = "toggle"
+label = "Drink health and mana potions"
+help = "Classic potions for your level, two minutes apart: a health potion when low, a mana potion on bosses and players."
+desc = "1 = rotations drink health and mana potions"
+source = "choice"
+cite = "Potions cost gold, so they're off unless you turn them on"

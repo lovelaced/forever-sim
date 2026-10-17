@@ -1128,7 +1128,7 @@ precombat = ["demon_armor", "demon_skin", "summon_voidwalker"]
 opener = []
 actions = [
   { cast = "healthstone", if = "hp_pct < 0.3" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "death_coil", if = "hp_pct < 0.4" },
   { cast = "life_tap", if = "mana_pct < 0.25 && hp_pct > 0.6" },
   { cast = "blood_fury" },
@@ -1164,7 +1164,7 @@ precombat = ["demon_armor", "demon_skin", "summon_voidwalker", "demonic_sacrific
 opener = []
 actions = [
   { cast = "healthstone", if = "hp_pct < 0.3" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "death_coil", if = "hp_pct < 0.4" },
   { cast = "life_tap", if = "mana_pct < 0.25 && hp_pct > 0.6" },
   { cast = "blood_fury" },
@@ -1175,7 +1175,7 @@ actions = [
   { cast = "siphon_life" },
   { cast = "immolate", if = "target.hp_pct > 0.4 && !known.siphon_life" },
   { cast = "shadow_bolt", if = "aura.shadow_trance.up" },
-  { cast = "drain_life", if = "hp_pct < 0.75" },
+  { cast = "drain_life", if = "(hp_pct < 0.75) && !(!target.is_player && target.hp < 0.5 * hp && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && mana_pct < 0.9" },   # leveling: dots up, then wand until it dies (not at full mana: Warcraft Tavern's Forever guide)
   { cast = "searing_pain", if = "t.demonic_brand > 0 && !pet.aura.demonic_brand.up" },
   { cast = "shadow_bolt" },
@@ -1213,8 +1213,8 @@ precombat = ["demon_armor", "demon_skin", "summon_voidwalker", { cast = "summon_
 opener = []
 actions = [
   { cast = "healthstone", if = "hp_pct < 0.3" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "death_coil", if = "hp_pct < 0.4" },
   { cast = "life_tap", if = "mana_pct < 0.2 && hp_pct > 0.5" },
   { cast = "blood_fury" },
@@ -1265,8 +1265,8 @@ precombat = ["demon_armor", "demon_skin", { cast = "summon_imp", if = "t.demonic
 opener = []
 actions = [
   { cast = "healthstone", if = "hp_pct < 0.3" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "death_coil", if = "hp_pct < 0.4" },
   { cast = "life_tap", if = "mana_pct < 0.25 && hp_pct > 0.6" },
   { cast = "blood_fury" },

@@ -1160,7 +1160,7 @@ precombat = ["devotion_aura", "blessing_of_might", "seal_of_command", { cast = "
 opener = []
 actions = [
   { cast = "will_to_survive" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "stoneform", if = "hp_pct < 0.5" },
   { cast = "divine_shield", if = "hp_pct < 0.15" },
   { cast = "lay_on_hands", if = "hp_pct < 0.15" },
@@ -1196,7 +1196,7 @@ precombat = ["devotion_aura", "blessing_of_kings", { cast = "blessing_of_wisdom"
 opener = []
 actions = [
   { cast = "will_to_survive" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "stoneform", if = "hp_pct < 0.5" },
   { cast = "templars_bulwark", if = "hp_pct < 0.3" },
   { cast = "divine_shield", if = "hp_pct < 0.12" },
@@ -1231,14 +1231,14 @@ precombat = ["devotion_aura", "blessing_of_wisdom", "seal_of_righteousness"]
 opener = []
 actions = [
   { cast = "will_to_survive" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
   { cast = "stoneform", if = "hp_pct < 0.5" },
   { cast = "divine_shield", if = "hp_pct < 0.15" },
   { cast = "lay_on_hands", if = "hp_pct < 0.15" },
   { cast = "divine_favor", if = "hp_pct < 0.5" },
-  { cast = "holy_shock_heal", if = "hp_pct < 0.5" },
-  { cast = "flash_of_light", if = "hp_pct < 0.45" },
+  { cast = "holy_shock_heal", if = "(hp_pct < 0.5) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
+  { cast = "flash_of_light", if = "(hp_pct < 0.45) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "hammer_of_justice", if = "target.is_player && !target.stunned" },
   { cast = "holy_light", if = "hp_pct < 0.5 && target.stunned" },
   { cast = "blood_fury" },
@@ -1248,7 +1248,7 @@ actions = [
   { cast = "holy_strike" },
   { cast = "hammer_of_wrath" },
   { cast = "holy_shock" },
-  { cast = "lights_vigil_heal", if = "hp_pct < 0.6" },
+  { cast = "lights_vigil_heal", if = "(hp_pct < 0.6) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "lights_vigil" },
   { cast = "exorcism" },
   { cast = "consecration", if = "mana_pct > 0.6 || enemies >= 2" },

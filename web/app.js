@@ -224,7 +224,7 @@ function renderRunbar() {
 
 // Where an assumption's default comes from (options.toml `source`).
 const SOURCE = {
-  game: 'From Forever’s game data', community: 'From players’ reports', classic: 'The original game’s value', estimate: 'Our estimate',
+  game: 'From Forever’s game data', community: 'From players’ reports', classic: 'The original game’s value', estimate: 'Our estimate', choice: 'Your choice',
 };
 
 function relevantOptions() {

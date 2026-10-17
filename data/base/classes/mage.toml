@@ -923,8 +923,8 @@ opener = []
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -958,8 +958,8 @@ opener = []
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -992,8 +992,8 @@ precombat = ["ice_armor", "frost_armor", "arcane_intellect"]
 opener = []
 actions = [
   { cast = "counterspell" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -1025,8 +1025,8 @@ opener = []
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },

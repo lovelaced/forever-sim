@@ -1092,8 +1092,8 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
                     if !["toggle", "pct", "num"].contains(&o.kind.as_str()) {
                         return Err(format!("options.{k}.kind: use toggle, pct or num"));
                     }
-                    if !["game", "community", "classic", "estimate"].contains(&o.source.as_str()) {
-                        return Err(format!("options.{k}.source: use game, community, classic or estimate"));
+                    if !["game", "community", "classic", "estimate", "choice"].contains(&o.source.as_str()) {
+                        return Err(format!("options.{k}.source: use game, community, classic, estimate or choice"));
                     }
                     if let Some(a) = t.get("applies").and_then(|x| x.as_array()) {
                         o.applies = a.iter().filter_map(|x| x.as_str().map(String::from)).collect();

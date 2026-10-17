@@ -826,8 +826,8 @@ desc = "Frost: Ice Barrier, Frost Nova into Ice Lance/Frostbolt shatter, Frostbo
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -865,8 +865,8 @@ desc = "Fire: Scorch to five stacks on long fights, Fireball (Frostfire Bolt onc
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -899,8 +899,8 @@ actions = [
 desc = "Arcane: Arcane Blast to two stacks (they last 15 sec), Arcane Wrath on a tanked boss, Arcane Missiles (free with Missile Barrage)"
 actions = [
   { cast = "counterspell" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -929,8 +929,8 @@ desc = "Battlemage: sword in melee plus instants (Frost Nova, Ice Lance on froze
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.3 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -1463,12 +1463,12 @@ effects = [{ type = "aura", aura = "elemental_mastery" }]
 # per mana, so it waits for mana above 60% there (boss 207 -> 220 DPS at 60).
 desc = "Elemental: Elemental Mastery, Flame Shock, Lava Burst, Earth Shock, Chain Lightning, Lightning Bolt, Searing Totem; heals when hurt"
 actions = [
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
   { cast = "natures_swiftness", if = "hp_pct < 0.3" },
   { cast = "healing_wave", if = "hp_pct < 0.3 && aura.natures_swiftness.up" },
-  { cast = "lesser_healing_wave", if = "hp_pct < 0.35" },
-  { cast = "healing_wave", if = "hp_pct < 0.35 && !known.lesser_healing_wave" },
+  { cast = "lesser_healing_wave", if = "hp_pct < 0.35 && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > 0.2)" },
+  { cast = "healing_wave", if = "hp_pct < 0.35 && !known.lesser_healing_wave && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > 0.2)" },
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "elemental_mastery" },

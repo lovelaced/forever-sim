@@ -1142,7 +1142,7 @@ desc = "Enhancement two-hander: Windfury Weapon, Stormstrike, shocks, instant Li
 precombat = ["lightning_shield", "windfury_weapon", { cast = "rockbiter_weapon", if = "!known.windfury_weapon" }, "strength_of_earth_totem", "grace_of_air_totem"]
 opener = []
 actions = [
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "natures_swiftness", if = "hp_pct < 0.3" },
   { cast = "healing_wave", if = "hp_pct < 0.3 && aura.natures_swiftness.up" },
   { cast = "lightning_bolt", if = "aura.maelstrom_weapon.stacks >= 5 && hp_pct >= 0.4" },
@@ -1177,8 +1177,8 @@ auto_melee = false
 precombat = ["lightning_shield", "flametongue_weapon", { cast = "rockbiter_weapon", if = "!known.flametongue_weapon" }, "mana_spring_totem"]
 opener = []
 actions = [
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
   { cast = "natures_swiftness", if = "hp_pct < 0.3" },
   { cast = "healing_wave", if = "hp_pct < 0.3 && aura.natures_swiftness.up" },
   { cast = "lesser_healing_wave", if = "hp_pct < 0.35" },
@@ -1207,7 +1207,7 @@ desc = "Stormwarden: one-hander and shield, Water Shield (Lightning Shield befor
 precombat = ["water_shield", "lightning_shield", "flametongue_weapon", { cast = "rockbiter_weapon", if = "!known.flametongue_weapon" }, "strength_of_earth_totem"]
 opener = []
 actions = [
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "natures_swiftness", if = "hp_pct < 0.3" },
   { cast = "healing_wave", if = "hp_pct < 0.3 && aura.natures_swiftness.up" },
   { cast = "riptide", if = "hp_pct < 0.6" },
@@ -1248,13 +1248,13 @@ desc = "Restoration leveling: one-hander and shield, Water Shield (Lightning Shi
 precombat = ["water_shield", "lightning_shield", "rockbiter_weapon", "strength_of_earth_totem", "mana_spring_totem", { cast = "healing_stream_totem", if = "!known.mana_spring_totem" }]
 opener = []
 actions = [
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "natures_swiftness", if = "hp_pct < 0.35" },
   { cast = "healing_wave", if = "hp_pct < 0.35 && aura.natures_swiftness.up" },
   { cast = "stoneform", if = "hp_pct < 0.5" },
   { cast = "riptide", if = "hp_pct < 0.65" },
-  { cast = "lesser_healing_wave", if = "hp_pct < 0.45" },
-  { cast = "healing_wave", if = "hp_pct < 0.45 && !known.lesser_healing_wave" },
+  { cast = "lesser_healing_wave", if = "(hp_pct < 0.45) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
+  { cast = "healing_wave", if = "(hp_pct < 0.45 && !known.lesser_healing_wave) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "mana_tide_totem", if = "mana_pct < 0.3" },
   # the pull: one Lightning Bolt at a fresh target (not at an enemy player who has opened on you)
   { cast = "lightning_bolt", if = "target.hp_pct >= 0.99 && !target.is_player" },

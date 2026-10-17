@@ -93,6 +93,19 @@ export function emptyBuild(cls, level) {
   };
 }
 
+// After a class or spec change: keep the player's race when the class can
+// be it, else a race of the same faction (the spec's own if it's on that
+// side), so a new class never switches faction on its own.
+export function keepRace(nb, race) {
+  const c = classOf(nb.cls);
+  if (!race || nb.race === race) return nb;
+  if (c.races.includes(race)) return { ...nb, race };
+  const side = raceOf(race)?.faction;
+  if (raceOf(nb.race)?.faction === side) return nb;
+  const same = c.races.find((r) => raceOf(r)?.faction === side);
+  return same ? { ...nb, race: same } : nb;
+}
+
 export function copyBuild(b) {
   return { ...b, uid: uidSeq++, talents: { ...b.talents }, plan: b.plan ? { ...b.plan } : null, customName: null, seq: 0 };
 }

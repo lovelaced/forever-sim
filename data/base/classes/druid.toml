@@ -1117,7 +1117,7 @@ desc = "Cat with shift-healing: Pounce/Ravage/Rake opener, Faerie Fire, Rake, Ri
 precombat = ["mark_of_the_wild", "thorns", "cat_form", "prowl"]
 opener = ["pounce", "ravage"]
 actions = [
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "berserk", if = "feared" },
   { cast = "barkskin", if = "hp_pct < 0.5" },
   { cast = "natures_grasp", if = "hp_pct < 0.6 && target.is_player" },
@@ -1157,7 +1157,7 @@ precombat = ["mark_of_the_wild", "thorns", "bear_form"]
 opener = []
 actions = [
   { cast = "bear_form", if = "!form.any" },
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "berserk", if = "feared" },
   { cast = "frenzied_regeneration", if = "hp_pct < 0.4 && rage >= 20" },
   { cast = "barkskin", if = "hp_pct < 0.5" },
@@ -1195,15 +1195,15 @@ auto_melee = false
 precombat = ["mark_of_the_wild", "thorns", "moonkin_form"]
 opener = []
 actions = [
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
   { cast = "barkskin", if = "hp_pct < 0.5" },
-  { cast = "caster_form", if = "form.moonkin_form && hp_pct < 0.4" },
+  { cast = "caster_form", if = "(form.moonkin_form && hp_pct < 0.4) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "natures_swiftness", if = "!form.any && hp_pct < 0.3" },
   { cast = "healing_touch", if = "!form.any && aura.natures_swiftness.up" },
-  { cast = "rejuvenation", if = "!form.any && hp_pct < 0.7" },
-  { cast = "swiftmend", if = "!form.any && hp_pct < 0.6" },
-  { cast = "regrowth", if = "!form.any && hp_pct < 0.5" },
+  { cast = "rejuvenation", if = "(!form.any && hp_pct < 0.7) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
+  { cast = "swiftmend", if = "(!form.any && hp_pct < 0.6) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
+  { cast = "regrowth", if = "(!form.any && hp_pct < 0.5) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "moonkin_form", if = "!form.any && hp_pct >= 0.5" },
   { cast = "moonfire", if = "target.hp_pct > 0.25 || target.boss" },
   { cast = "insect_swarm", if = "target.hp_pct > 0.3 || target.boss" },
@@ -1243,15 +1243,15 @@ auto_melee = false
 precombat = ["mark_of_the_wild", "thorns"]
 opener = []
 actions = [
-  { cast = "healing_potion", if = "hp_pct < 0.2" },
-  { cast = "mana_potion", if = "mana_pct < 0.25 && (target.boss || target.is_player)" },
+  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
   { cast = "barkskin", if = "hp_pct < 0.5" },
   { cast = "caster_form", if = "form.any" },
   { cast = "natures_swiftness", if = "hp_pct < 0.3" },
   { cast = "healing_touch", if = "aura.natures_swiftness.up" },
-  { cast = "rejuvenation", if = "hp_pct < 0.7" },
-  { cast = "swiftmend", if = "hp_pct < 0.6" },
-  { cast = "regrowth", if = "hp_pct < 0.5" },
+  { cast = "rejuvenation", if = "(hp_pct < 0.7) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
+  { cast = "swiftmend", if = "(hp_pct < 0.6) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
+  { cast = "regrowth", if = "(hp_pct < 0.5) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "moonfire", if = "target.hp_pct > 0.25 || target.boss" },
   { cast = "insect_swarm", if = "target.hp_pct > 0.3 || target.boss" },
   { cast = "wrath", if = "t.improved_wrath >= 3" },

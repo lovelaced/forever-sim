@@ -86,6 +86,8 @@ impl Explain<'_> {
                 match (a, b) {
                     (Some(Part::Skip), Some(Part::Skip)) => Some(String::new()),
                     (Some(Part::Skip), Some(Part::Text(t))) | (Some(Part::Text(t)), Some(Part::Skip)) => Some(t),
+                    // "x, unless ..." reads better than "x and unless ..."
+                    (Some(Part::Text(x)), Some(Part::Text(y))) if y.starts_with("unless ") => Some(format!("{x}, {y}")),
                     (Some(Part::Text(x)), Some(Part::Text(y))) => Some(format!("{x} and {y}")),
                     _ => None,
                 }
@@ -150,11 +152,19 @@ impl Explain<'_> {
             VarRef::WeaponFamily(h, wt) => format!("you wield {} in your {}", weapon(*wt), hand(*h)),
             VarRef::Race(r) => format!("you're {}", self.w.races.get(*r as usize).map_or("of that race".into(), |x| article(&x.name))),
             VarRef::Class(c) => format!("you're {}", self.w.classes.get(*c as usize).map_or("of that class".into(), |x| article(&x.name))),
+            VarRef::Opt(i) => match self.w.opts.get(*i as usize) {
+                Some(o) if o.name == "potions" => "potions are on".into(),
+                Some(o) => format!("the assumption “{}” is on", o.label),
+                None => return None,
+            },
             _ => return None,
         })
     }
 
     fn not(&self, x: &Node) -> Option<String> {
+        if let Some(t) = self.finishing(x) {
+            return Some(t);
+        }
         let Node::V(v) = x else {
             return Some(format!("not ({})", self.node(x)?));
         };
@@ -180,6 +190,35 @@ impl Explain<'_> {
             VarRef::Talent(t) => format!("you don't have {}", self.talent(*t)),
             _ => return None,
         })
+    }
+
+    /// The rule that holds back a self-heal at the end of a fight:
+    /// `!(target low && your health not in danger)`, in any of its forms.
+    fn finishing(&self, x: &Node) -> Option<String> {
+        let mut terms = vec![];
+        and_terms(x, &mut terms);
+        if terms.len() < 2 {
+            return None;
+        }
+        let mut target = None;
+        let mut safe = false;
+        let mut mob = false;
+        for t in &terms {
+            if matches!(t, Node::Not(x) if matches!(x.as_ref(), Node::V(VarRef::IsPlayer(Who::Target)))) {
+                mob = true;
+                continue;
+            }
+            let Node::Cmp(op, a, b) = t else { continue };
+            match (op.as_ref(), a.as_ref(), b.as_ref()) {
+                ("<", Node::V(VarRef::ResPct(Who::Target, Res::Hp)), Node::C(c)) => target = Some(format!("is below {}", pct(*c))),
+                ("<", Node::V(VarRef::Res(Who::Target, Res::Hp)), _) => target = Some("is nearly dead".to_string()),
+                (">", Node::V(VarRef::ResPct(Who::Me, Res::Hp)), _) => safe = true,
+                _ => {}
+            }
+        }
+        let target = target?;
+        let who = if mob { "the mob" } else { "the target" };
+        safe.then(|| format!("unless {who} {target} and you're not in danger"))
     }
 
     fn cmp(&self, op: &'static str, a: &Node, b: &Node) -> Option<String> {
@@ -266,6 +305,17 @@ fn mech(m: Mechanic) -> &'static str {
         Mechanic::Stun => "stunned", Mechanic::Fear => "feared", Mechanic::Incap => "incapacitated", Mechanic::Root => "rooted",
         Mechanic::Slow => "slowed", Mechanic::Silence => "silenced", Mechanic::Disarm => "disarmed", Mechanic::Freeze => "frozen",
         Mechanic::Immune => "immune",
+    }
+}
+
+/// The terms of a chain of `and`s, flattened.
+fn and_terms<'n>(n: &'n Node, out: &mut Vec<&'n Node>) {
+    match n {
+        Node::And(a, b) => {
+            and_terms(a, out);
+            and_terms(b, out);
+        }
+        _ => out.push(n),
     }
 }
 
