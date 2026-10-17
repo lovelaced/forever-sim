@@ -274,7 +274,7 @@ export function renderRankings(root) {
     out.push(h('div.rank-tests', { role: 'tablist', 'aria-label': 'Test' }, RANK_TESTS.map((t) => h('button.rank-test', {
       type: 'button', role: 'tab', 'aria-selected': String(st.test === t), disabled: !st.results[t],
       onclick: () => { st.test = t; save(); bus.render(); },
-    }, h('span.thumb', h('img.px', { src: M.sceneFor(t, raceOf(baselineBuild()?.race)?.faction).file, alt: '' })), h('b', RANK_TITLES[t]), h('span', scenarioMeta(t).per)))));
+    }, h('span.thumb', h('img.px', { src: M.sceneFor(t, raceOf(baselineBuild()?.race)?.faction, st.level).file, alt: '' })), h('b', RANK_TITLES[t]), h('span', scenarioMeta(t).per)))));
     out.push(h('div.quick.role-chips', { role: 'group', 'aria-label': 'Role' }, ROLES.map(([id, label]) => h('button.chip', {
       type: 'button', 'aria-pressed': String((st.role || 'all') === id), onclick: () => { st.role = id; save(); bus.render(); },
     }, label))));

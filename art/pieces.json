@@ -57,6 +57,14 @@
    "framing": "a head-and-shoulders bust in a simple round dark iron ring, front three-quarter view, centered, filling about 85% of the canvas.",
    "backdrop": "perfectly flat solid #FF00FF magenta background, one uniform color right up to the outline, no shadow, no texture, no lighting variation. Do not use magenta or pink anywhere in the subject.",
    "aspect": "square"
+  },
+  "party": {
+   "asset": "wide illustration for a website list row (a healing test: a party fighting a boss), source art for pixel-art cleanup",
+   "medium": "detailed modern hi-bit pixel art (in the spirit of Octopath Traveler or Sea of Stars) drawn on a fine logical pixel grid and upscaled with nearest-neighbor, every logical pixel a crisp equal-sized square block; hard pixel edges, no anti-aliasing, no blur; rich but limited palette of about 32 colors; atmospheric lighting; faithful to the look of classic World of Warcraft (2004 to 2006): its painterly colors, chunky stylized proportions and recognizable places.",
+   "framing": "a wide side-view scene like a 2D game screen; the floor is flat and open along the bottom of the picture; on the left third of the picture the flat floor reaches down to the bottom edge and nobody stands there, because the healer hero will be placed there later; in the middle third the adventuring party stands on the same floor, all facing right toward the boss, the tank in front and closest to the boss; the boss stands in the right third facing left; everyone at the scale of ordinary people standing in the scene (a man-sized figure about a third of the picture's height), the boss bigger but never more than two thirds of the height.",
+   "backdrop": "the full scene edge to edge, no border.",
+   "aspect": "wide",
+   "constraints": "The left third stays empty."
   }
  },
  "fix": {
@@ -98,6 +106,10 @@
    "bg": true,
    "chroma": "FF00FF",
    "tolerance": 0.12
+  },
+  "party": {
+   "grid": 4.5,
+   "colors": 40
   }
  },
  "pieces": [
@@ -465,6 +477,104 @@
    "group": "oak",
    "style": "panorama",
    "prompt": "the warm interior of an orcish inn in Orgrimmar, classic World of Warcraft: a big wooden notice board on the wall covered in pinned parchment notices and wanted posters, red Horde banners, spiked wooden beams, a big fire pit, animal skins and tankards on a table."
+  },
+  {
+   "id": "scene-solo_1-b30",
+   "group": "scenes-b30",
+   "style": "scene",
+   "prompt": "the rolling green hills of the Arathi Highlands in classic World of Warcraft under a grey, windy sky: tall grey crags, the ruined towers of Stromgarde in the distance, low stone walls and purple heather, and one Syndicate highwayman (a human bandit in a dark purple and black hooded outfit with a short sword), facing left."
+  },
+  {
+   "id": "scene-solo_2-b30",
+   "group": "scenes-b30",
+   "style": "scene",
+   "prompt": "the snowy foothills of the Alterac Mountains in classic World of Warcraft on a cold clear day: dark pines heavy with snow, grey crags, the broken walls of an old human keep, and two shaggy white Alterac yetis with blue-grey faces and big claws, facing left."
+  },
+  {
+   "id": "scene-solo_2_hard-b30",
+   "group": "scenes-b30",
+   "style": "scene",
+   "prompt": "the dense jungle of northern Stranglethorn Vale in classic World of Warcraft: giant ferns, hanging vines, mossy troll ruins with carved stone heads, and two hulking Skullsplitter jungle trolls (tusked, green-skinned, red mohawks, bone jewelry) with big axes, facing left."
+  },
+  {
+   "id": "scene-solo_3-b30",
+   "group": "scenes-b30",
+   "style": "scene",
+   "prompt": "a sunny beach on the southern coast of Stranglethorn Vale in classic World of Warcraft: palm trees, white sand, a wrecked pirate ship on its side in the shallows, and three Bloodsail pirates (red bandanas, striped shirts, cutlasses), facing left."
+  },
+  {
+   "id": "scene-boss-b30",
+   "group": "scenes-b30",
+   "style": "scene",
+   "prompt": "inside the Gnomeregan dungeon of classic World of Warcraft: a vast underground gnomish factory of brass pipes, gears and catwalks with vats of glowing green radioactive sludge, and an enormous gnomish mechanical walker boss with drills, saws and a cannon, towering over everything on the right."
+  },
+  {
+   "id": "scene-pressure_2v1-b30",
+   "group": "scenes-b30",
+   "style": "scene",
+   "prompt": "the dirt road through the Arathi Highlands in classic World of Warcraft, the stone walls of Refuge Pointe on a hill behind: grey crags, heather, a wooden signpost, and two enemy Horde players charging in from the right, a tauren warrior with horns and a huge two-handed mace and a blue-skinned troll rogue with two daggers, both at the scale of people standing in the scene."
+  },
+  {
+   "id": "scene-heal_dungeon-b30",
+   "group": "scenes-b30",
+   "style": "party",
+   "prompt": "inside the cathedral of the Scarlet Monastery in classic World of Warcraft: a grand nave with a red carpet, tall stained-glass windows, candles and plain red and white banners. In the middle, an Alliance dungeon party: a dwarf warrior tank in heavy plate with a big shield in front, a night elf hunter with a bow, a gnome mage in robes and a human rogue with daggers. On the right, the boss: a Scarlet Crusade high inquisitor in red and white robes and a tall hat, with a raised mace, facing left."
+  },
+  {
+   "id": "scene-heal_tank-b30",
+   "group": "scenes-b30",
+   "style": "party",
+   "prompt": "inside the armory of the Scarlet Monastery in classic World of Warcraft: stone walls lined with weapon racks and plain red banners, torchlight. In the middle, the only party member: a human warrior tank in heavy blue and gold plate behind a raised shield, braced and facing right. On the right, an enormous Scarlet champion in red and white plate swinging a huge two-handed axe at the tank, facing left."
+  },
+  {
+   "id": "scene-solo_1-b30-horde",
+   "group": "scenes-b30-horde",
+   "style": "scene",
+   "prompt": "the towering mesas of Thousand Needles in classic World of Warcraft at a hot afternoon: tall red rock pillars with rope bridges strung between them, dusty red ground and dry shrubs, and one Galak centaur (a horse-bodied, man-torsoed warrior in leather with a bow), facing left."
+  },
+  {
+   "id": "scene-solo_2-b30-horde",
+   "group": "scenes-b30-horde",
+   "style": "scene",
+   "prompt": "the grey wasteland of Desolace in classic World of Warcraft under a pale sky: cracked grey earth, dead trees, the giant ribs of an ancient skeleton, and two big Scorpashi scorpions with raised stingers, facing left."
+  },
+  {
+   "id": "scene-solo_3-b30-horde",
+   "group": "scenes-b30-horde",
+   "style": "scene",
+   "prompt": "a ruined troll village in the Arathi Highlands of classic World of Warcraft: crumbling stone troll ruins, totems and tents among grey crags, and three Witherbark trolls (blue-skinned forest trolls with tusks and mohawks, spears and axes), facing left."
+  },
+  {
+   "id": "scene-pressure_2v1-b30-horde",
+   "group": "scenes-b30-horde",
+   "style": "scene",
+   "prompt": "the dirt road through the Arathi Highlands in classic World of Warcraft, the spiked wooden palisade of Hammerfall on a hill behind: grey crags, heather, a wooden signpost, and two enemy Alliance players charging in from the right, a dwarf warrior in blue plate with a big hammer and a human mage in robes casting a fireball, both at the scale of people standing in the scene."
+  },
+  {
+   "id": "scene-heal_dungeon-b30-horde",
+   "group": "scenes-b30-horde",
+   "style": "party",
+   "prompt": "inside the cathedral of the Scarlet Monastery in classic World of Warcraft: a grand nave with a red carpet, tall stained-glass windows, candles and plain red and white banners. In the middle, a Horde dungeon party: a tauren warrior tank in heavy plate with a big shield in front, a troll hunter with a bow, a Forsaken undead mage in robes and an orc rogue with daggers. On the right, the boss: a Scarlet Crusade high inquisitor in red and white robes and a tall hat, with a raised mace, facing left."
+  },
+  {
+   "id": "scene-heal_tank-b30-horde",
+   "group": "scenes-b30-horde",
+   "style": "party",
+   "prompt": "inside the armory of the Scarlet Monastery in classic World of Warcraft: stone walls lined with weapon racks and plain red banners, torchlight. In the middle, the only party member: a green-skinned orc warrior tank in heavy spiked plate behind a raised shield, braced and facing right. On the right, an enormous Scarlet champion in red and white plate swinging a huge two-handed axe at the tank, facing left."
+  },
+  {
+   "id": "scene-heal_raid-b50",
+   "group": "scenes-b50",
+   "style": "party",
+   "prompt": "inside Onyxia's Lair in classic World of Warcraft: a vast dark volcanic cave with glowing lava cracks in the floor, scattered bones and eggs, and a huge black dragon with spread wings and fire glowing in her open mouth. A Alliance raid fights her: a human warrior tank in heavy plate with a shield closest to the dragon, and behind him dwarves, gnomes, night elves and humans: warriors, rogues, hunters with bows, mages and warlocks casting.",
+   "framing": "a wide side-view scene like a 2D game screen; the cave floor is flat and open along the bottom of the picture; on the left third of the picture the floor reaches down to the bottom edge and nobody stands there, because the healer hero will be placed there later; from the middle to the right, a raid of about nine small adventurers spread out in a loose arc on the floor, all facing right, the tank closest to the dragon; the huge dragon fills the right third, facing left; the adventurers are small (about a fifth of the picture's height), the dragon several times bigger."
+  },
+  {
+   "id": "scene-heal_raid-b50-horde",
+   "group": "scenes-b50-horde",
+   "style": "party",
+   "prompt": "inside Onyxia's Lair in classic World of Warcraft: a vast dark volcanic cave with glowing lava cracks in the floor, scattered bones and eggs, and a huge black dragon with spread wings and fire glowing in her open mouth. A Horde raid fights her: a tauren warrior tank in heavy plate with a shield closest to the dragon, and behind him orcs, trolls, tauren and Forsaken undead: warriors, rogues, hunters with bows, mages and warlocks casting.",
+   "framing": "a wide side-view scene like a 2D game screen; the cave floor is flat and open along the bottom of the picture; on the left third of the picture the floor reaches down to the bottom edge and nobody stands there, because the healer hero will be placed there later; from the middle to the right, a raid of about nine small adventurers spread out in a loose arc on the floor, all facing right, the tank closest to the dragon; the huge dragon fills the right third, facing left; the adventurers are small (about a fifth of the picture's height), the dragon several times bigger."
   }
  ],
  "heroes": {

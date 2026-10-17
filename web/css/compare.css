@@ -147,7 +147,7 @@
   padding: 0; border: 0; background: none; text-align: left; color: var(--text);
 }
 .scene { position: relative; display: block; width: calc(392 * var(--art)); height: calc(128 * var(--art)); overflow: hidden; background: #050403; box-shadow: inset 0 0 0 1px #000; }
-.scene .bg { position: absolute; left: 50%; top: calc(var(--top, 40) * -1 * var(--art)); transform: translateX(-50%); width: auto; height: auto; max-width: none; }
+.scene .bg { position: absolute; right: calc(var(--rpad, 0) * -1 * var(--art)); top: calc(var(--top, 40) * -1 * var(--art)); width: auto; height: auto; max-width: none; }
 .scene .hero { position: absolute; left: calc(18 * var(--art)); bottom: calc(var(--ground, 16) * var(--art)); max-width: none; transform: scale(var(--k, 1)); transform-origin: bottom left; transition: transform .25s ease; }
 .trial-btn:hover .scene .hero { transform: translateY(-2px) scale(var(--k, 1)); }
 .scene::after { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 24px rgba(0, 0, 0, .55); }
@@ -362,7 +362,7 @@
   .trial-btn { container: trial / inline-size; }
   @container trial (min-width: 400px) {
     .scene { --k: 2; height: calc(256 * var(--art)); max-width: calc(780 * var(--art)); justify-self: center; }
-    .scene .bg { top: calc(var(--top, 40) * -2 * var(--art)); transform: translateX(-50%) scale(2); transform-origin: top center; }
+    .scene .bg { right: calc(var(--rpad, 0) * -2 * var(--art)); top: calc(var(--top, 40) * -2 * var(--art)); transform: scale(2); transform-origin: top right; }
     .scene .hero { left: calc(36 * var(--art)); bottom: calc(var(--ground, 16) * 2 * var(--art)); }
   }
   .trial-text { padding-left: var(--s3); }

@@ -89,31 +89,75 @@ export const SCENARIOS = [
     help: 'Two and a half minutes healing ten players in two groups against Onyxia, alone. The tank and you have to live, and no more than two others can fall.' },
 ];
 
-// Each test's scene (web/art/scene-<test>.png, and scene-<test>-horde.png
-// for a Horde main build): where in the world it's set and how far down
-// the picture to look (top, in art pixels), so the hero stands on the same
-// ground as the enemies (ground: art pixels up from the bottom of the view).
-// The PvP scenes show the other faction attacking; the duel is neutral.
+// Each test's scene by level bracket and side of the world: where it's set,
+// the picture (web/art/<art>.png), and how far down the picture to look
+// (top, in art pixels), so the hero stands on the same ground as the enemies
+// (ground: art pixels up from the bottom of the view). Pictures are wider than
+// the view and sit against its right edge, where the enemies are, so a
+// narrow screen trims the empty left side, where the hero stands (rpad: art
+// pixels of the picture's right edge left out). Brackets are the 10s,
+// 20s, 30s, 40s and 50 to 60; a bracket or side without its own picture yet
+// borrows the nearest one that has. The PvP scenes show the other faction
+// attacking; the duel and other shared places can be one picture for both.
+const S1 = (art, zone, top, rpad = 0) => ({ art, zone, top, rpad });
 export const SCENES = {
-  solo_1: { zone: 'Westfall', top: 21, horde: { zone: 'The Barrens', top: 46 } },
-  solo_2: { zone: 'Fargodeep Mine, Elwynn Forest', top: 29, horde: { zone: 'Tiragarde Keep, Durotar', top: 40 } },
-  solo_2_hard: { zone: 'Vul’Gol, Duskwood', top: 26, horde: { zone: 'Dustwallow Marsh', top: 23 } },
-  solo_3: { zone: 'The Westfall coast', top: 28, horde: { zone: 'The Barrens', top: 36 } },
-  boss: { zone: 'The Deadmines', top: 38, horde: { zone: 'Razorfen Kraul', top: 40 } },
-  pressure: { zone: 'Stranglethorn Vale', top: 36, horde: { zone: 'Stranglethorn Vale', top: 32 } },
-  pressure_2v1: { zone: 'Hillsbrad Foothills', top: 50, horde: { zone: 'Hillsbrad Foothills', top: 56 } },
-  duel: { zone: 'Gurubashi Arena', top: 34 },
-  // the healing tests borrow the boss scenes until their own are drawn
-  heal_dungeon: { art: 'boss', zone: 'The Deadmines', top: 38, horde: { zone: 'Razorfen Kraul', top: 40 } },
-  heal_tank: { art: 'boss', zone: 'The Deadmines', top: 38, horde: { zone: 'Razorfen Kraul', top: 40 } },
-  heal_raid: { art: 'boss', zone: 'The Deadmines', top: 38, horde: { zone: 'Razorfen Kraul', top: 40 } },
+  solo_1: {
+    b10: { alliance: S1('scene-solo_1', 'Westfall', 21), horde: S1('scene-solo_1-horde', 'The Barrens', 46) },
+    b30: { alliance: S1('scene-solo_1-b30', 'Arathi Highlands', 32), horde: S1('scene-solo_1-b30-horde', 'Thousand Needles', 35) },
+  },
+  solo_2: {
+    b10: { alliance: S1('scene-solo_2', 'Fargodeep Mine, Elwynn Forest', 29), horde: S1('scene-solo_2-horde', 'Tiragarde Keep, Durotar', 40) },
+    b30: { alliance: S1('scene-solo_2-b30', 'Alterac Mountains', 37), horde: S1('scene-solo_2-b30-horde', 'Desolace', 36) },
+  },
+  solo_2_hard: {
+    b20: { alliance: S1('scene-solo_2_hard', 'Vul’Gol, Duskwood', 26) },
+    b30: { alliance: S1('scene-solo_2_hard-b30', 'Stranglethorn Vale', 37), horde: S1('scene-solo_2_hard-horde', 'Dustwallow Marsh', 23) },
+  },
+  solo_3: {
+    b10: { alliance: S1('scene-solo_3', 'The Westfall coast', 28), horde: S1('scene-solo_3-horde', 'The Barrens', 36) },
+    b30: { alliance: S1('scene-solo_3-b30', 'The Stranglethorn coast', 32), horde: S1('scene-solo_3-b30-horde', 'Arathi Highlands', 38) },
+  },
+  boss: {
+    b10: { alliance: S1('scene-boss', 'The Deadmines', 38) },
+    b30: { alliance: S1('scene-boss-b30', 'Gnomeregan', 35), horde: S1('scene-boss-horde', 'Razorfen Kraul', 40) },
+  },
+  pressure: {
+    b30: { alliance: S1('scene-pressure', 'Stranglethorn Vale', 36), horde: S1('scene-pressure-horde', 'Stranglethorn Vale', 32) },
+  },
+  pressure_2v1: {
+    b20: { alliance: S1('scene-pressure_2v1', 'Hillsbrad Foothills', 50), horde: S1('scene-pressure_2v1-horde', 'Hillsbrad Foothills', 56) },
+    b30: { alliance: S1('scene-pressure_2v1-b30', 'Arathi Highlands', 27), horde: S1('scene-pressure_2v1-b30-horde', 'Arathi Highlands', 36) },
+  },
+  duel: {
+    b30: { both: S1('scene-duel', 'Gurubashi Arena', 34) },
+  },
+  heal_dungeon: {
+    b30: { alliance: S1('scene-heal_dungeon-b30', 'Scarlet Monastery', 24), horde: S1('scene-heal_dungeon-b30-horde', 'Scarlet Monastery', 17) },
+  },
+  heal_tank: {
+    b30: { alliance: S1('scene-heal_tank-b30', 'The Scarlet Monastery armory', 38), horde: S1('scene-heal_tank-b30-horde', 'The Scarlet Monastery armory', 36) },
+  },
+  heal_raid: {
+    b50: { alliance: S1('scene-heal_raid-b50', 'Onyxia’s Lair', 38), horde: S1('scene-heal_raid-b50-horde', 'Onyxia’s Lair', 40) },
+  },
 };
-export function sceneFor(test, faction) {
-  const sc = SCENES[test];
-  if (!sc) return null;
-  const horde = faction === 'horde' && sc.horde;
-  const v = horde ? sc.horde : sc;
-  return { file: `art/scene-${sc.art || test}${horde ? '-horde' : ''}.png`, zone: v.zone, top: v.top, ground: v.ground ?? 14 };
+export const BRACKETS = ['b10', 'b20', 'b30', 'b40', 'b50'];
+export const bracketOf = (level) => BRACKETS[Math.min(4, Math.max(0, Math.floor((level || 10) / 10) - 1))];
+// The scene for a test, a side (the main build's) and a level.
+export function sceneFor(test, faction, level) {
+  const t = SCENES[test];
+  if (!t) return null;
+  const at = BRACKETS.indexOf(bracketOf(level));
+  // the nearest bracket with a picture for this side (or one for both sides)
+  const order = BRACKETS.map((b, i) => [b, i]).sort((x, y) => Math.abs(x[1] - at) - Math.abs(y[1] - at) || y[1] - x[1]);
+  const side = faction === 'horde' ? 'horde' : 'alliance';
+  let v = null;
+  for (const [b] of order) {
+    v = t[b]?.[side] || t[b]?.both;
+    if (v) break;
+  }
+  if (!v) for (const [b] of order) { v = t[b]?.alliance || t[b]?.horde; if (v) break; }
+  return v && { file: `art/${v.art}.png`, zone: v.zone, top: v.top, rpad: v.rpad || 0, ground: v.ground ?? 14 };
 }
 // The side of the world things are drawn from: Horde art for a Horde build.
 export const sideArt = (faction) => (faction === 'horde'

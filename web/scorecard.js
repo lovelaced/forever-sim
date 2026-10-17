@@ -133,14 +133,15 @@ function changeStrip(cols) {
 // A test's scene, with the main build's hero standing in it. Scenes and
 // heroes are drawn on one pixel scale, so they're shown at whole art pixels.
 const mainFaction = () => raceOf(baselineBuild()?.race)?.faction;
+const mainScene = (test) => M.sceneFor(test, mainFaction(), baselineBuild()?.level);
 
 function scene(test) {
-  const sc = M.sceneFor(test, mainFaction());
+  const sc = mainScene(test);
   if (!sc) return h('span.scene.empty');
   const main = baselineBuild();
   const hero = artImg('img.hero.px', M.heroArt(main.race, main.cls), { '--ground': String(sc.ground) });
   hero.addEventListener('error', () => hero.remove(), { once: true });
-  return h('span.scene', { 'aria-hidden': 'true' }, artImg('img.bg.px', sc.file, { '--top': String(sc.top) }), hero);
+  return h('span.scene', { 'aria-hidden': 'true' }, artImg('img.bg.px', sc.file, { '--top': String(sc.top), '--rpad': String(sc.rpad) }), hero);
 }
 
 // Pixel art at its own size in art pixels (whole screen pixels each).
@@ -153,7 +154,7 @@ function artImg(sel, src, style) {
 
 function trialHead(test, open) {
   const meta = scenarioMeta(test);
-  const sc = M.sceneFor(test, mainFaction());
+  const sc = mainScene(test);
   return h('button.trial-btn', {
     type: 'button', 'aria-expanded': String(open), 'aria-controls': `detail-${test}`,
     onclick: () => { S.open = open ? null : test; saveLocal(); render(); },
