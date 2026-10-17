@@ -165,9 +165,14 @@ export function logPanel(ctx, cols) {
   }
   const t0 = tr.events[0]?.t || 0;
   const data = rows(tr, ctx.test);
+  const hitYou = data.rows.some((r) => r.theirs.length);
+  const petName = (tr.pets || [])[0];
+  const right = !hitYou
+    ? (ctx.test === 'boss' ? ' The tank holds the boss, so it never attacks you.' : ' Nothing attacked you in this fight.')
+    : petName ? ` On the right, what the enemies do to you and your ${petName.toLowerCase()}.` : ' On the right, what the enemies do to you.';
   box.append(h('p.hint', leveling
-    ? 'The run’s first pull, on the same dice as the results, from the pull to the rest after it. Your moves show their spell icons; what’s done to you shows the enemy’s portrait.'
-    : 'The run’s first fight, on the same dice as the results. Your moves show their spell icons; what’s done to you shows the enemy’s portrait.'));
+    ? `The run’s first pull, on the same dice as the results, from the pull to the rest after it. On the left, your moves.${right}`
+    : `The run’s first fight, on the same dice as the results. On the left, your moves.${right}`));
   box.append(healthChart(tr, t0, data.end));
   const LIMIT = 36;
   const showAll = S.logAll === key;
@@ -199,6 +204,9 @@ const amount = (e, cls = '') => h(`span.amt${cls}`, {
 // auto attacks are quieter, buffs and debuffs come and go as small icons.
 function rows(tr, test) {
   const me = tr.me;
+  const pets = new Set(tr.pets || []);
+  // who an enemy's attack landed on: you, or your pet
+  const onWhom = (t) => (t === me ? 'you' : pets.has(t) ? `your ${t.toLowerCase()}` : null);
   const out = [];
   const t0 = tr.events[0]?.t || 0;
   let end = 0;
@@ -232,16 +240,19 @@ function rows(tr, test) {
         r.mine.push(item(spellIcon(icon, '.s.debuff'), h('span.aura', `${e.name} on ${e.who}${e.stacks > 1 ? ` (${fmtNum(e.stacks)})` : ''}`)));
       } else if (e.kind === 'gain' && e.who === me) {
         r.theirs.push(item(spellIcon(e.icon, '.s.debuff'), h('span.aura', `You’re hit by ${e.name}`)));
-      } else if (e.kind === 'hit' && e.target === me) {
-        const name = e.name === 'melee' ? 'hits you' : `${e.name} hits you`;
+      } else if (e.kind === 'hit' && onWhom(e.target)) {
+        const whom = onWhom(e.target);
+        const name = e.name === 'melee' ? `hits ${whom}` : `${e.name} hits ${whom}`;
         if (e.amount < 0.5 && e.absorbed > 0) {
           r.theirs.push(item(foeFace(e.who), h('span', `${e.who} ${name}, `), h('span.absorb', `${e.via || 'a shield'} takes ${fmtNum(e.absorbed)}`)));
         } else {
           r.theirs.push(item(foeFace(e.who), h('span', `${e.who} ${name} `), amount(e, '.hurt'),
             e.absorbed > 0 ? h('span.absorb', ` (${fmtNum(e.absorbed)} absorbed)`) : null));
         }
-      } else if (e.kind === 'miss' || e.kind === 'dodge' || e.kind === 'parry') {
-        r.theirs.push(item(foeFace(e.who), h('span.muted', `you ${e.kind === 'miss' ? 'avoid' : e.kind} ${e.who}’s attack`)));
+      } else if ((e.kind === 'miss' || e.kind === 'dodge' || e.kind === 'parry') && onWhom(e.target)) {
+        const whom = onWhom(e.target);
+        const verb = e.kind === 'miss' ? (whom === 'you' ? 'avoid' : 'avoids') : whom === 'you' ? e.kind : `${e.kind}s`;
+        r.theirs.push(item(foeFace(e.who), h('span.muted', `${whom[0].toUpperCase()}${whom.slice(1)} ${verb} ${e.who}’s attack`)));
       }
       continue;
     }
@@ -294,26 +305,31 @@ function attachTip(el, e) {
 // heal. Clicking a point scrolls the log to that moment.
 function healthChart(tr, t0, end) {
   const me = tr.me;
-  const series = new Map(); // name -> [[t, hp]]
+  const pets = new Set(tr.pets || []);
+  const series = new Map([[me, [[0, 1]]]]); // name -> [[t, hp]]; you are always drawn
   for (const e of tr.events) {
     if (e.hp == null || !e.target) continue;
-    const who = e.target;
-    if (!series.has(who)) series.set(who, [[0, 1]]);
-    series.get(who).push([e.t - t0, e.hp]);
+    if (!series.has(e.target)) series.set(e.target, [[0, 1]]);
+    series.get(e.target).push([e.t - t0, e.hp]);
   }
-  if (!series.size || end <= 0) return null;
+  if (end <= 0) return null;
   const W = 600, H = 72;
   const x = (t) => (W * t) / end;
   const y = (v) => 4 + (H - 8) * (1 - v);
-  const foes = [...series.keys()].filter((n) => n !== me);
-  const color = (n, k) => (n === me ? '#7fd36a' : ['#ff7a64', '#ffb35a', '#e6739f'][k % 3]);
-  const lines = [me, ...foes].filter((n) => series.has(n)).map((n, k) => {
-    const pts = series.get(n);
+  // you in green, your pets in teal, enemies in reds and oranges
+  const FOES = ['#ff7a64', '#ffb35a', '#e6739f'];
+  let foeN = 0;
+  const who = [me, ...[...series.keys()].filter((n) => pets.has(n)), ...[...series.keys()].filter((n) => n !== me && !pets.has(n))];
+  const color = new Map(who.map((n) => [n, n === me ? '#7fd36a' : pets.has(n) ? '#5fc9b4' : FOES[foeN++ % FOES.length]]));
+  const label = (n) => (n === me ? 'You' : pets.has(n) ? `Your ${n.toLowerCase()}` : n);
+  const lines = who.map((n) => {
     let d = `M${x(0).toFixed(1)},${y(1).toFixed(1)}`;
-    for (const [t, v] of pts) d += ` H${x(t).toFixed(1)} V${y(v).toFixed(1)}`;
+    for (const [t, v] of series.get(n)) d += ` H${x(t).toFixed(1)} V${y(v).toFixed(1)}`;
+    // still standing at the end: carry the line to the end of the fight
+    if (series.get(n).at(-1)[1] > 0) d += ` H${x(end).toFixed(1)}`;
     const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     p.setAttribute('d', d);
-    p.setAttribute('stroke', color(n, n === me ? 0 : k - 1));
+    p.setAttribute('stroke', color.get(n));
     return p;
   });
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -322,7 +338,7 @@ function healthChart(tr, t0, end) {
   svg.setAttribute('class', 'hp-lines');
   svg.setAttribute('aria-hidden', 'true');
   svg.append(...lines);
-  const legend = h('div.hp-legend', [me, ...foes].filter((n) => series.has(n)).map((n, k) => h('span', { style: { '--c': color(n, n === me ? 0 : k - 1) } }, n === me ? 'You' : n)));
+  const legend = h('div.hp-legend', who.map((n) => h('span', { style: { '--c': color.get(n) } }, label(n))));
   const chart = h('div.hp-chart', { title: 'Click to jump to that moment' }, svg);
   chart.addEventListener('click', (ev) => {
     const r = chart.getBoundingClientRect();

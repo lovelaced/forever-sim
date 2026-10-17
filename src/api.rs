@@ -493,9 +493,11 @@ fn trace(w: &World, v: &J) -> Result<J, String> {
     // what concerns the build: its own (and its pet's) actions, what it puts
     // on others, and what is done to it
     let me = events.iter().find(|e| e.team == 0 && !e.pet).map(|e| e.who.clone()).unwrap_or_else(|| b.name.clone());
-    events.retain(|e| e.team == 0 || e.target.as_deref() == Some(me.as_str()) || e.kind == "death");
+    // a pet often holds the mob (a hunter's, a Voidwalker): what's done to it counts too
+    let pets: BTreeSet<String> = events.iter().filter(|e| e.team == 0 && e.pet).map(|e| e.who.clone()).collect();
+    events.retain(|e| e.team == 0 || e.kind == "death" || e.target.as_ref().map_or(false, |t| *t == me || pets.contains(t)));
     dress_trace(w, &b, sc, &mut events);
-    Ok(json!({ "me": me, "leveling": leveling, "events": events }))
+    Ok(json!({ "me": me, "pets": pets, "leveling": leveling, "events": events }))
 }
 
 /// Make a traced fight readable: the game's icon on every event, real

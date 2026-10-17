@@ -333,3 +333,19 @@ fn absorbed_hits_report_the_shield() {
     assert!(!soaked.is_empty(), "Ice Barrier should soak up some hits");
     assert!(soaked.iter().all(|e| e["via"] == "Ice Barrier" || e["via"] == "Mana Shield" || !e["via"].as_str().unwrap_or("").is_empty()), "absorbs name their shield");
 }
+
+/// When a pet holds the mob (a hunter's cat), the fight log keeps what the
+/// mob does to it, so the enemies' side of the log isn't empty.
+#[test]
+fn fight_logs_keep_hits_on_your_pet() {
+    let text = std::fs::read_to_string("builds/hunter/beast_mastery.toml").unwrap();
+    let build = serde_json::to_value(toml::from_str::<toml::Value>(&text).unwrap()).unwrap();
+    let req = serde_json::json!({ "op": "trace", "scenario": "solo_1", "level": 30, "build": build });
+    let out: serde_json::Value = serde_json::from_str(&forever_sim::api::handle(&req.to_string())).unwrap();
+    let out = out.get("result").unwrap_or(&out);
+    let pets: Vec<&str> = out["pets"].as_array().unwrap().iter().filter_map(|p| p.as_str()).collect();
+    assert!(!pets.is_empty(), "the hunter's pet is listed");
+    let on_pet = out["events"].as_array().unwrap().iter()
+        .filter(|e| e["team"] != 0 && e["kind"] == "hit" && pets.contains(&e["target"].as_str().unwrap_or(""))).count();
+    assert!(on_pet > 0, "the mob's hits on the pet are in the log");
+}
