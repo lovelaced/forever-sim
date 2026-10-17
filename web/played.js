@@ -105,7 +105,7 @@ export function playedPanel(ctx, cols, res) {
   const stale = !c.cell.current ? h('p.notice', 'This build changed since the run, so these numbers are from its earlier version.') : null;
   return h('section.played.spellbook',
     whoseHead(cols, c, 'How it played:'), stale, ...setup,
-    h('p.hint', `The simulated player goes down this list every time it can act and uses the first line that applies. ${used.length} of ${lines.length} lines came up in this test${leveling ? '; times a minute count only time spent fighting' : ''}.`),
+    h('p.hint', `Whenever it can act, it casts the first line that applies. ${used.length} of ${lines.length} came up here.`),
     prio, toggle, otherLine, rest);
 }
 
@@ -165,14 +165,10 @@ export function logPanel(ctx, cols) {
   }
   const t0 = tr.events[0]?.t || 0;
   const data = rows(tr, ctx.test);
-  const hitYou = data.rows.some((r) => r.theirs.length);
-  const petName = (tr.pets || [])[0];
-  const right = !hitYou
-    ? (ctx.test === 'boss' ? ' The tank holds the boss, so it never attacks you.' : ' Nothing attacked you in this fight.')
-    : petName ? ` On the right, what the enemies do to you and your ${petName.toLowerCase()}.` : ' On the right, what the enemies do to you.';
-  box.append(h('p.hint', leveling
-    ? `The run’s first pull, on the same dice as the results, from the pull to the rest after it. On the left, your moves.${right}`
-    : `The run’s first fight, on the same dice as the results. On the left, your moves.${right}`));
+  // the two sides speak for themselves; say so only when one is empty
+  if (!data.rows.some((r) => r.theirs.length)) {
+    box.append(h('p.hint', ctx.test === 'boss' ? 'The tank holds the boss, so nothing attacks you.' : 'Nothing attacked you in this fight.'));
+  }
   box.append(healthChart(tr, t0, data.end));
   const LIMIT = 36;
   const showAll = S.logAll === key;

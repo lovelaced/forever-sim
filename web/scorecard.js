@@ -2,7 +2,7 @@
 // build's result, a one-line summary on top, what the last change did, and
 // each test's detail opening inside its row.
 import * as M from './meta.js';
-import { h, fmtMetric, fmtDiff, fmtNum, fmtSec } from './ui.js';
+import { h, fmtMetric, fmtDiff, fmtNum } from './ui.js';
 import { S, env, bus, sig, nameOf, slotOf, baselineBuild, raceOf, scenarioMeta, primaryOf, accuracyOf, presetOf, presetsFor, baseName, buildDiff, diffText, saveLocal } from './state.js';
 import { scorecardTests, cellOf, pairOf, duelWin, changesFor, simulateAll } from './runner.js';
 import { renderDetail, leaders, metricOf } from './results.js';
@@ -177,8 +177,8 @@ function plaque(test, row, c, cols, best) {
   const s = metricOf(row.res, c.cell.i, primary);
   if (!s) { el.append(h('span.v.none', '—')); return el; }
   const isBest = best.has(c.k);
-  el.append(h('span.v', fmtMetric(s.mean, m),
-    isBest ? h('img.crown.px', { src: 'art/crown.png', alt: best.size > 1 ? 'Tied for best' : 'Best', title: best.size > 1 ? 'Tied for best' : 'Best' }) : null));
+  el.append(h('span.v', fmtMetric(s.mean, m)));
+  if (isBest) el.append(h('img.crown.px', { src: 'art/crown.png', alt: best.size > 1 ? 'Tied for best' : 'Best', title: best.size > 1 ? 'Tied for best' : 'Best' }));
   if (!c.isBase && base?.cell) {
     const p = pairOf(row.res, primary, base.cell.i, c.cell.i);
     const bs = metricOf(row.res, base.cell.i, primary);
@@ -203,7 +203,11 @@ function duelPlaque(el, row, c, base) {
     el.append(h('span.v', `${fmtNum(100 * w.mean, 0)}%`), h('span.d', { class: w.lo > 0.5 ? 'good' : w.hi < 0.5 ? 'bad' : '' }, w.lo > 0.5 ? 'wins' : w.hi < 0.5 ? 'loses' : 'even'));
     return el;
   }
-  if (c.isBase || !base?.cell) { el.append(h('span.v.none', '—'), c.isBase ? h('span.d.main', 'main build') : null); return el; }
+  if (c.isBase || !base?.cell) {
+    el.append(h('span.v.none', '—'));
+    if (c.isBase) el.append(h('span.d.main', 'main build'));
+    return el;
+  }
   const w = duelWin(row, c.cell.sig, base.cell.sig);
   if (!w) { el.append(h('span.v.none', '—')); return el; }
   const cls = w.lo > 0.5 ? 'good' : w.hi < 0.5 ? 'bad' : '';
@@ -243,16 +247,16 @@ export function renderScorecard(root, { onRender }) {
   out.push(sum || h('h2.summary.empty', S.builds.length > 1 ? 'How do these builds compare?' : 'How does this build do?'));
 
   if (!anyRow && !running) {
-    out.push(h('p.lede', `Press Simulate to put ${S.builds.length > 1 ? 'these builds' : 'this build'} through ${tests.length === 1 ? 'one test' : `all ${tests.length} tests`} below. Each test plays out hundreds of times, so it takes a few seconds.`));
+    out.push(h('p.lede', `Press Simulate to run ${tests.length === 1 ? 'the test' : `all ${tests.length} tests`}.`));
   }
 
   // notices
   const notes = [];
   const staleBuilds = S.builds.filter((b) => listed.some((t) => { const c = cellOf(S.rows[t], b); return S.rows[t] && !S.rows[t].error && (!c || !c.current); }));
   if (anyRow && staleBuilds.length && !running) {
-    notes.push(h('div.notice', `${joinAnd(staleBuilds.map((b) => nameOf(b)))} ${staleBuilds.length === 1 ? 'has' : 'have'} changed since ${staleBuilds.length === 1 ? 'its' : 'their'} last run. Faded numbers are from before; press Simulate to update them.`));
+    notes.push(h('div.notice', `${joinAnd(staleBuilds.map((b) => nameOf(b)))} changed since the last run. Simulate to update the faded numbers.`));
   }
-  if (levels > 1) notes.push(h('div.notice', 'Your builds are at different levels, so they fight different mobs. Compare them with that in mind.'));
+  if (levels > 1) notes.push(h('div.notice', 'Your builds are at different levels, so they fight different mobs.'));
   if (run?.finished && run.stopped) notes.push(h('div.notice', `Stopped after ${run.i} of ${run.jobs.length} tests. Press Simulate to run the rest.`));
   out.push(...notes);
 
@@ -287,9 +291,6 @@ export function renderScorecard(root, { onRender }) {
   });
   out.push(list);
 
-  if (run?.finished && !run.stopped && run.full && !run.nothing) {
-    out.push(h('p.fine-print.run-note', `Last run: ${run.jobs.length === 1 ? 'one test' : `${run.jobs.length} tests`} in ${fmtSec(run.ms / 1000)}, at ${accuracyOf(run.acc).title} accuracy. Every build faces the same dice in each test.`));
-  }
   root.replaceChildren(...out.filter(Boolean));
 }
 
@@ -302,7 +303,6 @@ function detailFor(test, row, cols) {
     if (ch && ch.toSig === sig(c.b)) changes.set(c.b.uid, ch);
   }
   const opponentPicker = () => {
-    const own = S.builds[0];
     const groups = env.catalog.classes.map((cl) => h('optgroup', { label: cl.name },
       presetsFor(cl.id).map((p) => h('option', { value: `preset:${p.file}`, selected: S.opponent === `preset:${p.file}` },
         baseName(p.name) + (p.kind === 'experimental' ? ' (experimental)' : p.role === 'healer' ? ' (healer)' : p.role === 'tank' ? ' (tank)' : '')))));
@@ -310,13 +310,12 @@ function detailFor(test, row, cols) {
       h('label', { for: 'opponent' }, 'Opponent'),
       h('select.select#opponent', { onchange: (e) => { S.opponent = e.target.value || null; saveLocal(); render(); } },
         h('option', { value: '', selected: !S.opponent }, 'Pick a build to duel'), groups),
-      S.opponent ? h('button.btn.btn-small', { type: 'button', onclick: () => simulateAll({ only: 'duel' }) }, 'Run the duel') : null,
-      h('p.note', `The opponent fights at level ${own.level}, like your build.`));
+      S.opponent ? h('button.btn.btn-small', { type: 'button', onclick: () => simulateAll({ only: 'duel' }) }, 'Run the duel') : null);
   };
   if (!row && test === 'duel') {
-    return h('div.detail', h('p.detail-meta', 'Your build duels another build until one of them dies, with a three-minute limit.'), opponentPicker());
+    return h('div.detail', h('p.detail-meta', 'To the death, three minutes at most.'), opponentPicker());
   }
-  if (!row) return h('div.detail', h('p.hint', 'This test has not been run yet. Press Simulate.'));
+  if (!row) return h('div.detail', h('p.hint', 'Not run yet.'));
   if (row.error) return h('div.detail', h('div.warn', row.error));
   const acc = accuracyOf(row.acc);
   const oppPreset = S.opponent && presetOf(S.opponent.slice(7));

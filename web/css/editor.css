@@ -116,6 +116,8 @@
 /* ------------------------------------------------------------ talents (the game's own widget) */
 .talent-bar { display: flex; justify-content: space-between; align-items: center; gap: var(--s3) var(--s5); flex-wrap: wrap; margin-bottom: var(--s4); }
 .points-left { font-size: var(--fs-m); color: var(--text-2); }
+.points-left .planned { color: var(--text-3); font-size: var(--fs-s); }
+.talent-bar { min-height: 36px; }
 .points-left b { font-weight: 600; color: var(--wow-gold); font-variant-numeric: tabular-nums; }
 .points-left.none b { color: var(--text-2); }
 .talent-tools { display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap; }

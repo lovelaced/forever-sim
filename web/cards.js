@@ -86,7 +86,7 @@ function card(b, k, isBase, base, actions) {
           presetTags(b.preset && presetOf(b.preset)).map((t) => h('span.card-tag', t))))),
     h('p.card-split', split.map(([tr, n], i) => h('span', { class: n ? '' : 'zero', title: tr.name }, art(style[i]?.[1] || 'rune-stone', style[i]?.[2]), `${n}`))),
     gearLine(b),
-    main ? h('p.card-diff.base', 'The others are compared with this build, and its fights are shown first.') : diff,
+    main ? h('p.card-diff.base', 'The others are compared with it.') : diff,
     change,
     h('div.card-actions',
       h('button.btn', {

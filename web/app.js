@@ -252,7 +252,7 @@ function renderAssumptions() {
   const list = relevantOptions();
   const fmtDefault = (o, ui) => ui.kind === 'toggle' ? (o.default ? 'on' : 'off') : ui.kind === 'pct' ? `${+(o.default * 100).toFixed(4)}%` : `${o.default}${ui.unit && ui.unit !== '%' ? ` ${ui.unit}` : ui.unit || ''}`;
   $('assumptions-body').replaceChildren(
-    h('p.note', 'Some numbers the game does not publish. These are the simulator’s best guesses; change one to see how much it matters. Only the ones that affect your builds are listed. Changing one puts the results out of date until you simulate again.'),
+    h('p.note', 'Numbers the game doesn’t publish, for your builds. Change one to see how much it matters.'),
     h('div.opt-list', list.map((o) => {
       const ui = o;
       const v = o.name in S.opts ? S.opts[o.name] : o.default;

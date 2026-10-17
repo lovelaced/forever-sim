@@ -160,15 +160,16 @@
 .trial-btn:hover .chev, .trial.open .chev { box-shadow: 0 0 0 1px #000, 0 0 0 2px var(--wow-gold), 0 0 10px rgba(255, 209, 0, .35); }
 .trial-vals { display: flex; gap: var(--s2); padding-right: var(--s3); align-items: stretch; }
 .plaque {
-  display: grid; grid-template-columns: auto auto; grid-template-areas: 'slot v' 'd d'; align-items: center; justify-items: end; column-gap: var(--s2);
-  width: 128px; padding: 6px 10px 5px; background: rgba(0, 0, 0, .38);
+  position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: 'slot v' 'd d'; align-items: center; justify-items: end; column-gap: var(--s2);
+  width: 150px; padding: 6px 10px 5px; background: rgba(0, 0, 0, .38);
   box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2px color-mix(in srgb, var(--slot) 40%, #000);
   font-variant-numeric: tabular-nums; transition: opacity .2s;
 }
 .plaque .slot { grid-area: slot; justify-self: start; }
-.plaque .v { grid-area: v; display: inline-flex; align-items: center; gap: 4px; font: 700 var(--fs-2xl)/1 var(--display); color: var(--text); }
+.plaque .v { grid-area: v; font: 700 var(--fs-2xl)/1 var(--display); color: var(--text); white-space: nowrap; }
 .plaque .v.none { color: var(--text-3); font-size: var(--fs-l); }
-.plaque .crown { width: calc(17 * var(--art)); height: calc(16 * var(--art)); filter: drop-shadow(0 0 4px rgba(255, 209, 0, .45)); }
+/* the best result wears a crown on the plaque's corner */
+.plaque .crown { position: absolute; top: -9px; right: -8px; width: calc(17 * var(--art)); height: calc(16 * var(--art)); filter: drop-shadow(0 0 4px rgba(255, 209, 0, .45)) drop-shadow(0 1px 1px #000); }
 .plaque .d { grid-area: d; margin-top: 3px; font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap; }
 .plaque .d.good { color: var(--good); }
 .plaque .d.bad { color: var(--bad); }
@@ -341,6 +342,15 @@
   .trial-btn { grid-template-columns: calc(300 * var(--art)) minmax(0, 1fr) auto; }
   .scene { width: calc(300 * var(--art)); }
   .card-add { flex-basis: 170px; }
+}
+/* not enough room beside the test's name: the results go on a row below */
+@media (max-width: 1240px) {
+  .trial-head:has(.trial-vals.n3) { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .trial-vals.n3 { justify-content: flex-end; padding: var(--s2) var(--s3) var(--s3); }
+}
+@media (max-width: 1000px) {
+  .trial-head:has(.trial-vals.n2) { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .trial-vals.n2 { justify-content: flex-end; padding: var(--s2) var(--s3) var(--s3); }
 }
 @media (max-width: 860px) {
   .trial-head { grid-template-columns: minmax(0, 1fr); gap: 0; }

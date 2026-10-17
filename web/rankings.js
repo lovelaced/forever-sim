@@ -252,7 +252,7 @@ export function renderRankings(root) {
   const count = pool(st.experiments).length;
   const out = [
     banner(M.sideArt(raceOf(baselineBuild()?.race)?.faction).inn, 'Every spec, ranked', 'fr-oak'),
-    h('p.lede', `Runs every build on the site through seven tests and ranks them: leveling one, two, two tough and three mobs at a time, a dungeon boss, and two world PvP ambushes. That's ${count} builds, so it takes a while: about four minutes on a fast laptop on Standard, and much longer on a phone. Quick is several times faster; Precise takes much longer. Each list appears as soon as its test finishes, and the slow three-mob test runs last.`),
+    h('p.lede', `All ${count} builds through seven tests. About four minutes on Standard on a fast laptop, longer on a phone; each list shows up as its test finishes.`),
     controls(st, { go: runRankings, goLabel: `Rank ${count} builds`, running, stopLabel: 'Stop', frame: 'fr-oak' }),
   ];
   if (running) out.push(progressBlock(st.run, `${RANK_TITLES[st.run.test]}, ${Math.min(st.run.i + 1, st.run.n)} of ${st.run.n} tests`));
@@ -303,7 +303,7 @@ function rankList(st, r, test) {
   return h('section.rank-board', { class: stale ? 'stale' : '' },
     h('div.rank-head',
       h('h3', `${meta.title}, level ${r.level}`),
-      h('p.hint', `${M.PRIMARY_HELP?.[primary] || meta.help} ${accuracyOf(r.acc).title} accuracy, ${fmtSec(r.ms / 1000)}.`),
+      h('p.hint', `${accuracyOf(r.acc).title} accuracy, ${fmtSec(r.ms / 1000)}.`),
       stale ? h('p.notice', 'The settings above changed since this ranking. Press the button to run it again.') : null),
     podium,
     // everyone, like raid frames: a bar in the class's colour with the name on it
@@ -315,10 +315,8 @@ function rankList(st, r, test) {
         h('span.raid-name', h('b', baseName(x.p.name)), h('span', classOf(x.p.class)?.name), tagsOf(x.p)),
         h('span.raid-val', fmtMetric(x.m.mean, pm), h('small', extra(x)))),
       compareButton(x.p, r.level)))),
-    h('p.hint.bar-hint', 'Builds marked = are within the margin of error of the first build with that rank. The thin marks show the range the true average very likely sits in. ',
-      withTip(h('span.q', { tabindex: '0' }, 'What does that mean?'), rangeTip)),
-    test.startsWith('pressure') ? h('p.hint', 'The attackers are scripted, geared melee players who open with a stun. A very high number means it can’t get through that build’s crowd control and immunities at all, not an exact figure.') : null,
-    h('p.hint', 'Healers and tanks are measured on their solo play here. Every build wears the typical gear for its role and level.'));
+    h('p.hint.bar-hint', withTip(h('span.q', { tabindex: '0' }, '= means tied'), () => [tt.title('Tied'), tt.line('Within the margin of error of the build above with that rank.', 'gold'), ...rangeTip().slice(1)]),
+      test.startsWith('pressure') ? ' · A very high number means the attacker can’t get through at all.' : ''));
 }
 
 // ------------------------------------------------------------------ duels view: the arena
@@ -346,10 +344,10 @@ export function renderDuels(root) {
         .map((p) => h('option', { value: p.file, selected: p.file === st.build }, `${baseName(p.name)}${isExperimental(p) ? ' (experimental)' : ''}`))))));
   const out = [
     banner('banner-arena', 'One build against every other', 'fr-iron'),
-    h('p.lede', `Pick a build and it duels each of the other ${others.length} builds, both ways round: whoever opens a duel strikes first, so every matchup runs twice and the two are averaged. That's a lot of fights, so it can take a long time on slower devices: around ten seconds on a fast laptop, several minutes on a phone, and much longer on Precise.`),
+    h('p.lede', `Your build against each of the other ${others.length}, both ways round. About ten seconds on a fast laptop, minutes on a phone.`),
     controls(st, { go: runDuels, goLabel: `Duel ${others.length} builds`, running, stopLabel: 'Stop', extra: picker, frame: 'fr-iron', noLevel: me?.own }),
   ];
-  if (me?.own) out.push(h('p.hint', `Your own build fights at its level (${me.level}), and so does everyone it duels.`));
+  if (me?.own) out.push(h('p.hint', `Everyone fights at your build’s level, ${me.level}.`));
   if (running) out.push(progressBlock(st.run, `Duel ${Math.min(st.run.i + 1, st.run.n)} of ${st.run.n}`));
   else if (st.run?.stopped) out.push(h('p.hint', 'Stopped before every duel finished, so there are no results yet.'));
   const r = st.result;
@@ -377,7 +375,7 @@ function duelBoard(st, r) {
       h('p.summary-line', `Beats ${wins} of ${rows.length} builds, loses to ${losses}${even ? `, and ${even} ${even === 1 ? 'is' : 'are'} too close to call` : ''}. `,
         best ? `Best matchup: ${baseName(best.p.name)} ${classOf(best.p.class)?.name} (wins ${pct(best.mean)}). ` : '',
         worst ? `Hardest: ${baseName(worst.p.name)} ${classOf(worst.p.class)?.name} (wins ${pct(worst.mean)}).` : ''),
-      h('p.hint', `${accuracyOf(r.acc).title} accuracy, ${fmtSec(r.ms / 1000)}. Duels are stand-and-fight with a three-minute limit; the simulator has no movement yet, so builds that kite in the game do worse here.`),
+      h('p.hint', `${accuracyOf(r.acc).title} accuracy, ${fmtSec(r.ms / 1000)}. No movement yet, so builds that kite do worse here.`),
       stale ? h('p.notice', 'The settings above changed since these duels. Press the button to run them again.') : null),
     // each matchup as a forecast: you on the left, them on the right, the
     // bar pushed toward whoever wins more often
@@ -393,5 +391,5 @@ function duelBoard(st, r) {
       face(x.p.race, x.p.class),
       h('span.foe-name', h('b', baseName(x.p.name)), h('span', { style: { color: classColor(x.p.class) } }, classOf(x.p.class)?.name), tagsOf(x.p)),
       compareButton(x.p, r.level)))),
-    h('p.hint.bar-hint', 'Each bar is one matchup: the left side is your share of duels won. The thin marks show the range the true win rate very likely sits in.'));
+    h('p.hint.bar-hint', 'The left side of each bar is your share of duels won.'));
 }

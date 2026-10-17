@@ -76,10 +76,10 @@ function afterTalentChange(t, viaTouch) {
 // The build's own note, plus what kind of build it is.
 function presetNote(p, b) {
   const extra = [
-    isExperimental(p) ? 'A Forever experiment, not one of the standard specs.' : null,
-    p.role === 'healer' ? 'A healing spec: these tests measure damage, leveling speed and survival, so it shows its solo play here. A healing test is coming.' : null,
-    p.role === 'tank' ? 'A tank spec: these tests measure solo play, not tanking for a group.' : null,
-    b.edited ? 'You have changed its talents.' : null,
+    isExperimental(p) ? 'A Forever experiment.' : null,
+    p.role === 'healer' ? 'Healers are tested on their solo play until a healing test arrives.' : null,
+    p.role === 'tank' ? 'Tanks are tested on their solo play.' : null,
+    b.edited ? 'You’ve changed its talents.' : null,
   ].filter(Boolean);
   return [p.note, ...extra].filter(Boolean).join(' ');
 }
@@ -241,7 +241,10 @@ export function renderEditor(root, actions) {
     const planned = b.plan ? spent(b.plan) : 0;
     panel = h('div.tab-panel',
       h('div.talent-bar',
-        h('div.points-left', { class: left === 0 ? 'none' : '' }, h('b', String(left)), ` of ${budget} talent points left`),
+        // points planned for later levels sit on the same line, so the trees don't move
+        h('div.points-left', { class: left === 0 ? 'none' : '' }, h('b', String(left)), ` of ${budget} talent points left`,
+          planned > used ? h('span.planned', ` · ${planned - used} more at higher levels (`,
+            h('button.linkish', { type: 'button', onclick: () => { b.plan = null; bus.render(); } }, 'forget them'), ')') : null),
         h('div.talent-tools',
           h('span.talent-help.for-mouse', 'Click to learn, right-click to unlearn.'),
           h('span.talent-help.for-touch', 'Tap a talent to learn or unlearn it.'),
@@ -249,8 +252,6 @@ export function renderEditor(root, actions) {
             type: 'button', disabled: used === 0,
             onclick: () => { b.talents = {}; b.plan = null; b.edited = !!b.preset; changed(b); },
           }, 'Reset talents'))),
-      planned > used ? h('div.notice', `Showing the first ${used} of ${planned} planned points, in leveling order. Raise the level to see the rest. `,
-        h('button.linkish', { type: 'button', onclick: () => { b.plan = null; bus.render(); } }, 'Forget the rest')) : null,
       renderTrees({
         prep, talents: b.talents, budget, activeTree: S.tree ?? mainTree(prep, b.talents),
         onLearn: learn, onUnlearn: unlearn, onPickTree: (i) => { S.tree = i; bus.render(); },
@@ -336,9 +337,9 @@ function sheetPanel(b, sheet) {
       h('div.chips-list', race.passives.map((p) => h('span.pill', M.RACE_BLURB[p] ? `${p}: ${M.RACE_BLURB[p]}` : p)))),
     sheet.auras.length ? h('div.section', h('h3', 'Self-buffs before a fight'), h('div.chips-list', sheet.auras.map((a) => h('span.pill', a)))) : null,
     sheet.unmodelled.length ? h('div.section', h('h3', 'Talents the simulator ignores'),
-      h('p.hint', 'These have points in them but are not simulated yet, so they make no difference to the results.'),
+      h('p.hint', 'Not simulated yet, so they change nothing.'),
       h('div.chips-list', sheet.unmodelled.map((a) => h('span.pill.grey', a)))) : null,
-    h('p.note', { style: { marginTop: '18px' } }, 'Green numbers include buffs the character casts on itself before a fight. Hover over them to see the value without.'),
+    h('p.note', { style: { marginTop: '18px' } }, 'Green numbers include self-buffs. Hover for the value without.'),
   ];
 }
 
@@ -360,7 +361,7 @@ function gearPanel(b) {
     h('div.section', h('h3', 'Play style'),
       h('div.choice-card', ability(M.CLASS_ICONS[b.cls], ['#d9c49a', '#2d2416'], c.icon),
         h('div.grow', rotSel, h('p.note', rDetail ? `In order of priority: ${rDetail.replace(/\.$/, '')}.` : rTitle)))),
-    h('p.note', { style: { marginTop: '18px' } }, 'The simulated player follows the play style perfectly, with the reaction time of a good human player.'),
+    h('p.note', { style: { marginTop: '18px' } }, 'Played perfectly, with a good player’s reaction time.'),
   ];
 }
 
@@ -384,7 +385,7 @@ function gearDetails(b, sheet) {
   return h('div.section', h('h3', `What this gear gives at level ${sheet.gear.level}`),
     h('div.chips-list', stats.map((s) => h('span.pill', s))),
     h('ul.gear-weapons', weapons.map((w) => h('li', w))),
-    h('p.note', 'This is a typical set for a player who has picked up quest and dungeon rewards on the way to this level. Every build that wears it gets the same totals, so results compare talents and play, not lucky drops. Forever reworked item stats, so treat the numbers as a fair estimate rather than a specific set of items.'));
+    h('p.note', 'Typical quest and dungeon gear for this level, the same for every build that wears it.'));
 }
 
 // What changed since this build was last simulated, before simulating it
