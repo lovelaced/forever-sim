@@ -646,11 +646,13 @@ text = "The Imp's Blood Pact: Stamina while the Imp is out."
 mods = [{ stat = "sta", add = "pet.imp.active ? r.sta : 0" }]
 [auras.healthstone_cd_lock]
 name = "Healthstone used"
+hidden = true
 duration = 120
 
 # ------------------------------------------------------------------ spells
 [spells.demon_skin]
 name = "Demon Skin"
+icon = "spell_shadow_ragingscream"
 target = "self"
 requires = "!aura.demon_skin.up && !known.demon_armor"
 ranks = [
@@ -661,6 +663,7 @@ effects = [{ type = "aura", aura = "demon_skin" }]
 
 [spells.demon_armor]
 name = "Demon Armor"
+icon = "spell_shadow_ragingscream"
 target = "self"
 requires = "!aura.demon_armor.up"
 ranks = [
@@ -674,6 +677,7 @@ effects = [{ type = "aura", aura = "demon_armor" }]
 
 [spells.summon_imp]
 name = "Summon Imp"
+icon = "spell_shadow_summonimp"
 target = "self"
 cast_time = 10
 requires = "!pet.imp.active && !in_combat"
@@ -685,6 +689,7 @@ effects = [
 ]
 [spells.summon_voidwalker]
 name = "Summon Voidwalker"
+icon = "spell_shadow_summonvoidwalker"
 level = 10
 target = "self"
 cast_time = 10
@@ -698,6 +703,7 @@ effects = [
 ]
 [spells.summon_succubus]
 name = "Summon Succubus"
+icon = "spell_shadow_summonsuccubus"
 level = 20
 target = "self"
 cast_time = 10
@@ -711,6 +717,7 @@ effects = [
 ]
 [spells.summon_felhunter]
 name = "Summon Felhunter"
+icon = "spell_shadow_summonfelhunter"
 level = 30
 target = "self"
 cast_time = 10
@@ -725,6 +732,7 @@ effects = [
 
 [spells.demonic_sacrifice]
 name = "Demonic Sacrifice"
+icon = "spell_shadow_psychicscream"
 talent = "demonic_sacrifice"
 target = "self"
 requires = "pet.active"
@@ -742,6 +750,7 @@ effects = [
 
 [spells.soul_link]
 name = "Soul Link"
+icon = "spell_shadow_gathershadows"
 talent = "soul_link"
 target = "self"
 requires = "!aura.soul_link_buff.up"
@@ -750,6 +759,7 @@ effects = [{ type = "aura", aura = "soul_link_buff" }]
 
 [spells.amplify_curse]
 name = "Amplify Curse"
+icon = "spell_shadow_contagion"
 talent = "amplify_curse"
 target = "self"
 off_gcd = true
@@ -759,6 +769,7 @@ effects = [{ type = "aura", aura = "amplify_curse" }]
 
 [spells.shadow_bolt]
 name = "Shadow Bolt"
+icon = "spell_shadow_shadowbolt"
 school = "shadow"
 ranks = [
   { level = 1, id = 686, lo = 11, lo_per_level = 0.171, hi = 15, hi_per_level = 0.229, mana = 25, cast = 1.7, max_level = 5, coef = 0.486 },
@@ -775,6 +786,7 @@ effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coe
 
 [spells.immolate]
 name = "Immolate"
+icon = "spell_fire_immolation"
 school = "fire"
 cast_time = 2
 requires = "!target.aura.immolate.up"
@@ -792,6 +804,7 @@ effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef 
 
 [spells.corruption]
 name = "Corruption"
+icon = "spell_shadow_abominationexplosion"
 school = "shadow"
 cast_time = 2
 requires = "!target.aura.corruption.up"
@@ -809,6 +822,7 @@ effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, o
 
 [spells.bane_of_agony]
 name = "Bane of Agony"
+icon = "spell_shadow_curseofsargeras"
 school = "shadow"
 requires = "!target.aura.bane_of_agony.up"
 text = "tick = damage every 2 sec (12 ticks)."
@@ -824,6 +838,7 @@ effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, o
 
 [spells.siphon_life]
 name = "Siphon Life"
+icon = "spell_shadow_requiem"
 talent = "siphon_life"
 school = "shadow"
 requires = "!target.aura.siphon_life.up"
@@ -837,6 +852,7 @@ effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, o
 
 [spells.wrack]
 name = "Wrack"
+icon = "ability_deathknight_hemorrhagicfever"
 talent = "wrack"
 school = "shadow"
 cost = { mana = 200 }
@@ -846,6 +862,7 @@ effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, o
 
 [spells.drain_life]
 name = "Drain Life"
+icon = "spell_shadow_lifedrain02"
 school = "shadow"
 ranks = [
   { level = 14, id = 689, per = 10, mana = 55 },
@@ -865,6 +882,7 @@ effects = [
 
 [spells.drain_soul]
 name = "Drain Soul"
+icon = "spell_shadow_haunting"
 school = "shadow"
 text = "tick = damage every 3 sec (5 ticks). No extra damage at low health: neither the spell data nor the tooltip has any."
 ranks = [
@@ -884,6 +902,7 @@ effects = [
 
 [spells.life_tap]
 name = "Life Tap"
+icon = "spell_shadow_burningspirit"
 target = "self"
 text = "base grows by 1 a level up to the next rank."
 ranks = [
@@ -902,6 +921,7 @@ effects = [
 
 [spells.death_coil]
 name = "Death Coil"
+icon = "spell_shadow_deathcoil"
 school = "shadow"
 cooldown = 120
 ranks = [
@@ -913,6 +933,7 @@ effects = [{ type = "damage", school = "shadow", amount = "r.dmg", coef = 0.214,
 
 [spells.searing_pain]
 name = "Searing Pain"
+icon = "spell_fire_soulburn"
 school = "fire"
 cast_time = 1.5
 ranks = [
@@ -927,6 +948,7 @@ effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef 
 
 [spells.soul_fire]
 name = "Soul Fire"
+icon = "spell_fire_fireball02"
 school = "fire"
 cast_time = 6
 cooldown = 60
@@ -938,6 +960,7 @@ effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef 
 
 [spells.shadowburn]
 name = "Shadowburn"
+icon = "spell_shadow_scourgebuild"
 talent = "shadowburn"
 school = "shadow"
 cooldown = 15
@@ -953,6 +976,7 @@ effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coe
 
 [spells.conflagrate]
 name = "Conflagrate"
+icon = "spell_fire_fireball"
 talent = "conflagrate"
 school = "fire"
 cooldown = 10
@@ -972,6 +996,7 @@ effects = [
 
 [spells.incinerate]
 name = "Incinerate"
+icon = "spell_fire_burnout"
 talent = "incinerate"
 school = "fire"
 cast_time = 2.5
@@ -984,6 +1009,7 @@ effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef 
 
 [spells.hellfire]
 name = "Hellfire"
+icon = "spell_fire_incinerate"
 school = "fire"
 text = "per = burn every sec on enemies and on you. Forever lets the burn on enemies crit (Hellfire Effect lost Classic's cannot-crit flag); yours cannot."
 ranks = [
@@ -1001,6 +1027,7 @@ effects = [
 
 [spells.rain_of_fire]
 name = "Rain of Fire"
+icon = "spell_shadow_rainoffire"
 school = "fire"
 text = "tick = damage every 2 sec (4 ticks). Forever's ticks are their own spells (1282380 and up) and can crit."
 ranks = [
@@ -1013,6 +1040,7 @@ channel = { duration = 8, interval = 2, effects = [{ type = "damage", school = "
 
 [spells.healthstone]
 name = "Healthstone"
+icon = "inv_stone_04"
 level = 10
 off_gcd = true
 cooldown = "opt.warlock_healthstone_cooldown"
@@ -1033,6 +1061,7 @@ effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", tag = "
 # cost nothing here (see data/reference/accepted/warlock.toml).
 [spells.blood_pact]
 name = "Blood Pact"
+icon = "spell_shadow_bloodboil"
 target = "self"
 off_gcd = true
 text = "The Imp's party Stamina aura; sta grows with level up to the next rank."
@@ -1046,6 +1075,7 @@ ranks = [
 effects = [{ type = "aura", aura = "blood_pact", target = "owner" }]
 [spells.firebolt]
 name = "Firebolt"
+icon = "spell_fire_firebolt"
 school = "fire"
 cast_time = 2
 gcd = 1
@@ -1061,6 +1091,7 @@ ranks = [
 effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = "r.coef", mult = "1 + 0.1 * t.improved_imp" }]
 [spells.torment]
 name = "Torment"
+icon = "spell_shadow_gathershadows"
 level = 10
 cooldown = 5
 text = "threat grows by 3 a level up to the next rank. The taunt stands in for threat-based tanking (see data/reference/accepted/warlock.toml)."
@@ -1075,6 +1106,7 @@ ranks = [
 effects = [{ type = "taunt", duration = 3 }, { type = "threat", amount = "r.threat * (1 + 0.1 * t.improved_voidwalker)" }]
 [spells.lash_of_pain]
 name = "Lash of Pain"
+icon = "spell_shadow_curse"
 school = "shadow"
 level = 20
 cooldown = 12

@@ -167,7 +167,7 @@ fn catalog(w: &World) -> J {
                 list.iter().map(|a| {
                     let sp = &w.spells[a.spell as usize];
                     json!({
-                        "spell": sp.id, "name": sp.name,
+                        "spell": sp.id, "name": sp.name, "icon": sp.icon,
                         "when": a.cond.as_ref().and_then(|e| crate::explain::condition(w, ci, e)),
                         // what the spell itself needs (Victory Rush after a kill)
                         "needs": sp.requires.as_ref().and_then(|e| crate::explain::condition(w, ci, e)),
@@ -177,6 +177,7 @@ fn catalog(w: &World) -> J {
             let rotations: Vec<J> = c.rotations.values().map(|r| json!({
                 "id": r.id, "desc": r.desc, "lines": lines(&r.actions), "rest": lines(&r.rest),
                 "precombat": r.precombat.iter().map(|a| w.spells[a.spell as usize].name.clone()).collect::<Vec<_>>(),
+                "precombat_icons": r.precombat.iter().map(|a| w.spells[a.spell as usize].icon.clone()).collect::<Vec<_>>(),
                 "opener": lines(&r.opener),
             })).collect();
             let races: Vec<&str> = w.races.iter().filter(|r| r.classes.is_empty() || r.classes.contains(&c.id)).map(|r| r.id.as_str()).collect();
@@ -233,11 +234,111 @@ fn catalog(w: &World) -> J {
             Some(b)
         })
         .collect();
+    let (spells, auras) = icon_maps(w);
     json!({
         "data_build": w.meta.data_build,
         "patches": w.meta.patches,
         "classes": classes, "races": races, "gear": gear, "scenarios": scenarios, "options": options, "presets": presets,
+        "spells": spells, "auras": auras,
+        // icons a fight log can show beyond spells and auras
+        "extra_icons": WEAPON_ICONS.iter().chain(PET_ICONS).map(|x| x.1).collect::<Vec<_>>(),
     })
+}
+
+/// Every spell and aura by its qualified id (what trace events carry as
+/// `key`), with its display name, school and the game's icon. An aura
+/// without its own icon takes the icon of the same-named spell or talent of
+/// its class, else of the spell that applies it.
+fn icon_maps(w: &World) -> (J, J) {
+    let icons = aura_icons(w);
+    let spells: serde_json::Map<String, J> = w.spells.iter().map(|sp| {
+        (sp.qid.clone(), json!({ "name": sp.name, "icon": sp.icon, "school": sp.school.name() }))
+    }).collect();
+    let auras: serde_json::Map<String, J> = w.auras.iter().enumerate().map(|(i, a)| {
+        (a.qid.clone(), json!({ "name": a.name, "icon": icons[i], "hidden": a.hidden, "debuff": a.debuff }))
+    }).collect();
+    (J::Object(spells), J::Object(auras))
+}
+
+/// The icon of each aura (by index): its own, the same-named spell or
+/// talent of its class, or what applies it.
+fn aura_icons(w: &World) -> Vec<Option<String>> {
+    fn walk(list: &[Effect], out: &mut Vec<u32>) {
+        for e in list {
+            match e {
+                Effect::ApplyAura { aura, .. } => out.push(*aura as u32),
+                Effect::Damage(d) => {
+                    walk(&d.on_hit, out);
+                    walk(&d.on_crit, out);
+                    walk(&d.on_miss, out);
+                }
+                Effect::Heal(hf) => walk(&hf.on_crit, out),
+                Effect::If { then, els, .. } => {
+                    walk(then, out);
+                    walk(els, out);
+                }
+                Effect::Chance { then, .. } => walk(then, out),
+                _ => {}
+            }
+        }
+    }
+    let procs_effects = |procs: &[Proc], out: &mut Vec<u32>| {
+        for p in procs {
+            walk(&p.effects, out);
+        }
+    };
+    // what applies each aura: spells, then talents (as class passives), then
+    // other auras (Deadly Poison on a weapon puts Deadly Poison on the target)
+    let mut applied_by: HashMap<u32, String> = HashMap::new();
+    let note = |found: Vec<u32>, icon: &str, map: &mut HashMap<u32, String>| {
+        for a in found {
+            map.entry(a).or_insert_with(|| icon.to_string());
+        }
+    };
+    for sp in &w.spells {
+        let Some(icon) = &sp.icon else { continue };
+        let mut found = vec![];
+        walk(&sp.effects, &mut found);
+        note(found, icon, &mut applied_by);
+    }
+    for c in &w.classes {
+        for p in &c.passives {
+            let Some(t) = c.talents.iter().find(|t| (t.id == p.name || t.name == p.name) && !t.icon.is_empty()) else { continue };
+            let mut found = vec![];
+            procs_effects(&p.procs, &mut found);
+            note(found, &t.icon, &mut applied_by);
+        }
+    }
+    let own = |i: usize| -> Option<String> {
+        let a = &w.auras[i];
+        if let Some(ic) = &a.icon {
+            return Some(ic.clone());
+        }
+        let ci = a.class?;
+        let c = &w.classes[ci];
+        w.spells.iter().find(|s| s.class == Some(ci) && s.name == a.name).and_then(|s| s.icon.clone())
+            .or_else(|| c.talents.iter().find(|t| t.name == a.name && !t.icon.is_empty()).map(|t| t.icon.clone()))
+    };
+    let mut icons: Vec<Option<String>> = (0..w.auras.len()).map(|i| own(i).or_else(|| applied_by.get(&(i as u32)).cloned())).collect();
+    for _ in 0..2 {
+        for i in 0..w.auras.len() {
+            let Some(icon) = icons[i].clone() else { continue };
+            let a = &w.auras[i];
+            let mut found = vec![];
+            procs_effects(&a.procs, &mut found);
+            if let Some((_, fx)) = &a.tick {
+                walk(fx, &mut found);
+            }
+            walk(&a.on_apply, &mut found);
+            walk(&a.on_expire, &mut found);
+            for f in found {
+                if icons[f as usize].is_none() {
+                    icons[f as usize] = Some(icon.clone());
+                }
+            }
+        }
+    }
+    icons
 }
 
 // ---------------------------------------------------------------- builds
@@ -393,7 +494,153 @@ fn trace(w: &World, v: &J) -> Result<J, String> {
     // on others, and what is done to it
     let me = events.iter().find(|e| e.team == 0 && !e.pet).map(|e| e.who.clone()).unwrap_or_else(|| b.name.clone());
     events.retain(|e| e.team == 0 || e.target.as_deref() == Some(me.as_str()) || e.kind == "death");
+    dress_trace(w, &b, sc, &mut events);
     Ok(json!({ "me": me, "leveling": leveling, "events": events }))
+}
+
+/// Make a traced fight readable: the game's icon on every event, real
+/// spell names ("Holy Fire", not its burn's tag), bookkeeping auras left out,
+/// and enemies told apart ("Mob 1", "Mob 2", "Boss", "Attacker").
+fn dress_trace(w: &World, b: &Build, sc: &ScenarioDef, events: &mut Vec<crate::engine::TraceEv>) {
+    let ix = IconIndex::new(w);
+    let ci = b.class;
+    let c = &w.classes[ci];
+    let race = &w.races[b.race];
+    // the base name without a tag in brackets: "Holy Fire (burn)" -> "Holy Fire"
+    let base = |n: &str| -> String {
+        match n.rfind(" (") {
+            Some(k) if n.ends_with(')') => n[..k].to_string(),
+            _ => n.to_string(),
+        }
+    };
+    let by_name = |n: &str| -> Option<(String, String)> {
+        let n = base(n);
+        w.spells.iter().filter(|s| s.class == Some(ci) || s.class.is_none()).find(|s| s.name == n).and_then(|s| s.icon.clone().map(|i| (s.name.clone(), i)))
+            .or_else(|| w.auras.iter().enumerate().filter(|(_, a)| a.class == Some(ci) || a.class.is_none()).find(|(_, a)| a.name == n).and_then(|(i, a)| ix.aura_icon[i].clone().map(|ic| (a.name.clone(), ic))))
+            .or_else(|| c.talents.iter().find(|t| t.name == n && !t.icon.is_empty()).map(|t| (t.name.clone(), t.icon.clone())))
+            .or_else(|| race.passives.iter().find(|p| p.name == n).map(|p| (p.name.clone(), race.icon.clone())))
+            // a proc named after its weapon spell: "Instant Poison" from
+            // "Instant Poison (main hand)", "Flametongue" from "Flametongue Weapon"
+            .or_else(|| w.spells.iter().filter(|s| s.class == Some(ci)).find(|s| s.name.starts_with(&n) && s.icon.is_some()).map(|s| (n.clone(), s.icon.clone().unwrap())))
+    };
+    let weapon = |wp: &Option<Weapon>| -> String {
+        let t = wp.as_ref().map_or("natural", |x| x.wtype.name());
+        WEAPON_ICONS.iter().find(|x| x.0 == t).map_or(WEAPON_ICONS[0].1, |x| x.1).to_string()
+    };
+    let pet_icon = |name: &str| -> String {
+        let n = name.to_lowercase();
+        PET_ICONS.iter().find(|x| n.contains(x.0)).map_or("ability_hunter_beastsoothe", |x| x.1).to_string()
+    };
+    // enemies in the order they first show up
+    let ours: BTreeSet<usize> = events.iter().filter(|e| e.team == 0).map(|e| e.who_id).collect();
+    let mut foes: Vec<usize> = Vec::new();
+    for e in events.iter() {
+        for id in [Some(e.who_id).filter(|_| e.team != 0), e.target_id.filter(|t| !ours.contains(t))].into_iter().flatten() {
+            if !foes.contains(&id) {
+                foes.push(id);
+            }
+        }
+    }
+    let kind = match sc.kind {
+        ScenarioKind::Boss { .. } => "Boss",
+        ScenarioKind::Pressure { .. } => "Attacker",
+        ScenarioKind::Duel { .. } => "",
+        _ => "Mob",
+    };
+    let label = |id: usize, name: &str| -> String {
+        let Some(k) = foes.iter().position(|&f| f == id) else { return name.to_string() };
+        match kind {
+            "" => name.to_string(),
+            "Boss" if k == 0 => "Boss".to_string(),
+            "Boss" => format!("Add {k}"),
+            _ if foes.len() == 1 => kind.to_string(),
+            _ => format!("{kind} {}", k + 1),
+        }
+    };
+    let mut out = Vec::with_capacity(events.len());
+    for mut e in events.drain(..) {
+        if matches!(e.kind, "gain" | "lose") && ix.hidden.contains(e.key.as_str()) {
+            continue;
+        }
+        if let Some((name, icon)) = ix.lookup(&e.key) {
+            e.icon = icon.unwrap_or_default();
+            if matches!(e.kind, "hit" | "heal") {
+                e.name = name;
+            }
+        }
+        if e.icon.is_empty() && matches!(e.kind, "hit" | "heal" | "cast" | "gain" | "lose") {
+            let auto = matches!(e.name.as_str(), "melee" | "melee (off-hand)" | "auto shot" | "wand");
+            if e.pet && e.name.starts_with("melee") {
+                e.icon = pet_icon(&e.who);
+            } else if e.team == 0 && auto {
+                e.icon = match e.name.as_str() {
+                    "melee (off-hand)" => weapon(&b.gear.oh),
+                    "auto shot" | "wand" => weapon(&b.gear.ranged),
+                    _ => weapon(&b.gear.mh),
+                };
+            } else if let Some((name, icon)) = by_name(&e.name) {
+                e.icon = icon;
+                if matches!(e.kind, "hit" | "heal") {
+                    e.name = name;
+                }
+            }
+        }
+        // tags the data uses to tell effects apart ("(burn)", "(orb)") stay out
+        if matches!(e.kind, "hit" | "heal") && e.name != "melee (off-hand)" {
+            e.name = base(&e.name);
+        }
+        if e.team != 0 {
+            e.who = label(e.who_id, &e.who);
+        }
+        if let (Some(t), Some(id)) = (&e.target, e.target_id) {
+            if !ours.contains(&id) {
+                e.target = Some(label(id, t));
+            }
+        }
+        out.push(e);
+    }
+    *events = out;
+}
+
+/// Auto attacks show the weapon's kind; the first entry stands in for
+/// natural weapons (forms).
+const WEAPON_ICONS: &[(&str, &str)] = &[
+    ("natural", "ability_druid_rake"), ("sword", "inv_sword_04"), ("axe", "inv_axe_01"), ("mace", "inv_mace_01"),
+    ("dagger", "inv_weapon_shortblade_05"), ("fist", "inv_gauntlets_04"), ("polearm", "inv_spear_06"), ("staff", "inv_staff_08"),
+    ("sword2h", "inv_sword_39"), ("axe2h", "inv_axe_09"), ("mace2h", "inv_hammer_04"), ("bow", "inv_weapon_bow_08"),
+    ("gun", "inv_weapon_rifle_06"), ("crossbow", "inv_weapon_crossbow_02"), ("thrown", "inv_throwingknife_02"), ("wand", "inv_wand_07"),
+];
+/// A pet's attacks show its summon icon, by the pet's name.
+const PET_ICONS: &[(&str, &str)] = &[
+    ("imp", "spell_shadow_summonimp"), ("voidwalker", "spell_shadow_summonvoidwalker"), ("succubus", "spell_shadow_summonsuccubus"),
+    ("felhunter", "spell_shadow_summonfelhunter"), ("cat", "ability_hunter_pet_cat"), ("hawk", "ability_hunter_pet_owl"),
+    ("", "ability_hunter_beastsoothe"),
+];
+
+/// Icons and hidden flags for every spell and aura (see `icon_maps`).
+struct IconIndex {
+    spells: HashMap<String, (String, Option<String>)>,
+    auras: HashMap<String, (String, Option<String>)>,
+    aura_icon: Vec<Option<String>>,
+    hidden: BTreeSet<String>,
+}
+
+impl IconIndex {
+    fn new(w: &World) -> Self {
+        let aura_icon = aura_icons(w);
+        IconIndex {
+            spells: w.spells.iter().map(|s| (s.qid.clone(), (s.name.clone(), s.icon.clone()))).collect(),
+            auras: w.auras.iter().enumerate().map(|(i, a)| (a.qid.clone(), (a.name.clone(), aura_icon[i].clone()))).collect(),
+            hidden: w.auras.iter().filter(|a| a.hidden).map(|a| a.qid.clone()).collect(),
+            aura_icon,
+        }
+    }
+    fn lookup(&self, key: &str) -> Option<(String, Option<String>)> {
+        if key.is_empty() {
+            return None;
+        }
+        self.spells.get(key).or_else(|| self.auras.get(key)).cloned()
+    }
 }
 
 // ---------------------------------------------------------------- sessions

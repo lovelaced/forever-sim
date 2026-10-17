@@ -1,0 +1,119 @@
+/* The two big views: Class rankings (the notice board at the inn, in oak and
+   brass) and Duels (the arena, in iron and bronze). */
+
+.big-view { margin-top: var(--s2); }
+.view-banner { position: relative; display: block; height: calc(150 * var(--art)); overflow: hidden; padding: 0; }
+.view-banner img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 46%; }
+.fr-oak.view-banner img { object-position: center 40%; }
+.view-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10, 8, 6, .82), rgba(10, 8, 6, .35) 45%, rgba(10, 8, 6, 0) 70%); }
+.view-banner .view-title { position: absolute; left: var(--s5); bottom: var(--s4); z-index: 1; font: 700 var(--fs-3xl)/1.1 var(--display); color: #fff6e2; text-shadow: 0 2px 0 #000, 0 0 16px rgba(0, 0, 0, .8); }
+.big-view > .lede { margin-top: var(--s4); }
+.big-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--s4) var(--s6); margin-top: var(--s4); padding: var(--s3) var(--s4); }
+.big-controls .field-row { display: grid; grid-template-columns: none; gap: var(--s2); margin: 0; padding: 0; border: 0; }
+.big-controls .field-row > .label { padding-top: 0; color: var(--text-2); font-size: var(--fs-s); font-weight: 600; }
+.big-controls .select { min-width: 280px; }
+.big-controls .run-cancel { min-width: 120px; }
+.big-controls .primary.small { margin-left: auto; }
+.toggle-line { display: inline-flex; align-items: center; gap: var(--s2); padding-bottom: 10px; white-space: nowrap; font-size: var(--fs-s); color: var(--text-2); cursor: pointer; }
+.big-progress { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s4); max-width: 640px; }
+.big-progress .castbar { flex: 1; width: auto; }
+.empty-big { display: grid; justify-items: center; gap: var(--s3); margin-top: var(--s6); color: var(--text-2); text-align: center; }
+.empty-big img { width: auto; height: calc(100 * var(--art)); opacity: .9; }
+
+/* tests as small scenes */
+.rank-tests { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--s2); margin-top: var(--s6); }
+.rank-test { display: grid; gap: 2px; padding: 0 0 6px; border: 0; background: rgba(0, 0, 0, .3); box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2px #3a2a18; color: var(--text-2); text-align: center; overflow: hidden; }
+.rank-test .thumb { position: relative; display: block; height: 54px; overflow: hidden; }
+.rank-test .thumb img { position: absolute; left: 50%; top: 50%; height: 120px; width: auto; transform: translate(-50%, -48%); max-width: none; filter: saturate(.7) brightness(.7); transition: filter .15s; }
+.rank-test b { font-size: var(--fs-s); font-weight: 600; color: var(--text); padding: 0 4px; }
+.rank-test span:last-child { font-size: 11px; color: var(--text-3); padding: 0 4px; line-height: 1.3; }
+.rank-test:hover .thumb img, .rank-test[aria-selected='true'] .thumb img { filter: none; }
+.rank-test[aria-selected='true'] { box-shadow: inset 0 0 0 1px #000, inset 0 0 0 3px var(--wow-gold); }
+.rank-test:disabled { opacity: .4; cursor: default; }
+.role-chips { margin-top: var(--s4); }
+.rank-board { margin-top: var(--s5); }
+.rank-board.stale .raid-rows, .rank-board.stale .podium, .rank-board.stale .forecasts { opacity: .5; }
+.rank-head h3 { font: 400 var(--fs-xl)/1.3 var(--display-2); }
+.rank-head .hint { margin-top: var(--s1); }
+.summary-line { margin-top: var(--s2); max-width: 70ch; font-size: var(--fs-m); line-height: 1.55; }
+.row-compare { font-size: var(--fs-xs); color: var(--text-3); text-decoration: none; white-space: nowrap; }
+.row-compare:hover, .row-compare:focus-visible { color: var(--text); text-decoration: underline; }
+.rank-icon { position: relative; width: 24px; height: 24px; flex: none; overflow: hidden; box-shadow: 0 0 0 1px #000, 0 0 0 2px var(--hair-2); }
+.rank-icon img { position: absolute; inset: -8%; width: 116%; height: 116%; }
+.rank-icon svg { width: 24px; height: 24px; fill: var(--text-2); }
+.rank-n { width: 2em; flex: none; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-3); }
+.who-class { font-size: var(--fs-xs); font-weight: 500; }
+
+/* the top three, on a podium */
+.podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: var(--s3); max-width: 880px; margin: var(--s5) 0 0; padding: 0; list-style: none; }
+.podium-step { display: grid; justify-items: center; align-content: end; gap: 0; }
+.podium-step.p1 { order: 2; }
+.podium-step.p2 { order: 1; }
+.podium-step.p3 { order: 3; }
+.podium-hero { height: auto; max-width: none; margin-bottom: -4px; filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .7)); image-rendering: pixelated; }
+.podium-plate {
+  display: grid; justify-items: center; gap: 1px; width: 100%; padding: var(--s3) var(--s2) var(--s3);
+  background: linear-gradient(#3b2a18, #20160d); box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2px #6b4f2a, inset 0 0 0 3px #000, 0 6px 12px rgba(0, 0, 0, .5);
+  text-align: center;
+}
+.podium-step.p1 .podium-plate { min-height: 220px; }
+.podium-step.p2 .podium-plate { min-height: 180px; }
+.podium-step.p3 .podium-plate { min-height: 156px; }
+.podium-plate .medal { width: auto; height: calc(30 * var(--art)); margin-bottom: 4px; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .6)); }
+.podium-plate b { font: 700 var(--fs-l)/1.15 var(--display); color: var(--text); }
+.podium-val { font: 700 var(--fs-2xl)/1.1 var(--display); color: var(--wow-gold); text-shadow: 0 1px 0 #000; margin-top: 2px; }
+.podium-plate .card-tag { margin: 2px 0 0; }
+
+/* everyone else, like raid frames */
+.raid-rows { display: grid; gap: 4px; max-width: 880px; margin: var(--s5) 0 0; padding: 0; list-style: none; }
+.raid-row { display: grid; grid-template-columns: 2em auto minmax(0, 1fr) auto; align-items: center; gap: var(--s2); }
+.raid-bar { position: relative; height: 30px; background: #0b0a08; box-shadow: inset 0 0 0 1px #000, 0 0 0 1px #2d2618; overflow: hidden; }
+.raid-bar i { position: absolute; inset: 1px auto 1px 1px; width: var(--w); background: linear-gradient(color-mix(in srgb, var(--cc) 80%, #000), color-mix(in srgb, var(--cc) 62%, #000) 50%, color-mix(in srgb, var(--cc) 40%, #000)); }
+.raid-bar s { position: absolute; top: 0; bottom: 0; border-left: 1px solid rgba(255, 255, 255, .7); border-right: 1px solid rgba(255, 255, 255, .7); text-decoration: none; opacity: .7; }
+.raid-name, .raid-val { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; gap: var(--s2); color: #fff; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 4px #000; font-size: var(--fs-s); }
+.raid-name { left: var(--s2); right: 7em; overflow: hidden; white-space: nowrap; }
+.raid-name b { font-weight: 600; }
+.raid-name span { color: #f0e7d0; font-size: var(--fs-xs); }
+.raid-name .card-tag { color: #fff; border-color: rgba(255, 255, 255, .4); margin-left: 0; }
+.raid-val { right: var(--s2); font-weight: 700; font-variant-numeric: tabular-nums; }
+.raid-val small { font-weight: 400; font-size: 11px; opacity: .8; }
+
+/* duels: one forecast per matchup */
+.forecasts { display: grid; gap: 6px; max-width: 920px; margin: var(--s5) 0 0; padding: 0; list-style: none; }
+.forecast { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(140px, 220px) auto; align-items: center; gap: var(--s2); }
+.duel-face { position: relative; width: 28px; height: 28px; overflow: hidden; border-radius: 50%; box-shadow: 0 0 0 1px #000, 0 0 0 2px var(--hair-2); flex: none; }
+.duel-face img { position: absolute; inset: -12%; width: 124%; height: 124%; }
+.duel-face svg { width: 28px; height: 28px; padding: 4px; fill: var(--text-2); }
+.tug { position: relative; display: flex; height: 22px; background: #000; box-shadow: 0 0 0 1px #000, 0 0 0 2px #3a3a40; overflow: hidden; }
+.tug-me { height: 100%; background: linear-gradient(color-mix(in srgb, var(--me) 90%, #fff), var(--me) 50%, color-mix(in srgb, var(--me) 60%, #000)); opacity: .8; }
+.tug-them { flex: 1; height: 100%; background: linear-gradient(color-mix(in srgb, var(--cc) 90%, #fff), var(--cc) 50%, color-mix(in srgb, var(--cc) 60%, #000)); opacity: .45; }
+.tug::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; border-left: 2px solid rgba(255, 255, 255, .85); }
+.tug s { position: absolute; top: 0; bottom: 0; border-left: 1px solid rgba(255, 255, 255, .6); border-right: 1px solid rgba(255, 255, 255, .6); text-decoration: none; }
+.tug-val { position: absolute; inset: 0; display: grid; place-items: center; font: 700 var(--fs-xs)/1 var(--sans); color: #fff; text-shadow: 0 1px 0 #000, 0 0 3px #000; }
+.forecast.win .tug { box-shadow: 0 0 0 1px #000, 0 0 0 2px #3f8a2f; }
+.forecast.loss .tug { box-shadow: 0 0 0 1px #000, 0 0 0 2px #8a3a2f; }
+.foe-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s2); min-width: 0; font-size: var(--fs-s); }
+.foe-name b { font-weight: 600; }
+.foe-name span { font-size: var(--fs-xs); }
+
+@media (max-width: 860px) {
+  .rank-tests { display: flex; overflow-x: auto; scrollbar-width: none; }
+  .rank-test { flex: 0 0 116px; }
+  .podium { gap: var(--s2); }
+  .podium-plate b { font-size: var(--fs-m); }
+  .podium-val { font-size: var(--fs-xl); }
+}
+@media (max-width: 760px) {
+  .view-banner { height: calc(110 * var(--art)); }
+  .view-banner .view-title { font-size: var(--fs-2xl); left: var(--s3); bottom: var(--s3); }
+  .big-controls { display: grid; padding: var(--s3); }
+  .big-controls .select { min-width: 0; width: 100%; }
+  .big-controls .primary.small, .big-controls .run-cancel { width: 100%; margin-left: 0; }
+  .raid-row { grid-template-columns: 1.6em auto minmax(0, 1fr); }
+  .raid-row .row-compare { grid-column: 3; justify-self: end; }
+  .raid-name { right: 6em; }
+  .podium-hero { transform: none; }
+  .forecast { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .forecast .foe-name { grid-column: 1 / -1; padding-left: 36px; }
+  .forecast .row-compare { display: none; }
+}

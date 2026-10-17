@@ -373,6 +373,14 @@ impl<'a> Audit<'a> {
         if lvl(g) > 0 {
             self.compare(cid, sp, lv, gid, "level", Some(lv as f64), Some(lvl(g) as f64), 0.0);
         }
+        // the icon the website shows, from the spell's first rank
+        let first = sp.ranks.first().map_or(true, |f| f.level == r.level);
+        if let (true, Some(game_icon)) = (first, g.get("icon").and_then(|x| x.as_str())) {
+            let sim_icon = sp.icon.as_deref().unwrap_or("");
+            let ok = sim_icon == game_icon;
+            let note = if ok { String::new() } else { format!("icon {sim_icon:?}, the game has {game_icon:?} (tools/spell_icons.py sets it)") };
+            self.push(cid, sp, lv, gid, "icon", None, None, if ok { Status::Ok } else { Status::Mismatch }, note);
+        }
         // costs
         let game_cost = |power: &str| -> Option<f64> {
             let c = g.get("cost")?.as_array()?.iter().find(|c| c.get("power").and_then(|p| p.as_str()) == Some(power))?;

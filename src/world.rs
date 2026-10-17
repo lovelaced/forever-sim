@@ -1008,12 +1008,12 @@ pub fn parse_gear_stats(t: &Table, path: &str) -> R<GearStats> {
 const SPELL_KEYS: &[&str] = &[
     "name", "school", "talent", "level", "race", "ranks", "cost", "cast_time", "channel", "gcd", "off_gcd",
     "cooldown", "cd_group", "requires", "forms", "next_swing", "auto_repeat", "target", "effects", "finisher", "usable_while",
-    "source", "text",
+    "source", "text", "icon",
 ];
 const AURA_KEYS: &[&str] = &[
     "name", "duration", "max_stacks", "charges", "per_source", "debuff", "mechanic", "break_on_damage", "tick",
     "mods", "spell_mods", "procs", "on_apply", "on_refresh", "on_expire", "on_remove", "absorb", "group", "form",
-    "consume_on_cast", "refresh", "dispel", "text", "source",
+    "consume_on_cast", "refresh", "dispel", "text", "source", "icon", "hidden",
 ];
 
 fn check_keys(t: &Table, allowed: &[&str], path: &str) -> R<()> {
@@ -1330,6 +1330,8 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
             },
             dispel_type: s(at, "dispel"),
             text: s(at, "text").unwrap_or_default(),
+            icon: s(at, "icon"),
+            hidden: bl(at, "hidden", false),
         });
     }
     for (class, race, st, id) in &spell_src {
@@ -1398,6 +1400,7 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
             is_attack: false,
             source: s(st, "source").unwrap_or_default(),
             text: s(st, "text").unwrap_or_default(),
+            icon: s(st, "icon"),
         });
     }
 

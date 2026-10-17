@@ -1,10 +1,14 @@
-// One test in detail, opened from its scorecard row: the headline number for
-// each build, verdicts against the baseline, every measure side by side, and
-// where the damage, healing and casts come from.
-import { h, art, withTip, tt, fmtMetric, fmtDiff, fmtNum } from './ui.js';
+// One test in detail, opened from its row, in four tabs: a summary (the
+// headline number for each build and how they compare with the main build),
+// how each build played (its priority list), one fight step by step, and
+// every number side by side with where the damage, healing and casts come from.
+import { h, withTip, tt, fmtMetric, fmtDiff, fmtNum } from './ui.js';
 import { METRICS, GROUPS, PRIMARY_HELP, UNIT_PLURAL } from './meta.js';
+import { S, bus } from './state.js';
 import { pairOf, duelWin } from './runner.js';
-import { playedSection } from './played.js';
+import { playedPanel, logPanel } from './played.js';
+
+const TABS = [['summary', 'Summary'], ['played', 'How it played'], ['log', 'One fight'], ['numbers', 'Every number']];
 
 const UNIT = {
   kills_per_hour: 'kills per hour', dps: 'damage per second', breakeven: 'attacker damage per second', win: 'of duels won',
@@ -60,16 +64,25 @@ export function renderDetail(ctx) {
   const pm = METRICS[primary] || { label: primary, kind: 'num', digits: 1 };
   const cols = ctx.cols.filter((c) => c.cell);
   const unitWord = UNIT_PLURAL[ctx.scenario.unit] || 'runs';
-  const out = h('div.detail');
+  const tab = TABS.some(([t]) => t === S.detailTab) ? S.detailTab : 'summary';
+  const tabs = h('div.detail-tabs', { role: 'tablist', 'aria-label': `${ctx.scenario.title} in detail` }, TABS.map(([t, label]) => h('button.detail-tab', {
+    type: 'button', role: 'tab', 'aria-selected': String(t === tab), onclick: () => { S.detailTab = t; bus.render(); },
+  }, label)));
+  const out = h('div.detail', tabs);
+  if (tab === 'played') { out.append(h('div.tab-panel', { role: 'tabpanel' }, playedPanel(ctx, cols, res))); return out; }
+  if (tab === 'log') { out.append(h('div.tab-panel', { role: 'tabpanel' }, logPanel(ctx, cols, res))); return out; }
+  if (tab === 'numbers') { out.append(h('div.tab-panel', { role: 'tabpanel' }, numbersPanel(ctx, cols, res, primary), finePrint(res, cols.length, ctx, unitWord))); return out; }
+  const panel = h('div.tab-panel', { role: 'tabpanel' });
+  out.append(panel);
 
-  out.append(h('p.detail-meta',
+  panel.append(h('p.detail-meta',
     `Level ${res.variants[0].build.level}. ${fmtNum(res.reps)} simulated ${unitWord}${cols.length > 1 ? ' for each build' : ''}, at ${ctx.accLabel} accuracy. `,
     PRIMARY_HELP[primary] || ''));
 
   // ---------------------------------------------------------------- headline
   if (cols.length === 1) {
     const s = metricOf(res, cols[0].cell.i, primary);
-    out.append(h('div.headline',
+    panel.append(h('div.headline',
       h('div.big-number.num', fmtMetric(s.mean, pm), UNIT[primary] ? h('small', UNIT[primary]) : null),
       h('p.range-line', withTip(h('span.q', { tabindex: '0' }, 'Likely between'), rangeTip), ` ${fmtMetric(s.lo, pm)} and ${fmtMetric(s.hi, pm)}.`)));
   } else {
@@ -77,16 +90,16 @@ export function renderDetail(ctx) {
     const max = Math.max(...cols.map((c) => metricOf(res, c.cell.i, primary)?.hi ?? 0)) * 1.04 || 1;
     const sorted = [...cols].sort((a, b) => metricOf(res, b.cell.i, primary).mean - metricOf(res, a.cell.i, primary).mean);
     if (pm.good === 'low') sorted.reverse();
-    out.append(h('div.rank-rows', sorted.map((c) => {
+    panel.append(h('div.rank-rows', sorted.map((c) => {
       const s = metricOf(res, c.cell.i, primary);
       return h('div.rank-row', { style: { '--slot': c.color }, class: c.cell.current ? '' : 'stale' },
-        h('div.who-line', who(c), c === ctx.base ? h('span.tag', 'Baseline') : null,
+        h('div.who-line', who(c), c === ctx.base ? h('span.tag.main', 'Main build') : null,
           best.has(c.k) ? h('span.best', best.size > 1 ? 'Tied best' : 'Best') : null),
         h('div.val', fmtMetric(s.mean, pm), h('small', `±${fmtDiff((s.hi - s.lo) / 2, pm, false)}`)),
         h('div.bar', h('i', { style: { width: `${(100 * Math.max(0, s.mean)) / max}%` } }),
           h('s', { style: { left: `${(100 * Math.max(0, s.lo)) / max}%`, width: `${(100 * (s.hi - s.lo)) / max}%` } })));
     })));
-    out.append(h('p.hint.bar-hint', 'The thin marks show the range the true average very likely sits in. ',
+    panel.append(h('p.hint.bar-hint', 'The thin marks show the range the true average very likely sits in. ',
       withTip(h('span.q', { tabindex: '0' }, 'What does that mean?'), rangeTip)));
   }
 
@@ -101,13 +114,17 @@ export function renderDetail(ctx) {
     const ch = ctx.changes.get(c.b.uid);
     if (ch) verdicts.push(changeLine(ch, pm, primary, c));
   }
-  if (verdicts.length) out.append(h('div.verdicts', verdicts));
+  if (verdicts.length) panel.append(h('div.verdicts', verdicts));
+  panel.append(h('p.hint.more-tabs', 'Open ', h('button.linkish', { type: 'button', onclick: () => { S.detailTab = 'played'; bus.render(); } }, 'How it played'),
+    ' to see each build’s priority list, or ', h('button.linkish', { type: 'button', onclick: () => { S.detailTab = 'log'; bus.render(); } }, 'One fight'),
+    ' to watch a fight step by step.'));
+  panel.append(finePrint(res, cols.length, ctx, unitWord));
+  return out;
+}
 
-  // ---------------------------------------------------------------- how it played
-  const played = playedSection(ctx, cols, res);
-  if (played) out.append(played);
-
-  // ---------------------------------------------------------------- every measure
+// Every measure side by side, and where the damage, healing and casts come from.
+function numbersPanel(ctx, cols, res, primary) {
+  const out = [];
   const names = Object.keys(METRICS).filter((k) => !METRICS[k].hidden && cols.some((c) => metricOf(res, c.cell.i, k)));
   const shown = names.filter((k) => !(METRICS[k].hideZero && cols.every((c) => Math.abs(metricOf(res, c.cell.i, k)?.mean ?? 0) < 1e-9)));
   const ordered = [primary, ...shown.filter((k) => k !== primary)];
@@ -126,18 +143,16 @@ export function renderDetail(ctx) {
           return cell;
         }));
       })));
-    out.append(h('div.details', h('h4', 'Every measure'), h('div.table-scroll', table)));
+    out.push(h('div.details', h('h4', 'Every measure'), h('div.table-scroll', table)));
   }
 
   // ---------------------------------------------------------------- breakdowns, side by side
   const groups = Object.keys(GROUPS).filter((g) => cols.some((c) => res.variants[c.cell.i].metrics.some((m) => m.name.startsWith(g + ':'))));
   if (groups.length) {
-    out.append(h('div.breakdown', h('h4', 'Where it comes from'),
+    out.push(h('div.breakdown', h('h4', 'Where it comes from'),
       h('div.breakdown-cols', { style: { '--n': String(cols.length) } }, cols.map((c) =>
         h('div.breakdown-col', cols.length > 1 ? h('div.breakdown-who', who(c)) : null, meterGroups(res.variants[c.cell.i], groups, c))))));
   }
-
-  out.append(finePrint(res, cols.length, ctx, unitWord));
   return out;
 }
 

@@ -515,6 +515,7 @@ duration = 8
 tick = { interval = 1, effects = [{ type = "damage", school = "holy", periodic = true, tag = "Consecration", amount = "(r.dot + r.bonus) / 8", coef = 0.095 }] }
 [auras.consecration_outer]
 name = "Consecration (beyond 4 targets)"
+hidden = true
 debuff = true
 duration = 8
 tick = { interval = 1, effects = [{ type = "if", cond = "!target.aura.consecration.up", then = [{ type = "damage", school = "holy", periodic = true, tag = "Consecration", amount = "r.dot / 8" }] }] }
@@ -595,6 +596,7 @@ absorb = "max_hp"
 # ------------------------------------------------------------------ spells
 [spells.devotion_aura]
 name = "Devotion Aura"
+icon = "spell_holy_devotionaura"
 target = "self"
 requires = "!aura.devotion_aura.up"
 ranks = [
@@ -612,6 +614,7 @@ effects = [{ type = "aura", aura = "devotion_aura" }]
 # had 7/12/18/24/30.
 [spells.retribution_aura]
 name = "Retribution Aura"
+icon = "spell_holy_auraoflight"
 target = "self"
 requires = "!aura.retribution_aura.up"
 ranks = [
@@ -624,6 +627,7 @@ ranks = [
 effects = [{ type = "aura", aura = "retribution_aura" }]
 [spells.blessing_of_might]
 name = "Blessing of Might"
+icon = "spell_holy_fistofjustice"
 target = "self"
 requires = "!aura.blessing_of_might.up"
 ranks = [
@@ -638,6 +642,7 @@ ranks = [
 effects = [{ type = "aura", aura = "blessing_of_might" }]
 [spells.blessing_of_wisdom]
 name = "Blessing of Wisdom"
+icon = "spell_holy_sealofwisdom"
 target = "self"
 requires = "!aura.blessing_of_wisdom.up"
 ranks = [
@@ -651,6 +656,7 @@ ranks = [
 effects = [{ type = "aura", aura = "blessing_of_wisdom" }]
 [spells.blessing_of_kings]
 name = "Greater Blessing of Kings"
+icon = "spell_magic_greaterblessingofkings"
 target = "self"
 cost = { mana = 150 }
 requires = "!aura.blessing_of_kings.up"
@@ -658,6 +664,7 @@ ranks = [{ level = 60, id = 25898 }]
 effects = [{ type = "aura", aura = "blessing_of_kings" }]
 [spells.righteous_fury]
 name = "Righteous Fury"
+icon = "spell_holy_sealoffury"
 target = "self"
 requires = "!aura.righteous_fury.up"
 cost = { mana = "0.3 * base_mana" }
@@ -668,6 +675,7 @@ effects = [{ type = "aura", aura = "righteous_fury" }]
 # further down have their own rank tables.
 [spells.seal_of_righteousness]
 name = "Seal of Righteousness"
+icon = "ability_thunderbolt"
 school = "holy"
 target = "self"
 # `sor`: the seal's value in the game (effect 1 base and growth per level).
@@ -685,6 +693,7 @@ ranks = [
 effects = [{ type = "aura", aura = "seal_of_righteousness" }]
 [spells.seal_of_command]
 name = "Seal of Command"
+icon = "ability_warrior_innerrage"
 talent = "seal_of_command"
 school = "holy"
 target = "self"
@@ -698,6 +707,7 @@ ranks = [
 effects = [{ type = "aura", aura = "seal_of_command" }]
 [spells.seal_of_light]
 name = "Seal of Light"
+icon = "spell_holy_healingaura"
 school = "holy"
 target = "self"
 # `heal`: the rank's heal spell (20167, 20333, 20334, 20340).
@@ -710,6 +720,7 @@ ranks = [
 effects = [{ type = "aura", aura = "seal_of_light" }]
 [spells.seal_of_wisdom]
 name = "Seal of Wisdom"
+icon = "spell_holy_righteousnessaura"
 school = "holy"
 target = "self"
 # `mana_back`: the rank's mana spell (20168, 20350, 20351).
@@ -721,6 +732,7 @@ ranks = [
 effects = [{ type = "aura", aura = "seal_of_wisdom" }]
 [spells.seal_of_fury]
 name = "Seal of Fury"
+icon = "spell_holy_retributionaura"
 school = "holy"
 target = "self"
 # `dmg`: the rank's damage spell (1311647, 1311654, 20231, 20415 to 20418).
@@ -737,6 +749,7 @@ effects = [{ type = "aura", aura = "seal_of_fury" }]
 
 [spells.judgement]
 name = "Judgement"
+icon = "spell_holy_righteousfury"
 school = "holy"
 cooldown = 10
 off_gcd = true
@@ -755,6 +768,7 @@ effects = [
 # Sanctified Judgement's refund.
 [spells.judgement_of_righteousness]
 name = "Judgement of Righteousness"
+icon = "ability_thunderbolt"
 school = "holy"
 off_gcd = true
 ranks = [
@@ -775,6 +789,7 @@ effects = [
 # (the tooltip: "74 Holy damage, 136 to 148 if the target is stunned").
 [spells.judgement_of_command]
 name = "Judgement of Command"
+icon = "ability_warrior_innerrage"
 school = "holy"
 off_gcd = true
 ranks = [
@@ -791,6 +806,7 @@ effects = [
 # `jheal`: the heal spell (20267, 20341, 20342, 20343).
 [spells.judgement_of_light_cast]
 name = "Judgement of Light"
+icon = "spell_holy_healingaura"
 school = "holy"
 off_gcd = true
 ranks = [
@@ -806,6 +822,7 @@ effects = [
 # `jmana`: from the tooltip (the game's mana spell, 1826, is a script).
 [spells.judgement_of_wisdom]
 name = "Judgement of Wisdom"
+icon = "spell_holy_righteousnessaura"
 school = "holy"
 off_gcd = true
 ranks = [
@@ -819,6 +836,7 @@ effects = [
 ]
 [spells.judgement_of_fury]
 name = "Judgement of Fury"
+icon = "spell_holy_retributionaura"
 school = "holy"
 off_gcd = true
 ranks = [
@@ -840,6 +858,7 @@ effects = [
 # category (2404) is shared with Hammer of the Righteous.
 [spells.holy_strike]
 name = "Holy Strike"
+icon = "classicon_paladin"
 school = "holy"
 cooldown = 10
 cd_group = "holy_strike"
@@ -858,6 +877,7 @@ effects = [{ type = "damage", school = "holy", hit = "melee", weapon = "mh", wea
 
 [spells.hammer_of_the_righteous]
 name = "Hammer of the Righteous"
+icon = "ability_paladin_hammeroftherighteous"
 school = "holy"
 cooldown = 6
 cd_group = "holy_strike"
@@ -869,6 +889,7 @@ effects = [{ type = "damage", school = "holy", hit = "melee", amount = "3 * mh.d
 # only the first 4 (the game's two damage effects, 1280345 ...).
 [spells.consecration]
 name = "Consecration"
+icon = "spell_holy_innerfire"
 school = "holy"
 cooldown = 8
 ranks = [
@@ -882,6 +903,7 @@ effects = [{ type = "aura", aura = "consecration", target = "enemies", max_targe
 
 [spells.exorcism]
 name = "Exorcism"
+icon = "spell_holy_excorcism_02"
 school = "holy"
 cooldown = 15
 requires = "target.undead || target.demon"
@@ -897,6 +919,7 @@ effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef 
 
 [spells.hammer_of_wrath]
 name = "Hammer of Wrath"
+icon = "ability_thunderclap"
 school = "holy"
 cooldown = 6
 cast_time = 1
@@ -911,6 +934,7 @@ effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef 
 
 [spells.hammer_of_justice]
 name = "Hammer of Justice"
+icon = "spell_holy_sealofmight"
 school = "holy"
 cooldown = 60
 requires = "target.is_player || hp_pct < 0.5"
@@ -927,6 +951,7 @@ effects = [{ type = "aura", aura = "stun", target = "target", duration = "r.dur"
 # healing: 1311605, 25914, 25913, 25903.
 [spells.holy_shock]
 name = "Holy Shock"
+icon = "spell_holy_searinglight"
 talent = "holy_shock"
 school = "holy"
 cooldown = 10
@@ -940,6 +965,7 @@ ranks = [
 effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef = "r.coef" }]
 [spells.holy_shock_heal]
 name = "Holy Shock (heal)"
+icon = "spell_holy_searinglight"
 talent = "holy_shock"
 school = "holy"
 cooldown = 10
@@ -959,6 +985,7 @@ effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 
 # comes back on an enemy hit); healing: 1310912, 1311591, 1311596.
 [spells.lights_vigil]
 name = "Light's Vigil"
+icon = "ability_paladin_judgementofthepure"
 talent = "lights_vigil"
 school = "holy"
 cooldown = 6
@@ -974,6 +1001,7 @@ ranks = [
 effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "resource", res = "mana", amount = "0.75 * r.mana" }] }]
 [spells.lights_vigil_heal]
 name = "Light's Vigil (heal)"
+icon = "ability_paladin_judgementofthepure"
 talent = "lights_vigil"
 school = "holy"
 cooldown = 6
@@ -990,6 +1018,7 @@ effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 
 
 [spells.holy_light]
 name = "Holy Light"
+icon = "spell_holy_holybolt"
 school = "holy"
 target = "self"
 cast_time = 2.5
@@ -1008,6 +1037,7 @@ effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 
 
 [spells.flash_of_light]
 name = "Flash of Light"
+icon = "spell_holy_flashheal"
 school = "holy"
 target = "self"
 cast_time = 1.5
@@ -1026,6 +1056,7 @@ effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 
 # invulnerability mechanic and its tooltip names none.
 [spells.lay_on_hands]
 name = "Lay on Hands"
+icon = "spell_holy_layonhands"
 school = "holy"
 cooldown = 1200
 target = "self"
@@ -1038,6 +1069,7 @@ effects = [{ type = "heal", target = "self", amount = "max_hp", can_crit = false
 
 [spells.divine_protection]
 name = "Divine Protection"
+icon = "spell_holy_restoration"
 school = "holy"
 cooldown = 300
 cd_group = "divine_protection"
@@ -1049,6 +1081,7 @@ effects = [{ type = "aura", aura = "divine_protection" }, { type = "aura", aura 
 # (the game's spell lacks the "usable while stunned" attribute).
 [spells.divine_shield]
 name = "Divine Shield"
+icon = "spell_holy_divineintervention"
 school = "holy"
 cooldown = 300
 cd_group = "divine_protection"
@@ -1060,6 +1093,7 @@ effects = [{ type = "aura", aura = "divine_shield" }, { type = "aura", aura = "f
 # no invulnerability mechanic and the tooltip names none.
 [spells.templars_bulwark]
 name = "Templar's Bulwark"
+icon = "ability_paladin_shieldofthetemplar"
 talent = "templars_bulwark"
 off_gcd = true
 cooldown = 300
@@ -1069,6 +1103,7 @@ ranks = [{ level = 30, id = 1311015 }]
 effects = [{ type = "aura", aura = "templars_bulwark" }]
 [spells.holy_shield]
 name = "Holy Shield"
+icon = "spell_holy_blessingofprotection"
 talent = "holy_shield"
 school = "holy"
 cooldown = 10
@@ -1078,6 +1113,7 @@ ranks = [{ level = 40, id = 20925, dmg = 110, mana = 150 }, { level = 50, id = 2
 effects = [{ type = "aura", aura = "holy_shield" }]
 [spells.divine_favor]
 name = "Divine Favor"
+icon = "spell_holy_heal"
 talent = "divine_favor"
 off_gcd = true
 cooldown = 120
@@ -1088,6 +1124,7 @@ effects = [{ type = "aura", aura = "divine_favor" }]
 # Game (1310994): the next Judgement costs nothing; the tooltip adds the reset.
 [spells.swift_judgement]
 name = "Swift Judgement"
+icon = "ability_paladin_judgementred"
 talent = "swift_judgement"
 off_gcd = true
 cooldown = 60
@@ -1096,6 +1133,7 @@ ranks = [{ level = 1, id = 1310994 }]
 effects = [{ type = "cooldown", spell = "judgement", op = "reset" }, { type = "aura", aura = "swift_judgement" }]
 [spells.repentance]
 name = "Repentance"
+icon = "spell_holy_prayerofhealing"
 talent = "repentance"
 school = "holy"
 cooldown = 60
@@ -1105,6 +1143,7 @@ ranks = [{ level = 20, id = 20066 }]
 effects = [{ type = "aura", aura = "incap", target = "target", duration = 6 }]
 [spells.voice_of_truth]
 name = "Voice of Truth"
+icon = "inv_misc_horn_03"
 talent = "voice_of_truth"
 off_gcd = true
 cooldown = 180

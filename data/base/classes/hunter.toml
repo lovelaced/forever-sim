@@ -573,9 +573,11 @@ duration = 10
 mods = [{ stat = "dodge", add = 25 }, { stat = "parry", add = 25 }]
 [auras.mongoose_ready]
 name = "Mongoose window"
+hidden = true
 duration = 5
 [auras.counterattack_ready]
 name = "Counterattack window"
+hidden = true
 duration = 5
 [auras.pet_frenzy]
 name = "Frenzy"
@@ -596,11 +598,13 @@ charges = 1
 procs = [{ on = "melee_landed", effects = [{ type = "aura", aura = "stun", target = "target", duration = 3 }, { type = "consume" }] }]
 [auras.pet_dead]
 name = "Pet is dead"
+hidden = true
 text = "Call Pet can't bring back a dead pet; Revive Pet can, out of combat."
 
 # ------------------------------------------------------------------ spells
 [spells.call_pet]
 name = "Call Pet"
+icon = "ability_hunter_beastcall"
 target = "self"
 requires = "!pet.active && !in_combat && !aura.pet_dead.up"
 ranks = [{ level = 10, id = 883 }]
@@ -608,6 +612,7 @@ effects = [{ type = "summon", pet = "cat" }]
 
 [spells.revive_pet]
 name = "Revive Pet"
+icon = "ability_hunter_beastsoothe"
 target = "self"
 requires = "aura.pet_dead.up && !in_combat"
 cast_time = 10
@@ -622,6 +627,7 @@ effects = [
 
 [spells.aspect_of_the_hawk]
 name = "Aspect of the Hawk"
+icon = "spell_nature_ravenform"
 target = "self"
 requires = "!aura.aspect_of_the_hawk.up"
 ranks = [
@@ -637,6 +643,7 @@ effects = [{ type = "aura", aura = "aspect_of_the_hawk" }]
 
 [spells.aspect_of_the_beast]
 name = "Aspect of the Beast"
+icon = "ability_mount_pinktiger"
 target = "self"
 requires = "!aura.aspect_of_the_beast.up"
 ranks = [
@@ -650,6 +657,7 @@ effects = [{ type = "aura", aura = "aspect_of_the_beast" }]
 
 [spells.aspect_of_the_monkey]
 name = "Aspect of the Monkey"
+icon = "ability_hunter_aspectofthemonkey"
 target = "self"
 requires = "!aura.aspect_of_the_monkey.up"
 cost = { mana = 20 }
@@ -658,6 +666,7 @@ effects = [{ type = "aura", aura = "aspect_of_the_monkey" }]
 
 [spells.hunters_mark]
 name = "Hunter's Mark"
+icon = "ability_hunter_snipershot"
 off_gcd = false
 requires = "!target.aura.hunters_mark.up"
 ranks = [{ level = 6, id = 1130, rap = 26, mana = 15 }, { level = 22, id = 14323, rap = 59, mana = 30 }, { level = 40, id = 14324, rap = 98, mana = 45 }]
@@ -666,6 +675,7 @@ effects = [{ type = "aura", aura = "hunters_mark", target = "target" }, { type =
 
 [spells.trueshot_aura]
 name = "Trueshot Aura"
+icon = "ability_trueshot"
 talent = "trueshot_aura"
 target = "self"
 requires = "!aura.trueshot_aura.up"
@@ -680,6 +690,7 @@ effects = [{ type = "aura", aura = "trueshot_aura" }]
 
 [spells.serpent_sting]
 name = "Serpent Sting"
+icon = "ability_hunter_quickshot"
 school = "nature"
 requires = "!target.aura.serpent_sting.up"
 ranks = [
@@ -697,6 +708,7 @@ effects = [{ type = "damage", school = "nature", hit = "ranged", amount = 0, can
 
 [spells.arcane_shot]
 name = "Arcane Shot"
+icon = "ability_impalingbolt"
 school = "arcane"
 cooldown = 6
 cd_group = "arcane_hawk"
@@ -714,6 +726,7 @@ effects = [{ type = "damage", school = "arcane", hit = "ranged", min = "r.dmg", 
 
 [spells.aimed_shot]
 name = "Aimed Shot"
+icon = "inv_spear_07"
 cooldown = 6
 cd_group = "aimed_multi"
 ranks = [
@@ -728,6 +741,7 @@ effects = [{ type = "damage", weapon = "ranged", normalized = true, amount = "r.
 
 [spells.multi_shot]
 name = "Multi-Shot"
+icon = "ability_upgrademoonglaive"
 cooldown = 6
 cd_group = "aimed_multi"
 cast_time = 0.5
@@ -737,6 +751,7 @@ effects = [{ type = "damage", weapon = "ranged", normalized = true, target = "en
 
 [spells.sniper_shot]
 name = "Sniper Shot"
+icon = "hunter_pvp_snipershot"
 talent = "sniper_shot"
 cooldown = 15
 ranks = [
@@ -749,6 +764,7 @@ effects = [{ type = "damage", weapon = "ranged", normalized = true, amount = "r.
 
 [spells.summon_hawk]
 name = "Summon Hawk"
+icon = "ability_hunter_animalhandler"
 talent = "summon_hawk"
 cooldown = 6
 cd_group = "arcane_hawk"
@@ -763,6 +779,7 @@ effects = [{ type = "aura", aura = "hawk", target = "self" }]
 
 [spells.raptor_strike]
 name = "Raptor Strike"
+icon = "ability_meleedamage"
 next_swing = true
 cooldown = 6
 ranks = [
@@ -779,6 +796,7 @@ effects = [{ type = "damage", weapon = "mh", amount = "r.bonus" }]
 
 [spells.mongoose_bite]
 name = "Mongoose Bite"
+icon = "ability_hunter_swiftstrike"
 cooldown = 5
 requires = "aura.mongoose_ready.up"
 ranks = [
@@ -794,6 +812,7 @@ effects = [
 
 [spells.counterattack]
 name = "Counterattack"
+icon = "ability_warrior_challange"
 talent = "counterattack"
 cooldown = 5
 requires = "aura.counterattack_ready.up"
@@ -810,6 +829,7 @@ effects = [
 
 [spells.strider_kick]
 name = "Strider Kick"
+icon = "ability_hunter_pet_tallstrider"
 talent = "strider_kick"
 cooldown = 8
 cost = { mana = "0.0581 * base_mana" }
@@ -818,6 +838,7 @@ effects = [{ type = "damage", weapon = "mh", normalized = true }]
 
 [spells.lacerate]
 name = "Lacerate"
+icon = "ability_gouge"
 requires = "!target.aura.lacerate.up"
 ranks = [
   { level = 30, id = 24118, tick = 17, tick_per_level = 0.5, max_level = 38, mana = 40 },
@@ -829,12 +850,14 @@ effects = [{ type = "damage", weapon = "mh", weapon_mult = 0, amount = 0, can_cr
 
 [spells.wing_clip]
 name = "Wing Clip"
+icon = "ability_rogue_trip"
 requires = "target.is_player && !target.slowed"
 ranks = [{ level = 12, id = 2974, dmg = 5, mana = 40 }, { level = 38, id = 14267, dmg = 25, mana = 60 }, { level = 60, id = 14268, dmg = 50, mana = 80 }]
 effects = [{ type = "damage", school = "physical", min = "r.dmg", max = "r.dmg", on_hit = [{ type = "aura", aura = "wing_clip", target = "target" }] }]
 
 [spells.scatter_shot]
 name = "Scatter Shot"
+icon = "ability_golemstormbolt"
 talent = "scatter_shot"
 cooldown = 30
 cost = { mana = "0.08 * base_mana" }
@@ -843,6 +866,7 @@ effects = [{ type = "damage", weapon = "ranged", weapon_mult = 0.5, on_hit = [{ 
 
 [spells.rapid_fire]
 name = "Rapid Fire"
+icon = "ability_hunter_runningshot"
 off_gcd = true
 cooldown = 300
 cost = { mana = 100 }
@@ -852,6 +876,7 @@ effects = [{ type = "aura", aura = "rapid_fire" }]
 
 [spells.bestial_wrath]
 name = "Bestial Wrath"
+icon = "ability_druid_ferociousbite"
 talent = "bestial_wrath"
 off_gcd = true
 cooldown = 120
@@ -863,6 +888,7 @@ effects = [{ type = "aura", aura = "bestial_wrath", target = "pet" }]
 
 [spells.intimidation]
 name = "Intimidation"
+icon = "ability_devour"
 talent = "intimidation"
 cooldown = 60
 cost = { mana = "0.08 * base_mana" }
@@ -873,6 +899,7 @@ effects = [{ type = "aura", aura = "intimidation", target = "pet" }]
 
 [spells.deterrence]
 name = "Deterrence"
+icon = "ability_whirlwind"
 talent = "deterrence"
 off_gcd = true
 cooldown = 300
@@ -882,6 +909,7 @@ effects = [{ type = "aura", aura = "deterrence" }]
 
 [spells.mend_pet]
 name = "Mend Pet"
+icon = "ability_hunter_mendpet"
 target = "pet"
 requires = "pet.active"
 ranks = [
@@ -900,6 +928,7 @@ effects = [{ type = "aura", aura = "mend_pet", target = "pet" }]
 # charged; Claw's cooldown stands in for the focus budget.
 [spells.claw]
 name = "Claw"
+icon = "ability_druid_rake"
 cooldown = "opt.hunter_pet_claw_interval / (1 + 0.1 * t.bestial_discipline)"
 ranks = [
   { level = 1, id = 16827, lo = 4, hi = 6 },
@@ -915,6 +944,7 @@ text = "Pet focus is not simulated: Claw every opt.hunter_pet_claw_interval sec 
 effects = [{ type = "damage", school = "physical", min = "r.lo + opt.hunter_pet_ability_ap * ap", max = "r.hi + opt.hunter_pet_ability_ap * ap" }]
 [spells.growl]
 name = "Growl"
+icon = "ability_physical_taunt"
 cooldown = 5
 off_gcd = true
 ranks = [

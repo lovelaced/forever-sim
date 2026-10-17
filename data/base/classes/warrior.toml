@@ -475,9 +475,11 @@ text = "Lowers attack power. Enemies in the sim deal fixed damage, so this chang
 mods = [{ stat = "ap", add = "-r.ap" }]
 [auras.victory_rush_ready]
 name = "Victory Rush window"
+hidden = true
 duration = 20
 [auras.overpower_ready]
 name = "Overpower window"
+hidden = true
 duration = 5
 [auras.bloodthrill]
 name = "Bloodthrill"
@@ -485,6 +487,7 @@ duration = 6
 text = "Overpower enabled by Bloodthrill."
 [auras.revenge_ready]
 name = "Revenge window"
+hidden = true
 duration = 5
 [auras.anger_management]
 name = "Anger Management"
@@ -596,6 +599,7 @@ procs = [{ on = "melee_landed", if = "enemies >= 2", effects = [
 ] }]
 [auras.sweeping_mark]
 name = "Sweeping Strikes target"
+hidden = true
 debuff = true
 duration = 1
 text = "Marks the enemy the hit came from, so the Sweeping Strikes copy goes to another one."
@@ -611,6 +615,7 @@ mods = [{ stat = "heal_taken", mul = 0.5 }]
 # lists). Rage costs in the spell data are in tenths of a point.
 [spells.battle_stance]
 name = "Battle Stance"
+icon = "ability_warrior_offensivestance"
 off_gcd = true
 cooldown = 1
 target = "self"
@@ -618,6 +623,7 @@ ranks = [{ level = 1, id = 2457 }]
 effects = [{ type = "aura", aura = "battle_stance" }]
 [spells.defensive_stance]
 name = "Defensive Stance"
+icon = "ability_warrior_defensivestance"
 off_gcd = true
 cooldown = 1
 target = "self"
@@ -625,6 +631,7 @@ ranks = [{ level = 10, id = 71 }]
 effects = [{ type = "aura", aura = "defensive_stance" }]
 [spells.berserker_stance]
 name = "Berserker Stance"
+icon = "ability_racial_avatar"
 off_gcd = true
 cooldown = 1
 target = "self"
@@ -633,6 +640,7 @@ effects = [{ type = "aura", aura = "berserker_stance" }]
 
 [spells.heroic_strike]
 name = "Heroic Strike"
+icon = "ability_rogue_ambush"
 next_swing = true
 cost = { rage = 15 }
 ranks = [
@@ -650,6 +658,7 @@ effects = [{ type = "damage", weapon = "mh", amount = "r.bonus", threat = "opt.w
 
 [spells.cleave]
 name = "Cleave"
+icon = "ability_warrior_cleave"
 next_swing = true
 cost = { rage = 20 }
 ranks = [
@@ -663,6 +672,7 @@ effects = [{ type = "damage", weapon = "mh", amount = "r.bonus", target = "enemi
 
 [spells.bloodthirst]
 name = "Bloodthirst"
+icon = "spell_nature_bloodlust"
 talent = "bloodthirst"
 cost = { rage = 30 }
 cooldown = 6
@@ -680,6 +690,7 @@ effects = [
 
 [spells.mortal_strike]
 name = "Mortal Strike"
+icon = "ability_warrior_savageblow"
 talent = "mortal_strike"
 cost = { rage = 30 }
 cooldown = 6
@@ -693,6 +704,7 @@ effects = [{ type = "damage", weapon = "mh", normalized = true, amount = "r.bonu
 
 [spells.whirlwind]
 name = "Whirlwind"
+icon = "ability_whirlwind"
 cost = { rage = 25 }
 cooldown = 10
 requires = "aura.berserker_stance.up"
@@ -705,6 +717,7 @@ effects = [
 
 [spells.execute]
 name = "Execute"
+icon = "inv_sword_48"
 cost = { rage = 15 }
 requires = "target.hp_pct < 0.2 && (aura.battle_stance.up || aura.berserker_stance.up)"
 # `per` is the damage for each point of Rage left after the cost
@@ -722,6 +735,7 @@ effects = [
 
 [spells.overpower]
 name = "Overpower"
+icon = "ability_meleedamage"
 cost = { rage = 5 }
 cooldown = 5
 requires = "(aura.overpower_ready.up || aura.bloodthrill.up) && aura.battle_stance.up"
@@ -739,6 +753,7 @@ effects = [
 
 [spells.rend]
 name = "Rend"
+icon = "ability_gouge"
 cost = { rage = 10 }
 requires = "aura.battle_stance.up || aura.defensive_stance.up"
 # damage per 3 sec tick and duration
@@ -755,6 +770,7 @@ effects = [{ type = "aura", aura = "rend", target = "target" }]
 
 [spells.slam]
 name = "Slam"
+icon = "ability_warrior_decisivestrike"
 cost = { rage = 15 }
 cast_time = 1.5
 cooldown = 18
@@ -769,6 +785,7 @@ effects = [{ type = "damage", weapon = "mh", amount = "r.bonus" }]
 
 [spells.thunder_clap]
 name = "Thunder Clap"
+icon = "spell_nature_thunderclap"
 cost = { rage = 20 }
 cooldown = 6
 requires = "aura.battle_stance.up || aura.defensive_stance.up"
@@ -785,6 +802,7 @@ effects = [{ type = "damage", school = "physical", hit = "spell", min = "r.dmg",
 
 [spells.revenge]
 name = "Revenge"
+icon = "ability_warrior_revenge"
 cost = { rage = 5 }
 cooldown = 5
 requires = "aura.revenge_ready.up && aura.defensive_stance.up"
@@ -803,6 +821,7 @@ effects = [
 
 [spells.shield_slam]
 name = "Shield Slam"
+icon = "inv_shield_05"
 talent = "shield_slam"
 cost = { rage = 20 }
 cooldown = 6
@@ -817,6 +836,7 @@ effects = [{ type = "damage", school = "physical", min = "r.lo + block_value", m
 
 [spells.sunder_armor]
 name = "Sunder Armor"
+icon = "ability_warrior_sunder"
 cost = { rage = 15 }
 # armor removed per application (up to 5) and the threat the spell data lists
 ranks = [
@@ -830,6 +850,7 @@ effects = [{ type = "aura", aura = "sunder_armor", target = "target" }, { type =
 
 [spells.shield_block]
 name = "Shield Block"
+icon = "ability_defend"
 cost = { rage = 10 }
 cooldown = 5
 off_gcd = true
@@ -840,6 +861,7 @@ effects = [{ type = "aura", aura = "shield_block" }]
 
 [spells.shield_wall]
 name = "Shield Wall"
+icon = "ability_warrior_shieldwall"
 cooldown = 900
 requires = "has_shield && aura.defensive_stance.up"
 target = "self"
@@ -849,6 +871,7 @@ effects = [{ type = "aura", aura = "shield_wall" }]
 
 [spells.shield_bash]
 name = "Shield Bash"
+icon = "ability_warrior_shieldbash"
 cost = { rage = 10 }
 cooldown = 12
 requires = "has_shield && (aura.battle_stance.up || aura.defensive_stance.up)"
@@ -865,6 +888,7 @@ effects = [{ type = "damage", school = "physical", min = "r.dmg", max = "r.dmg",
 
 [spells.hamstring]
 name = "Hamstring"
+icon = "ability_shockwave"
 cost = { rage = 10 }
 requires = "aura.battle_stance.up || aura.berserker_stance.up"
 text = "Slows movement 40/45/50% for 15 sec (movement is not simulated)."
@@ -880,6 +904,7 @@ effects = [{ type = "damage", school = "physical", min = "r.dmg", max = "r.dmg",
 
 [spells.piercing_howl]
 name = "Piercing Howl"
+icon = "spell_shadow_deathscream"
 talent = "piercing_howl"
 cost = { rage = 10 }
 ranks = [{ level = 20, id = 12323 }]
@@ -887,6 +912,7 @@ effects = [{ type = "aura", aura = "piercing_howl", target = "enemies" }]
 
 [spells.sweeping_strikes]
 name = "Sweeping Strikes"
+icon = "ability_rogue_slicedice"
 talent = "sweeping_strikes"
 cost = { rage = 30 }
 cooldown = 30
@@ -898,6 +924,7 @@ effects = [{ type = "aura", aura = "sweeping_strikes" }]
 
 [spells.spearing_strike]
 name = "Spearing Strike"
+icon = "inv_spear_01"
 talent = "spearing_strike"
 cost = { rage = 15 }
 cooldown = 20
@@ -907,6 +934,7 @@ effects = [{ type = "damage", weapon = "mh", normalized = true, weapon_mult = "(
 
 [spells.battle_shout]
 name = "Battle Shout"
+icon = "ability_warrior_battleshout"
 cost = { rage = 10 }
 target = "self"
 # attack power when learned, growing with the caster's level up to max_level
@@ -923,6 +951,7 @@ effects = [{ type = "aura", aura = "battle_shout" }]
 
 [spells.demoralizing_shout]
 name = "Demoralizing Shout"
+icon = "ability_warrior_warcry"
 cost = { rage = 10 }
 text = "Forever: lasts 45 sec. Not used by the rotations yet (enemies deal fixed damage)."
 # attack power removed and threat, both growing with the caster's level
@@ -937,6 +966,7 @@ effects = [{ type = "aura", aura = "demoralizing_shout", target = "enemies" }, {
 
 [spells.bloodrage]
 name = "Bloodrage"
+icon = "ability_racial_bloodrage"
 off_gcd = true
 cooldown = 60
 target = "self"
@@ -950,6 +980,7 @@ effects = [
 
 [spells.berserker_rage]
 name = "Berserker Rage"
+icon = "spell_nature_ancestralguardian"
 cooldown = 30
 target = "self"
 requires = "aura.berserker_stance.up"
@@ -964,6 +995,7 @@ effects = [
 
 [spells.death_wish]
 name = "Death Wish"
+icon = "spell_shadow_deathpact"
 talent = "death_wish"
 cost = { rage = 10 }
 cooldown = 180
@@ -973,6 +1005,7 @@ effects = [{ type = "aura", aura = "death_wish" }, { type = "emit", event = "gor
 
 [spells.victory_rush]
 name = "Victory Rush"
+icon = "ability_warrior_devastate"
 cooldown = 30
 requires = "aura.victory_rush_ready.up"
 text = "(1 + 15% AP) damage, heals 10% of max health, usable 20 sec after a kill, 30 sec cooldown."
@@ -985,6 +1018,7 @@ effects = [
 
 [spells.last_stand]
 name = "Last Stand"
+icon = "spell_holy_ashestoashes"
 talent = "last_stand"
 off_gcd = true
 cooldown = 180
@@ -994,6 +1028,7 @@ effects = [{ type = "aura", aura = "last_stand" }, { type = "resource", res = "h
 
 [spells.charge]
 name = "Charge"
+icon = "ability_warrior_charge"
 target = "enemy"
 off_gcd = true
 cooldown = 15
@@ -1008,6 +1043,7 @@ effects = [
 
 [spells.intercept]
 name = "Intercept"
+icon = "ability_rogue_sprint"
 target = "enemy"
 off_gcd = true
 cost = { rage = 10 }
@@ -1019,6 +1055,7 @@ effects = [{ type = "damage", school = "physical", min = "r.dmg", max = "r.dmg",
 
 [spells.disarm]
 name = "Disarm"
+icon = "ability_warrior_disarm"
 cost = { rage = 20 }
 cooldown = 60
 requires = "aura.defensive_stance.up"
@@ -1027,6 +1064,7 @@ effects = [{ type = "aura", aura = "disarm", target = "target", duration = 10 }]
 
 [spells.concussion_blow]
 name = "Concussion Blow"
+icon = "ability_thunderbolt"
 talent = "concussion_blow"
 cost = { rage = 10 }
 cooldown = 45

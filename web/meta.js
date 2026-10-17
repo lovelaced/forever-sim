@@ -83,6 +83,45 @@ export const SCENARIOS = [
     help: 'Stand and fight until one of you dies, with a three-minute limit.' },
 ];
 
+// Each test's scene (web/art/scene-<test>.png): where in the world it's
+// set, how far down the picture to look (top, in art pixels) and where the
+// ground is for the hero (ground, art pixels up from the bottom of the view).
+export const SCENES = {
+  solo_1: { zone: 'Westfall', top: 40, ground: 16 },
+  solo_2: { zone: 'Fargodeep Mine, Elwynn Forest', top: 50, ground: 18 },
+  solo_2_hard: { zone: 'Vul’Gol, Duskwood', top: 40, ground: 16 },
+  solo_3: { zone: 'The Westfall coast', top: 40, ground: 16 },
+  boss: { zone: 'The Deadmines', top: 30, ground: 22 },
+  pressure: { zone: 'Stranglethorn Vale', top: 34, ground: 18 },
+  pressure_2v1: { zone: 'Hillsbrad Foothills', top: 40, ground: 16 },
+  duel: { zone: 'Gurubashi Arena', top: 40, ground: 16 },
+};
+// The hero sprite for a race and class (web/art/hero-<race>-<class>.png).
+export const heroArt = (race, cls) => `art/hero-${race}-${cls}.png`;
+
+// Shown while the simulator starts, one at random.
+export const LOADING_TIPS = [
+  'Every build in a comparison faces the same dice rolls, so a gap between them comes from the builds, not from luck.',
+  'Two tough mobs hit 40% harder than normal ones. That test shows which builds can afford greedy pulls.',
+  'Talents with a grey corner aren’t simulated yet and change nothing.',
+  'The simulated player follows its play style perfectly, so real results usually come out a little lower.',
+  'Change a build and simulate again: the results say what your change did, measured on the same fights.',
+  'Duels are fought both ways round, because whoever opens a duel strikes first.',
+  'Numbers the game doesn’t publish are guesses you can change under Assumptions.',
+  'The leveling tests count everything: travel, eating, drinking and the corpse run after a death.',
+  'Openers are real casts: Charge waits for its cooldown, and the first hit ends Stealth.',
+  'The world PvP tests ask how hard an attacker has to hit to beat you half the time.',
+  'Nobody moves in these fights yet, so kiting and running away aren’t part of any test.',
+  'Precise accuracy runs the most fights. Use it when two builds look too close to call.',
+  'Class rankings runs every build on the site through seven tests. It takes a few minutes.',
+  'Spell numbers come from Forever’s own game data, checked one by one.',
+  'Ranges are 95% confidence intervals: run a test again and the average would almost always land inside.',
+  'In the boss test a tank holds the boss, and you hit it from behind.',
+  'Share these builds from the top of the page: anyone who opens the link sees the same builds.',
+  'Everything runs in your browser. Nothing you set up leaves your computer.',
+  'Open a test to watch one of its fights step by step, every spell with its icon.',
+];
+
 // Tests run in this order, quickest first, so the scorecard starts filling
 // at once. The scorecard itself keeps the order above.
 export const RUN_ORDER = ['boss', 'pressure', 'pressure_2v1', 'duel', 'solo_1', 'solo_2', 'solo_2_hard', 'solo_3'];

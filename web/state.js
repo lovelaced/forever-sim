@@ -20,7 +20,7 @@ let uidSeq = 1;
 
 export const S = {
   builds: [],
-  baseline: null, // uid of the build the others are compared with
+  baseline: null, // uid of the main build: the others are compared with it, and its fights are shown first
   editing: null, // uid of the build open in the editor, or null when it is folded
   accuracy: 'standard',
   opponent: null, // one-build duel: 'preset:<file>' or null

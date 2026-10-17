@@ -18,6 +18,7 @@ passives = [
 ]
 [races.human.spells.will_to_survive]
 name = "Will to Survive"
+icon = "spell_shadow_charm"
 cooldown = 180                    # on the global cooldown (spell 1259718: 1.5 sec)
 usable_while = ["stun"]
 target = "self"
@@ -37,6 +38,7 @@ passives = [
 ]
 [races.dwarf.spells.stoneform]
 name = "Stoneform"
+icon = "spell_shadow_unholystrength"
 cooldown = 180                    # on the global cooldown (spell 20594: 1.5 sec)
 target = "self"
 effects = [{ type = "aura", aura = "stoneform" }]
@@ -55,6 +57,7 @@ source = "forever-70338"
 passives = [{ name = "Quickness", mods = [{ stat = "dodge", add = 1 }] }]
 [races.night_elf.spells.elunes_light]
 name = "Elune's Light"
+icon = "spell_nature_moonglow"
 off_gcd = true
 cooldown = 180
 target = "self"
@@ -74,6 +77,7 @@ source = "forever-70338"
 passives = [{ name = "Expansive Mind", mods = [{ stat = "max_mana_mult", mul = 1.05 }, { stat = "max_energy_add", add = 5 }] }]
 [races.gnome.spells.eureka]
 name = "Eureka!"
+icon = "inv_gnometoy"
 off_gcd = true
 cooldown = 120
 target = "self"
@@ -110,6 +114,7 @@ passives = [
 ]
 [races.orc.spells.blood_fury]
 name = "Blood Fury"
+icon = "racial_orc_berserkerstrength"
 off_gcd = true
 cooldown = 120
 target = "self"
@@ -121,6 +126,7 @@ duration = 15
 mods = [{ stat = "ap_mult", mul = 1.10 }, { stat = "rap_mult", mul = 1.10 }, { stat = "sp", mul = 1.10 }, { stat = "heal_power", mul = 1.10 }]
 [races.orc.spells.shatter_curse]
 name = "Shatter Curse"
+icon = "spell_nature_removecurse"
 # spell 1299026; no rotation uses it yet
 cooldown = 180
 target = "self"
@@ -148,6 +154,7 @@ procs = [
 ]
 [races.undead.spells.will_of_the_forsaken]
 name = "Will of the Forsaken"
+icon = "spell_shadow_raisedead"
 cooldown = 120                    # on the global cooldown (spell 7744: 1.5 sec)
 usable_while = ["fear", "incap"]
 target = "self"
@@ -155,6 +162,7 @@ requires = "feared || incapacitated"
 effects = [{ type = "dispel", mechanics = ["fear", "incap"] }]
 [races.undead.spells.cannibalize]
 name = "Cannibalize"
+icon = "ability_racial_cannibalize"
 cooldown = 120
 target = "self"
 text = "7% health and mana every 2 sec for 10 sec. Needs a humanoid or undead corpse (opt.corpse_chance)."
@@ -178,6 +186,7 @@ source = "forever-70338"
 passives = [{ name = "Endurance", mods = [{ stat = "max_hp_mult", mul = 1.05 }, { stat = "hit", add = 1 }] }]
 [races.tauren.spells.war_stomp]
 name = "War Stomp"
+icon = "ability_warstomp"
 cast_time = 0.5                   # spell 20549: 0.5 sec cast, off the global cooldown
 off_gcd = true
 cooldown = 120
@@ -197,6 +206,7 @@ passives = [
 ]
 [races.troll.spells.berserking]
 name = "Berserking"
+icon = "racial_troll_berserk"
 off_gcd = true
 cooldown = 180
 target = "self"
@@ -210,6 +220,7 @@ text = "10% attack and casting speed."
 mods = [{ stat = "haste", mul = 1.10 }]
 [races.troll.spells.rapid_regeneration]
 name = "Rapid Regeneration"
+icon = "ability_racial_regeneratin"
 off_gcd = true
 cooldown = 180
 target = "self"

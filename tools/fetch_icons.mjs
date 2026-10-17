@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Collect the game's own icons the website shows (talents, classes, races,
-// tests, gear, talent trees) into web/icons/, with a manifest the page reads.
+// tests, gear, talent trees, and every spell, aura, weapon and pet a fight
+// log can show) into web/icons/, with a manifest the page reads.
 // Icons are Blizzard Entertainment's artwork.
 //
 // Sources, in order:
@@ -41,6 +42,10 @@ for (const c of catalog.classes) {
   for (const t of c.talents) if (t.icon) names.add(t.icon);
 }
 for (const r of catalog.races) if (r.icon) names.add(r.icon);
+// the fight log: every spell and aura, weapons for auto attacks, pets
+for (const x of Object.values(catalog.spells || {})) if (x.icon) names.add(x.icon);
+for (const x of Object.values(catalog.auras || {})) if (x.icon) names.add(x.icon);
+for (const n of catalog.extra_icons || []) names.add(n);
 for (const n of names) {
   if (!/^[a-z0-9_]+$/.test(n)) { console.error(`bad icon name '${n}'`); process.exit(1); }
 }

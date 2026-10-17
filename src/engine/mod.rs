@@ -281,7 +281,7 @@ pub struct Metrics<'w> {
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct TraceEv {
     pub t: f64,
-    /// cast, hit, miss, dodge, parry, heal, gain, lose or death
+    /// cast, hit, miss, dodge, parry, heal, gain, lose, death, pull, rest or eat
     pub kind: &'static str,
     pub who: String,
     pub team: u8,
@@ -292,6 +292,23 @@ pub struct TraceEv {
     pub crit: bool,
     pub tick: bool,
     pub stacks: f64,
+    /// The spell or aura behind it (its qualified id in the data, e.g.
+    /// "warrior.rend"), for the website's icons; empty for auto attacks.
+    pub key: String,
+    /// The damage or healing school.
+    pub school: &'static str,
+    /// Damage soaked up by a shield before the hit landed, and the shield.
+    pub absorbed: f64,
+    pub via: String,
+    /// The game icon to show, filled in by the trace request.
+    pub icon: String,
+    /// The target's health after a hit or heal, as a share of its maximum.
+    pub hp: Option<f64>,
+    /// Actor numbers, so the trace request can tell same-named mobs apart.
+    #[serde(skip)]
+    pub who_id: usize,
+    #[serde(skip)]
+    pub target_id: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -440,7 +457,14 @@ impl<'w> Sim<'w> {
             t: self.t, kind, who: x.name.clone(), team: x.team, pet: x.owner.is_some(),
             target: target.map(|t| self.actors[t].name.clone()), name: name.to_string(),
             amount: 0.0, crit: false, tick: false, stacks: 0.0,
+            key: String::new(), school: "", absorbed: 0.0, via: String::new(),
+            icon: String::new(), hp: None, who_id: who, target_id: target,
         }
+    }
+
+    /// The qualified id of the spell an event came from, for the trace.
+    pub fn spell_key(&self, by: Option<u32>) -> String {
+        by.map(|i| self.w.spells[i as usize].qid.clone()).unwrap_or_default()
     }
 
     pub fn tracef(&mut self, ev: impl FnOnce(&Self) -> TraceEv) {

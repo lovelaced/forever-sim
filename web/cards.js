@@ -1,6 +1,8 @@
-// The build cards along the top: who each build is, how it differs from the
-// baseline, what its last change did, and the buttons to edit, copy, remove
-// or make it the baseline.
+// The build cards along the top, like the game's unit frames: who each build
+// is, how it differs from the main build, what its last change did, and the
+// buttons to edit, copy, remove or make it the main build. The main build
+// wears the elite dragon ring: the others are compared with it, and its
+// fights are the ones shown first.
 import * as M from './meta.js';
 import { h, art, withTip, tt } from './ui.js';
 import { gearLines } from './editor.js';
@@ -8,13 +10,13 @@ import { S, MAX_BUILDS, classOf, raceOf, nameOf, classColor, baselineBuild, buil
 import { prepareClass } from './talents.js';
 import { changesFor } from './runner.js';
 
-// actions: {edit(b), copy(b), remove(b), makeBaseline(b), add()}
+// actions: {edit(b), copy(b), remove(b), makeMain(b), add()}
 export function renderCards(root, actions) {
   const base = baselineBuild();
   const cards = S.builds.map((b, k) => card(b, k, b === base, base, actions));
   if (S.builds.length < MAX_BUILDS) {
     const from = S.builds.find((b) => b.uid === S.editing) || base;
-    cards.push(h('button.card.card-add', { type: 'button', onclick: actions.add },
+    cards.push(h('button.card.card-add.fr-small', { type: 'button', onclick: actions.add },
       h('span.plus', { 'aria-hidden': 'true' }, '+'),
       h('span.add-text', h('b', 'Add a build to compare'), h('span', `Starts as a copy of ${nameOf(from)}`))));
   }
@@ -47,7 +49,7 @@ function card(b, k, isBase, base, actions) {
   if (!isBase && S.builds.length > 1) {
     const parts = buildDiff(base, b);
     const baseSlot = M.SLOTS[S.builds.indexOf(base)];
-    diff = h('p.card-diff', h('span.vs', `vs ${baseSlot.letter}: `), parts.length ? diffText(parts, 3) : 'same as the baseline');
+    diff = h('p.card-diff', h('span.vs', `vs ${baseSlot.letter}: `), parts.length ? diffText(parts, 3) : 'same as the main build');
   }
 
   // "Last change: better in 2 tests, worse in 1"
@@ -67,26 +69,29 @@ function card(b, k, isBase, base, actions) {
   const menu = h('details.menu',
     h('summary', { 'aria-label': `More for ${nameOf(b)}` }, '•••'),
     h('div.menu-list', { role: 'menu' },
-      !isBase ? h('button', { type: 'button', role: 'menuitem', onclick: (e) => { e.target.closest('details').open = false; actions.makeBaseline(b); } }, 'Make this the baseline') : null,
+      !isBase ? h('button', { type: 'button', role: 'menuitem', onclick: (e) => { e.target.closest('details').open = false; actions.makeMain(b); } }, 'Make this the main build') : null,
       S.builds.length < MAX_BUILDS ? h('button', { type: 'button', role: 'menuitem', onclick: (e) => { e.target.closest('details').open = false; actions.copy(b); } }, 'Copy to compare') : null,
       S.builds.length > 1 ? h('button.danger', { type: 'button', role: 'menuitem', onclick: (e) => { e.target.closest('details').open = false; actions.remove(b); } }, 'Remove') : null));
 
-  return h('article.card', { class: editing ? 'editing' : '', style: { '--slot': slot.color, '--cc': M.CLASS_COLORS[b.cls] }, 'aria-label': `Build ${slot.letter}: ${nameOf(b)}` },
+  const main = isBase && S.builds.length > 1;
+  return h('article.card.fr-gold', { class: [editing ? 'editing' : '', isBase ? 'main' : ''].join(' '), style: { '--slot': slot.color, '--cc': M.CLASS_COLORS[b.cls] }, 'aria-label': `Build ${slot.letter}: ${nameOf(b)}${isBase ? ', the main build' : ''}` },
     h('div.card-top',
-      h('span.slot.big', { 'aria-hidden': 'true' }, slot.letter),
-      h('span.card-portrait', h('span.face', art(M.RACE_ICONS[b.race] || 'rune-stone', race?.icon)), h('span.crest', art(M.CLASS_ICONS[b.cls], c.icon))),
+      h('span.card-portrait', { class: isBase ? 'elite' : '' },
+        h('span.face', art(M.RACE_ICONS[b.race] || 'rune-stone', race?.icon)),
+        isBase ? h('img.ring.px', { src: 'art/elite-ring.png', alt: '' }) : null,
+        h('span.crest', art(M.CLASS_ICONS[b.cls], c.icon))),
       h('div.card-id',
-        h('h3.card-name', nameOf(b)),
+        h('h3.card-name', h('span.slot.big', { 'aria-hidden': 'true' }, slot.letter), h('span.card-name-text', nameOf(b)), main ? h('span.tag.main', 'Main build') : null),
         h('p.card-sub', `Level ${b.level} ${race?.name || ''} `, h('span', { style: { color: classColor(b.cls) } }, c.name),
           presetTags(b.preset && presetOf(b.preset)).map((t) => h('span.card-tag', t))))),
     h('p.card-split', split.map(([tr, n], i) => h('span', { class: n ? '' : 'zero', title: tr.name }, art(style[i]?.[1] || 'rune-stone', style[i]?.[2]), `${n}`))),
     gearLine(b),
-    isBase && S.builds.length > 1 ? h('p.card-diff.base', 'Baseline: the others are compared with this build.') : diff,
+    main ? h('p.card-diff.base', 'The others are compared with this build, and its fights are shown first.') : diff,
     change,
     h('div.card-actions',
-      h('button.btn.btn-small', {
+      h('button.btn', {
         type: 'button', class: editing ? 'on' : '', 'aria-expanded': String(editing), 'aria-controls': 'editor',
         'data-edit': String(b.uid), onclick: () => actions.edit(b),
-      }, editing ? 'Close editor' : 'Edit talents and gear'),
+      }, editing ? 'Close the editor' : 'Edit build'),
       menu));
 }

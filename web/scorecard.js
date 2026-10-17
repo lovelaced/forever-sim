@@ -1,8 +1,8 @@
-// The scorecard: every test (rows) for every build (columns), a one-line
-// summary on top, what the last change did, and each test's detail opening
-// under its row.
+// The scorecard: every test as a row with its scene from the world and each
+// build's result, a one-line summary on top, what the last change did, and
+// each test's detail opening inside its row.
 import * as M from './meta.js';
-import { h, art, fmtMetric, fmtDiff, fmtNum, fmtSec } from './ui.js';
+import { h, fmtMetric, fmtDiff, fmtNum, fmtSec } from './ui.js';
 import { S, env, sig, nameOf, slotOf, baselineBuild, scenarioMeta, primaryOf, accuracyOf, presetOf, presetsFor, baseName, buildDiff, diffText, saveLocal } from './state.js';
 import { scorecardTests, cellOf, pairOf, duelWin, changesFor, simulateAll } from './runner.js';
 import { renderDetail, leaders, metricOf } from './results.js';
@@ -127,70 +127,88 @@ function changeStrip(cols) {
   return boxes.length ? h('div.changes', { 'aria-label': 'What your last change did' }, boxes) : null;
 }
 
-// ------------------------------------------------------------------ table
+// ------------------------------------------------------------------ the trials
 
-function headerCell(c, levels) {
-  return h('th.col-head', { scope: 'col', style: { '--slot': c.color } },
-    h('span.col-name', badge(c), h('span', c.name)),
-    h('span.col-tags', c.isBase && S.builds.length > 1 ? h('span.tag', 'Baseline') : null, levels > 1 ? h('span.tag.plain', `Level ${c.b.level}`) : null));
+// A test's scene, with the main build's hero standing in it. Scenes and
+// heroes are drawn on one pixel scale, so they're shown at whole art pixels.
+function scene(test) {
+  const sc = M.SCENES[test];
+  if (!sc) return h('span.scene.empty');
+  const main = baselineBuild();
+  const hero = artImg('img.hero.px', M.heroArt(main.race, main.cls), { '--ground': String(sc.ground) });
+  hero.addEventListener('error', () => hero.remove(), { once: true });
+  return h('span.scene', { 'aria-hidden': 'true' }, artImg('img.bg.px', `art/scene-${test}.png`, { '--top': String(sc.top) }), hero);
 }
 
-function testHeader(test, open, running) {
+// Pixel art at its own size in art pixels (whole screen pixels each).
+function artImg(sel, src, style) {
+  const img = h(sel, { src, alt: '', decoding: 'async', style });
+  const size = () => { img.style.width = `calc(${img.naturalWidth} * var(--art))`; img.style.height = `calc(${img.naturalHeight} * var(--art))`; };
+  if (img.complete && img.naturalWidth) size(); else img.addEventListener('load', size, { once: true });
+  return img;
+}
+
+function trialHead(test, open) {
   const meta = scenarioMeta(test);
-  const detailId = `detail-${test}`;
-  return h('th.test-head', { scope: 'row' },
-    h('button.test-btn', {
-      type: 'button', 'aria-expanded': String(open), 'aria-controls': detailId,
-      onclick: () => { S.open = open ? null : test; saveLocal(); render(); },
-    },
-    h('span.test-icon', art(meta.icon, meta.wow)),
-    h('span.test-text', h('span.test-title.long', meta.title), h('span.test-title.short', meta.short), h('span.test-per', meta.per)),
-    h('span.chev', { 'aria-hidden': 'true' }, open ? '−' : '+')),
-    running ? h('span.sr-only', ' (running)') : null);
+  const sc = M.SCENES[test];
+  return h('button.trial-btn', {
+    type: 'button', 'aria-expanded': String(open), 'aria-controls': `detail-${test}`,
+    onclick: () => { S.open = open ? null : test; saveLocal(); render(); },
+  },
+  scene(test),
+  h('span.trial-text',
+    h('span.trial-title', meta.title),
+    h('span.trial-per', meta.per, sc ? h('span.trial-zone', ` · ${sc.zone}`) : null)),
+  h('span.chev', { 'aria-hidden': 'true' }, open ? '−' : '+'));
 }
 
-function valueCell(test, row, c, cols, best) {
-  const td = h('td.cell', { style: { '--slot': c.color } });
-  if (!c.cell) { td.append(h('span.none', '—')); return td; }
-  if (!c.cell.current) td.classList.add('stale');
+// One build's result in a test: its letter, the number, a crown for the
+// best, and how it compares with the main build.
+function plaque(test, row, c, cols, best) {
+  const el = h('div.plaque', { style: { '--slot': c.color } }, badge(c), h('span.sr-only', `${c.name}: `));
+  if (!c.cell) { el.append(h('span.v.none', '—')); return el; }
+  if (!c.cell.current) el.classList.add('stale');
   const base = cols.find((x) => x.isBase);
-  if (test === 'duel') return duelCell(td, row, c, base);
+  if (test === 'duel') return duelPlaque(el, row, c, base);
   const primary = row.res.scenario.primary;
   const m = M.METRICS[primary] || { kind: 'num', digits: 1 };
   const s = metricOf(row.res, c.cell.i, primary);
-  if (!s) { td.append(h('span.none', '—')); return td; }
+  if (!s) { el.append(h('span.v.none', '—')); return el; }
   const isBest = best.has(c.k);
-  td.append(h('span.v', fmtMetric(s.mean, m), isBest ? h('span.best', best.size > 1 ? 'Tied' : 'Best') : null));
+  el.append(h('span.v', fmtMetric(s.mean, m),
+    isBest ? h('img.crown.px', { src: 'art/crown.png', alt: best.size > 1 ? 'Tied for best' : 'Best', title: best.size > 1 ? 'Tied for best' : 'Best' }) : null));
   if (!c.isBase && base?.cell) {
     const p = pairOf(row.res, primary, base.cell.i, c.cell.i);
     const bs = metricOf(row.res, base.cell.i, primary);
     if (p && bs) {
       const up = p.diff > 0;
       const better = m.good === 'low' ? !up : up;
-      td.append(p.significant
+      el.append(p.significant
         ? h('span.d', { class: better ? 'good' : 'bad' }, `${up ? '▲' : '▼'} ${fmtRel(p.diff, bs.mean, m)}`,
           h('span.sr-only', ` ${up ? 'more' : 'less'} than ${base.name}`))
         : h('span.d', 'about the same', h('span.sr-only', ` as ${base.name}`)));
     }
+  } else if (c.isBase && cols.length > 1) {
+    el.append(h('span.d.main', 'main build'));
   }
-  return td;
+  return el;
 }
 
-function duelCell(td, row, c, base) {
+function duelPlaque(el, row, c, base) {
   if (row.one) {
     const w = S.opponent && duelWin(row, c.cell.sig, S.opponent);
-    if (!w) { td.append(h('span.none', '—')); return td; }
-    td.append(h('span.v', `${fmtNum(100 * w.mean, 0)}%`), h('span.d', { class: w.lo > 0.5 ? 'good' : w.hi < 0.5 ? 'bad' : '' }, w.lo > 0.5 ? 'wins' : w.hi < 0.5 ? 'loses' : 'even'));
-    return td;
+    if (!w) { el.append(h('span.v.none', '—')); return el; }
+    el.append(h('span.v', `${fmtNum(100 * w.mean, 0)}%`), h('span.d', { class: w.lo > 0.5 ? 'good' : w.hi < 0.5 ? 'bad' : '' }, w.lo > 0.5 ? 'wins' : w.hi < 0.5 ? 'loses' : 'even'));
+    return el;
   }
-  if (c.isBase || !base?.cell) { td.append(h('span.none', '—')); return td; }
+  if (c.isBase || !base?.cell) { el.append(h('span.v.none', '—'), c.isBase ? h('span.d.main', 'main build') : null); return el; }
   const w = duelWin(row, c.cell.sig, base.cell.sig);
-  if (!w) { td.append(h('span.none', '—')); return td; }
+  if (!w) { el.append(h('span.v.none', '—')); return el; }
   const cls = w.lo > 0.5 ? 'good' : w.hi < 0.5 ? 'bad' : '';
-  td.append(h('span.v', `${fmtNum(100 * w.mean, 0)}%`),
+  el.append(h('span.v', `${fmtNum(100 * w.mean, 0)}%`),
     h('span.d', { class: cls }, w.lo > 0.5 ? `beats ${base.letter}` : w.hi < 0.5 ? `loses to ${base.letter}` : `even with ${base.letter}`,
       h('span.sr-only', ` (${base.name})`)));
-  return td;
+  return el;
 }
 
 let render = () => {};
@@ -203,7 +221,6 @@ export function renderScorecard(root, { onRender }) {
   const anyRow = listed.some((t) => S.rows[t]);
   const run = S.run;
   const running = run && !run.finished;
-  const cols0 = columns(null);
   const levels = new Set(S.builds.map((b) => b.level)).size;
 
   const out = [];
@@ -227,38 +244,31 @@ export function renderScorecard(root, { onRender }) {
   const strip = changeStrip(columns(null));
   if (strip) out.push(strip);
 
-  // table
-  const table = h('table.score', { 'aria-busy': running ? 'true' : 'false' },
-    h('caption.sr-only', 'Results for each test and build. Open a test for the details.'),
-    h('thead', h('tr', h('th.test-col', { scope: 'col' }, h('span.sr-only', 'Test')), cols0.map((c) => headerCell(c, levels)))));
-  const body = h('tbody');
-  for (const test of listed) {
+  const list = h('ol.trials', { 'aria-busy': running ? 'true' : 'false', 'aria-label': 'Tests' });
+  listed.forEach((test, n) => {
     const row = S.rows[test];
     const cols = columns(row);
     const isRunning = running && run.test === test;
     const queued = running && run.jobs.includes(test) && run.jobs.indexOf(test) > run.jobs.indexOf(run.test);
     const open = S.open === test;
-    const tr = h('tr.test-row', { class: [isRunning ? 'running' : '', queued ? 'queued' : '', open ? 'open' : ''].join(' ') });
-    tr.append(testHeader(test, open, isRunning));
+    const li = h('li.trial.fr-small', { class: [isRunning ? 'running' : '', queued ? 'queued' : '', open ? 'open' : ''].join(' '), style: { '--n': String(n) } });
+    const vals = h('div.trial-vals', { class: `n${cols.length}` });
     if (test === 'duel' && showDuelPicker) {
-      tr.append(h('td.cell.note-cell', { colspan: String(cols.length) }, h('button.linkish', { type: 'button', onclick: () => { S.open = 'duel'; render(); } }, 'Pick an opponent')));
+      vals.append(h('button.linkish.pick-opp', { type: 'button', onclick: () => { S.open = 'duel'; render(); } }, 'Pick an opponent'));
     } else if (row?.error) {
-      tr.append(h('td.cell.error-cell', { colspan: String(cols.length) }, `This test failed: ${row.error}`));
+      vals.append(h('p.error-cell', `This test failed: ${row.error}`));
     } else if (!row) {
-      for (const c of cols) tr.append(h('td.cell', { style: { '--slot': c.color } }, h('span.none', isRunning ? '' : '—')));
+      for (const c of cols) vals.append(h('div.plaque', { style: { '--slot': c.color } }, badge(c), h('span.v.none', isRunning ? '…' : '—')));
     } else {
       const best = test === 'duel' ? new Set() : leaders(row.res, cols.filter((c) => c.cell), row.res.scenario.primary, (M.METRICS[row.res.scenario.primary] || {}).good);
-      for (const c of cols) tr.append(valueCell(test, row, c, cols, best));
+      for (const c of cols) vals.append(plaque(test, row, c, cols, best));
     }
-    body.append(tr);
-    if (open) {
-      const td = h('td.detail-cell', { colspan: String(cols.length + 1), id: `detail-${test}` });
-      td.append(detailFor(test, row, cols));
-      body.append(h('tr.detail-row', td));
-    }
-  }
-  table.append(body);
-  out.push(h('div.score-wrap', table));
+    li.append(h('div.trial-head', trialHead(test, open), vals));
+    if (isRunning) li.append(h('span.sr-only', ' (running)'));
+    if (open) li.append(h('div.trial-detail', { id: `detail-${test}` }, detailFor(test, row, cols)));
+    list.append(li);
+  });
+  out.push(list);
 
   if (run?.finished && !run.stopped && run.full && !run.nothing) {
     out.push(h('p.fine-print.run-note', `Last run: ${run.jobs.length === 1 ? 'one test' : `${run.jobs.length} tests`} in ${fmtSec(run.ms / 1000)}, at ${accuracyOf(run.acc).title} accuracy. Every build faces the same dice in each test.`));

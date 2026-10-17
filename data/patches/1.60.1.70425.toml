@@ -664,6 +664,7 @@ spell_mods = [{ spells = ["fireball", "frostbolt", "fire_blast", "arcane_missile
 
 [classes.mage.auras.clearcasting_roll]
 name = "Clearcasting (rolled)"
+hidden = true
 duration = 0.009
 text = "Marker: this cast already rolled for Clearcasting (Oct 15 notes: one roll per spell, not per target)."
 
@@ -747,6 +748,7 @@ ranks = [
 # 5%); the extra 5% of maximum mana counts as spell damage at the same
 # coefficient.
 name = "Arcane Wrath"
+icon = "ability_mage_netherwindpresence"
 talent = "arcane_wrath"
 school = "arcane"
 cooldown = 6
@@ -764,6 +766,7 @@ effects = [{ type = "damage", school = "arcane", min = "r.lo", max = "r.hi", coe
 # 40% slow, affected by every talent that affects Frostbolt (70425 data:
 # spells 1326053-1326055 carry Frostbolt's family flags; 9 sec slow).
 name = "Frost Blast"
+icon = "spell_frost_frostbolt"
 school = "frost"
 ranks = [
   { level = 24, id = 1326053, lo = 25, lo_per_level = 0.284, hi = 27, hi_per_level = 0.316, mana = 40, cast = 1.5, max_level = 35, coef = 0.343 },
@@ -1071,6 +1074,7 @@ mods = [{ stat = "spi_pct", add = "0.03 * t.dark_inspiration" }]
 
 [classes.priest.auras.mind_flay_ramp]
 name = "Mind Flay ticks"
+hidden = true
 duration = 4
 max_stacks = 3
 text = "Counts the ticks of the current Mind Flay channel, for Improved Mind Flay and Dark Inspiration. Cleared when Mind Flay is cast."
@@ -1439,6 +1443,7 @@ requires = "!aura.flametongue_totem.up && !aura.windfury_totem.up"
 
 [classes.shaman.spells.elemental_mastery]
 name = "Elemental Mastery"
+icon = "spell_nature_wispheal"
 talent = "elemental_mastery"
 school = "nature"
 # 70425 data: spell 16166, 3 min cooldown, no global cooldown

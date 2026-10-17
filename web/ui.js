@@ -1,6 +1,25 @@
 // Small DOM helpers shared by the page.
-import { ICONS } from './icons.js';
 import { iconColors } from './meta.js';
+
+// Drawn stand-in glyphs (game-icons.net) for anything without game art.
+// They are a big file and rarely needed, so they load after the page.
+let ICONS = {};
+export async function loadGlyphs() {
+  try { ICONS = (await import('./icons.js')).ICONS; } catch { /* stay blank */ }
+}
+
+// One art pixel (frames, buttons, scenes) is a whole number of screen
+// pixels, so pixel art stays crisp at any zoom: 1 CSS pixel on most
+// screens, a little more or less where the device pixel ratio isn't whole.
+export function setArtScale() {
+  const set = () => {
+    const dpr = window.devicePixelRatio || 1;
+    const px = Math.max(1, Math.round(dpr)) / dpr;
+    document.documentElement.style.setProperty('--art', `${px}px`);
+  };
+  set();
+  matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`).addEventListener?.('change', () => setArtScale(), { once: true });
+}
 
 const SVG = 'http://www.w3.org/2000/svg';
 

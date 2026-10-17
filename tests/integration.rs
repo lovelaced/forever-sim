@@ -276,3 +276,60 @@ fn precombat_buffs_start_their_cooldowns() {
     let first = log.iter().find(|l| l.ends_with(" casts Ice Barrier")).map(|l| l.split_whitespace().next().unwrap().parse::<f64>().unwrap());
     assert!(first.map_or(false, |t| t >= 30.0 - 1e-6), "first Ice Barrier in the fight at {first:?}, inside the cooldown from before the pull");
 }
+
+/// Every spell carries the game's icon (the website's fight log shows it),
+/// and a traced fight of every standard build has an icon on each move,
+/// leaves bookkeeping auras out, and tells mobs apart.
+#[test]
+fn fight_logs_show_the_games_icons() {
+    let w = world();
+    let missing: Vec<&str> = w.spells.iter().filter(|s| s.icon.is_none()).map(|s| s.qid.as_str()).collect();
+    assert!(missing.is_empty(), "spells without an icon: {missing:?}");
+    let hidden: Vec<String> = w.auras.iter().filter(|a| a.hidden).map(|a| a.name.clone()).collect();
+    let mut checked = 0;
+    for path in builds() {
+        let text = std::fs::read_to_string(&path).unwrap();
+        if !text.contains("kind = \"standard\"") {
+            continue;
+        }
+        let build: toml::Value = toml::from_str(&text).unwrap();
+        let build = serde_json::to_value(&build).unwrap();
+        for (scenario, level) in [("solo_2", 30), ("boss", 60)] {
+            let req = serde_json::json!({ "op": "trace", "scenario": scenario, "level": level, "build": build });
+            let out: serde_json::Value = serde_json::from_str(&forever_sim::api::handle(&req.to_string())).unwrap();
+            let out = out.get("result").unwrap_or(&out);
+            let events = out["events"].as_array().unwrap_or_else(|| panic!("{}: {out}", path.display()));
+            for e in events {
+                let kind = e["kind"].as_str().unwrap();
+                let name = e["name"].as_str().unwrap();
+                let ours = e["team"].as_u64() == Some(0);
+                if ours && matches!(kind, "cast" | "hit" | "heal" | "gain" | "lose") {
+                    assert!(!e["icon"].as_str().unwrap_or("").is_empty(), "{} {scenario}: {kind} {name} has no icon", path.display());
+                }
+                if matches!(kind, "gain" | "lose") {
+                    assert!(!hidden.iter().any(|h| h == name), "{} {scenario}: bookkeeping aura {name} in the log", path.display());
+                }
+                if scenario == "solo_2" && !ours {
+                    let who = e["who"].as_str().unwrap();
+                    assert!(who == "Mob 1" || who == "Mob 2", "{} {scenario}: enemy named {who}", path.display());
+                }
+                checked += 1;
+            }
+        }
+    }
+    assert!(checked > 1000, "only {checked} events checked");
+}
+
+/// A hit soaked up by a shield says how much was absorbed and by what.
+#[test]
+fn absorbed_hits_report_the_shield() {
+    let text = std::fs::read_to_string("builds/mage/frost.toml").unwrap();
+    let build = serde_json::to_value(toml::from_str::<toml::Value>(&text).unwrap()).unwrap();
+    let req = serde_json::json!({ "op": "trace", "scenario": "solo_2_hard", "level": 60, "build": build, "until": 60 });
+    let out: serde_json::Value = serde_json::from_str(&forever_sim::api::handle(&req.to_string())).unwrap();
+    let out = out.get("result").unwrap_or(&out);
+    let soaked: Vec<&serde_json::Value> = out["events"].as_array().unwrap().iter()
+        .filter(|e| e["kind"] == "hit" && e["absorbed"].as_f64().unwrap_or(0.0) > 0.0).collect();
+    assert!(!soaked.is_empty(), "Ice Barrier should soak up some hits");
+    assert!(soaked.iter().all(|e| e["via"] == "Ice Barrier" || e["via"] == "Mana Shield" || !e["via"].as_str().unwrap_or("").is_empty()), "absorbs name their shield");
+}

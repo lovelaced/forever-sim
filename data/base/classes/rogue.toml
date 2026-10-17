@@ -495,6 +495,7 @@ procs = [{ on = "melee_landed", if = "enemies >= 2", effects = [
 ] }]
 [auras.blade_flurry_mark]
 name = "Blade Flurry target"
+hidden = true
 debuff = true
 duration = 1
 text = "Marks the enemy the hit came from, so the Blade Flurry copy goes to another one."
@@ -510,6 +511,7 @@ name = "Cutthroat"
 duration = 10
 [auras.riposte_ready]
 name = "Riposte window"
+hidden = true
 duration = 5
 [auras.thousand_cuts]
 name = "Thousand Cuts"
@@ -549,6 +551,7 @@ tick = { interval = 3, effects = [{ type = "damage", school = "nature", periodic
 # ------------------------------------------------------------------ spells
 [spells.stealth]
 name = "Stealth"
+icon = "ability_stealth"
 cooldown = 10
 off_gcd = true
 target = "self"
@@ -558,6 +561,7 @@ effects = [{ type = "aura", aura = "stealth" }]
 
 [spells.sinister_strike]
 name = "Sinister Strike"
+icon = "spell_shadow_ritualofsacrifice"
 cost = { energy = 45 }
 ranks = [
   { level = 1, id = 1752, bonus = 3 },
@@ -578,6 +582,7 @@ on_hit = [{ type = "combo", amount = 1 }]
 
 [spells.backstab]
 name = "Backstab"
+icon = "ability_backstab"
 cost = { energy = 60 }
 requires = "behind && mh.dagger"
 # bonus = the game's flat bonus; 150% applies to it too (rank 1: +15, rank 8: +210)
@@ -601,6 +606,7 @@ on_hit = [{ type = "combo", amount = 1 }, { type = "chance", p = "0.15 * t.punct
 
 [spells.mutilate]
 name = "Mutilate"
+icon = "ability_rogue_deadlybrew"
 talent = "mutilate"
 cost = { energy = 60 }
 requires = "dual_wield && mh.dagger && oh.dagger"
@@ -629,6 +635,7 @@ mult = "(target.aura.deadly_poison.up ? 1.2 : 1) * (opt.rogue_mutilate_offhand_p
 
 [spells.hemorrhage]
 name = "Hemorrhage"
+icon = "spell_shadow_lifedrain"
 talent = "hemorrhage"
 cost = { energy = 35 }
 ranks = [{ level = 30, id = 16511 }]
@@ -641,6 +648,7 @@ on_hit = [{ type = "combo", amount = 1 }, { type = "aura", aura = "hemorrhage", 
 
 [spells.ghostly_strike]
 name = "Ghostly Strike"
+icon = "spell_shadow_curse"
 talent = "ghostly_strike"
 cost = { energy = 40 }
 cooldown = 20
@@ -657,6 +665,7 @@ target = "self"
 
 [spells.riposte]
 name = "Riposte"
+icon = "ability_warrior_challange"
 talent = "riposte"
 cost = { energy = 10 }
 cooldown = 6
@@ -670,6 +679,7 @@ effects = [
 
 [spells.gouge]
 name = "Gouge"
+icon = "ability_gouge"
 cost = { energy = 45 }
 cooldown = 10
 ranks = [{ level = 6, id = 1776, dmg = 10 }, { level = 18, id = 1777, dmg = 20 }, { level = 32, id = 8629, dmg = 32 }, { level = 46, id = 11285, dmg = 55 }, { level = 60, id = 11286, dmg = 75 }]
@@ -677,6 +687,7 @@ effects = [{ type = "damage", school = "physical", amount = "r.dmg", on_hit = [{
 
 [spells.kick]
 name = "Kick"
+icon = "ability_kick"
 cost = { energy = 25 }
 cooldown = 10
 off_gcd = false
@@ -689,6 +700,7 @@ effects = [{ type = "damage", school = "physical", amount = "r.dmg", on_hit = [
 
 [spells.eviscerate]
 name = "Eviscerate"
+icon = "ability_rogue_eviscerate"
 finisher = true
 cost = { energy = 35 }
 requires = "cp >= 1"
@@ -710,6 +722,7 @@ effects = [
 
 [spells.slice_and_dice]
 name = "Slice and Dice"
+icon = "ability_rogue_slicedice"
 finisher = true
 cost = { energy = 25 }
 target = "self"
@@ -722,6 +735,7 @@ effects = [
 
 [spells.rupture]
 name = "Rupture"
+icon = "ability_rogue_rupture"
 finisher = true
 cost = { energy = 25 }
 requires = "cp >= 1"
@@ -741,6 +755,7 @@ effects = [
 
 [spells.kidney_shot]
 name = "Kidney Shot"
+icon = "ability_rogue_kidneyshot"
 finisher = true
 cost = { energy = 25 }
 cooldown = 20
@@ -754,6 +769,7 @@ effects = [
 
 [spells.venom]
 name = "Venom"
+icon = "inv_sword_31"
 talent = "venom"
 finisher = true
 cost = { energy = 25 }
@@ -767,6 +783,7 @@ effects = [
 
 [spells.cheap_shot]
 name = "Cheap Shot"
+icon = "ability_cheapshot"
 cost = { energy = 60 }
 requires = "aura.stealth.up"
 ranks = [{ level = 26, id = 1833 }]
@@ -779,6 +796,7 @@ effects = [
 
 [spells.ambush]
 name = "Ambush"
+icon = "ability_rogue_ambush"
 cost = { energy = 60 }
 requires = "(aura.stealth.up || aura.cutthroat.up) && mh.dagger"
 # bonus = the game's flat bonus; 250% applies to it too (rank 1: +70, as the tooltip says)
@@ -806,6 +824,7 @@ on_hit = [{ type = "combo", amount = 1 }, { type = "chance", p = "interp(t.initi
 
 [spells.garrote]
 name = "Garrote"
+icon = "ability_rogue_garrote"
 cost = { energy = 50 }
 requires = "aura.stealth.up && (behind || t.dirty_deeds > 0)"
 # tick = damage every 3 sec for 18 sec
@@ -826,6 +845,7 @@ effects = [
 
 [spells.premeditation]
 name = "Premeditation"
+icon = "spell_shadow_possession"
 talent = "premeditation"
 off_gcd = true
 cooldown = 120
@@ -836,6 +856,7 @@ effects = [{ type = "combo", amount = 2 }]
 
 [spells.evasion]
 name = "Evasion"
+icon = "spell_shadow_shadowward"
 off_gcd = true
 cooldown = 300
 target = "self"
@@ -844,6 +865,7 @@ effects = [{ type = "aura", aura = "evasion" }]
 
 [spells.blade_flurry]
 name = "Blade Flurry"
+icon = "ability_warrior_punishingblow"
 talent = "blade_flurry"
 cost = { energy = 25 }
 cooldown = 120
@@ -853,6 +875,7 @@ effects = [{ type = "aura", aura = "blade_flurry" }]
 
 [spells.adrenaline_rush]
 name = "Adrenaline Rush"
+icon = "spell_shadow_shadowworddominate"
 talent = "adrenaline_rush"
 cooldown = 300
 target = "self"
@@ -861,6 +884,7 @@ effects = [{ type = "aura", aura = "adrenaline_rush" }]
 
 [spells.cold_blood]
 name = "Cold Blood"
+icon = "spell_ice_lament"
 talent = "cold_blood"
 off_gcd = true
 cooldown = 180
@@ -875,22 +899,26 @@ effects = [{ type = "aura", aura = "cold_blood" }]
 # 3 sec for 12 sec, stacking 5 times, on a 30% chance per hit.
 [spells.instant_poison_mh]
 name = "Instant Poison (main hand)"
+icon = "ability_poisons"
 target = "self"
 ranks = [{ level = 20, lo = 13, hi = 17 }, { level = 28, lo = 20, hi = 26 }, { level = 36, lo = 29, hi = 37 }, { level = 44, lo = 45, hi = 57 }, { level = 52, lo = 62, hi = 80 }, { level = 60, lo = 76, hi = 100 }]
 effects = [{ type = "aura", aura = "instant_poison_mh" }]
 [spells.instant_poison_oh]
 name = "Instant Poison (off hand)"
+icon = "ability_poisons"
 target = "self"
 requires = "dual_wield"
 ranks = [{ level = 20, lo = 13, hi = 17 }, { level = 28, lo = 20, hi = 26 }, { level = 36, lo = 29, hi = 37 }, { level = 44, lo = 45, hi = 57 }, { level = 52, lo = 62, hi = 80 }, { level = 60, lo = 76, hi = 100 }]
 effects = [{ type = "aura", aura = "instant_poison_oh" }]
 [spells.deadly_poison_mh]
 name = "Deadly Poison (main hand)"
+icon = "ability_rogue_dualweild"
 target = "self"
 ranks = [{ level = 30, tick = 6 }, { level = 38, tick = 9 }, { level = 46, tick = 14 }, { level = 54, tick = 18 }, { level = 60, tick = 23 }]
 effects = [{ type = "aura", aura = "deadly_poison_mh" }]
 [spells.deadly_poison_oh]
 name = "Deadly Poison (off hand)"
+icon = "ability_rogue_dualweild"
 target = "self"
 requires = "dual_wield"
 ranks = [{ level = 30, tick = 6 }, { level = 38, tick = 9 }, { level = 46, tick = 14 }, { level = 54, tick = 18 }, { level = 60, tick = 23 }]

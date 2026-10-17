@@ -128,6 +128,7 @@ function setLevel(level) {
 export function renderEditor(root, actions) {
   const b = editingBuild();
   root.hidden = !b;
+  root.classList.add('fr-gold');
   document.body.classList.toggle('editor-open', !!b);
   if (!b) { root.replaceChildren(); return; }
   const c = classOf(b.cls);
@@ -154,13 +155,18 @@ export function renderEditor(root, actions) {
     const [, glyph, wow] = treeStyle[tr.index] || [];
     return h('span.spec-chip', { class: pts ? '' : 'empty' }, ability(glyph || 'rune-stone', null, wow), tr.name, h('b', String(pts)));
   }));
+  // the character as they'd stand in a scene, at twice the scenes' size
+  const sprite = h('img.hero-sprite.px', { src: M.heroArt(b.race, b.cls), alt: '' });
+  sprite.addEventListener('load', () => { sprite.style.width = `calc(${2 * sprite.naturalWidth} * var(--art))`; }, { once: true });
+  sprite.addEventListener('error', () => sprite.remove(), { once: true });
   const head = h('div.hero',
     h('div.portrait', { style: { '--cc': M.CLASS_COLORS[b.cls] } },
       h('span.face', art(M.RACE_ICONS[b.race] || 'rune-stone', race?.icon)),
       h('span.crest', art(M.CLASS_ICONS[b.cls], c.icon))),
     h('div.hero-text', nameInput,
       h('p.hero-sub', `Level ${b.level} ${race?.name || ''} `, h('span.cls', { style: { '--cc': cc } }, c.name)),
-      spec));
+      spec),
+    sprite);
 
   // Class: icons, with the chosen one named beside them
   const classRow = h('div.field-row', h('div.label', 'Class'),
@@ -257,12 +263,11 @@ export function renderEditor(root, actions) {
 
   const slot = slotOf(b);
   const top = h('header.editor-head',
-    h('h2.editor-title', { id: 'editor-title', tabindex: '-1' }, 'Editing ', h('span.slot', { style: { '--slot': slot.color }, 'aria-hidden': 'true' }, slot.letter), ' ', nameOf(b)),
-    h('button.btn.btn-small.editor-done', { type: 'button', onclick: actions.done }, 'Done'));
+    h('h2.editor-title', { id: 'editor-title', tabindex: '-1' }, 'Editing ', h('span.slot', { style: { '--slot': slot.color }, 'aria-hidden': 'true' }, slot.letter), ' ', h('b', nameOf(b))),
+    h('button.btn.editor-done', { type: 'button', onclick: actions.done }, 'Done'));
   const foot = h('footer.editor-foot', pendingChanges(b, sheet),
     h('div.editor-foot-actions',
-      h('button.btn', { type: 'button', onclick: actions.done }, 'Done'),
-      h('button.primary.small', { type: 'button', onclick: actions.simulate }, 'Simulate')));
+      h('button.primary.small', { type: 'button', onclick: actions.simulate }, S.builds.length > 1 ? `Simulate ${S.builds.length} builds` : 'Simulate')));
 
   const focusedId = document.activeElement?.closest?.('.talent')?.dataset.id;
   const hadNameFocus = document.activeElement === root.querySelector('.name-input');

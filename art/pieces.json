@@ -1,0 +1,524 @@
+{
+ "about": "Pieces of art for the website. styles hold the words every piece of a kind shares; fix holds pixfix settings per style (a piece's own fix overrides). heroes expands into one sprite per race and class the game allows. Scenes and panoramas use one fixed pixel size each (the drawings' own pixels drift too much to detect); heroes are scaled so that hero_height art pixels is a race at 100% height, making every race the right size next to the others and in the scenes.",
+ "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no named characters, no signature.",
+ "aspects": {
+  "square": "square",
+  "wide": "wide 3:1 landscape",
+  "two": "wide 2:1 landscape",
+  "tall": "tall 2:3 portrait"
+ },
+ "styles": {
+  "frame": {
+   "asset": "website UI panel frame (9-slice border source), source art for pixel-art cleanup",
+   "medium": "authentic pixel art drawn on a 64x64 logical pixel grid and upscaled with nearest-neighbor, so every logical pixel is a crisp, equal-sized square block on one uniform grid; hard pixel edges, no anti-aliasing, no blur, no gradients; limited palette of about 16 colors; light from the top left; 1-pixel dark outline.",
+   "framing": "one complete square frame seen straight on, perfectly symmetric left-right and top-bottom, the four corners identical (rotated); ornaments only in the corners; the four straight edges plain and uniform between the corners so the middle of each edge can be repeated to any length; the border is about 12% of the width; the empty inside of the frame is one flat solid near-black color #120e0a with nothing in it.",
+   "backdrop": "outside the frame, perfectly flat solid #FF00FF magenta background, one uniform color right up to the outline, no shadow, no texture, no lighting variation. Do not use magenta or pink anywhere in the subject.",
+   "aspect": "square"
+  },
+  "plate": {
+   "asset": "website UI element (9-slice source), source art for pixel-art cleanup",
+   "medium": "authentic pixel art drawn on a 64x64 logical pixel grid and upscaled with nearest-neighbor, so every logical pixel is a crisp, equal-sized square block on one uniform grid; hard pixel edges, no anti-aliasing, no blur, no gradients; limited palette of about 16 colors; light from the top left; 1-pixel dark outline.",
+   "framing": "one element centered and filling about 90% of the width, perfectly symmetric left-right; its long top and bottom edges plain and uniform so the middle can be stretched; the face is empty (no text, no icon).",
+   "backdrop": "perfectly flat solid #FF00FF magenta background, one uniform color right up to the outline, no shadow, no texture, no lighting variation. Do not use magenta or pink anywhere in the subject.",
+   "aspect": "wide"
+  },
+  "badge": {
+   "asset": "small square game UI icon for a website, source art for pixel-art cleanup",
+   "medium": "authentic pixel art drawn on a 32x32 logical pixel grid and upscaled with nearest-neighbor, so every logical pixel is a crisp, equal-sized square block on one uniform grid; hard pixel edges, no anti-aliasing, no blur, no gradients; limited palette of about 16 colors; light from the top left; 1-pixel dark outline.",
+   "framing": "one centered object, front-on, filling about 80% of the canvas with even padding; bold readable silhouette that reads at 32x32.",
+   "backdrop": "perfectly flat solid #FF00FF magenta background, one uniform color right up to the outline, no shadow, no texture, no lighting variation. Do not use magenta or pink anywhere in the subject.",
+   "aspect": "square"
+  },
+  "scene": {
+   "asset": "wide illustration for a website list row (a combat test), source art for pixel-art cleanup",
+   "medium": "detailed modern hi-bit pixel art (in the spirit of Octopath Traveler or Sea of Stars) drawn on a fine logical pixel grid and upscaled with nearest-neighbor, every logical pixel a crisp equal-sized square block; hard pixel edges, no anti-aliasing, no blur; rich but limited palette of about 32 colors; atmospheric lighting; faithful to the look of classic World of Warcraft (2004 to 2006): its painterly colors, chunky stylized proportions and recognizable places.",
+   "framing": "a wide side-view scene like a 2D game screen, ground line in the lower third; the enemies stand in the right half facing left; the left third of the ground is open and calm with no characters, because the player's hero will be placed there later.",
+   "backdrop": "the full scene edge to edge, no border.",
+   "aspect": "wide",
+   "constraints": "No player character in the scene."
+  },
+  "panorama": {
+   "asset": "wide website header banner (a landscape panorama), source art for pixel-art cleanup",
+   "medium": "detailed modern hi-bit pixel art (in the spirit of Octopath Traveler or Sea of Stars) drawn on a fine logical pixel grid and upscaled with nearest-neighbor, every logical pixel a crisp equal-sized square block; hard pixel edges, no anti-aliasing, no blur; rich but limited palette of about 32 colors; atmospheric lighting; faithful to the look of classic World of Warcraft (2004 to 2006): its painterly colors, chunky stylized proportions and recognizable places.",
+   "framing": "a wide panoramic landscape seen from a hillside; the interesting landmarks sit in the middle band of the image, the top quarter is calm sky and the bottom quarter calm foreground, so the banner can be cropped to a thin strip; no characters in the foreground.",
+   "backdrop": "the full scene edge to edge, no border.",
+   "aspect": "wide"
+  },
+  "sprite": {
+   "asset": "full-body character sprite for a website (one game character), source art for pixel-art cleanup",
+   "medium": "detailed modern hi-bit pixel art (in the spirit of Octopath Traveler or Sea of Stars) drawn on a fine logical pixel grid and upscaled with nearest-neighbor, every logical pixel a crisp equal-sized square block; hard pixel edges, no anti-aliasing, no blur; rich but limited palette of about 32 colors; light from the top left; 1-pixel dark outline; faithful to the look of classic World of Warcraft (2004 to 2006): its painterly colors, chunky stylized proportions and recognizable places.",
+   "framing": "exactly one character, full body head to feet, seen from the side in a three-quarter view facing right, standing in a ready combat stance; the feet rest on the bottom edge area (about 4% padding below the feet) and the character is horizontally centered; nothing else in the picture except what the character holds (and a hunter's or warlock's pet where asked).",
+   "backdrop": "perfectly flat solid #FF00FF magenta background, one uniform color right up to the outline, no shadow, no texture, no lighting variation. Do not use magenta or pink anywhere in the subject.",
+   "aspect": "square"
+  },
+  "portrait": {
+   "asset": "small round portrait icon for a website, source art for pixel-art cleanup",
+   "medium": "authentic pixel art drawn on a 48x48 logical pixel grid and upscaled with nearest-neighbor, so every logical pixel is a crisp, equal-sized square block on one uniform grid; hard pixel edges, no anti-aliasing, no blur, no gradients; limited palette of about 16 colors; light from the top left; 1-pixel dark outline.",
+   "framing": "a head-and-shoulders bust in a simple round dark iron ring, front three-quarter view, centered, filling about 85% of the canvas.",
+   "backdrop": "perfectly flat solid #FF00FF magenta background, one uniform color right up to the outline, no shadow, no texture, no lighting variation. Do not use magenta or pink anywhere in the subject.",
+   "aspect": "square"
+  }
+ },
+ "fix": {
+  "frame": {
+   "grid": 7.84,
+   "colors": 24,
+   "bg": true
+  },
+  "plate": {
+   "grid": 14,
+   "colors": 20,
+   "bg": true
+  },
+  "badge": {
+   "min_confidence": 0.3,
+   "colors": 16,
+   "bg": true,
+   "chroma": "FF00FF",
+   "tolerance": 0.12
+  },
+  "scene": {
+   "grid": 4.5,
+   "colors": 40
+  },
+  "panorama": {
+   "grid": 3,
+   "colors": 40
+  },
+  "sprite": {
+   "hero_height": 80,
+   "colors": 32,
+   "bg": true,
+   "chroma": "FF00FF",
+   "tolerance": 0.12
+  },
+  "portrait": {
+   "min_confidence": 0.3,
+   "colors": 20,
+   "bg": true,
+   "chroma": "FF00FF",
+   "tolerance": 0.12
+  }
+ },
+ "pieces": [
+  {
+   "id": "frame-gold",
+   "group": "kit",
+   "style": "frame",
+   "prompt": "an ornate fantasy UI panel border in the style of classic World of Warcraft interface frames: polished gold trim around grey carved stone, a small round ruby set in each corner, subtle engraved knotwork in the corners only."
+  },
+  {
+   "id": "frame-gold-small",
+   "group": "kit",
+   "style": "frame",
+   "prompt": "a slim fantasy UI panel border in the style of classic World of Warcraft interface frames: a thin band of polished gold trim with a narrow dark stone inlay, tiny gold studs in the corners; the border is only about 6% of the width.",
+   "framing": "one complete square frame seen straight on, perfectly symmetric left-right and top-bottom, the four corners identical (rotated); ornaments only in the corners; the four straight edges plain and uniform between the corners so the middle of each edge can be repeated to any length; the border is about 6% of the width; the empty inside of the frame is one flat solid near-black color #120e0a with nothing in it."
+  },
+  {
+   "id": "plate-gold",
+   "group": "kit",
+   "style": "plate",
+   "prompt": "a wide ornate header name plate for a fantasy game window title, polished gold with carved grey stone center band and small ruby studs at both ends, in the style of classic World of Warcraft dialog headers."
+  },
+  {
+   "id": "tab-stone",
+   "group": "kit",
+   "style": "plate",
+   "prompt": "a single fantasy game window tab seen straight on, grey carved stone with a thin dull gold edge, slightly rounded top corners, flat bottom edge, in the style of classic World of Warcraft frame tabs (the unselected state).",
+   "aspect": "two"
+  },
+  {
+   "id": "tab-stone-on",
+   "group": "kit",
+   "style": "plate",
+   "prompt": "a single fantasy game window tab seen straight on, warm dark stone face with a bright polished gold edge and a faint warm glow along the top, slightly rounded top corners, flat bottom edge, in the style of classic World of Warcraft frame tabs (the selected state).",
+   "aspect": "two"
+  },
+  {
+   "id": "btn-crimson",
+   "group": "kit",
+   "style": "plate",
+   "prompt": "one wide rectangular fantasy game UI button, deep crimson red lacquer face with a soft top highlight band, framed by a beveled polished gold border with small gold corner studs, classic World of Warcraft interface style."
+  },
+  {
+   "id": "btn-stone",
+   "group": "kit",
+   "style": "plate",
+   "prompt": "one wide rectangular fantasy game UI button, dark grey carved stone face with a soft top highlight band, framed by a thin beveled dull bronze border with tiny corner studs, classic World of Warcraft interface style."
+  },
+  {
+   "id": "divider-gold",
+   "group": "kit",
+   "style": "plate",
+   "prompt": "a thin horizontal ornamental divider line for a fantasy game window: a slim gold rule with a small diamond-shaped ruby ornament in the exact center and short curled flourishes beside it, tapering to points at both ends."
+  },
+  {
+   "id": "crown",
+   "group": "kit",
+   "style": "badge",
+   "prompt": "a small golden crown with three points and tiny rubies, a classic fantasy MMORPG reward icon.",
+   "fix": {
+    "grid": 62.7
+   }
+  },
+  {
+   "id": "elite-ring",
+   "group": "kit",
+   "style": "badge",
+   "prompt": "a round gold portrait ring with a golden winged dragon wrapped around its top and left side, like the elite monster portrait frame of classic World of Warcraft; the inside of the ring is empty and filled with the same flat #FF00FF magenta as the background.",
+   "fix": {
+    "chroma": "FF00FF",
+    "grid": 18.7
+   }
+  },
+  {
+   "id": "hourglass-quick",
+   "group": "kit",
+   "style": "badge",
+   "prompt": "a small brass hourglass with only a little sand left, most of it run through, simple and readable.",
+   "fix": {
+    "grid": 29.4
+   }
+  },
+  {
+   "id": "hourglass-standard",
+   "group": "kit",
+   "style": "badge",
+   "prompt": "a brass hourglass with the sand half run through, a little more ornate than a plain one.",
+   "fix": {
+    "grid": 29.4
+   }
+  },
+  {
+   "id": "hourglass-precise",
+   "group": "kit",
+   "style": "badge",
+   "prompt": "a large ornate gold hourglass full of glittering sand, with a small ruby on top.",
+   "fix": {
+    "grid": 28
+   }
+  },
+  {
+   "id": "gryphon",
+   "group": "kit",
+   "style": "badge",
+   "prompt": "a heraldic golden gryphon sitting upright in profile facing right, wings half raised, like the gold gryphon end caps of the classic World of Warcraft action bar, carved gold with dark shading.",
+   "aspect": "square"
+  },
+  {
+   "id": "seal-game",
+   "group": "kit",
+   "style": "badge",
+   "prompt": "a round red wax seal pressed with a gold-filled gryphon emblem, slightly irregular wax edge.",
+   "fix": {
+    "grid": 39.2
+   }
+  },
+  {
+   "id": "seal-community",
+   "group": "kit",
+   "style": "badge",
+   "prompt": "a round blue wax seal pressed with an emblem of three linked hands.",
+   "fix": {
+    "grid": 36.8
+   }
+  },
+  {
+   "id": "seal-estimate",
+   "group": "kit",
+   "style": "badge",
+   "prompt": "a round amber wax seal pressed with a question mark shaped quill feather emblem.",
+   "fix": {
+    "grid": 38
+   }
+  },
+  {
+   "id": "parchment",
+   "group": "kit",
+   "style": "frame",
+   "prompt": "an aged parchment page panel for a fantasy game quest log: warm cream parchment with darker burnt brown edges and slightly curled corners.",
+   "framing": "one complete square frame seen straight on, perfectly symmetric left-right and top-bottom, the four corners identical (rotated); ornaments only in the corners; the four straight edges plain and uniform between the corners so the middle of each edge can be repeated to any length; the border is about 12% of the width; the inside is plain smooth light parchment color #e8d9b0 with very subtle even texture and nothing written on it."
+  },
+  {
+   "id": "frame-oak",
+   "group": "oak",
+   "style": "frame",
+   "prompt": "a cozy fantasy UI panel border of carved dark oak wood planks with brass corner brackets and small brass nail heads, like a tavern quest notice board in classic World of Warcraft."
+  },
+  {
+   "id": "plate-oak",
+   "group": "oak",
+   "style": "plate",
+   "prompt": "a wide carved oak wood sign board with brass corner brackets, like the sign hanging over a classic World of Warcraft inn."
+  },
+  {
+   "id": "frame-iron",
+   "group": "iron",
+   "style": "frame",
+   "prompt": "a sturdy fantasy UI panel border of dark forged iron bands with warm bronze rivets and bronze corner caps, slightly worn, like an arena gate in classic World of Warcraft."
+  },
+  {
+   "id": "plate-iron",
+   "group": "iron",
+   "style": "plate",
+   "prompt": "a wide dark forged iron plaque with bronze rivets and bronze end caps, like the plaque over an arena gate."
+  },
+  {
+   "id": "pano-alliance",
+   "group": "pano",
+   "style": "panorama",
+   "prompt": "Elwynn Forest in classic World of Warcraft at golden late afternoon: the white stone walls, blue-roofed towers and great gate of Stormwind City in the distance beyond rolling green hills and tall pines, the cobbled road winding past Goldshire's half-timbered inn, a gryphon flying high in the sky."
+  },
+  {
+   "id": "pano-horde",
+   "group": "pano",
+   "style": "panorama",
+   "prompt": "Durotar in classic World of Warcraft at a red-orange sunset: the spiked brown wooden walls and great gate of Orgrimmar set into red rock canyon cliffs, dusty red earth, thorny scrub and spiked orcish huts with red banners along a dirt road, a wyvern flying in the sky."
+  },
+  {
+   "id": "scene-solo_2",
+   "group": "scenes",
+   "style": "scene",
+   "prompt": "the entrance of Fargodeep Mine in Elwynn Forest, classic World of Warcraft: a timber-framed mine mouth in a rocky hillside among tall green pines, a mine cart on rails, and two snarling kobold miners with lit candles on their heads and pickaxes, at dusk."
+  },
+  {
+   "id": "scene-boss",
+   "group": "scenes",
+   "style": "scene",
+   "prompt": "inside the Deadmines dungeon of classic World of Warcraft: a huge dark cavern with a great wooden pirate ship in a lagoon, lanterns and rigging, and on its deck an enormous hulking Defias brute boss in a red bandana with a giant cutlass, towering over everything."
+  },
+  {
+   "id": "scene-pressure",
+   "group": "scenes",
+   "style": "scene",
+   "prompt": "a jungle path in Stranglethorn Vale, classic World of Warcraft: dense green jungle, vines, giant ferns and crumbling troll ruins, and a stealthy enemy rogue in dark leather with twin daggers lunging out of the bushes, half hidden in a shimmer of stealth."
+  },
+  {
+   "id": "face-mob",
+   "group": "faces",
+   "style": "portrait",
+   "prompt": "a generic hostile humanoid bandit with a dark hood and a red cloth mask over the lower face, glaring.",
+   "fix": {
+    "grid": 43.2
+   }
+  },
+  {
+   "id": "face-boss",
+   "group": "faces",
+   "style": "portrait",
+   "prompt": "a massive brutish dungeon boss with a horned iron helmet and a scarred face, glaring.",
+   "fix": {
+    "grid": 42
+   }
+  },
+  {
+   "id": "face-attacker",
+   "group": "faces",
+   "style": "portrait",
+   "prompt": "a hostile enemy player rogue in a dark leather hood, face shadowed except for the eyes.",
+   "fix": {
+    "grid": 44
+   }
+  },
+  {
+   "id": "scene-solo_1",
+   "group": "scenes",
+   "style": "scene",
+   "prompt": "the golden wheat fields of Westfall in classic World of Warcraft at a warm late afternoon: a tall wooden windmill with turning sails, a crooked scarecrow, a dirt road and a broken fence, and one Defias bandit thug in a red bandana mask with a short sword, facing left."
+  },
+  {
+   "id": "scene-solo_2_hard",
+   "group": "scenes",
+   "style": "scene",
+   "prompt": "Duskwood in classic World of Warcraft at night: gnarled black dead trees, creeping blue mist and a pale full moon over the Vul'Gol ogre mound, and two hulking two-headed ogres with huge clubs, facing left."
+  },
+  {
+   "id": "scene-solo_3",
+   "group": "scenes",
+   "style": "scene",
+   "prompt": "the sandy coast of Westfall in classic World of Warcraft at a bright morning: the red-and-white Westfall lighthouse on the rocks, crashing waves, seaweed and driftwood, and three gurgling green murlocs with fishing spears, facing left."
+  },
+  {
+   "id": "scene-pressure_2v1",
+   "group": "scenes",
+   "style": "scene",
+   "prompt": "the dirt road through Hillsbrad Foothills in classic World of Warcraft between Tarren Mill and Southshore: green rolling hills, a wooden signpost and a farm, and two enemy players charging in from the right, a plate-armored warrior with a raised axe and a hooded rogue with daggers."
+  },
+  {
+   "id": "scene-duel",
+   "group": "scenes",
+   "style": "scene",
+   "prompt": "inside the Gurubashi Arena in Stranglethorn Vale, classic World of Warcraft: the round stone arena with carved troll statues, torches and a sandy floor, a dueling flag planted in the sand in the middle, and one opposing duelist in armor waiting on the right side, facing left."
+  },
+  {
+   "id": "banner-inn",
+   "group": "oak",
+   "style": "panorama",
+   "prompt": "the warm interior of the Lion's Pride Inn in Goldshire, classic World of Warcraft: a big wooden notice board on the wall covered in pinned parchment notices and wanted posters, candles, a stone hearth with a fire, wooden beams and tankards on a table."
+  },
+  {
+   "id": "banner-arena",
+   "group": "iron",
+   "style": "panorama",
+   "prompt": "the great gate of the Gurubashi Arena in Stranglethorn Vale, classic World of Warcraft: a heavy iron portcullis in a carved stone archway flanked by troll statues and burning torches, jungle around it, a dueling flag in front."
+  },
+  {
+   "id": "medal-gold",
+   "group": "kit",
+   "style": "badge",
+   "prompt": "a round gold medal with a small gold laurel wreath and a red ribbon above it.",
+   "fix": {
+    "grid": 36
+   }
+  },
+  {
+   "id": "medal-silver",
+   "group": "kit",
+   "style": "badge",
+   "prompt": "a round silver medal with a small silver laurel wreath and a blue ribbon above it.",
+   "fix": {
+    "grid": 35
+   }
+  },
+  {
+   "id": "medal-bronze",
+   "group": "kit",
+   "style": "badge",
+   "prompt": "a round bronze medal with a small bronze laurel wreath and a green ribbon above it.",
+   "fix": {
+    "grid": 37
+   }
+  },
+  {
+   "id": "dummies",
+   "group": "iron",
+   "style": "badge",
+   "prompt": "two straw training dummies on wooden posts standing side by side, with burlap sacks, rope and a painted target on their chests, like the training dummies of classic World of Warcraft.",
+   "fix": {
+    "grid": 10.1
+   }
+  },
+  {
+   "id": "board-empty",
+   "group": "oak",
+   "style": "badge",
+   "prompt": "an empty wooden notice board with brass pins and a single torn corner of parchment left behind.",
+   "fix": {
+    "grid": 12
+   }
+  }
+ ],
+ "heroes": {
+  "pairs": [
+   "human/warrior",
+   "human/paladin",
+   "human/hunter",
+   "human/rogue",
+   "human/priest",
+   "human/mage",
+   "human/warlock",
+   "dwarf/warrior",
+   "dwarf/paladin",
+   "dwarf/hunter",
+   "dwarf/rogue",
+   "dwarf/priest",
+   "dwarf/shaman",
+   "night_elf/warrior",
+   "night_elf/hunter",
+   "night_elf/rogue",
+   "night_elf/priest",
+   "night_elf/druid",
+   "gnome/warrior",
+   "gnome/rogue",
+   "gnome/priest",
+   "gnome/mage",
+   "gnome/warlock",
+   "high_order/warrior",
+   "high_order/hunter",
+   "high_order/rogue",
+   "high_order/mage",
+   "high_order/druid",
+   "orc/warrior",
+   "orc/hunter",
+   "orc/rogue",
+   "orc/shaman",
+   "orc/mage",
+   "orc/warlock",
+   "undead/warrior",
+   "undead/paladin",
+   "undead/rogue",
+   "undead/priest",
+   "undead/mage",
+   "undead/warlock",
+   "tauren/warrior",
+   "tauren/hunter",
+   "tauren/shaman",
+   "tauren/druid",
+   "troll/warrior",
+   "troll/hunter",
+   "troll/rogue",
+   "troll/priest",
+   "troll/shaman",
+   "troll/mage",
+   "troll/warlock",
+   "windshaper/warrior",
+   "windshaper/hunter",
+   "windshaper/rogue",
+   "windshaper/shaman",
+   "windshaper/druid"
+  ],
+  "races": {
+   "human": {
+    "desc": "a Human of Stormwind: tall and broad-shouldered, fair skin, short brown hair and a trimmed beard or neat hair",
+    "height": 76
+   },
+   "dwarf": {
+    "desc": "a Dwarf of Ironforge: short and very stocky with thick arms, ruddy skin, a huge braided red or brown beard",
+    "height": 56
+   },
+   "night_elf": {
+    "desc": "a Night Elf of Darnassus: very tall and lean, lavender-purple skin, very long swept-back ears, glowing silver eyes, long teal hair",
+    "height": 84
+   },
+   "gnome": {
+    "desc": "a Gnome of Gnomeregan: tiny with an oversized head, big ears and nose, large round eyes, wild bright teal hair in a tall tuft",
+    "height": 42
+   },
+   "high_order": {
+    "desc": "a Skyborne elf of the High Order (the new elven race of World of Warcraft: Forever, descended from the Highborne): tall and slender like a high elf, fair skin, long pointed ears, white and pale-gold feathers braided into long silver hair, faint sky-blue tattoos on the face, colors of white, gold and sky blue",
+    "height": 80
+   },
+   "orc": {
+    "desc": "an Orc of Orgrimmar: huge muscular green-skinned brute with jutting lower tusks, a black topknot, hunched powerful shoulders",
+    "height": 80
+   },
+   "undead": {
+    "desc": "a Forsaken undead: gaunt decayed body with grey-green rotting skin, bare bone showing at the jaw and forearms, glowing yellow eyes, lank black hair",
+    "height": 74
+   },
+   "tauren": {
+    "desc": "a Tauren of Thunder Bluff: an enormous bull-like humanoid with brown fur, large curved horns, a broad muzzle with a nose ring, hooves and a braided mane",
+    "height": 94
+   },
+   "troll": {
+    "desc": "a Darkspear Troll: tall and lanky with blue skin, huge upward-curving tusks, a tall red mohawk, long pointed ears, a slouched stance and two-toed feet",
+    "height": 84
+   },
+   "windshaper": {
+    "desc": "a Skyborne elf of the Windshapers (the new elven race of World of Warcraft: Forever, descended from the Highborne): tall and slender like a high elf, sun-tanned skin, long pointed ears, teal and bronze feathers braided into long dark hair, swirling wind tattoos, colors of teal, bronze and deep blue",
+    "height": 80
+   }
+  },
+  "classes": {
+   "warrior": "a Warrior in heavy plate armor with oversized spiked pauldrons and a tabard, holding a huge two-handed sword ready",
+   "paladin": "a Paladin in shining silver plate armor with gold trim and big rounded pauldrons, holding a two-handed warhammer, a faint golden holy glow",
+   "hunter": "a Hunter in mail and leather armor with a quiver on the back, holding a longbow drawn (a rifle for a dwarf), with a loyal wolf pet at their side",
+   "rogue": "a Rogue in dark fitted leather armor with a hood and a cloth face mask, crouched low, holding two daggers",
+   "priest": "a Priest in long flowing white and gold cloth robes with a high collar, holding a staff, a soft holy light glowing in one hand",
+   "shaman": "a Shaman in mail armor with tribal totem motifs and spiked shoulder guards, holding a mace and a round wooden shield, crackling blue lightning around one hand",
+   "mage": "a Mage in long blue and silver cloth robes with a tall collar, holding a crystal-topped staff, a swirl of frost magic in the other hand",
+   "warlock": "a Warlock in dark purple and black cloth robes with horned skull shoulder pads, holding a staff, green fel fire in one hand, with a small red imp companion at their feet",
+   "druid": "a Druid in leather armor with leaf, antler and feather details, holding a gnarled wooden staff topped with leaves, a faint green nature glow"
+  }
+ }
+}

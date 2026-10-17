@@ -27,6 +27,8 @@ const TABLES = [
   'SpellTargetRestrictions', 'SpellClassOptions', 'SkillLineAbility', 'SummonProperties', 'SpellShapeshift',
   // tooltip text: cached for `tools/spell.py --text`, never written to the spellbook
   'Spell',
+  // interface file names, for each spell's icon (SpellMisc.SpellIconFileDataID)
+  'ManifestInterfaceData',
   // Forever's talent trees live in the trait tables (the old Talent table is
   // still Classic's): nodes, ranks, tiers, prerequisites, per-rank values.
   'TraitTree', 'TraitNode', 'TraitNodeEntry', 'TraitNodeXTraitNodeEntry', 'TraitDefinition',
@@ -114,6 +116,10 @@ const bySpell = (rows) => {
 for (const t of TABLES) await fetchTable(t);
 
 const names = new Map(load('SpellName').map((r) => [r.ID, r.Name_lang]));
+// icon file ids to icon names, as the game and wow-ui-textures name them
+const iconNames = new Map(load('ManifestInterfaceData')
+  .filter((r) => /^interface[\\/]icons[\\/]?$/i.test(r.FilePath))
+  .map((r) => [r.ID, r.FileName.replace(/\.[a-z0-9]+$/i, '').toLowerCase()]));
 const misc = bySpell(load('SpellMisc'));
 const levels = bySpell(load('SpellLevels'));
 const cooldowns = bySpell(load('SpellCooldowns'));
@@ -195,6 +201,8 @@ function record(id) {
     if (num(lv.SpellLevel)) out.spellLevel = num(lv.SpellLevel);
   }
   if (num(m.SchoolMask)) out.school = num(m.SchoolMask);
+  const icon = iconNames.get(m.SpellIconFileDataID);
+  if (icon) out.icon = icon;
   const ct = castTimes.get(m.CastingTimeIndex);
   if (ct && num(ct.Base)) out.cast = seconds(ct.Base);
   const du = durations.get(m.DurationIndex);

@@ -452,7 +452,7 @@ impl<'w> Sim<'w> {
         let owner = self.actors[a].owner.unwrap_or(a);
         *self.metrics[owner].casts.entry(sp.name.as_str()).or_insert(0.0) += 1.0;
         self.logf(|s| format!("{} casts {}", s.actors[a].name, sp.name));
-        self.tracef(|s| s.tev("cast", a, Some(plan.target).filter(|&t| t != a), sp.name.as_str()));
+        self.tracef(|s| TraceEv { key: sp.qid.clone(), school: sp.school.name(), ..s.tev("cast", a, Some(plan.target).filter(|&t| t != a), sp.name.as_str()) });
         if let Some(ch) = &sp.channel {
             let dur = self.ev(&ch.duration, &cx);
             let iv = self.ev(&ch.interval, &cx).max(0.1);
@@ -568,7 +568,7 @@ impl<'w> Sim<'w> {
                         if *set {
                             self.actors[h].hp = v.min(self.actors[h].max_hp);
                         } else if v >= 0.0 {
-                            self.heal_raw(cx.me, h, v, cx.tag, false);
+                            self.heal_raw(cx.me, h, v, cx.tag, false, cx.spell);
                         } else {
                             let x = &mut self.actors[h];
                             x.hp = (x.hp + v).max(1.0);
@@ -896,7 +896,7 @@ impl<'w> Sim<'w> {
         }
         if self.log.is_some() {
             self.logf(|s| format!("{} gains {}{}", s.actors[holder].name, def.name, if st > 1.0 { format!(" ({st})") } else { String::new() }));
-            self.tracef(|s| TraceEv { stacks: st, ..s.tev("gain", holder, Some(src).filter(|&x| x != holder), def.name.as_str()) });
+            self.tracef(|s| TraceEv { stacks: st, key: def.qid.clone(), ..s.tev("gain", holder, Some(src).filter(|&x| x != holder), def.name.as_str()) });
         }
         let mut c3 = c2;
         c3.aura = Some((holder, uid));
@@ -914,7 +914,7 @@ impl<'w> Sim<'w> {
         let def = &w.auras[inst.def as usize];
         if self.log.is_some() {
             self.logf(|s| format!("{} loses {}", s.actors[holder].name, def.name));
-            self.tracef(|s| s.tev("lose", holder, None, def.name.as_str()));
+            self.tracef(|s| TraceEv { key: def.qid.clone(), ..s.tev("lose", holder, None, def.name.as_str()) });
         }
         if def.form.is_some() && self.actors[holder].form == def.form {
             self.actors[holder].form = None;

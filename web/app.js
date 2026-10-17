@@ -3,9 +3,9 @@
 // folds away and opens from a build card.
 import { startEngine } from './engine.js';
 import * as M from './meta.js';
-import { h, svgIcon, loadIconManifest, retargetTip, hideTip, flash, fmtSec, debounce, tipIsPinned, repositionTip } from './ui.js';
+import { h, loadIconManifest, loadGlyphs, setArtScale, retargetTip, hideTip, flash, fmtSec, debounce, tipIsPinned, repositionTip } from './ui.js';
 import {
-  S, env, bus, MAX_BUILDS, DEFAULT_PRESET, DEFAULT_LEVEL, presetOf, baseName, buildOf, nameOf, baselineBuild, copyBuild, buildFromPreset,
+  S, env, bus, MAX_BUILDS, DEFAULT_PRESET, DEFAULT_LEVEL, presetOf, raceOf, baseName, buildOf, nameOf, baselineBuild, copyBuild, buildFromPreset,
   scenarioMeta, accuracyOf, sig, serial, restore, loadLocal, saveLocal, loadRows, encode, decode,
 } from './state.js';
 import { renderCards } from './cards.js';
@@ -35,13 +35,17 @@ function setView(v) {
 }
 
 function renderViews() {
-  $('views').replaceChildren(h('div.view-tabs-inner', { role: 'tablist' }, VIEWS.map(([v, label]) => h('button.tab', {
+  $('views').replaceChildren(h('div.view-tabs-inner', { role: 'tablist' }, VIEWS.map(([v, label]) => h('button.view-tab', {
     type: 'button', role: 'tab', 'aria-selected': String(view === v), onclick: () => setView(v),
   }, label))));
   const compare = view === 'compare';
   for (const id of ['builds', 'run-options', 'runbar', 'results']) $(id).hidden = !compare;
   $('rankings').hidden = view !== 'rankings';
   $('duels').hidden = view !== 'duels';
+  // the header shows the main build's side of the world
+  const main = baselineBuild();
+  $('mast').classList.toggle('horde', raceOf(main?.race)?.faction === 'horde');
+  document.body.dataset.view = view;
 }
 
 function render() {
@@ -65,7 +69,7 @@ function render() {
 bus.render = render;
 bus.cards = () => renderCards($('builds'), cardActions);
 // From the rankings and duels lists: put that build in the Compare tab. It
-// takes a free slot, or the last slot that isn't the baseline.
+// takes a free slot, or the last slot that isn't the main build.
 bus.comparePreset = (file, level) => {
   const p = presetOf(file);
   if (!p) return;
@@ -74,7 +78,7 @@ bus.comparePreset = (file, level) => {
     S.builds.push(nb);
     flash(`Added ${baseName(p.name)} to Compare your builds.`, 'info');
   } else {
-    const k = [...S.builds.keys()].reverse().find((i) => S.builds[i].uid !== S.baseline) ?? S.builds.length - 1;
+    const k = [...S.builds.keys()].reverse().find((i) => S.builds[i].uid !== S.baseline) ?? S.builds.length - 1; // never the main build
     S.builds[k] = nb;
     flash(`Compare holds ${MAX_BUILDS} builds, so this one took the place of the last.`, 'info');
   }
@@ -127,7 +131,7 @@ const cardActions = {
     flash(`Removed ${name}.`, 'info');
     render();
   },
-  makeBaseline: (b) => { S.baseline = b.uid; render(); },
+  makeMain: (b) => { S.baseline = b.uid; S.played = null; render(); },
 };
 
 const editorActions = {
@@ -156,47 +160,59 @@ async function simulate() {
 function statusText() {
   const run = S.run;
   if (!run) return '';
-  if (!run.finished) return [h('b', scenarioMeta(run.test).title), ` · ${Math.min(run.i + 1, run.jobs.length)} of ${run.jobs.length}`];
+  if (!run.finished) return `${scenarioMeta(run.test).title}, ${Math.min(run.i + 1, run.jobs.length)} of ${run.jobs.length} tests`;
   if (run.nothing) return 'Up to date';
-  if (run.stopped) return `Stopped after ${run.i} of ${run.jobs.length}`;
+  if (run.stopped) return `Stopped after ${run.i} of ${run.jobs.length} tests`;
   return `Done in ${fmtSec(run.ms / 1000)}`;
 }
 
 function updateProgress() {
   const run = S.run;
-  const bar = document.querySelector('.run-progress');
-  const status = document.querySelectorAll('.run-status');
-  if (!run || !bar || !status.length) return;
-  const running = !run.finished;
-  bar.classList.toggle('on', running);
-  bar.firstChild.style.width = `${running ? Math.min(99, Math.round(100 * run.frac)) : 100}%`;
-  for (const el of status) el.replaceChildren(...[statusText()].flat());
+  if (!run) return;
+  const bar = document.querySelector('.runbar .castbar');
+  if (bar && !run.finished) {
+    const pct = Math.min(99, Math.round(100 * run.frac));
+    bar.querySelector('i').style.width = `${pct}%`;
+    bar.querySelector('.castbar-text').textContent = statusText();
+    bar.setAttribute('aria-valuenow', String(pct));
+  }
+  for (const el of document.querySelectorAll('.run-status')) el.textContent = run.finished ? statusText() : '';
 }
 
+// The run bar: assumptions and the last run on the left; accuracy (three
+// hourglasses: more sand, more fights) and Simulate on the right. While a
+// run goes, a cast bar takes the button's place.
+let wasRunning = false;
 function renderRunbar() {
   const run = S.run;
   const running = !!run && !run.finished;
   const n = S.builds.length;
   const tests = scorecardTests().length;
   const changedN = Object.keys(S.opts).length;
+  const justDone = wasRunning && !running && run && !run.stopped;
+  wasRunning = running;
+  const pct = running ? Math.min(99, Math.round(100 * run.frac)) : 0;
   const go = running
-    ? h('button.btn.run-cancel', { type: 'button', onclick: cancelRun }, 'Cancel')
+    ? h('div.cast-wrap',
+      h('div.castbar', { role: 'progressbar', 'aria-label': 'Simulating', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(pct) },
+        h('i', { style: { width: `${pct}%` } }), h('span.castbar-text', statusText())),
+      h('button.btn.btn-small.run-cancel', { type: 'button', onclick: cancelRun }, 'Cancel'))
     : h('button.primary.run-go#simulate', { type: 'button', onclick: simulate },
-      svgIcon('rolling-dices'), h('span', n > 1 ? `Simulate ${n} builds` : 'Simulate'), h('span.go-sub', `in ${tests} tests`));
-  // Accuracy sits right above the Simulate button; assumptions sit to the
-  // left in the run bar on wide screens and above the results on phones.
-  const accuracy = h('div.segmented.acc', { role: 'group', 'aria-label': 'Accuracy' }, M.ACCURACY.map((a) => h('button', {
+      h('span', n > 1 ? `Simulate ${n} builds` : 'Simulate'), h('span.sub', `${tests} tests at ${accuracyOf(S.accuracy).title} accuracy`));
+  const accuracy = h('div.hourglasses', { role: 'group', 'aria-label': 'Accuracy' }, M.ACCURACY.map((a) => h('button', {
     type: 'button', 'aria-pressed': String(a.id === S.accuracy), disabled: running, onclick: () => { S.accuracy = a.id; render(); },
-  }, a.title, h('span', a.short))));
-  const assume = () => (relevantOptions().length ? h('button.quiet.assume-btn', { type: 'button', onclick: openAssumptions },
-    changedN ? `Assumptions (${changedN} changed)` : 'Assumptions') : null);
-  $('run-options').replaceChildren(...[assume()].filter(Boolean));
+    title: `${a.note} of the true answer`,
+  }, h('img.px', { src: `art/hourglass-${a.id}.png`, alt: '' }), h('span', a.title), h('small', a.short))));
+  const assume = relevantOptions().length ? h('button.btn.btn-small.assume-btn', { type: 'button', onclick: openAssumptions },
+    changedN ? `Assumptions (${changedN} changed)` : 'Assumptions') : null;
+  // on phones the run bar is at the bottom, so assumptions sit under the cards
+  const assumePhone = assume ? assume.cloneNode(true) : null;
+  if (assumePhone) assumePhone.addEventListener('click', openAssumptions);
+  $('run-options').replaceChildren(...[assumePhone].filter(Boolean));
   $('runbar').classList.toggle('running', running);
-  $('runbar').replaceChildren(
-    h('div.runbar-inner',
-      h('div.run-left', assume(), h('div.run-status', { role: 'status' }, statusText())),
-      h('div.go-stack', accuracy, h('div.run-status.mini', { 'aria-hidden': 'true' }, statusText()), go)),
-    h('div.run-progress', { class: running ? 'on' : '', 'aria-hidden': 'true' }, h('i', { style: { width: `${running ? Math.round(100 * run.frac) : 0}%` } })));
+  $('runbar').replaceChildren(h('div.runbar-inner',
+    h('div.run-left', assume, h('p.run-status', { role: 'status', class: justDone ? 'flash' : run?.stopped ? 'stopped' : '' }, running ? '' : statusText())),
+    h('div.run-right', accuracy, go)));
 }
 
 // ------------------------------------------------------------------ assumptions
@@ -246,7 +262,10 @@ function renderAssumptions() {
           h('input.numbox.num', { id, type: 'number', step: 'any', min: '0', value: String(shown), onchange: (e) => setOpt(o, Number(e.target.value) / (ui.kind === 'pct' ? 100 : 1)) }),
           ui.kind === 'pct' || ui.unit === '%' ? h('span.unit', '%') : ui.unit ? h('span.unit', ui.unit) : null);
       }
+      // a wax seal for where the number comes from
+      const seal = o.source === 'game' ? 'game' : o.source === 'community' ? 'community' : 'estimate';
       return h('div.opt',
+        h('img.opt-seal.px', { src: `art/seal-${seal}.png`, alt: '', title: SOURCE[o.source] || '' }),
         h('label.desc', { for: id, class: isChanged ? 'changed' : '' }, ui.label, ui.help ? h('span.opt-help', ui.help) : null,
           h('span.opt-source', { class: `src-${o.source}` }, SOURCE[o.source] || '', o.cite ? `: ${o.cite}` : '')),
         input,
@@ -269,6 +288,9 @@ async function share() {
 // ------------------------------------------------------------------ boot
 
 async function boot() {
+  setArtScale();
+  const tips = M.LOADING_TIPS;
+  $('boot-tip').textContent = `Tip: ${tips[Math.floor(Math.random() * tips.length)]}`;
   $('about-btn').addEventListener('click', () => $('about').showModal());
   $('about-link').addEventListener('click', () => $('about').showModal());
   $('share-btn').addEventListener('click', share);
@@ -323,6 +345,8 @@ async function boot() {
   if (!from && !narrow()) S.editing = S.builds[0].uid;
   render();
   for (const b of S.builds) refreshSheet(b);
+  // the drawn stand-ins for missing game icons come last
+  loadGlyphs().then(render);
 }
 
 boot();

@@ -527,6 +527,7 @@ tick = { interval = 3, effects = [{ type = "heal", target = "self", amount = "r.
 # ------------------------------------------------------------------ spells
 [spells.inner_fire]
 name = "Inner Fire"
+icon = "spell_holy_innerfire"
 target = "self"
 requires = "!aura.inner_fire.up"
 ranks = [{ level = 12, id = 588, armor = 315, mana = 30 }, { level = 20, id = 7128, armor = 495, mana = 65 }, { level = 30, id = 602, armor = 720, mana = 105 }, { level = 40, id = 1006, armor = 945, mana = 165 }, { level = 50, id = 10951, armor = 1170, mana = 235 }, { level = 60, id = 10952, armor = 1395, mana = 315 }]
@@ -534,6 +535,7 @@ text = "Lasts 10 min or 20 melee and ranged hits taken."
 effects = [{ type = "aura", aura = "inner_fire" }]
 [spells.fortitude]
 name = "Power Word: Fortitude"
+icon = "spell_holy_wordfortitude"
 target = "self"
 requires = "!aura.fortitude.up"
 ranks = [{ level = 1, id = 1243, sta = 4, mana = 60 }, { level = 12, id = 1244, sta = 10, mana = 155 }, { level = 24, id = 1245, sta = 26, mana = 400 }, { level = 36, id = 2791, sta = 42, mana = 745 }, { level = 48, id = 10937, sta = 56, mana = 1170 }, { level = 60, id = 10938, sta = 70, mana = 1695 }]
@@ -544,6 +546,7 @@ effects = [{ type = "aura", aura = "fortitude" }]
 # so each one checks the caster's race.
 [spells.shadowguard]
 name = "Shadowguard"
+icon = "spell_nature_lightningshield"
 school = "shadow"
 target = "self"
 requires = "race.troll && (!aura.shadowguard.up || aura.shadowguard.charges < 2)"
@@ -553,6 +556,7 @@ effects = [{ type = "aura", aura = "shadowguard" }]
 
 [spells.smite]
 name = "Smite"
+icon = "spell_holy_holysmite"
 school = "holy"
 ranks = [
   { level = 1, id = 585, lo = 13, lo_per_level = 0.087, hi = 17, hi_per_level = 0.113, mana = 20, cast = 1.5, max_level = 6, coef = 0.429 },
@@ -568,6 +572,7 @@ effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef 
 
 [spells.holy_fire]
 name = "Holy Fire"
+icon = "spell_holy_searinglight"
 school = "holy"
 cast_time = 3.5
 ranks = [
@@ -585,6 +590,7 @@ effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef 
 
 [spells.mind_blast]
 name = "Mind Blast"
+icon = "spell_shadow_unholyfrenzy"
 school = "shadow"
 cast_time = 1.5
 cooldown = 8
@@ -603,6 +609,7 @@ effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coe
 
 [spells.shadow_word_pain]
 name = "Shadow Word: Pain"
+icon = "spell_shadow_shadowwordpain"
 school = "shadow"
 requires = "!target.aura.shadow_word_pain.up"
 ranks = [
@@ -620,6 +627,7 @@ effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, o
 
 [spells.devouring_plague]
 name = "Devouring Plague"
+icon = "spell_shadow_devouringplague"
 school = "shadow"
 cooldown = 60
 requires = "!target.aura.devouring_plague.up"
@@ -636,6 +644,7 @@ effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, o
 
 [spells.mind_flay]
 name = "Mind Flay"
+icon = "spell_shadow_siphonmana"
 talent = "mind_flay"
 school = "shadow"
 ranks = [
@@ -652,6 +661,7 @@ channel = { duration = 3, interval = 1, effects = [{ type = "damage", school = "
 
 [spells.shadow_word_death]
 name = "Shadow Word: Death"
+icon = "spell_shadow_demonicfortitude"
 school = "shadow"
 cooldown = 15
 ranks = [
@@ -665,6 +675,7 @@ effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coe
 
 [spells.penance]
 name = "Penance"
+icon = "spell_holy_penance"
 talent = "penance"
 school = "holy"
 cd_group = "penance"
@@ -681,6 +692,7 @@ channel = { duration = 2, interval = 1, effects = [{ type = "damage", school = "
 
 [spells.penance_heal]
 name = "Penance (heal)"
+icon = "spell_holy_penance"
 talent = "penance"
 school = "holy"
 cd_group = "penance"
@@ -698,6 +710,7 @@ channel = { duration = 2, interval = 1, effects = [{ type = "heal", target = "se
 
 [spells.holy_nova]
 name = "Holy Nova"
+icon = "spell_holy_holynova"
 talent = "holy_nova"
 school = "holy"
 ranks = [
@@ -716,6 +729,7 @@ effects = [
 
 [spells.power_word_shield]
 name = "Power Word: Shield"
+icon = "spell_holy_powerwordshield"
 cooldown = 4
 target = "self"
 requires = "!aura.weakened_soul.up"
@@ -736,6 +750,7 @@ effects = [{ type = "aura", aura = "power_word_shield" }, { type = "aura", aura 
 
 [spells.renew]
 name = "Renew"
+icon = "spell_holy_renew"
 school = "holy"
 target = "self"
 requires = "!aura.renew.up"
@@ -757,6 +772,7 @@ effects = [{ type = "aura", aura = "renew" }]
 
 [spells.lesser_heal]
 name = "Lesser Heal"
+icon = "spell_holy_lesserheal"
 school = "holy"
 target = "self"
 forms = ["none"]
@@ -769,6 +785,7 @@ effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 
 
 [spells.heal]
 name = "Heal"
+icon = "spell_holy_heal"
 school = "holy"
 target = "self"
 forms = ["none"]
@@ -782,6 +799,7 @@ effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 
 
 [spells.greater_heal]
 name = "Greater Heal"
+icon = "spell_holy_greaterheal"
 school = "holy"
 target = "self"
 forms = ["none"]
@@ -796,6 +814,7 @@ effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 
 
 [spells.flash_heal]
 name = "Flash Heal"
+icon = "spell_holy_flashheal"
 school = "holy"
 target = "self"
 cast_time = 1.5
@@ -813,6 +832,7 @@ effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 
 
 [spells.binding_heal]
 name = "Binding Heal"
+icon = "spell_holy_blindingheal"
 talent = "binding_heal"
 school = "holy"
 target = "self"
@@ -831,6 +851,7 @@ effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 
 
 [spells.prayer_of_mending]
 name = "Prayer of Mending"
+icon = "spell_holy_prayerofmendingtga"
 talent = "prayer_of_mending"
 school = "holy"
 cooldown = 10
@@ -840,6 +861,7 @@ effects = [{ type = "aura", aura = "prayer_of_mending" }]
 
 [spells.desperate_prayer]
 name = "Desperate Prayer"
+icon = "spell_holy_restoration"
 school = "holy"
 cooldown = 600
 target = "self"
@@ -858,6 +880,7 @@ effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 
 
 [spells.dark_sacrifice]
 name = "Dark Sacrifice"
+icon = "spell_holy_powerinfusion_shadow"
 cooldown = 600
 target = "self"
 requires = "race.undead"
@@ -873,6 +896,7 @@ effects = [{ type = "aura", aura = "dark_sacrifice" }]
 
 [spells.contingency_plan]
 name = "Contingency Plan"
+icon = "ability_priest_soulwarding"
 cooldown = 600
 target = "self"
 requires = "race.gnome"
@@ -888,6 +912,7 @@ effects = [{ type = "aura", aura = "contingency_plan" }]
 
 [spells.inner_focus]
 name = "Inner Focus"
+icon = "spell_frost_windwalkon"
 talent = "inner_focus"
 off_gcd = true
 cooldown = 180
@@ -896,6 +921,7 @@ ranks = [{ level = 1, id = 14751 }]
 effects = [{ type = "aura", aura = "inner_focus" }]
 [spells.power_infusion]
 name = "Power Infusion"
+icon = "spell_holy_powerinfusion"
 talent = "power_infusion"
 level = 40
 off_gcd = true
@@ -905,6 +931,7 @@ target = "self"
 effects = [{ type = "aura", aura = "power_infusion" }]
 [spells.vampiric_embrace]
 name = "Vampiric Embrace"
+icon = "spell_shadow_unsummonbuilding"
 talent = "vampiric_embrace"
 school = "shadow"
 cooldown = 60
@@ -913,6 +940,7 @@ target = "self"
 effects = [{ type = "aura", aura = "vampiric_embrace" }]
 [spells.shadowform]
 name = "Shadowform"
+icon = "spell_shadow_shadowform"
 talent = "shadowform"
 target = "self"
 requires = "!aura.shadowform.up"
@@ -921,6 +949,7 @@ cost = { mana = "0.4 * base_mana" }
 effects = [{ type = "aura", aura = "shadowform" }]
 [spells.psychic_scream]
 name = "Psychic Scream"
+icon = "spell_shadow_psychicscream"
 school = "shadow"
 cooldown = 30
 requires = "target.is_player || enemies >= 2"

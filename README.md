@@ -45,13 +45,18 @@ and every paired difference). Global flags: `--data DIR`, `--patch FILE`
 `web/` is a static site that runs the same engine in the visitor's browser.
 Set up one to three builds (start from one in `builds/` or spend talent
 points in WoW-style talent trees), press Simulate, and every build plays
-through every test. The results come first: a scorecard with one row per
-test and one column per build, a one-line summary of who wins what, and each
-test's detail (verdicts, every measure, where the damage comes from) opening
-under its row. One build is the baseline the others are measured against.
-After you change a build and simulate again, the page says what the change
-did in each test, measured on the same fights as before. "Share these builds"
-copies a link.
+through every test. Each test is a row with a scene from the world (Westfall,
+Fargodeep Mine, Duskwood, the Westfall coast, the Deadmines, Stranglethorn
+Vale, Hillsbrad, Gurubashi Arena) where the main build's hero stands, and
+every build's result beside it. A row opens into four tabs: a summary, how
+each build played (its priority list as a spellbook page), one fight step by
+step (every move with the game's icon, and everyone's health above it), and
+every number. The main build wears a gold dragon ring: the others are
+measured against it, its fights are shown first, and the header shows its
+side of the world. After you change a build and simulate again, the page
+says what the change did in each test, measured on the same fights as
+before. Class rankings (the inn's notice board) and Duels (the arena) run
+every build on the site. "Share these builds" copies a link.
 
 Each run is split between Web Workers, one per spare core: the heaviest
 test (three builds, "Precise", two tough mobs) takes about 6 s on an
@@ -86,15 +91,25 @@ How the pieces fit:
 | `web/app.js` | boot, the run bar, sharing |
 | `web/state.js` | page state, build helpers, saving (builds and the last results are kept in the browser) |
 | `web/runner.js` | runs the scorecard and keeps each test's results; "what your change did" pairs a build's per-fight results with its previous version's |
-| `web/cards.js`, `editor.js`, `scorecard.js`, `results.js` | the build cards, the build editor, the scorecard, one test in detail |
+| `web/cards.js`, `editor.js`, `scorecard.js`, `results.js`, `played.js` | the build cards, the build editor, the tests with their scenes, one test in detail, its priority list and fight log |
+| `web/rankings.js` | Class rankings and Duels |
+| `web/css/` | `base.css` (colours, type, the pixel-art frames and buttons), then one file each for the Compare view, the editor and the two big views |
+| `web/art/` | the pixel art (frames, buttons, scenes, heroes, badges), made with `tools/art.mjs` |
 | `web/talents.js` | talent trees; the rules mirror `build.rs` (the engine re-validates everything) |
 | `web/meta.js` | every label, icon rule and plain-English phrase, in one place |
 | `tools/fetch_icons.mjs` | downloads the game icons the site uses into `web/icons/` |
 | `tools/build_icons.mjs` | draws a stand-in for every icon (used when a game icon is missing) into `web/icons.js` |
 
-**Icons.** Talents, classes and races carry the game's icon name in the data
-(`icon = "ability_ghoulfrenzy"` in a talent's table; a patch file can set it
-for a new talent). `tools/fetch_icons.mjs` copies those icons, as the game's
+**Icons.** Talents, classes, races and spells carry the game's icon name in
+the data (`icon = "ability_ghoulfrenzy"` in a talent's table; a patch file
+can set it for a new talent). Spell icons come from the game's own tables
+(`SpellMisc` and `ManifestInterfaceData`, fetched by `tools/forever_db.mjs`
+into the spellbook): `python3 tools/spell_icons.py` writes them into the
+class files, and `fsim audit` checks each one against the game. Auras use
+their spell's or talent's icon; the trace request gives every event of a
+fight its icon (auto attacks show the weapon), leaves out bookkeeping auras
+marked `hidden = true` (proc windows, internal cooldowns) and numbers the
+enemies. `tools/fetch_icons.mjs` copies those icons, as the game's
 own 64 px textures, from a sparse checkout of
 [Gethe/wow-ui-textures](https://github.com/Gethe/wow-ui-textures) into
 `web/icons/` with a `manifest.json`; anything not found there comes from
@@ -111,6 +126,20 @@ Icons that are missing are drawn instead, from
 [game-icons.net](https://game-icons.net) (CC BY 3.0). The game icons are
 Blizzard Entertainment's artwork, used as fan sites commonly do; the credits
 say so.
+
+**Art.** The frames, buttons, scenes, heroes and badges are original fan
+art. `art/pieces.json` lists every piece with its prompt and the words its
+kind shares (real WoW places, classes and armor; no logos, text or named
+characters), plus one hero per race and class the data allows.
+`node tools/art.mjs gen [ids]` draws them with the
+[codex CLI](https://github.com/openai/codex)'s image tool into `art/raw/`
+(not committed), and `node tools/art.mjs fix` cleans each into true pixel
+art with [pixfix](https://github.com/lovelaced/pixfix): one colour per grid
+cell, a cut-out background, cropped and saved as a palette PNG in
+`web/art/`. Scenes use one fixed pixel size; heroes are scaled so every race
+stands at its height on one scale. The page draws one art pixel as a whole
+number of screen pixels (`--art`, set from the device's pixel ratio), so the
+art stays crisp.
 
 **Type.** Ortica (Benedetta Bovani, Collletttivo) for display and Uncut Sans
 (Kasper Nordkvist) for everything else, both under the SIL Open Font License

@@ -45,10 +45,12 @@ per_source = false
 
 [common.auras.healthstone_cd]
 name = "Healthstone used"
+hidden = true
 duration = 120
 
 [common.spells.shoot]
 name = "Shoot"
+icon = "ability_shootwand"
 # Attack with an equipped wand (spell 5019). No mana and no global cooldown;
 # the first shot comes after a 0.5 sec wind-up standing still (core.toml
 # auto_repeat_windup), then one per wand speed (ranged haste counts), until
@@ -67,6 +69,7 @@ effects = [{ type = "damage", weapon = "ranged", hit = "wand", crit = "opt.wand_
 
 [common.spells.healing_potion]
 name = "Healing Potion"
+icon = "inv_potion_54"
 off_gcd = true
 cd_group = "potion"
 cooldown = 120
@@ -79,6 +82,7 @@ effects = [
 
 [common.spells.mana_potion]
 name = "Mana Potion"
+icon = "inv_potion_76"
 off_gcd = true
 cd_group = "potion"
 cooldown = 120

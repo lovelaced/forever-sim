@@ -459,6 +459,7 @@ procs = [
 ]
 [auras.water_shield_globe]
 name = "Water Shield (globe cooldown)"
+hidden = true
 duration = "opt.water_shield_icd"
 
 # Totems: one per element (group), as buffs on the shaman. Durations, costs
@@ -602,6 +603,7 @@ tick = { interval = 3, effects = [{ type = "heal", target = "target", amount = "
 # attack buff), which grow with your level up to the rank's top level.
 [spells.rockbiter_weapon]
 name = "Rockbiter Weapon"
+icon = "spell_nature_rockbiter"
 target = "self"
 requires = "!aura.rockbiter_weapon.up"
 # attack power from 10400, 15567, 15568, 15569, 16311, 16312, 16313
@@ -617,6 +619,7 @@ ranks = [
 effects = [{ type = "aura", aura = "rockbiter_weapon" }]
 [spells.flametongue_weapon]
 name = "Flametongue Weapon"
+icon = "spell_fire_flametounge"
 target = "self"
 requires = "!aura.flametongue_weapon.up"
 # ft from 8026, 8028, 8029, 10445, 16343, 16344
@@ -631,6 +634,7 @@ ranks = [
 effects = [{ type = "aura", aura = "flametongue_weapon" }]
 [spells.windfury_weapon]
 name = "Windfury Weapon"
+icon = "spell_nature_cyclone"
 target = "self"
 requires = "!aura.windfury_weapon.up"
 # attack power from 8233, 8236, 10484, 16361
@@ -643,6 +647,7 @@ ranks = [
 effects = [{ type = "aura", aura = "windfury_weapon" }]
 [spells.lightning_shield]
 name = "Lightning Shield"
+icon = "spell_nature_lightningshield"
 school = "nature"
 target = "self"
 requires = "!aura.lightning_shield.up && !aura.water_shield.up"
@@ -658,6 +663,7 @@ ranks = [
 effects = [{ type = "aura", aura = "lightning_shield" }]
 [spells.lightning_shield_orb]
 name = "Lightning Shield (orb)"
+icon = "spell_nature_lightning"
 school = "nature"
 off_gcd = true
 text = "Internal: one Lightning Shield orb hitting the attacker (the game's triggered spell)."
@@ -673,6 +679,7 @@ ranks = [
 effects = [{ type = "damage", school = "nature", hit = "auto", no_proc = true, tag = "Lightning Shield", min = "r.lo", max = "r.hi", coef = "r.coef" }]
 [spells.water_shield]
 name = "Water Shield"
+icon = "ability_shaman_watershield"
 talent = "water_shield"
 target = "self"
 requires = "!aura.water_shield.up"
@@ -682,6 +689,7 @@ effects = [{ type = "aura", aura = "water_shield" }]
 # Totems: 1 sec global cooldown in Forever (gcd = 1).
 [spells.searing_totem]
 name = "Searing Totem"
+icon = "spell_fire_searingtotem"
 school = "fire"
 target = "self"
 gcd = 1
@@ -697,6 +705,7 @@ ranks = [
 effects = [{ type = "aura", aura = "searing_totem" }]
 [spells.searing_totem_attack]
 name = "Searing Totem (attack)"
+icon = "spell_fire_searingtotem"
 school = "fire"
 off_gcd = true
 text = "Internal: the totem's fire bolt (the game's Attack spell, cast every opt.shaman_searing_interval sec)."
@@ -712,6 +721,7 @@ ranks = [
 effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = "r.coef", no_proc = true, tag = "Searing Totem" }]
 [spells.magma_totem]
 name = "Magma Totem"
+icon = "spell_fire_selfdestruct"
 school = "fire"
 target = "self"
 gcd = 1
@@ -725,6 +735,7 @@ ranks = [
 effects = [{ type = "aura", aura = "magma_totem" }]
 [spells.magma_totem_pulse]
 name = "Magma Totem (pulse)"
+icon = "spell_fire_selfdestruct"
 school = "fire"
 off_gcd = true
 text = "Internal: the totem's pulse on every enemy within 8 yd (all enemies here)."
@@ -737,6 +748,7 @@ ranks = [
 effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = "r.coef", target = "enemies", no_proc = true, tag = "Magma Totem" }]
 [spells.flametongue_totem]
 name = "Flametongue Totem"
+icon = "spell_nature_guardianward"
 school = "fire"
 target = "self"
 gcd = 1
@@ -754,6 +766,7 @@ ranks = [
 effects = [{ type = "aura", aura = "flametongue_totem" }]
 [spells.strength_of_earth_totem]
 name = "Strength of Earth Totem"
+icon = "spell_nature_earthbindtotem"
 target = "self"
 gcd = 1
 requires = "!aura.strength_of_earth_totem.up"
@@ -767,6 +780,7 @@ ranks = [
 effects = [{ type = "aura", aura = "strength_of_earth_totem" }]
 [spells.stoneskin_totem]
 name = "Stoneskin Totem"
+icon = "spell_nature_stoneskintotem"
 target = "self"
 gcd = 1
 requires = "!aura.stoneskin_totem.up"
@@ -782,6 +796,7 @@ ranks = [
 effects = [{ type = "aura", aura = "stoneskin_totem" }]
 [spells.earthbind_totem]
 name = "Earthbind Totem"
+icon = "spell_nature_strengthofearthtotem02"
 target = "self"
 gcd = 1
 cooldown = 15
@@ -791,6 +806,7 @@ ranks = [{ level = 6, id = 2484 }]
 effects = [{ type = "aura", aura = "earthbind_totem" }]
 [spells.stoneclaw_totem]
 name = "Stoneclaw Totem"
+icon = "spell_nature_stoneclawtotem"
 target = "self"
 gcd = 1
 cooldown = 30
@@ -806,6 +822,7 @@ ranks = [
 effects = [{ type = "aura", aura = "stoneclaw_totem" }]
 [spells.tremor_totem]
 name = "Tremor Totem"
+icon = "spell_nature_tremortotem"
 target = "self"
 gcd = 1
 requires = "!aura.tremor_totem.up"
@@ -813,6 +830,7 @@ ranks = [{ level = 18, id = 8143, mana = 60 }]
 effects = [{ type = "aura", aura = "tremor_totem" }]
 [spells.grace_of_air_totem]
 name = "Grace of Air Totem"
+icon = "spell_nature_invisibilitytotem"
 target = "self"
 gcd = 1
 # one air totem at a time, and its buff is exclusive with Flametongue Totem's (see flametongue_totem)
@@ -825,6 +843,7 @@ ranks = [
 effects = [{ type = "aura", aura = "grace_of_air_totem" }]
 [spells.windfury_totem]
 name = "Windfury Totem"
+icon = "spell_nature_windfury"
 target = "self"
 gcd = 1
 # one air totem at a time, and its buff is exclusive with Flametongue Totem's (see flametongue_totem)
@@ -837,6 +856,7 @@ ranks = [
 effects = [{ type = "aura", aura = "windfury_totem" }]
 [spells.grounding_totem]
 name = "Grounding Totem"
+icon = "spell_nature_groundingtotem"
 target = "self"
 gcd = 1
 cooldown = 15
@@ -846,6 +866,7 @@ ranks = [{ level = 30, id = 8177 }]
 effects = [{ type = "aura", aura = "grounding_totem" }]
 [spells.mana_spring_totem]
 name = "Mana Spring Totem"
+icon = "spell_nature_manaregentotem"
 target = "self"
 gcd = 1
 requires = "!aura.mana_spring_totem.up && !aura.mana_tide_totem.up"
@@ -860,6 +881,7 @@ text = "Restores the rank's mana every 2 sec."
 effects = [{ type = "aura", aura = "mana_spring_totem" }]
 [spells.healing_stream_totem]
 name = "Healing Stream Totem"
+icon = "inv_spear_04"
 target = "self"
 gcd = 1
 requires = "!aura.healing_stream_totem.up && !aura.mana_tide_totem.up"
@@ -874,6 +896,7 @@ ranks = [
 effects = [{ type = "aura", aura = "healing_stream_totem" }]
 [spells.mana_tide_totem]
 name = "Mana Tide Totem"
+icon = "spell_frost_summonwaterelemental"
 talent = "mana_tide_totem"
 cooldown = 300
 gcd = 1
@@ -887,6 +910,7 @@ ranks = [
 effects = [{ type = "aura", aura = "mana_tide_totem" }]
 [spells.fire_nova]
 name = "Fire Nova"
+icon = "spell_fire_sealoffire"
 school = "fire"
 cooldown = 10
 # Forever: a spell (Fire Nova Totem is gone) that bursts from your active fire totem
@@ -903,6 +927,7 @@ effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef 
 
 [spells.lightning_bolt]
 name = "Lightning Bolt"
+icon = "spell_nature_lightning"
 school = "nature"
 ranks = [
   { level = 1, id = 403, lo = 14, lo_per_level = 0.093, hi = 16, hi_per_level = 0.107, mana = 15, cast = 1.5, max_level = 6, coef = 0.429 },
@@ -919,6 +944,7 @@ ranks = [
 effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = "r.coef" }]
 [spells.lightning_bolt_overload]
 name = "Lightning Bolt (overload)"
+icon = "spell_nature_lightning"
 talent = "lightning_overload"
 school = "nature"
 off_gcd = true
@@ -939,6 +965,7 @@ ranks = [
 effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Lightning Overload" }]
 [spells.chain_lightning]
 name = "Chain Lightning"
+icon = "spell_nature_chainlightning"
 school = "nature"
 cooldown = 6
 ranks = [
@@ -951,6 +978,7 @@ text = "Primary target only (the jumps are not simulated)."
 effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = "r.coef" }]
 [spells.chain_lightning_overload]
 name = "Chain Lightning (overload)"
+icon = "spell_nature_chainlightning"
 talent = "lightning_overload"
 school = "nature"
 off_gcd = true
@@ -964,6 +992,7 @@ text = "Primary target only (the jumps are not simulated)."
 effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Lightning Overload" }]
 [spells.lava_burst]
 name = "Lava Burst"
+icon = "spell_shaman_lavaburst"
 talent = "lava_burst"
 school = "fire"
 cooldown = 10
@@ -975,6 +1004,7 @@ ranks = [
 effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = "r.coef", mult = "target.aura.flame_shock.up ? 1.2 : 1" }]
 [spells.earth_shock]
 name = "Earth Shock"
+icon = "spell_nature_earthshock"
 school = "nature"
 cooldown = 6
 cd_group = "shock"
@@ -990,6 +1020,7 @@ ranks = [
 effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "interrupt", lockout = 2 }] }]
 [spells.flame_shock]
 name = "Flame Shock"
+icon = "spell_fire_flameshock"
 school = "fire"
 cooldown = 6
 cd_group = "shock"
@@ -1005,6 +1036,7 @@ ranks = [
 effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "aura", aura = "flame_shock", target = "target" }] }]
 [spells.frost_shock]
 name = "Frost Shock"
+icon = "spell_frost_frostshock"
 school = "frost"
 cooldown = 6
 cd_group = "shock"
@@ -1018,6 +1050,7 @@ effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef
 
 [spells.stormstrike]
 name = "Stormstrike"
+icon = "ability_shaman_stormstrike"
 talent = "stormstrike"
 school = "nature"
 cooldown = 8
@@ -1028,6 +1061,7 @@ effects = [{ type = "damage", weapon = "mh", school = "physical", normalized = t
 
 [spells.healing_wave]
 name = "Healing Wave"
+icon = "spell_nature_magicimmunity"
 school = "nature"
 target = "self"
 ranks = [
@@ -1045,6 +1079,7 @@ ranks = [
 effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Healing Wave" }]
 [spells.lesser_healing_wave]
 name = "Lesser Healing Wave"
+icon = "spell_nature_healingwavelesser"
 school = "nature"
 target = "self"
 ranks = [
@@ -1058,6 +1093,7 @@ ranks = [
 effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Lesser Healing Wave" }]
 [spells.chain_heal]
 name = "Chain Heal"
+icon = "spell_nature_healingwavegreater"
 school = "nature"
 target = "self"
 ranks = [
@@ -1069,6 +1105,7 @@ text = "Heals you only (the jumps to other targets are not simulated)."
 effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", mult = "aura.riptide.up ? 1.25 : 1", tag = "Chain Heal" }]
 [spells.riptide]
 name = "Riptide"
+icon = "spell_nature_riptide"
 talent = "riptide"
 school = "nature"
 cooldown = 6
@@ -1082,6 +1119,7 @@ ranks = [
 effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Riptide" }, { type = "aura", aura = "riptide", target = "self" }]
 [spells.natures_swiftness]
 name = "Nature's Swiftness"
+icon = "spell_nature_ravenform"
 talent = "natures_swiftness"
 off_gcd = true
 cooldown = 180
@@ -1090,6 +1128,7 @@ ranks = [{ level = 1, id = 16188 }]
 effects = [{ type = "aura", aura = "natures_swiftness" }]
 [spells.rage_of_the_farseer]
 name = "Rage of the Farseer"
+icon = "spell_nature_bloodlust"
 talent = "rage_of_the_farseer"
 off_gcd = true
 cooldown = 180

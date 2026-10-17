@@ -554,7 +554,7 @@ impl<'w> Sim<'w> {
         if let Some(ls) = &fx.lifesteal {
             let f = self.ev(ls, &cx);
             if f > 0.0 {
-                self.heal_raw(a, a, dealt * f, tag, false);
+                self.heal_raw(a, a, dealt * f, tag, false, cx.spell);
             }
         }
         if fx.no_proc {
@@ -602,9 +602,11 @@ impl<'w> Sim<'w> {
         let mut rest = amount;
         // absorbs
         let mut k = 0;
+        let mut shield: Option<u32> = None;
         while k < self.actors[dst].auras.len() && rest > 0.0 {
             let inst = &mut self.actors[dst].auras[k];
             if inst.absorb > 0.0 {
+                shield = Some(inst.def);
                 let used = inst.absorb.min(rest);
                 inst.absorb -= used;
                 rest -= used;
@@ -616,6 +618,7 @@ impl<'w> Sim<'w> {
             }
             k += 1;
         }
+        let rest_before_redirect = rest;
         // redirect to pet (Soul Link)
         let redirect = self.actors[dst].st[Stat::RedirectToPet as usize];
         if redirect > 0.0 && rest > 0.0 {
@@ -647,7 +650,13 @@ impl<'w> Sim<'w> {
         if self.log.is_some() {
             let kind = if ev.crit { " CRIT" } else if ev.periodic { " (tick)" } else { "" };
             self.logf(|s| format!("{} {} -> {} {:.0}{} [{:.0}/{:.0}]", s.actors[src].name, tag, s.actors[dst].name, rest, kind, s.actors[dst].hp.max(0.0), s.actors[dst].max_hp));
-            self.tracef(|s| TraceEv { amount: rest, crit: ev.crit, tick: ev.periodic, ..s.tev("hit", src, Some(dst), tag) });
+            let absorbed = amount - rest_before_redirect;
+            self.tracef(|s| TraceEv {
+                amount: rest, crit: ev.crit, tick: ev.periodic, key: s.spell_key(ev.by), school: ev.school.name(),
+                absorbed, via: shield.filter(|_| absorbed > 0.0).map(|a| w.auras[a as usize].name.clone()).unwrap_or_default(),
+                hp: Some((s.actors[dst].hp / s.actors[dst].max_hp).clamp(0.0, 1.0)),
+                ..s.tev("hit", src, Some(dst), tag)
+            });
         }
         self.actors[dst].in_combat = true;
         self.actors[src].in_combat = true;
@@ -776,7 +785,7 @@ impl<'w> Sim<'w> {
                 amt *= 1.0 + (self.w.combat.spell_crit_mult - 1.0) * (1.0 + self.actors[a].st[Stat::CritBonusHeal as usize]);
             }
             let tag: &'w str = fx.tag.as_deref().unwrap_or(cx.tag);
-            let eff = self.heal_raw(a, t, amt, tag, crit);
+            let eff = self.heal_raw(a, t, amt, tag, crit, cx.spell);
             let ev = Ev { amount: eff, crit, periodic: fx.periodic, overheal: amt - eff, other: Some(t), by: cx.spell, ..Ev::default() };
             self.emit(a, EventKind::Heal, ev, cx.depth);
             if crit {
@@ -789,7 +798,7 @@ impl<'w> Sim<'w> {
     }
 
     /// Apply healing; returns effective healing.
-    pub fn heal_raw(&mut self, src: usize, dst: usize, amount: f64, tag: &'w str, crit: bool) -> f64 {
+    pub fn heal_raw(&mut self, src: usize, dst: usize, amount: f64, tag: &'w str, crit: bool, by: Option<u32>) -> f64 {
         if !self.actors[dst].alive || amount <= 0.0 {
             return 0.0;
         }
@@ -803,7 +812,7 @@ impl<'w> Sim<'w> {
         *m.heal_by.entry(tag).or_insert(0.0) += eff;
         if self.log.is_some() && eff > 0.0 {
             self.logf(|s| format!("{} {} heals {} {:.0} [{:.0}/{:.0}]", s.actors[src].name, tag, s.actors[dst].name, eff, s.actors[dst].hp, s.actors[dst].max_hp));
-            self.tracef(|s| TraceEv { amount: eff, crit, ..s.tev("heal", src, Some(dst), tag) });
+            self.tracef(|s| TraceEv { amount: eff, crit, key: s.spell_key(by), hp: Some((s.actors[dst].hp / s.actors[dst].max_hp).clamp(0.0, 1.0)), ..s.tev("heal", src, Some(dst), tag) });
         }
         // healing threat, split across enemies fighting the healer's team
         if eff > 0.0 && self.actors[src].in_combat {

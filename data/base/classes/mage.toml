@@ -517,6 +517,7 @@ procs = [
 on_remove = [{ type = "remove_aura", aura = "combustion_stack", target = "self" }]
 [auras.combustion_stack]
 name = "Combustion (crit)"
+hidden = true
 max_stacks = 10
 spell_mods = [{ school = "fire", prop = "crit", add = "10 * stacks" }]
 [auras.fingers_of_frost]
@@ -550,6 +551,7 @@ mods = [{ stat = "casting_regen", add = 1 }]
 # ------------------------------------------------------------------ spells
 [spells.frost_armor]
 name = "Frost Armor"
+icon = "spell_frost_frostarmor02"
 target = "self"
 requires = "!known.ice_armor && (!aura.frost_armor.up || aura.frost_armor.remains < 1)"
 ranks = [
@@ -562,6 +564,7 @@ effects = [{ type = "aura", aura = "frost_armor" }]
 
 [spells.ice_armor]
 name = "Ice Armor"
+icon = "spell_frost_frostarmor02"
 target = "self"
 requires = "!aura.ice_armor.up || aura.ice_armor.remains < 1"
 ranks = [
@@ -574,6 +577,7 @@ effects = [{ type = "aura", aura = "ice_armor" }]
 
 [spells.arcane_intellect]
 name = "Arcane Intellect"
+icon = "spell_holy_magicalsentry"
 target = "self"
 requires = "!aura.arcane_intellect.up"
 ranks = [
@@ -587,6 +591,7 @@ effects = [{ type = "aura", aura = "arcane_intellect" }]
 
 [spells.fireball]
 name = "Fireball"
+icon = "spell_fire_flamebolt"
 school = "fire"
 ranks = [
   { level = 1, id = 133, lo = 14, lo_per_level = 0.156, hi = 22, hi_per_level = 0.244, tick = 1, burn = 4, mana = 30, cast = 1.5, max_level = 5 },
@@ -611,6 +616,7 @@ tick = { interval = 2, effects = [{ type = "damage", school = "fire", periodic =
 
 [spells.frostbolt]
 name = "Frostbolt"
+icon = "spell_frost_frostbolt02"
 school = "frost"
 ranks = [
   { level = 4, id = 116, lo = 18, lo_per_level = 0.189, hi = 20, hi_per_level = 0.211, mana = 25, cast = 1.5, max_level = 8, coef = 0.407 },
@@ -630,6 +636,7 @@ effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef
 
 [spells.frostfire_bolt]
 name = "Frostfire Bolt"
+icon = "ability_mage_frostfirebolt"
 school = "fire"
 text = "Frostfire: counts as Fire here; talents that name Frostfire Bolt or list it in the game data (Ice Shards, Piercing Ice, Frost Channeling) apply too. Its slow is a Chill effect; the burn ticks every 3 sec for 9 sec."
 ranks = [
@@ -646,6 +653,7 @@ tick = { interval = 3, effects = [{ type = "damage", school = "fire", periodic =
 
 [spells.fire_blast]
 name = "Fire Blast"
+icon = "spell_fire_fireball"
 school = "fire"
 cooldown = 8
 ranks = [
@@ -661,6 +669,7 @@ effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef 
 
 [spells.scorch]
 name = "Scorch"
+icon = "spell_fire_soulburn"
 school = "fire"
 cast_time = 1.5
 ranks = [
@@ -676,6 +685,7 @@ effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef 
 
 [spells.pyroblast]
 name = "Pyroblast"
+icon = "spell_fire_fireball02"
 talent = "pyroblast"
 school = "fire"
 cast_time = 6
@@ -698,6 +708,7 @@ tick = { interval = 3, effects = [{ type = "damage", school = "fire", periodic =
 
 [spells.arcane_missiles]
 name = "Arcane Missiles"
+icon = "spell_nature_starfall"
 school = "arcane"
 ranks = [
   { level = 8, id = 5143, per = 24, per_per_level = 0.2, dur = 3, mana = 85, max_level = 12 },
@@ -718,6 +729,7 @@ channel = { duration = "r.dur * (aura.missile_barrage.up > 0 ? 0.5 : 1)", interv
 
 [spells.arcane_explosion]
 name = "Arcane Explosion"
+icon = "spell_nature_wispsplode"
 school = "arcane"
 ranks = [
   { level = 14, id = 1449, lo = 30, lo_per_level = 0.376, hi = 34, hi_per_level = 0.424, mana = 75, max_level = 19, coef = 0.143 },
@@ -731,6 +743,7 @@ effects = [{ type = "damage", school = "arcane", min = "r.lo", max = "r.hi", coe
 
 [spells.arcane_blast]
 name = "Arcane Blast"
+icon = "spell_arcane_blast"
 talent = "arcane_blast"
 school = "arcane"
 cast_time = 2.5
@@ -746,6 +759,7 @@ effects = [{ type = "damage", school = "arcane", min = "r.lo", max = "r.hi", coe
 
 [spells.frost_nova]
 name = "Frost Nova"
+icon = "spell_frost_frostnova"
 school = "frost"
 cooldown = 25
 ranks = [
@@ -759,6 +773,7 @@ effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef
 
 [spells.cone_of_cold]
 name = "Cone of Cold"
+icon = "spell_frost_glacier"
 school = "frost"
 cooldown = 10
 ranks = [
@@ -773,6 +788,7 @@ effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef
 
 [spells.blizzard]
 name = "Blizzard"
+icon = "spell_frost_icestorm"
 school = "frost"
 ranks = [
   { level = 20, id = 10, tick = 24, tick_per_level = 0.1, mana = 320, max_level = 25 },
@@ -787,6 +803,7 @@ channel = { duration = 8, interval = 1, effects = [{ type = "damage", school = "
 
 [spells.ice_lance]
 name = "Ice Lance"
+icon = "spell_frost_frostblast"
 talent = "ice_lance"
 school = "frost"
 ranks = [
@@ -802,6 +819,7 @@ effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef
 
 [spells.ice_barrier]
 name = "Ice Barrier"
+icon = "spell_ice_lament"
 talent = "ice_barrier"
 school = "frost"
 cooldown = 30
@@ -817,6 +835,7 @@ effects = [{ type = "aura", aura = "ice_barrier" }]
 
 [spells.evocation]
 name = "Evocation"
+icon = "spell_nature_purge"
 level = 20
 cooldown = 480
 target = "self"
@@ -825,6 +844,7 @@ effects = [{ type = "aura", aura = "evocation" }]
 
 [spells.presence_of_mind]
 name = "Presence of Mind"
+icon = "spell_nature_enchantarmor"
 talent = "presence_of_mind"
 off_gcd = true
 cooldown = 180
@@ -833,6 +853,7 @@ effects = [{ type = "aura", aura = "presence_of_mind" }]
 
 [spells.arcane_power]
 name = "Arcane Power"
+icon = "spell_nature_lightning"
 talent = "arcane_power"
 off_gcd = true
 cooldown = 180
@@ -841,6 +862,7 @@ effects = [{ type = "aura", aura = "arcane_power" }]
 
 [spells.combustion]
 name = "Combustion"
+icon = "spell_fire_sealoffire"
 talent = "combustion"
 level = 40
 off_gcd = true
@@ -850,6 +872,7 @@ effects = [{ type = "aura", aura = "combustion" }]
 
 [spells.blast_wave]
 name = "Blast Wave"
+icon = "spell_holy_excorcism_02"
 talent = "blast_wave"
 school = "fire"
 cooldown = 45
@@ -861,6 +884,7 @@ effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef 
 
 [spells.flamestrike]
 name = "Flamestrike"
+icon = "spell_fire_selfdestruct"
 school = "fire"
 cast_time = 3
 ranks = [
@@ -881,6 +905,7 @@ tick = { interval = 2, effects = [{ type = "damage", school = "fire", periodic =
 
 [spells.counterspell]
 name = "Counterspell"
+icon = "spell_frost_iceshock"
 school = "arcane"
 level = 24
 off_gcd = true

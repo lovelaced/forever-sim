@@ -369,6 +369,8 @@ pub struct SpellDef {
     pub is_attack: bool,
     pub source: String,
     pub text: String,
+    /// The game's icon name (e.g. "ability_warrior_charge"), for the website.
+    pub icon: Option<String>,
 }
 
 impl SpellDef {
@@ -422,6 +424,12 @@ pub struct AuraDef {
     pub refresh: Refresh,
     pub dispel_type: Option<String>,
     pub text: String,
+    /// The game's icon name; without one the website uses the icon of the
+    /// spell that applies the aura.
+    pub icon: Option<String>,
+    /// A bookkeeping aura (a proc window, an internal cooldown) that the
+    /// player never sees in the game; the fight log leaves it out.
+    pub hidden: bool,
 }
 
 #[derive(Clone, Debug)]
