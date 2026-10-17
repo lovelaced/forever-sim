@@ -136,8 +136,10 @@
 
 /* ------------------------------------------------------------ the trials: one framed row per test */
 .trials { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s3); margin: var(--s5) 0 0; padding: 0; list-style: none; }
-.trial { position: relative; min-width: 0; padding: 0; animation: trial-in .35s ease-out backwards; animation-delay: calc(var(--n, 0) * 40ms); }
-@keyframes trial-in { from { opacity: 0; transform: translateY(4px); } }
+.trial { position: relative; min-width: 0; padding: 0; }
+/* a result that just arrived fades in; redraws leave the rows alone */
+.trial.fresh .plaque { animation: plaque-in .35s ease-out backwards; animation-delay: calc(var(--n, 0) * 30ms); }
+@keyframes plaque-in { from { opacity: 0; transform: translateY(3px); } }
 .trial-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s4); }
 .trial-btn {
   display: grid; grid-template-columns: calc(392 * var(--art)) minmax(0, 1fr) auto; gap: var(--s4); align-items: center; min-width: 0;

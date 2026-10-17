@@ -3,7 +3,7 @@
 // each test's detail opening inside its row.
 import * as M from './meta.js';
 import { h, fmtMetric, fmtDiff, fmtNum, fmtSec } from './ui.js';
-import { S, env, sig, nameOf, slotOf, baselineBuild, scenarioMeta, primaryOf, accuracyOf, presetOf, presetsFor, baseName, buildDiff, diffText, saveLocal } from './state.js';
+import { S, env, bus, sig, nameOf, slotOf, baselineBuild, scenarioMeta, primaryOf, accuracyOf, presetOf, presetsFor, baseName, buildDiff, diffText, saveLocal } from './state.js';
 import { scorecardTests, cellOf, pairOf, duelWin, changesFor, simulateAll } from './runner.js';
 import { renderDetail, leaders, metricOf } from './results.js';
 
@@ -212,6 +212,19 @@ function duelPlaque(el, row, c, base) {
 }
 
 let render = () => {};
+// Results already on screen: a row only fades in when its result is new.
+const shown = new WeakSet();
+
+// Redraw only the open test's detail (a tab, a build picked to show), so
+// the rest of the page stays as it is.
+bus.detail = () => {
+  const test = S.open;
+  const box = test && document.getElementById(`detail-${test}`);
+  if (!box) { render(); return; }
+  const scrollY = window.scrollY;
+  box.replaceChildren(detailFor(test, S.rows[test], columns(S.rows[test])));
+  window.scrollTo({ top: scrollY });
+};
 
 export function renderScorecard(root, { onRender }) {
   render = onRender;
@@ -251,7 +264,9 @@ export function renderScorecard(root, { onRender }) {
     const isRunning = running && run.test === test;
     const queued = running && run.jobs.includes(test) && run.jobs.indexOf(test) > run.jobs.indexOf(run.test);
     const open = S.open === test;
-    const li = h('li.trial.fr-small', { class: [isRunning ? 'running' : '', queued ? 'queued' : '', open ? 'open' : ''].join(' '), style: { '--n': String(n) } });
+    const fresh = row && !shown.has(row);
+    if (row) shown.add(row);
+    const li = h('li.trial.fr-small', { class: [isRunning ? 'running' : '', queued ? 'queued' : '', open ? 'open' : '', fresh ? 'fresh' : ''].join(' '), style: { '--n': String(n) } });
     const vals = h('div.trial-vals', { class: `n${cols.length}` });
     if (test === 'duel' && showDuelPicker) {
       vals.append(h('button.linkish.pick-opp', { type: 'button', onclick: () => { S.open = 'duel'; render(); } }, 'Pick an opponent'));

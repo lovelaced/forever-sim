@@ -21,7 +21,20 @@
 .editor-foot-actions { display: flex; gap: var(--s2); margin-left: auto; align-items: center; }
 
 /* ------------------------------------------------------------ the character */
-.hero { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s5); align-items: center; }
+.hero { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s4); align-items: end; }
+/* the character on a pedestal: the same size whichever race and class, so
+   choosing one never moves the page */
+.hero-stage {
+  position: relative; width: calc(170 * var(--art)); height: calc(178 * var(--art)); flex: none;
+  background: radial-gradient(ellipse 60% 14% at 50% 92%, rgba(0, 0, 0, .65), transparent 70%), radial-gradient(ellipse 70% 60% at 50% 62%, color-mix(in srgb, var(--cc) 16%, transparent), transparent 70%);
+}
+.hero-stage .hero-sprite { position: absolute; left: 0; right: 0; bottom: 6px; height: calc(166 * var(--art)); }
+.stage-face, .stage-crest { position: absolute; bottom: 0; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; background: #000; box-shadow: 0 0 0 1px #000, 0 0 0 2px var(--gilt-line); }
+.stage-face { left: 0; }
+.stage-crest { left: 34px; }
+.stage-face img, .stage-crest img { position: absolute; inset: -12%; width: 124%; height: 124%; }
+.stage-face svg, .stage-crest svg { width: 30px; height: 30px; padding: 5px; fill: var(--cc, #cdbfa5); }
+.hero-text { min-width: 0; }
 .portrait {
   position: relative; width: 104px; height: 104px; border-radius: 50%;
   background: #000; box-shadow: 0 0 0 1px #000, 0 0 0 3px #2a2219, 0 0 0 5px var(--gilt), 0 0 0 6px #000, 0 18px 30px -14px rgba(0, 0, 0, .9);
@@ -36,14 +49,14 @@
 }
 .portrait .crest img { position: absolute; inset: -12%; width: 124%; height: 124%; }
 .portrait .crest svg { width: 22px; height: 22px; fill: var(--cc); }
-.hero-sprite { align-self: end; justify-self: center; image-rendering: pixelated; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, .6)); }
+.hero-sprite img { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); max-width: none; image-rendering: pixelated; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, .6)); }
 .name-input {
   display: block; width: 100%; max-width: 560px; margin-left: -8px; padding: 0 8px; border: 1px solid transparent;
   background: transparent; color: var(--text); font: 700 var(--fs-3xl)/1.15 var(--display);
 }
 .name-input:hover { border-color: var(--hair-2); }
 .name-input:focus { border-color: var(--gilt-line); background: rgba(0, 0, 0, .3); outline: none; }
-.hero-sub { margin-top: var(--s1); color: var(--text-2); font-size: var(--fs-l); line-height: 1.4; }
+.hero-sub { margin-top: var(--s1); min-height: 2.8em; color: var(--text-2); font-size: var(--fs-m); line-height: 1.4; }
 .hero-sub .cls { color: var(--cc); font-weight: 500; }
 .spec { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
 .spec-chip { display: inline-flex; align-items: center; gap: var(--s2); padding: 3px 10px 3px 3px; background: rgba(0, 0, 0, .35); box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2px var(--hair); color: var(--text-2); font-size: var(--fs-s); }
@@ -171,11 +184,11 @@
 .gear-weapons { margin: var(--s3) 0 0; padding-left: 1.1em; font-size: var(--fs-s); line-height: 1.65; color: var(--text); }
 
 @container editor (min-width: 1100px) {
-  .editor-body { grid-template-columns: minmax(340px, 440px) minmax(0, 1fr); gap: var(--s6); }
+  .editor-body { grid-template-columns: minmax(320px, 390px) minmax(0, 1fr); gap: var(--s5); }
   .editor-side .field-row { grid-template-columns: minmax(0, 1fr); gap: var(--s2); }
   .editor-side .field-row > .label { padding-top: 0; }
   .editor-side .name-input { font-size: var(--fs-xl); }
-  .editor-side .portrait { width: 88px; height: 88px; }
+
 }
 @container trees (max-width: 720px) {
   .tree-tabs { display: flex; }
@@ -212,8 +225,12 @@ dialog .check { background: #fff8e4; box-shadow: inset 0 0 0 1px #8a6a3a; border
   .editor-foot-actions { width: 100%; }
   .editor-foot-actions > * { flex: 1; }
   body.editor-open { overflow: hidden; }
-  .hero { gap: var(--s4); align-items: start; grid-template-columns: auto minmax(0, 1fr); }
-  .hero-sprite { display: none; }
+  .hero { gap: var(--s3); }
+  .hero-stage { width: calc(96 * var(--art)); height: calc(104 * var(--art)); }
+  .hero-stage .hero-sprite { height: calc(84 * var(--art)); bottom: 4px; }
+  .hero-sprite img { transform: translateX(-50%) scale(.5); transform-origin: bottom center; }
+  .stage-face, .stage-crest { width: 24px; height: 24px; }
+  .stage-crest { left: 27px; }
   .portrait { width: 76px; height: 76px; }
   .portrait .crest { width: 28px; height: 28px; }
   .name-input { font-size: var(--fs-2xl); }

@@ -9,7 +9,7 @@ import {
   apiBuild, buildFromPreset, emptyBuild, sig, buildDiff, diffText, saveLocal,
 } from './state.js';
 
-export async function refreshSheet(b, { announceTrim = false } = {}) {
+export async function refreshSheet(b) {
   const seq = ++b.seq;
   const name = names()[S.builds.indexOf(b)] || 'Build';
   let res;
@@ -21,14 +21,7 @@ export async function refreshSheet(b, { announceTrim = false } = {}) {
   if (seq !== b.seq) return;
   S.sheets.set(b.uid, res);
   if (!res.error && res.talents) {
-    const before = spent(b.talents);
-    const now = spent(res.talents);
-    if (JSON.stringify(sorted(res.talents)) !== JSON.stringify(sorted(b.talents))) {
-      b.talents = res.talents;
-      if (announceTrim && b.plan && now < spent(b.plan) && now < before) {
-        flash(`Level ${b.level} has ${budgetFor(b.level)} talent points, so the last ${spent(b.plan) - now} planned points are left out.`, 'info');
-      }
-    }
+    if (JSON.stringify(sorted(res.talents)) !== JSON.stringify(sorted(b.talents))) b.talents = res.talents;
     if (b.plan && spent(b.plan) <= spent(b.talents)) b.plan = null;
   }
   bus.render();
@@ -42,8 +35,8 @@ export function refreshLater(b, o) {
 
 // ------------------------------------------------------------------ state changes
 
-function changed(b, { sheet = true, announceTrim = false } = {}) {
-  if (sheet) refreshLater(b, { announceTrim });
+function changed(b, { sheet = true } = {}) {
+  if (sheet) refreshLater(b);
   bus.render();
 }
 
@@ -116,12 +109,16 @@ function pickPreset(file) {
   changed(nb);
 }
 
+// A new level trims the talents to its points (the engine does it, in the
+// build's order): the editor redraws once, when they're back, so it doesn't
+// show the untrimmed trees first.
 function setLevel(level) {
   const b = editingBuild();
   if (b.level === level) return;
   if (!b.plan) b.plan = { ...b.talents };
   b.level = level;
-  changed(b, { announceTrim: true });
+  clearTimeout(sheetTimers.get(b.uid));
+  refreshSheet(b);
 }
 
 
@@ -155,18 +152,21 @@ export function renderEditor(root, actions) {
     const [, glyph, wow] = treeStyle[tr.index] || [];
     return h('span.spec-chip', { class: pts ? '' : 'empty' }, ability(glyph || 'rune-stone', null, wow), tr.name, h('b', String(pts)));
   }));
-  // the character as they'd stand in a scene, at twice the scenes' size
-  const sprite = h('img.hero-sprite.px', { src: M.heroArt(b.race, b.cls), alt: '' });
-  sprite.addEventListener('load', () => { sprite.style.width = `calc(${2 * sprite.naturalWidth} * var(--art))`; }, { once: true });
-  sprite.addEventListener('error', () => sprite.remove(), { once: true });
-  const head = h('div.hero',
-    h('div.portrait', { style: { '--cc': M.CLASS_COLORS[b.cls] } },
-      h('span.face', art(M.RACE_ICONS[b.race] || 'rune-stone', race?.icon)),
-      h('span.crest', art(M.CLASS_ICONS[b.cls], c.icon))),
+  // the character as they'd stand in a scene, at twice the scenes' size, on
+  // a stage of fixed size so a tauren or a gnome doesn't move the page
+  const img = h('img.px', { src: M.heroArt(b.race, b.cls), alt: '' });
+  const size = () => { img.style.width = `calc(${2 * img.naturalWidth} * var(--art))`; img.style.height = `calc(${2 * img.naturalHeight} * var(--art))`; };
+  if (img.complete && img.naturalWidth) size(); else img.addEventListener('load', size, { once: true });
+  img.addEventListener('error', () => img.remove(), { once: true });
+  // the character on a pedestal, with the race's face and the class crest
+  const stage = h('div.hero-stage', { style: { '--cc': M.CLASS_COLORS[b.cls] } },
+    h('span.hero-sprite', img),
+    h('span.stage-face', art(M.RACE_ICONS[b.race] || 'rune-stone', race?.icon)),
+    h('span.stage-crest', art(M.CLASS_ICONS[b.cls], c.icon)));
+  const head = h('div.hero', stage,
     h('div.hero-text', nameInput,
       h('p.hero-sub', `Level ${b.level} ${race?.name || ''} `, h('span.cls', { style: { '--cc': cc } }, c.name)),
-      spec),
-    sprite);
+      spec));
 
   // Class: icons, with the chosen one named beside them
   const classRow = h('div.field-row', h('div.label', 'Class'),

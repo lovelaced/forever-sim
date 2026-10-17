@@ -66,7 +66,7 @@ export function renderDetail(ctx) {
   const unitWord = UNIT_PLURAL[ctx.scenario.unit] || 'runs';
   const tab = TABS.some(([t]) => t === S.detailTab) ? S.detailTab : 'summary';
   const tabs = h('div.detail-tabs', { role: 'tablist', 'aria-label': `${ctx.scenario.title} in detail` }, TABS.map(([t, label]) => h('button.detail-tab', {
-    type: 'button', role: 'tab', 'aria-selected': String(t === tab), onclick: () => { S.detailTab = t; bus.render(); },
+    type: 'button', role: 'tab', 'aria-selected': String(t === tab), onclick: () => { S.detailTab = t; bus.detail(); },
   }, label)));
   const out = h('div.detail', tabs);
   if (tab === 'played') { out.append(h('div.tab-panel', { role: 'tabpanel' }, playedPanel(ctx, cols, res))); return out; }
@@ -115,8 +115,8 @@ export function renderDetail(ctx) {
     if (ch) verdicts.push(changeLine(ch, pm, primary, c));
   }
   if (verdicts.length) panel.append(h('div.verdicts', verdicts));
-  panel.append(h('p.hint.more-tabs', 'Open ', h('button.linkish', { type: 'button', onclick: () => { S.detailTab = 'played'; bus.render(); } }, 'How it played'),
-    ' to see each build’s priority list, or ', h('button.linkish', { type: 'button', onclick: () => { S.detailTab = 'log'; bus.render(); } }, 'One fight'),
+  panel.append(h('p.hint.more-tabs', 'Open ', h('button.linkish', { type: 'button', onclick: () => { S.detailTab = 'played'; bus.detail(); } }, 'How it played'),
+    ' to see each build’s priority list, or ', h('button.linkish', { type: 'button', onclick: () => { S.detailTab = 'log'; bus.detail(); } }, 'One fight'),
     ' to watch a fight step by step.'));
   panel.append(finePrint(res, cols.length, ctx, unitWord));
   return out;

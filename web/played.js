@@ -30,7 +30,7 @@ function whoseHead(cols, c, what) {
     h('div.whose-pick', { role: 'group', 'aria-label': 'Show another build' }, h('span.muted', 'Show:'),
       cols.map((x) => h('button.whose-btn', {
         type: 'button', 'aria-pressed': String(x === c), style: { '--slot': x.color }, title: x.name,
-        onclick: () => { S.played = x.b.uid; bus.render(); },
+        onclick: () => { S.played = x.b.uid; bus.detail(); },
       }, h('span.slot', x.letter), portrait(x.b), h('span.whose-name', x.name)))));
 }
 
@@ -87,7 +87,7 @@ export function playedPanel(ctx, cols, res) {
       l.dmg ? h('span.muted', `${pctText(l.dmg)} of damage`) : null,
       l.rate > 0.005 ? h('span.prio-bar', h('i', { style: { width: `${(100 * l.rate) / maxRate}%` } })) : null))));
   const toggle = lines.length > used.length ? h('button.linkish.prio-toggle', {
-    type: 'button', onclick: () => { S.playedAll = all ? null : `${c.b.uid}|${ctx.test}`; bus.render(); },
+    type: 'button', onclick: () => { S.playedAll = all ? null : `${c.b.uid}|${ctx.test}`; bus.detail(); },
   }, all ? 'Show only the lines that came up' : `Show all ${lines.length} lines, including ${lines.length - used.length} that never came up here`) : null;
   // damage that no line of the list casts: auto attacks, procs, pets, bleeds
   const named = new Set([...used, ...opened].map((l) => l.name));
@@ -152,8 +152,8 @@ export function logPanel(ctx, cols) {
   if (!tr) {
     traces.set(key, 'loading');
     env.engine.call({ op: 'trace', scenario: ctx.test, build: apiBuild(c.b, nameOf(c.b)), opts: S.opts })
-      .then((r) => { traces.set(key, r); bus.render(); })
-      .catch((e) => { traces.set(key, { error: e.message || String(e) }); bus.render(); });
+      .then((r) => { traces.set(key, r); bus.detail(); })
+      .catch((e) => { traces.set(key, { error: e.message || String(e) }); bus.detail(); });
   }
   if (!tr || tr === 'loading') {
     box.append(h('p.hint.loading', 'Playing one fight…'));
@@ -177,7 +177,7 @@ export function logPanel(ctx, cols) {
     h('div.log-mine', r.mine),
     h('div.log-theirs', r.theirs)))));
   if (data.rows.length > LIMIT) {
-    box.append(h('button.linkish.log-more', { type: 'button', onclick: () => { S.logAll = showAll ? null : key; bus.render(); } },
+    box.append(h('button.linkish.log-more', { type: 'button', onclick: () => { S.logAll = showAll ? null : key; bus.detail(); } },
       showAll ? 'Show less' : `Show the rest of the fight (${data.rows.length - LIMIT} more moments)`));
   }
   return box;
