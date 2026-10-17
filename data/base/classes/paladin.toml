@@ -977,7 +977,7 @@ ranks = [
   { level = 48, id = 20929, lo = 221, hi = 239, coef = 0.429, mana = 275 },
   { level = 56, id = 20930, lo = 307, hi = 333, coef = 0.429, mana = 325 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Holy Shock", on_crit = [{ type = "chance", p = "0.2 * t.illumination", then = [{ type = "resource", res = "mana", amount = "0.5 * r.mana" }] }] }]
+effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Holy Shock", on_crit = [{ type = "chance", p = "0.2 * t.illumination", then = [{ type = "resource", res = "mana", amount = "0.5 * r.mana" }] }] }]
 
 # The game's Light's Vigil marks a target so the next Holy Shock on it starts no
 # cooldown and adds this damage or a party heal; the sim casts it as a
@@ -1014,7 +1014,7 @@ ranks = [
   { level = 50, id = 1311590, lo = 473, lo_per_level = 1.458, hi = 501, hi_per_level = 1.542, max_level = 59, coef = 0.143, mana = 1000 },
   { level = 60, id = 1311595, lo = 684, lo_per_level = 1.749, hi = 724, hi_per_level = 1.851, max_level = 69, coef = 0.143, mana = 1340 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Light's Vigil", on_crit = [{ type = "chance", p = "0.2 * t.illumination", then = [{ type = "resource", res = "mana", amount = "0.5 * r.mana" }] }] }]
+effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Light's Vigil", on_crit = [{ type = "chance", p = "0.2 * t.illumination", then = [{ type = "resource", res = "mana", amount = "0.5 * r.mana" }] }] }]
 
 [spells.holy_light]
 name = "Holy Light"
@@ -1033,7 +1033,7 @@ ranks = [
   { level = 54, id = 10329, lo = 1151, lo_per_level = 4.92, hi = 1283, hi_per_level = 5.48, mana = 580, max_level = 59, coef = 0.714 },
   { level = 60, id = 25292, lo = 1495, lo_per_level = 5.489, hi = 1665, hi_per_level = 6.111, mana = 660, max_level = 65, coef = 0.714 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Holy Light", on_crit = [{ type = "chance", p = "0.2 * t.illumination", then = [{ type = "resource", res = "mana", amount = "0.5 * r.mana" }] }] }]
+effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Holy Light", on_crit = [{ type = "chance", p = "0.2 * t.illumination", then = [{ type = "resource", res = "mana", amount = "0.5 * r.mana" }] }] }]
 
 [spells.flash_of_light]
 name = "Flash of Light"
@@ -1049,10 +1049,10 @@ ranks = [
   { level = 50, id = 19942, lo = 210, lo_per_level = 2.076, hi = 236, hi_per_level = 2.324, mana = 115, max_level = 55, coef = 0.429 },
   { level = 58, id = 19943, lo = 286, lo_per_level = 2.457, hi = 320, hi_per_level = 2.743, mana = 140, max_level = 63, coef = 0.429 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Flash of Light", on_crit = [{ type = "chance", p = "0.2 * t.illumination", then = [{ type = "resource", res = "mana", amount = "0.5 * r.mana" }] }] }]
+effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Flash of Light", on_crit = [{ type = "chance", p = "0.2 * t.illumination", then = [{ type = "resource", res = "mana", amount = "0.5 * r.mana" }] }] }]
 
 # Drains all your mana (tooltip), then the rank's mana comes back to the
-# target (here yourself). Not blocked by Forbearance: the game's spell has no
+# target (nothing for party members, who have no mana here). Not blocked by Forbearance: the game's spell has no
 # invulnerability mechanic and its tooltip names none.
 [spells.lay_on_hands]
 name = "Lay on Hands"
@@ -1065,7 +1065,7 @@ ranks = [
   { level = 30, id = 2800, mana_back = 250 },
   { level = 50, id = 10310, mana_back = 550 },
 ]
-effects = [{ type = "heal", target = "self", amount = "max_hp", can_crit = false, tag = "Lay on Hands" }, { type = "resource", res = "mana", amount = 0, set = true }, { type = "resource", res = "mana", amount = "r.mana_back" }]
+effects = [{ type = "heal", target = "ally", amount = "ally.max_hp", can_crit = false, tag = "Lay on Hands" }, { type = "resource", res = "mana", amount = 0, set = true }, { type = "resource", target = "ally", res = "mana", amount = "r.mana_back" }]
 
 [spells.divine_protection]
 name = "Divine Protection"
@@ -1262,3 +1262,23 @@ rest = [
 ]
 eat_below = 0.4
 drink_below = 0.35
+
+# Healing a group (the healing tests): heals on whoever is most hurt, sized
+# to what they're missing; nothing while everyone is topped up.
+[rotations.heal]
+desc = "Group healing: Holy Shock and Flash of Light on whoever is most hurt, Holy Light sized to big gaps, Divine Favor and Lay on Hands in emergencies"
+healer = true
+auto_melee = false
+precombat = ["devotion_aura", "blessing_of_wisdom"]
+opener = []
+actions = [
+  { cast = "mana_potion", if = "opt.potions && mana_pct < 0.3" },
+  { cast = "lay_on_hands", target = "lowest", if = "ally.hp_pct < 0.15" },
+  { cast = "divine_favor", if = "lowest.hp_pct < 0.5" },
+  { cast = "holy_shock_heal", target = "lowest", if = "ally.hp_pct < 0.6" },
+  { cast = "lights_vigil_heal", target = "lowest", if = "ally.hp_pct < 0.7" },
+  { cast = "holy_light", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.55" },
+  { cast = "flash_of_light", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.85" },
+  { cast = "holy_light", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.85 && !known.flash_of_light" },
+]
+rest = []

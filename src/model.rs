@@ -201,6 +201,13 @@ pub enum TargetSel {
     Enemies(Expr),
     /// The acting unit's current hostile target (for auras the unit holds).
     MyTarget,
+    /// The friendly unit the cast is on (yourself when it's on nobody else).
+    Ally,
+    /// Every live member of your group (yourself included, no pets).
+    Party,
+    /// The cast's ally first, then the most hurt others, up to a maximum
+    /// (Chain Heal, Wild Growth).
+    Allies(Expr),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -259,6 +266,8 @@ pub struct HealFx {
     pub tag: Option<String>,
     pub periodic: bool,
     pub on_crit: Vec<Effect>,
+    /// Each further target heals for this share of the one before (Chain Heal).
+    pub falloff: Option<Expr>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -289,6 +298,9 @@ pub enum Effect {
     Interrupt { who: TargetSel, lockout: Expr },
     If { cond: Expr, then: Vec<Effect>, els: Vec<Effect> },
     Chance { p: Expr, then: Vec<Effect> },
+    /// Effects run by the caster of the aura they belong to, on the aura's
+    /// holder (Prayer of Mending heals with the priest's power).
+    FromSource(Vec<Effect>),
     Dispel { who: TargetSel, mechanics: Vec<Mechanic> },
     Taunt { duration: Expr },
     Threat { amount: Expr },
@@ -329,6 +341,20 @@ pub enum SpellTarget {
     Me,
     Friendly,
     Pet,
+    /// A heal line on the group's tank (yourself when there's no tank).
+    Tank,
+    /// A heal line on the most hurt ally the line's condition accepts.
+    Lowest,
+}
+
+/// Which rank of a spell a rotation line casts.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum RankPick {
+    /// The highest known.
+    #[default]
+    Max,
+    /// The smallest rank that heals the target's missing health.
+    Fit,
 }
 
 #[derive(Clone, Debug)]
@@ -437,6 +463,10 @@ pub struct Action {
     pub spell: SpellId,
     pub cond: Option<Expr>,
     pub target: SpellTarget,
+    pub rank: RankPick,
+    /// The condition reads the rank's numbers (`r.`), so it's checked after
+    /// the rank is chosen.
+    pub cond_rank: bool,
     pub line: String,
 }
 
@@ -454,6 +484,8 @@ pub struct Rotation {
     /// Out-of-combat resting thresholds (eat / drink below these fractions).
     pub eat_below: f64,
     pub drink_below: f64,
+    /// A play style for healing a group (the healing tests).
+    pub healer: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -621,6 +653,53 @@ pub struct EnemyDef {
     pub rotation: Option<Rotation>,
     pub stuns: Vec<(f64, f64)>,
     pub mods: Vec<StatMod>,
+    /// Timed attacks on the party (the healing tests' bosses).
+    pub script: Vec<ScriptHit>,
+}
+
+/// One of a boss's timed attacks: every `every` seconds from `first`.
+#[derive(Clone, Debug)]
+pub struct ScriptHit {
+    pub name: String,
+    pub icon: String,
+    pub school: School,
+    /// Average damage per target before armor, at the boss's level.
+    pub dmg: Expr,
+    pub spread: f64,
+    pub every: f64,
+    pub first: f64,
+    pub targets: ScriptTargets,
+    /// A weapon attack the tank can dodge, parry or block (else a spell
+    /// that always lands).
+    pub melee: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ScriptTargets {
+    Tank,
+    All,
+    /// Random party members, you and the tank included.
+    Random(u32),
+    /// Random party members other than the tank.
+    Others(u32),
+}
+
+/// The party in a healing test, by ally template.
+#[derive(Clone, Debug)]
+pub struct HealingDef {
+    pub boss: String,
+    pub tank: String,
+    /// Your group, besides you and the tank.
+    pub party: Vec<String>,
+    /// A second group (raids).
+    pub raid: Vec<String>,
+    pub duration: f64,
+    /// The test fails when this many members besides you and the tank die.
+    pub max_dead: u32,
+    pub lo: f64,
+    pub hi: f64,
+    pub steps: u32,
+    pub min_level: u32,
 }
 
 #[derive(Clone, Debug)]
@@ -629,6 +708,7 @@ pub enum ScenarioKind {
     Boss { duration: f64, enemy: String, execute_by_time: bool },
     Duel { max_time: f64, opponent: Option<String> },
     Pressure { attacker: String, attackers: u32, lo: f64, hi: f64, steps: u32, max_time: f64, win_needs_kill: bool },
+    Healing(HealingDef),
 }
 
 #[derive(Clone, Debug)]
@@ -681,6 +761,8 @@ pub struct World {
     pub rank_fields: Vec<String>,
     pub gear: BTreeMap<String, GearKit>,
     pub enemies: BTreeMap<String, EnemyDef>,
+    /// Party members in the healing tests.
+    pub allies: BTreeMap<String, EnemyDef>,
     pub scenarios: BTreeMap<String, ScenarioDef>,
     pub rest: RestCfg,
     pub common_passives: Vec<Passive>,

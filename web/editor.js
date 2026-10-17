@@ -6,7 +6,7 @@ import { h, art, ability, withTip, tt, flash, fmtNum } from './ui.js';
 import { prepareClass, renderTrees, learnBlock, unlearnBlock, budgetFor, spent } from './talents.js';
 import {
   S, env, bus, classOf, raceOf, presetOf, presetsFor, keepRace, presetTags, isExperimental, baseName, classColor, editingBuild, names, nameOf, slotOf, autoName,
-  apiBuild, buildFromPreset, emptyBuild, sig, buildDiff, diffText, saveLocal,
+  apiBuild, buildFromPreset, emptyBuild, sig, buildDiff, diffText, saveLocal, soloRotations, healRotationOf, healsGroups,
 } from './state.js';
 
 export async function refreshSheet(b) {
@@ -77,7 +77,7 @@ function afterTalentChange(t, viaTouch) {
 function presetNote(p, b) {
   const extra = [
     isExperimental(p) ? 'A Forever experiment.' : null,
-    p.role === 'healer' ? 'Healers are tested on their solo play until a healing test arrives.' : null,
+    p.role === 'healer' ? 'Healers also take the healing tests.' : null,
     p.role === 'tank' ? 'Tanks are tested on their solo play.' : null,
     b.edited ? 'You’ve changed its talents.' : null,
   ].filter(Boolean);
@@ -349,13 +349,16 @@ function sheetPanel(b, sheet) {
 function gearPanel(b) {
   const c = classOf(b.cls);
   const g = env.catalog.gear.find((x) => x.id === b.gear) || env.catalog.gear[0];
-  const rot = c.rotations.find((r) => r.id === b.rotation) || c.rotations[0];
+  const solo = soloRotations(c);
+  const rot = solo.find((r) => r.id === b.rotation) || solo[0];
+  const heal = healRotationOf(b.cls);
   const [rTitle, rDetail] = M.splitDesc(rot.desc);
   const gearTitle = (x) => M.GEAR_TITLES[x.id] || M.splitDesc(x.desc)[0];
   const gearSel = h('select.select', { 'aria-label': 'Gear', onchange: (e) => { b.gear = e.target.value; changed(b); } },
     env.catalog.gear.map((x) => h('option', { value: x.id, selected: x.id === b.gear }, gearTitle(x))));
   const rotSel = h('select.select', { 'aria-label': 'Play style', onchange: (e) => { b.rotation = e.target.value; changed(b); } },
-    c.rotations.map((r) => h('option', { value: r.id, selected: r.id === b.rotation }, M.splitDesc(r.desc)[0])));
+    solo.map((r) => h('option', { value: r.id, selected: r.id === b.rotation }, M.splitDesc(r.desc)[0])));
+  const [hTitle, hDetail] = heal ? M.splitDesc(heal.desc) : [];
   return [
     h('div.section', h('h3', 'Gear'),
       h('div.choice-card', ability(M.gearIcon(g.id), ['#d9c49a', '#2d2416'], M.gearWowIcon(g.id)),
@@ -364,6 +367,13 @@ function gearPanel(b) {
     h('div.section', h('h3', 'Play style'),
       h('div.choice-card', ability(M.CLASS_ICONS[b.cls], ['#d9c49a', '#2d2416'], c.icon),
         h('div.grow', rotSel, h('p.note', rDetail ? `In order of priority: ${rDetail.replace(/\.$/, '')}.` : rTitle)))),
+    heal ? h('div.section', h('h3', 'Healing tests'),
+      h('label.check-line',
+        h('input.check', { type: 'checkbox', checked: healsGroups(b), onchange: (e) => { b.healer = e.target.checked; saveLocal(); bus.render(); } }),
+        h('span', 'Heal in the healing tests')),
+      h('p.note', healsGroups(b)
+        ? `It heals the group in the dungeon, main tank and raid tests: ${(hDetail || hTitle).replace(/\.$/, '').replace(/^./, (x) => x.toLowerCase())}.`
+        : 'Turn this on to try this build as a healer in the dungeon, main tank and raid tests.')) : null,
     h('p.note', { style: { marginTop: '18px' } }, 'Played perfectly, with a good player’s reaction time.'),
   ];
 }

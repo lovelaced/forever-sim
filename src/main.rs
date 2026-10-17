@@ -394,6 +394,9 @@ fn main() {
                 .iter()
                 .map(|p| {
                     let b = load_build(&w, p, a.level).unwrap_or_else(|e| die(e));
+                    if let Some(e) = forever_sim::scenario::unfit(sc, &w, &b) {
+                        die(e);
+                    }
                     let opts = parse_opts(&w, &b, sc, &a.opts);
                     Variant { world: 0, name: b.name.clone(), build: b, opponent: opp.clone(), opts }
                 })
@@ -503,6 +506,9 @@ fn main() {
         Cmd::Log { scenario, build, vs, level, seed, lines } => {
             let sc = w.scenarios.get(&scenario).unwrap_or_else(|| die(format!("unknown scenario '{scenario}'")));
             let b = load_build(&w, &build, level).unwrap_or_else(|e| die(e));
+            if let Some(e) = forever_sim::scenario::unfit(sc, &w, &b) {
+                die(e);
+            }
             let opp = vs.map(|p| load_build(&w, &p, level).unwrap_or_else(|e| die(e)));
             let opts = parse_opts(&w, &b, sc, &[]);
             let (vals, log) = run_rep(&RepInput { w: &w, sc, build: &b, opponent: opp.as_ref(), opts: &opts, seed, log: true });
@@ -538,7 +544,12 @@ fn run_and_report(worlds: &[&World], header: &str, sc: &ScenarioDef, variants: V
     let mut json = serde_json::Map::new();
     for (vi, v) in variants.iter().enumerate() {
         let w = worlds[v.world];
-        println!("== {}", describe(w, &v.build));
+        // the healing tests play the build's healing style
+        let mut shown = v.build.clone();
+        if let (ScenarioKind::Healing(_), Some(r)) = (&sc.kind, &v.build.heal_rotation) {
+            shown.rotation = r.clone();
+        }
+        println!("== {}", describe(w, &shown));
         if let Some(o) = &v.opponent {
             println!("   vs {}", describe(w, o));
         }

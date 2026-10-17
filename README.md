@@ -45,7 +45,9 @@ and every paired difference). Global flags: `--data DIR`, `--patch FILE`
 `web/` is a static site that runs the same engine in the visitor's browser.
 Set up one to three builds (start from one in `builds/` or spend talent
 points in WoW-style talent trees), press Simulate, and every build plays
-through every test. Each test is a row with a scene from the world (Westfall,
+through every test. Healers (the healer builds, and any build marked to heal
+in the editor) also take three healing tests: a dungeon, a main tank and, at
+level 60, a raid. Each test is a row with a scene from the world (Westfall,
 Fargodeep Mine, Duskwood, the Westfall coast, the Deadmines, Stranglethorn
 Vale, Hillsbrad, Gurubashi Arena) where the main build's hero stands, and
 every build's result beside it. A row opens into four tabs: a summary, how
@@ -187,6 +189,19 @@ they say).
 | `boss` | 120 s on a +2 level boss from behind, tank holds threat, boss immune to crowd control | DPS |
 | `pressure`, `pressure_2v1` | a geared rogue-like player opens with a 4 s stun and stuns again at 10 s; PvP diminishing returns apply | breakeven attacker DPS |
 | `duel` | stand-and-trade against another build (`--vs`) | win rate |
+| `heal_dungeon` | 120 s healing a tank and three others against a +2 boss: melee and Mortal Strike on the tank, Fire Nova on everyone, Shadow Bolts on the others; fails if anyone dies | breakeven boss DPS (before armor) |
+| `heal_tank` | 180 s keeping one tank alive against a +3 boss with crushing blows: melee, Mortal Strike and Flame Breath | breakeven boss DPS |
+| `heal_raid` | level 60 only: 150 s, ten players in two groups against Onyxia: melee on the tank, Fireballs on two at random, Eruption on everyone; fails if the tank or you die, or three others do | breakeven boss DPS |
+
+In the healing tests the healer plays its class's healing style (the `heal`
+rotation in the class file, `healer = true`): heals go on the tank or on
+whoever is most hurt (`target = "tank"` or `"lowest"` on a line), and
+`rank = "fit"` casts the smallest rank that covers what they're missing. The
+party members only take hits and heals. The breakeven is found for each
+replication by bisecting the boss's damage, as in `pressure`, and the other
+numbers come from the hardest fight the healer held. Only the healer builds
+(and builds with a `heal_rotation`) take them: `fsim run heal_dungeon
+builds/priest/holy.toml`.
 
 Scenarios, enemies and gear kits are data too (`data/base/scenarios.toml`,
 `enemies.toml`, `gear.toml`); add your own the same way.
@@ -410,8 +425,8 @@ ones that move results most:
 * No positioning: no range, kiting, movement or line of sight. Roots and
   slows do nothing; Frost Nova and Frostbite freezes stop the target acting
   until it takes 25% of its health, standing in for kiting.
-* Totems are buffs on the shaman. Chain Lightning and Chain Heal hit one
-  target. Ground effects (Consecration, Flamestrike's burn) are per-target
+* Totems are buffs on the shaman (Healing Stream and Mana Spring reach your
+  group in the healing tests). Chain Lightning hits one target. Ground effects (Consecration, Flamestrike's burn) are per-target
   auras. Pet focus is not modeled (fixed ability cadence).
 * Gear kits are generic stat totals, the same for every build of a role, so
   results compare talents and rotations, not items. Cloth kits carry a
@@ -426,6 +441,11 @@ ones that move results most:
   defensive cooldowns). Builds with long crowd control or immunities
   (paladins, bears) get very high breakevens there; read it as "this build
   cannot be killed by that attacker", not as an exact number.
+* The healing tests are one healer against scripted damage. Party members
+  don't act, buff, dispel or heal. Nobody moves, so range and line of sight
+  don't matter. A heal can't be stopped mid-cast when its target is topped up
+  (one on someone who died fizzles). Prayer of Mending heals its holder once
+  instead of jumping.
 * Spell coefficients, Classic base stats and some proc rates are assumptions
   where the Forever client shows no number.
 

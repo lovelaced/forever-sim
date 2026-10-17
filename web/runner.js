@@ -8,13 +8,15 @@
 // the shared settings (`env`) are unchanged; the engine is deterministic, so
 // that variant is exactly what a new run would give.
 import * as M from './meta.js';
-import { S, env, bus, sig, envKey, apiBuild, nameOf, presetOf, primaryOf, accuracyOf, accuracyRank, buildOf, saveRows } from './state.js';
+import { S, env, bus, sig, envKey, apiBuild, nameOf, presetOf, primaryOf, accuracyOf, accuracyRank, buildOf, saveRows, takesTest } from './state.js';
 
 // Tests in the scorecard, in display order. Head to head needs two builds,
-// or an opponent picked for a single build.
+// or an opponent picked for a single build; the healing tests need a healer
+// (the raid, one at level 60).
 export function scorecardTests() {
   return M.SCENARIOS.map((s) => s.id).filter((id) =>
-    env.catalog.scenarios.some((x) => x.id === id) && (id !== 'duel' || S.builds.length > 1 || !!S.opponent));
+    env.catalog.scenarios.some((x) => x.id === id) && (id !== 'duel' || S.builds.length > 1 || !!S.opponent)
+    && S.builds.some((b) => takesTest(b, id)));
 }
 
 // Distinct builds by signature: copies run once and share the result.
@@ -43,7 +45,7 @@ function planTest(test, acc) {
   const a = accuracyOf(acc);
   const base = { op: 'start', scenario: test, precision: a.precision, max_reps: a.max_reps, min_reps: 32 };
   if (Object.keys(S.opts).length) base.opts = { ...S.opts };
-  const roles = rolesOf(S.builds);
+  const roles = rolesOf(S.builds.filter((b) => takesTest(b, test)));
   const api = (r) => apiBuild(r.build, nameOf(r.build));
   if (test !== 'duel') {
     return { test, acc, env: envKey(), roles: roles.map(plain), sessions: [{ req: { ...base, builds: roles.map(api) } }] };

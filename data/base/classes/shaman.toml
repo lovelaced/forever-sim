@@ -353,7 +353,7 @@ points = 10
 ranks = 3
 # trait data 8/17/25% (the armor bonus is in the Ancestral Fortitude aura)
 text = "Healing critical strikes give the target +8/17/25% armor for 15 sec."
-procs = [{ on = "heal_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "ancestral_fortitude" }] }]
+procs = [{ on = "heal_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "ancestral_fortitude", target = "target" }] }]
 [talents.healing_focus]
 icon = "spell_nature_healingwavelesser"
 tree = "Restoration"
@@ -533,7 +533,7 @@ tick = { interval = 2, effects = [{ type = "resource", res = "mana", amount = "r
 name = "Healing Stream Totem"
 group = "water_totem"
 duration = 300
-tick = { interval = 2, effects = [{ type = "heal", target = "self", amount = "r.heal", coef = 0.022, mult = "1 + 0.1 * t.restorative_totems", periodic = true, tag = "Healing Stream Totem" }] }
+tick = { interval = 2, effects = [{ type = "heal", target = "party", amount = "r.heal", coef = 0.022, mult = "1 + 0.1 * t.restorative_totems", periodic = true, tag = "Healing Stream Totem" }] }
 [auras.mana_tide_totem]
 name = "Mana Tide Totem"
 group = "water_totem"
@@ -1076,7 +1076,7 @@ ranks = [
   { level = 56, id = 10396, lo = 1255, lo_per_level = 5.136, hi = 1433, hi_per_level = 5.864, mana = 560, cast = 3, max_level = 61, coef = 0.857 },
   { level = 60, id = 25357, lo = 1508, lo_per_level = 5.135, hi = 1722, hi_per_level = 5.865, mana = 620, cast = 3, max_level = 65, coef = 0.857 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Healing Wave" }]
+effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Healing Wave" }]
 [spells.lesser_healing_wave]
 name = "Lesser Healing Wave"
 icon = "spell_nature_healingwavelesser"
@@ -1090,7 +1090,7 @@ ranks = [
   { level = 52, id = 10467, lo = 574, lo_per_level = 3.401, hi = 642, hi_per_level = 3.799, mana = 305, cast = 1.5, max_level = 57, coef = 0.429 },
   { level = 60, id = 10468, lo = 775, lo_per_level = 3.971, hi = 865, hi_per_level = 4.429, mana = 380, cast = 1.5, max_level = 65, coef = 0.429 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Lesser Healing Wave" }]
+effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Lesser Healing Wave" }]
 [spells.chain_heal]
 name = "Chain Heal"
 icon = "spell_nature_healingwavegreater"
@@ -1101,8 +1101,8 @@ ranks = [
   { level = 46, id = 10622, lo = 312, lo_per_level = 2.607, hi = 358, hi_per_level = 2.993, mana = 315, cast = 2.5, max_level = 51, coef = 0.714 },
   { level = 54, id = 10623, lo = 458, lo_per_level = 3.082, hi = 522, hi_per_level = 3.518, mana = 405, cast = 2.5, max_level = 59, coef = 0.714 },
 ]
-text = "Heals you only (the jumps to other targets are not simulated)."
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", mult = "aura.riptide.up ? 1.25 : 1", tag = "Chain Heal" }]
+text = "Heals the target, then jumps to the two most hurt allies, each jump healing half as much (game data: 3 targets, 0.5 per jump). Riptide on the first target adds 25%."
+effects = [{ type = "heal", target = "allies", max_targets = 3, falloff = 0.5, min = "r.lo", max = "r.hi", coef = "r.coef", mult = "ally.aura.riptide.up ? 1.25 : 1", tag = "Chain Heal" }]
 [spells.riptide]
 name = "Riptide"
 icon = "spell_nature_riptide"
@@ -1116,7 +1116,7 @@ ranks = [
   { level = 50, id = 1239242, lo = 581, lo_per_level = 3.99, hi = 643, hi_per_level = 4.41, hot = 575, mana = 300, max_level = 58, coef = 0.214 },
   { level = 60, id = 1239243, lo = 799, lo_per_level = 4.655, hi = 883, hi_per_level = 5.145, hot = 805, hot_per_level = 18.5, mana = 385, max_level = 68, coef = 0.214 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Riptide" }, { type = "aura", aura = "riptide", target = "self" }]
+effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Riptide" }, { type = "aura", aura = "riptide", target = "ally" }]
 [spells.natures_swiftness]
 name = "Nature's Swiftness"
 icon = "spell_nature_ravenform"
@@ -1280,3 +1280,26 @@ rest = [
 ]
 eat_below = 0.4
 drink_below = 0.35
+
+# Healing a group (the healing tests): Water Shield and Mana Spring up, heals
+# on whoever is most hurt, sized to what they're missing; nothing while
+# everyone is topped up.
+[rotations.heal]
+desc = "Group healing: Riptide on whoever is most hurt, Chain Heal when two or more are hurt, Lesser Healing Wave for emergencies, Healing Wave sized to what's missing, Mana Tide Totem when mana runs low"
+healer = true
+auto_melee = false
+precombat = ["water_shield", "lightning_shield", "mana_spring_totem", { cast = "healing_stream_totem", if = "!known.mana_spring_totem" }]
+opener = []
+actions = [
+  { cast = "mana_potion", if = "opt.potions && mana_pct < 0.3" },
+  { cast = "mana_tide_totem", if = "mana_pct < 0.4" },
+  { cast = "natures_swiftness", if = "lowest.hp_pct < 0.3" },
+  { cast = "healing_wave", target = "lowest", if = "aura.natures_swiftness.up && ally.hp_pct < 0.35" },
+  { cast = "riptide", target = "lowest", if = "ally.hp_pct < 0.8" },
+  { cast = "lesser_healing_wave", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.4" },
+  { cast = "chain_heal", target = "lowest", rank = "fit", if = "raid.hurt_75 >= 2" },
+  { cast = "healing_wave", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.7" },
+  { cast = "water_shield" },
+  { cast = "lightning_shield" },
+]
+rest = []

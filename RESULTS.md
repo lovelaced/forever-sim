@@ -13,6 +13,8 @@ fsim run boss builds/*/*.toml
 fsim run solo_1 builds/*/*.toml --level 20 --precision 0.015
 fsim run solo_2_hard builds/*/*.toml --precision 0.02
 fsim run pressure builds/*/*.toml --precision 0.03
+fsim run heal_dungeon builds/priest/holy.toml builds/priest/discipline.toml \
+  builds/paladin/holy.toml builds/druid/restoration.toml builds/shaman/restoration.toml --precision 0.015
 ```
 
 ### Standard specs
@@ -78,6 +80,22 @@ fsim run pressure builds/*/*.toml --precision 0.03
   means crowd control or immunities win the fight outright (see Limits in the
   README).
 
+### Healers in the healing tests
+
+Boss damage per second, before armor, that the healer keeps the party alive
+through half the time (±1.5%). The bosses' damage is set so the Holy priest
+breaks even near the same mark at every level, so read the numbers against
+each other: 10% higher means heals that hold through a boss hitting 10%
+harder.
+
+| Class | Build | Dungeon (30) | Dungeon (60) | Main tank (30) | Main tank (60) | Raid (60) |
+|---|---|---:|---:|---:|---:|---:|
+| Druid | Restoration | 151 | 677 | 130 | 719 | 432 |
+| Paladin | Holy | 169 | 703 | 111 | 588 | 535 |
+| Priest | Discipline | 151 | 669 | 126 | 626 | 538 |
+| Priest | Holy | 130 | 652 | 96 | 546 | 532 |
+| Shaman | Restoration | 153 | 828 | 100 | 626 | 595 |
+
 ## The builds
 
 There is a standard build for every talent tree (27), plus the Forever
@@ -86,10 +104,31 @@ community's Forever guides (Method, Warcraft Tavern, Icy Veins, wowtbc.gg,
 stillsixty and others; the sources are listed in each build file). Their
 leveling orders to level 30 come from those guides; points past 30 are
 theorycrafted until launch, since the beta stops at 30. Healers (Holy,
-Discipline, Restoration) are shown by their solo play, which is all these
-tests measure until the healing test arrives; tanks likewise.
+Discipline, Restoration) play their solo style in the tests above and heal a
+group in the healing tests below; tanks are shown by their solo play.
 
 ## What moved since the previous table
+
+**Three healing tests.** Healers now heal a group: a dungeon boss with a
+tank and three others, a main tank against a raid boss three levels up (with
+crushing blows), and at level 60 a ten-player raid against Onyxia. Heals can
+go on anyone in the party, and heal lines are sized to what's missing.
+Alone, every heal still lands on you, and every solo and PvP number above
+is unchanged (checked build by build at levels 20, 40 and 60). A few things
+stand out:
+
+* At 60 the Restoration shaman leads the dungeon (828) and the raid (595):
+  Riptide, and Chain Heal jumping to the two most hurt.
+* The Restoration druid keeps a single tank up best (719): Rejuvenation,
+  Regrowth and Swiftmend all stack on one target. With no group heal but
+  Wild Growth and a five-minute Tranquility, it trails in the raid (432).
+* The Holy paladin is the strongest dungeon healer at 30 (169), on cheap
+  Flash of Light.
+* Every healer runs nearly dry by the end of these fights, so mana per heal
+  decides as much as raw healing.
+
+Prayer of Healing and Tranquility are new; they only come up in the healing
+tests.
 
 **Potions are off by default.** Every rotation used to drink a health
 potion below 20% health and a mana potion on bosses and players. Potions

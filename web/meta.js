@@ -81,6 +81,12 @@ export const SCENARIOS = [
     help: 'The same ambush, two attackers at once.' },
   { id: 'duel', phrase: 'the duel', abbr: 'pts', icon: 'fencer', wow: 'ability_parry', title: 'Duel', short: 'Duel', group: 'duel', unit: 'duel', per: 'duels won',
     help: 'Stand and fight until one of you dies, with a three-minute limit.' },
+  { id: 'heal_dungeon', phrase: 'dungeon healing', abbr: 'boss DPS', icon: 'healing', wow: 'spell_holy_renew', title: 'Healing: dungeon', short: 'Dungeon', group: 'healing', unit: 'fight', per: 'boss damage per second you heal through',
+    help: 'Two minutes keeping a tank and three others alive against a dungeon boss two levels up. The number is how hard the boss can hit before someone dies.' },
+  { id: 'heal_tank', phrase: 'main tank healing', abbr: 'boss DPS', icon: 'heart-plus', wow: 'spell_holy_greaterheal', title: 'Healing: main tank', short: 'Main tank', group: 'healing', unit: 'fight', per: 'boss damage per second you heal through',
+    help: 'Three minutes keeping one tank alive against a raid boss three levels up, crushing blows and all.' },
+  { id: 'heal_raid', phrase: 'raid healing', abbr: 'boss DPS', icon: 'angel-wings', wow: 'spell_holy_prayerofhealing02', title: 'Healing: raid', short: 'Raid', group: 'healing', unit: 'fight', per: 'boss damage per second you heal through', minLevel: 60,
+    help: 'Two and a half minutes healing ten players in two groups against Onyxia, alone. The tank and you have to live, and no more than two others can fall.' },
 ];
 
 // Each test's scene (web/art/scene-<test>.png, and scene-<test>-horde.png
@@ -97,13 +103,17 @@ export const SCENES = {
   pressure: { zone: 'Stranglethorn Vale', top: 36, horde: { zone: 'Stranglethorn Vale', top: 32 } },
   pressure_2v1: { zone: 'Hillsbrad Foothills', top: 50, horde: { zone: 'Hillsbrad Foothills', top: 56 } },
   duel: { zone: 'Gurubashi Arena', top: 34 },
+  // the healing tests borrow the boss scenes until their own are drawn
+  heal_dungeon: { art: 'boss', zone: 'The Deadmines', top: 38, horde: { zone: 'Razorfen Kraul', top: 40 } },
+  heal_tank: { art: 'boss', zone: 'The Deadmines', top: 38, horde: { zone: 'Razorfen Kraul', top: 40 } },
+  heal_raid: { art: 'boss', zone: 'The Deadmines', top: 38, horde: { zone: 'Razorfen Kraul', top: 40 } },
 };
 export function sceneFor(test, faction) {
   const sc = SCENES[test];
   if (!sc) return null;
   const horde = faction === 'horde' && sc.horde;
   const v = horde ? sc.horde : sc;
-  return { file: `art/scene-${test}${horde ? '-horde' : ''}.png`, zone: v.zone, top: v.top, ground: v.ground ?? 14 };
+  return { file: `art/scene-${sc.art || test}${horde ? '-horde' : ''}.png`, zone: v.zone, top: v.top, ground: v.ground ?? 14 };
 }
 // The side of the world things are drawn from: Horde art for a Horde build.
 export const sideArt = (faction) => (faction === 'horde'
@@ -126,20 +136,22 @@ export const LOADING_TIPS = [
   'The world PvP tests ask how hard an attacker has to hit to beat you half the time.',
   'Nobody moves in these fights yet, so kiting and running away aren’t part of any test.',
   'Precise accuracy runs the most fights. Use it when two builds look too close to call.',
-  'Class rankings runs every build on the site through seven tests. It takes a few minutes.',
+  'Class rankings runs every build on the site through seven tests, and the healers through three more. It takes a few minutes.',
   'Spell numbers come from Forever’s own game data, checked one by one.',
   'Ranges are 95% confidence intervals: run a test again and the average would almost always land inside.',
   'In the boss test a tank holds the boss, and you hit it from behind.',
   'Share these builds from the top of the page: anyone who opens the link sees the same builds.',
   'Everything runs in your browser. Nothing you set up leaves your computer.',
   'Open a test to watch one of its fights step by step, every spell with its icon.',
+  'Healers take three healing tests: a dungeon, a main tank and, at level 60, a raid.',
+  'In the healing tests, heals are sized to what’s missing: a small gap gets a low rank.',
 ];
 
 // Tests run in this order, quickest first, so the scorecard starts filling
 // at once. The scorecard itself keeps the order above.
-export const RUN_ORDER = ['boss', 'pressure', 'pressure_2v1', 'duel', 'solo_1', 'solo_2', 'solo_2_hard', 'solo_3'];
+export const RUN_ORDER = ['boss', 'pressure', 'pressure_2v1', 'duel', 'solo_1', 'solo_2', 'solo_2_hard', 'solo_3', 'heal_dungeon', 'heal_tank', 'heal_raid'];
 
-export const GROUP_NAMES = { leveling: 'leveling', boss: 'the dungeon boss', pvp: 'world PvP', duel: 'duels' };
+export const GROUP_NAMES = { leveling: 'leveling', boss: 'the dungeon boss', pvp: 'world PvP', duel: 'duels', healing: 'healing' };
 
 // Builds are told apart by slot (A, B, C) in every chart and table; the class
 // colour stays on the portrait. Chosen to stay distinct from each other and
@@ -164,6 +176,7 @@ export const PRIMARY_HELP = {
   dps: 'Average damage per second over the two-minute boss fight.',
   breakeven: 'How much damage per second (before your armor) the attacker needs to beat you half the time. Higher means you survive harder ambushes.',
   win: 'Share of duels won against the chosen opponent.',
+  heal_breakeven: 'How much damage per second (before armor) the boss can deal before the party falls, half the time. Higher means you heal through harder fights.',
 };
 
 // How each metric is shown. kind: num | pct (0..1 share) | rate (0..1 chance) | sec
@@ -198,6 +211,19 @@ export const METRICS = {
   duration: { label: 'Duel length', kind: 'sec' },
   end_hp_pct: { label: 'Health left at the end', kind: 'pct' },
   breakeven_scale: { hidden: true },
+  heal_breakeven: { label: 'Boss damage per second you heal through', short: 'Damage you heal through', kind: 'num', digits: 0, good: 'high',
+    more: 'more boss damage per second', less: 'less boss damage per second', verb: 'heals through' },
+  heal_breakeven_scale: { hidden: true },
+  holds_standard: { hidden: true },
+  held: { hidden: true },
+  time_held: { hidden: true },
+  overheal_share: { label: 'Overhealing', kind: 'pct', good: 'low' },
+  shield_share: { label: 'Healing done by shields', kind: 'pct', hideZero: true },
+  tank_share: { label: 'Healing on the tank', kind: 'pct' },
+  self_share: { label: 'Healing on yourself', kind: 'pct' },
+  taken_per_sec: { label: 'Damage the party takes per second', kind: 'num', digits: 0 },
+  mana_left: { label: 'Mana left at the end', kind: 'pct' },
+  deaths: { label: 'Party members lost', kind: 'num', digits: 2, good: 'low', hideZero: true },
 };
 
 export const GROUPS = {
@@ -207,6 +233,7 @@ export const GROUPS = {
   heal: { title: 'Healing by source', kind: 'num' },
   casts_per_kill: { title: 'Casts per kill', kind: 'num' },
   casts_per_min: { title: 'Casts per minute', kind: 'num' },
+  hps: { title: 'Healing per second by spell', kind: 'num' },
 };
 
 // Character sheet layout: [section, [stat keys]]. Rows with no meaning for

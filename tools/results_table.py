@@ -22,6 +22,14 @@ COLUMNS = [
     ('Deaths/h', 'solo_2_hard', None, 'deaths_per_hour', 0.02),
     ('PvP breakeven (60)', 'pressure', None, 'breakeven', 0.03),
 ]
+# The healing tests, for the healer builds: boss damage per second healed through.
+HEAL_COLUMNS = [
+    ('Dungeon (30)', 'heal_dungeon', 30, 'heal_breakeven', 0.015),
+    ('Dungeon (60)', 'heal_dungeon', None, 'heal_breakeven', 0.015),
+    ('Main tank (30)', 'heal_tank', 30, 'heal_breakeven', 0.015),
+    ('Main tank (60)', 'heal_tank', None, 'heal_breakeven', 0.015),
+    ('Raid (60)', 'heal_raid', None, 'heal_breakeven', 0.015),
+]
 
 
 def args():
@@ -66,22 +74,26 @@ def run(scenario, level, precision, paths, at_build=None):
 def main():
     save, compare, at_build = args()
     bs = builds()
-    paths = [p for _, _, p in bs]
+    healers = [b for b in bs if KIND.get(b[1], ('', ''))[1] == 'healer']
+    # FSIM_ONLY=healing runs just the healing table
+    only = os.environ.get('FSIM_ONLY')
     cache = {}
     values = {}
-    for col, scenario, level, metric, precision in COLUMNS:
+    jobs = [(c, bs) for c in COLUMNS] if only != 'healing' else []
+    jobs += [(c, healers) for c in HEAL_COLUMNS]
+    for (col, scenario, level, metric, precision), who in jobs:
         key = (scenario, level, precision)
         if key not in cache:
-            cache[key] = run(scenario, level, precision, paths, at_build)
+            cache[key] = run(scenario, level, precision, [p for _, _, p in who], at_build)
         res = cache[key]
-        for cls, name, _ in bs:
+        for cls, name, _ in who:
             ms = {m['name']: m for m in res.get(name, [])}
             m = ms.get(metric)
             if m:
                 v = m['median'] if m['kind'] == 'median' else m['mean']
                 values.setdefault(f'{cls}|{name}', {})[col] = {'v': v, 'lo': m['lo'], 'hi': m['hi']}
     fmt = lambda col, v: f'{v:.2f}' if col == 'Deaths/h' else f'{v:.0f}'
-    for kind, title in [('standard', 'Standard specs'), ('experimental', 'Forever experiments')]:
+    for kind, title in ([('standard', 'Standard specs'), ('experimental', 'Forever experiments')] if only != 'healing' else []):
         print(f'\n### {title}\n')
         print('| Class | Build | ' + ' | '.join(c for c, *_ in COLUMNS) + ' |')
         print('|---|---|' + '---:|' * len(COLUMNS))
@@ -92,6 +104,12 @@ def main():
             row = values.get(f'{cls}|{name}', {})
             shown = name.replace(f' ({cls})', '') + (f' ({role})' if role else '')
             print(f'| {cls.capitalize()} | {shown} | ' + ' | '.join(fmt(c, row[c]['v']) if c in row else '–' for c, *_ in COLUMNS) + ' |')
+    print('\n### Healers in the healing tests\n')
+    print('| Class | Build | ' + ' | '.join(c for c, *_ in HEAL_COLUMNS) + ' |')
+    print('|---|---|' + '---:|' * len(HEAL_COLUMNS))
+    for cls, name, _ in healers:
+        row = values.get(f'{cls}|{name}', {})
+        print(f'| {cls.capitalize()} | {name.replace(f" ({cls})", "")} | ' + ' | '.join(fmt(c, row[c]['v']) if c in row else '–' for c, *_ in HEAL_COLUMNS) + ' |')
     if save:
         json.dump(values, open(save, 'w'), indent=1)
     if compare:

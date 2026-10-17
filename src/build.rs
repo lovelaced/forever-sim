@@ -19,6 +19,8 @@ pub struct Build {
     pub gear_id: String,
     pub gear: GearStats,
     pub rotation: String,
+    /// The play style for the healing tests (None: the class has none).
+    pub heal_rotation: Option<String>,
     pub opts: Vec<(u16, f64)>,
     pub warnings: Vec<String>,
 }
@@ -306,6 +308,15 @@ pub fn build_from_table(w: &World, t: &Table, path: &str, level_override: Option
             c.rotations.keys().cloned().collect::<Vec<_>>().join(", ")
         ));
     }
+    let heal_rotation = match get("heal_rotation") {
+        Some(r) => {
+            if !c.rotations.get(&r).map_or(false, |x| x.healer) {
+                return Err(format!("{path}: heal_rotation '{r}' is not a healing play style for {}", c.id));
+            }
+            Some(r)
+        }
+        None => c.rotations.values().find(|x| x.healer).map(|x| x.id.clone()),
+    };
     let mut opts = Vec::new();
     if let Some(ot) = t.get("opts").and_then(|v| v.as_table()) {
         for (k, v) in ot {
@@ -325,6 +336,7 @@ pub fn build_from_table(w: &World, t: &Table, path: &str, level_override: Option
         gear_id,
         gear,
         rotation,
+        heal_rotation,
         opts,
         warnings,
     })

@@ -153,7 +153,7 @@ ranks = 3
 text = "Non-periodic critical heals shield the target for 5% of the heal per point (15% at 3/3)."
 # Only non-periodic crits (Renew's ticks can crit but don't count): Oct 15
 # notes, which say the tooltip now states this rule; the behavior is not new.
-procs = [{ on = "heal_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "divine_aegis", target = "self", stacks = "event.amount * 0.05 * rank" }] }]
+procs = [{ on = "heal_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "divine_aegis", target = "target", stacks = "event.amount * 0.05 * rank" }] }]
 [talents.power_infusion]
 icon = "spell_holy_powerinfusion"
 tree = "Discipline"
@@ -216,7 +216,7 @@ tree = "Holy"
 points = 10
 ranks = 3
 text = "Non-periodic critical heals give +8%, +17% or +25% armor for 15 sec."
-procs = [{ on = "heal_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "inspiration" }] }]
+procs = [{ on = "heal_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "inspiration", target = "target" }] }]
 [talents.holy_reach]
 icon = "spell_holy_purify"
 tree = "Holy"
@@ -249,13 +249,13 @@ icon = "inv_scroll_07"
 tree = "Holy"
 points = 20
 ranks = 2
-text = "Mana back (5% of base cost per point, 10% at 2/2) when a heal follows a different heal (not simulated: needs a healer rotation on allies)."
+text = "Mana back (5% of base cost per point, 10% at 2/2) when a heal follows a different heal (not simulated)."
 [talents.spirit_of_redemption]
 icon = "inv_enchant_essenceeternallarge"
 tree = "Holy"
 points = 20
 ranks = 1
-text = "On death, 15 sec as a spirit that heals allies for free (not simulated: no party)."
+text = "On death, 15 sec as a spirit that heals allies for free (not simulated)."
 [talents.spiritual_guidance]
 icon = "spell_holy_spiritualguidence"
 tree = "Holy"
@@ -269,7 +269,7 @@ tree = "Holy"
 points = 25
 ranks = 3
 text = "Healing done +3%, 7% or 10%. In the game data it reaches every heal here except Vampiric Embrace. The talent tree's values and the tooltip agree; the talent spell's 2 is not used."
-spell_mods = [{ spells = ["lesser_heal", "heal", "greater_heal", "flash_heal", "binding_heal", "penance_heal", "renew", "desperate_prayer", "prayer_of_mending", "holy_nova", "contingency_plan"], prop = "heal", mul = "1 + interp(rank, 1,0.03, 2,0.07, 3,0.1)" }]
+spell_mods = [{ spells = ["lesser_heal", "heal", "greater_heal", "flash_heal", "binding_heal", "penance_heal", "renew", "desperate_prayer", "prayer_of_mending", "holy_nova", "contingency_plan", "prayer_of_healing"], prop = "heal", mul = "1 + interp(rank, 1,0.03, 2,0.07, 3,0.1)" }]
 [talents.prayer_of_mending]
 icon = "spell_holy_prayerofmendingtga"
 tree = "Holy"
@@ -497,7 +497,7 @@ procs = [{ on = "struck_melee", icd = 3.5, effects = [{ type = "damage", school 
 name = "Prayer of Mending"
 duration = 30
 charges = 1
-procs = [{ on = "struck", effects = [{ type = "heal", target = "self", amount = "r.base", coef = 0.429, tag = "Prayer of Mending" }, { type = "consume" }] }]
+procs = [{ on = "struck", effects = [{ type = "from_source", effects = [{ type = "heal", target = "target", amount = "r.base", coef = 0.429, tag = "Prayer of Mending" }] }, { type = "consume" }] }]
 [auras.dark_sacrifice]
 name = "Dark Sacrifice"
 duration = 15
@@ -704,9 +704,9 @@ ranks = [
   { level = 50, id = 1240721, dmg = 68, dmg_per_level = 0.43, heal = 268, heal_per_level = 1.27, max_level = 59, mana = 270 },
   { level = 60, id = 1316995, dmg = 92, heal = 425, mana = 385 },
 ]
-text = "Penance cast on yourself: the same game spell as Penance."
-effects = [{ type = "heal", target = "self", amount = "r.heal", coef = 0.19, can_crit = true, tag = "Penance" }]
-channel = { duration = 2, interval = 1, effects = [{ type = "heal", target = "self", amount = "r.heal", coef = 0.19, can_crit = true, tag = "Penance" }] }
+text = "Penance cast on yourself or an ally: the same game spell as Penance."
+effects = [{ type = "heal", target = "ally", amount = "r.heal", coef = 0.19, can_crit = true, tag = "Penance" }]
+channel = { duration = 2, interval = 1, effects = [{ type = "heal", target = "ally", amount = "r.heal", coef = 0.19, can_crit = true, tag = "Penance" }] }
 
 [spells.holy_nova]
 name = "Holy Nova"
@@ -721,10 +721,10 @@ ranks = [
   { level = 52, id = 27800, lo = 133, lo_per_level = 0.927, hi = 153, hi_per_level = 1.073, hlo = 221, hlo_per_level = 0.743, hhi = 255, hhi_per_level = 0.857, mana = 635, max_level = 58, coef = 0.107 },
   { level = 60, id = 27801, lo = 174, lo_per_level = 1.114, hi = 200, hi_per_level = 1.286, hlo = 288, hlo_per_level = 0.834, hhi = 334, hhi_per_level = 0.966, mana = 750, max_level = 66, coef = 0.107 },
 ]
-text = "Hits every nearby enemy (no cap in the game data) and heals you; the heal is the game's separate Holy Nova heal spell (23455, ...), 0.107 of healing power."
+text = "Hits every nearby enemy (no cap in the game data) and heals your party; the heal is the game's separate Holy Nova heal spell (23455, ...), 0.107 of healing power."
 effects = [
   { type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef = "r.coef", target = "enemies", threat = 0 },
-  { type = "heal", target = "self", min = "r.hlo", max = "r.hhi", coef = 0.107, tag = "Holy Nova" },
+  { type = "heal", target = "party", min = "r.hlo", max = "r.hhi", coef = 0.107, tag = "Holy Nova" },
 ]
 
 [spells.power_word_shield]
@@ -732,7 +732,7 @@ name = "Power Word: Shield"
 icon = "spell_holy_powerwordshield"
 cooldown = 4
 target = "self"
-requires = "!aura.weakened_soul.up"
+requires = "!ally.aura.weakened_soul.up"
 ranks = [
   { level = 6, id = 17, absorb = 44, absorb_per_level = 0.8, max_level = 11, mana = 45 },
   { level = 12, id = 592, absorb = 86, absorb_per_level = 1.2, max_level = 17, mana = 80 },
@@ -746,14 +746,14 @@ ranks = [
   { level = 60, id = 10901, absorb = 928, absorb_per_level = 4.3, max_level = 65, mana = 500 },
 ]
 text = "Absorbs `absorb` (growing with your level up to the rank's top) plus 0.1 of healing power."
-effects = [{ type = "aura", aura = "power_word_shield" }, { type = "aura", aura = "weakened_soul", target = "self" }]
+effects = [{ type = "aura", aura = "power_word_shield", target = "ally" }, { type = "aura", aura = "weakened_soul", target = "ally" }]
 
 [spells.renew]
 name = "Renew"
 icon = "spell_holy_renew"
 school = "holy"
 target = "self"
-requires = "!aura.renew.up"
+requires = "!ally.aura.renew.up"
 forms = ["none"]
 ranks = [
   { level = 8, id = 139, tick = 9, mana = 30 },
@@ -768,7 +768,7 @@ ranks = [
   { level = 60, id = 25315, tick = 166, mana = 410 },
 ]
 text = "`tick` is the healing every 3 sec (5 ticks). Renew can crit (Forever patch notes, Sep 24)."
-effects = [{ type = "aura", aura = "renew" }]
+effects = [{ type = "aura", aura = "renew", target = "ally" }]
 
 [spells.lesser_heal]
 name = "Lesser Heal"
@@ -781,7 +781,7 @@ ranks = [
   { level = 4, id = 2052, lo = 86, lo_per_level = 0.637, hi = 102, hi_per_level = 0.763, mana = 45, cast = 2, max_level = 9, coef = 0.571 },
   { level = 10, id = 2053, lo = 151, lo_per_level = 1.11, hi = 175, hi_per_level = 1.29, mana = 75, cast = 2.5, max_level = 15, coef = 0.714 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Lesser Heal" }]
+effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Lesser Heal" }]
 
 [spells.heal]
 name = "Heal"
@@ -795,7 +795,7 @@ ranks = [
   { level = 28, id = 6063, lo = 490, lo_per_level = 3.748, hi = 556, hi_per_level = 4.252, mana = 255, cast = 3, max_level = 33, coef = 0.857 },
   { level = 34, id = 6064, lo = 611, lo_per_level = 4.227, hi = 691, hi_per_level = 4.773, mana = 305, cast = 3, max_level = 39, coef = 0.857 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Heal" }]
+effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Heal" }]
 
 [spells.greater_heal]
 name = "Greater Heal"
@@ -810,7 +810,24 @@ ranks = [
   { level = 58, id = 10965, lo = 1685, lo_per_level = 7.09, hi = 1879, hi_per_level = 7.91, mana = 655, cast = 3, max_level = 63, coef = 0.857 },
   { level = 60, id = 25314, lo = 1853, lo_per_level = 7.656, hi = 2067, hi_per_level = 8.544, mana = 710, cast = 3, max_level = 65, coef = 0.857 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Greater Heal" }]
+effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Greater Heal" }]
+
+[spells.prayer_of_healing]
+name = "Prayer of Healing"
+icon = "spell_holy_prayerofhealing02"
+school = "holy"
+target = "self"
+cast_time = 3
+forms = ["none"]
+ranks = [
+  { level = 30, id = 596, lo = 172.3, lo_per_level = 0.774, hi = 183.7, hi_per_level = 0.826, mana = 410, max_level = 39, coef = 0.286 },
+  { level = 40, id = 996, lo = 256.9, lo_per_level = 0.969, hi = 273.1, hi_per_level = 1.031, mana = 560, max_level = 49, coef = 0.286 },
+  { level = 50, id = 10960, lo = 389.7, lo_per_level = 1.263, hi = 412.3, hi_per_level = 1.337, mana = 770, max_level = 59, coef = 0.286 },
+  { level = 60, id = 10961, lo = 567.3, lo_per_level = 1.460, hi = 598.7, hi_per_level = 1.540, mana = 1030, max_level = 69, coef = 0.286 },
+  { level = 60, id = 25316, lo = 631.4, lo_per_level = 1.557, hi = 666.6, hi_per_level = 1.643, mana = 1070, max_level = 69, coef = 0.286 },
+]
+text = "Heals everyone in your party."
+effects = [{ type = "heal", target = "party", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Prayer of Healing" }]
 
 [spells.flash_heal]
 name = "Flash Heal"
@@ -828,7 +845,7 @@ ranks = [
   { level = 50, id = 10916, lo = 589, lo_per_level = 3.385, hi = 699, hi_per_level = 4.015, mana = 315, max_level = 55, coef = 0.429 },
   { level = 56, id = 10917, lo = 757, lo_per_level = 3.853, hi = 893, hi_per_level = 4.546, mana = 380, max_level = 61, coef = 0.429 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Flash Heal" }]
+effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Flash Heal" }]
 
 [spells.binding_heal]
 name = "Binding Heal"
@@ -846,8 +863,11 @@ ranks = [
   { level = 50, id = 1240773, lo = 589, lo_per_level = 3.385, hi = 699, hi_per_level = 4.015, mana = 315, max_level = 55, coef = 0.429 },
   { level = 56, id = 1240774, lo = 757, lo_per_level = 3.853, hi = 893, hi_per_level = 4.546, mana = 380, max_level = 61, coef = 0.429 },
 ]
-text = "Heals the target and you with two equal effects; solo, only the self-heal half is used."
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Binding Heal" }]
+text = "Heals the target and you with two equal effects (one heal when you're the target)."
+effects = [
+  { type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Binding Heal" },
+  { type = "if", cond = "!ally.is_me", then = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Binding Heal" }] },
+]
 
 [spells.prayer_of_mending]
 name = "Prayer of Mending"
@@ -857,7 +877,7 @@ school = "holy"
 cooldown = 10
 target = "self"
 ranks = [{ level = 40, id = 401859, base = 172, mana = 210 }, { level = 50, id = 1240826, base = 298, mana = 305 }, { level = 60, id = 1240827, base = 413, mana = 390 }]
-effects = [{ type = "aura", aura = "prayer_of_mending" }]
+effects = [{ type = "aura", aura = "prayer_of_mending", target = "ally" }]
 
 [spells.desperate_prayer]
 name = "Desperate Prayer"
@@ -1045,3 +1065,32 @@ rest = [
 ]
 eat_below = 0.4
 drink_below = 0.35
+
+# Healing a group (the healing tests): heals go on the tank or whoever is most
+# hurt, sized to what they're missing (`rank = "fit"` picks the smallest rank
+# that covers it). Nothing is cast while everyone is topped up, so the
+# five-second rule gives back full mana regeneration.
+[rotations.heal]
+desc = "Group healing: a shield, Renew and Prayer of Mending on the tank; Flash Heal for emergencies, Greater Heal and Heal sized to what's missing, Prayer of Healing when three in your group are hurt"
+healer = true
+auto_melee = false
+precombat = ["inner_fire", "fortitude"]
+opener = []
+actions = [
+  { cast = "mana_potion", if = "opt.potions && mana_pct < 0.3" },
+  { cast = "desperate_prayer", if = "hp_pct < 0.35" },
+  { cast = "power_word_shield", target = "lowest", if = "ally.hp_pct < 0.4" },
+  { cast = "penance_heal", target = "lowest", if = "ally.hp_pct < 0.5" },
+  { cast = "flash_heal", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.4" },
+  { cast = "prayer_of_healing", if = "party.hurt_75 >= 3" },
+  { cast = "power_word_shield", target = "tank", if = "ally.hp_pct < 0.9" },
+  { cast = "prayer_of_mending", target = "tank" },
+  { cast = "renew", target = "tank", if = "ally.hp_pct < 0.9" },
+  { cast = "inner_focus", if = "lowest.hp_pct < 0.6" },
+  { cast = "power_infusion", if = "lowest.hp_pct < 0.6" },
+  { cast = "greater_heal", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.65" },
+  { cast = "heal", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.8" },
+  { cast = "lesser_heal", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.8 && !known.heal" },
+  { cast = "renew", target = "lowest", if = "ally.hp_pct < 0.9" },
+]
+rest = []

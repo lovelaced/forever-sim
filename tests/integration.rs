@@ -59,6 +59,9 @@ fn every_build_runs_every_scenario_at_20_40_60() {
             let opp = load_build(&w, Path::new("builds/warrior/vampire_v2.toml"), Some(lvl)).unwrap();
             let _ = &duel_opp;
             for sc in w.scenarios.values() {
+                if forever_sim::scenario::unfit(sc, &w, &b).is_some() {
+                    continue;
+                }
                 let opts = defaults(&w, sc);
                 let (v, _) = run_rep(&RepInput { w: &w, sc, build: &b, opponent: Some(&opp), opts: &opts, seed: 7, log: false });
                 for (k, x) in &v {
@@ -369,4 +372,149 @@ fn potions_only_when_turned_on() {
     assert_eq!(w.opts[k].default, 0.0, "potions are off by default");
     assert_eq!(drinks(0.0), 0, "no potions with the option off");
     assert!(drinks(1.0) > 0, "an Arcane mage on tough pulls drinks potions when they're on");
+}
+
+const HEALERS: [&str; 5] = ["priest/holy", "priest/discipline", "paladin/holy", "druid/restoration", "shaman/restoration"];
+
+fn trace(build: &str, scenario: &str, level: u32) -> serde_json::Value {
+    let text = std::fs::read_to_string(format!("builds/{build}.toml")).unwrap();
+    let build = serde_json::to_value(toml::from_str::<toml::Value>(&text).unwrap()).unwrap();
+    let req = serde_json::json!({ "op": "trace", "scenario": scenario, "level": level, "build": build, "until": 200 });
+    let out: serde_json::Value = serde_json::from_str(&forever_sim::api::handle(&req.to_string())).unwrap();
+    out.get("result").cloned().unwrap_or(out)
+}
+
+/// Every healer preset heals through every healing test it can take at 20,
+/// 40 and 60: the breakeven is found inside the search, never at its edges,
+/// and the healer heals.
+#[test]
+fn healers_hold_the_healing_tests_at_20_40_60() {
+    let w = world();
+    for file in HEALERS {
+        for lvl in [20u32, 40, 60] {
+            let b = load_build(&w, Path::new(&format!("builds/{file}.toml")), Some(lvl)).unwrap();
+            assert!(b.heal_rotation.is_some(), "{file}: no healing play style");
+            for id in ["heal_dungeon", "heal_tank", "heal_raid"] {
+                let sc = &w.scenarios[id];
+                if forever_sim::scenario::unfit(sc, &w, &b).is_some() {
+                    assert!(id == "heal_raid" && lvl < 60, "{file} {lvl}: can't take {id}");
+                    continue;
+                }
+                let ScenarioKind::Healing(h) = &sc.kind else { unreachable!() };
+                let opts = defaults(&w, sc);
+                let mut scales: Vec<f64> = (0..8u64).map(|seed| {
+                    let (v, _) = run_rep(&RepInput { w: &w, sc, build: &b, opponent: None, opts: &opts, seed, log: false });
+                    assert!(v["hps"] > 0.0, "{file} {lvl} {id}: no healing");
+                    assert!(v["heal_breakeven"].is_finite() && v["heal_breakeven"] > 0.0, "{file} {lvl} {id}: breakeven {}", v["heal_breakeven"]);
+                    v["heal_breakeven_scale"]
+                }).collect();
+                scales.sort_by(f64::total_cmp);
+                let med = scales[4];
+                assert!(med > 1.3 * h.lo && med < h.hi / 1.3, "{file} {lvl} {id}: breakeven scale {med} at the edge of {}..{}", h.lo, h.hi);
+            }
+        }
+    }
+}
+
+/// A healer's fight log: heals land on the tank and the others, the
+/// boss's attacks are labelled and have icons, and buffs on party members
+/// are in it.
+#[test]
+fn heals_land_on_the_party() {
+    let out = trace("priest/holy", "heal_dungeon", 60);
+    let me = out["me"].as_str().unwrap();
+    let party: Vec<&str> = out["party"].as_array().unwrap().iter().filter_map(|p| p.as_str()).collect();
+    assert_eq!(out["tank"], "Tank");
+    assert_eq!(party.len(), 4, "a tank and three others: {party:?}");
+    let events = out["events"].as_array().unwrap();
+    let healed: std::collections::BTreeSet<&str> = events.iter().filter(|e| e["kind"] == "heal" && e["who"] == me).filter_map(|e| e["target"].as_str()).collect();
+    assert!(healed.contains("Tank"), "the tank is healed");
+    assert!(healed.iter().filter(|t| **t != "Tank" && **t != me).count() >= 2, "others are healed too: {healed:?}");
+    for e in events.iter().filter(|e| e["team"] != 0 && e["kind"] == "hit") {
+        assert_eq!(e["who"], "Boss");
+        if e["name"] != "melee" {
+            assert!(!e["icon"].as_str().unwrap_or("").is_empty(), "{} has no icon", e["name"]);
+        }
+    }
+    assert!(events.iter().any(|e| e["kind"] == "gain" && e["who"] == "Tank" && e["name"] == "Power Word: Shield"), "shields go on the tank");
+}
+
+/// Chain Heal jumps to the most hurt, each jump healing half as much.
+#[test]
+fn chain_heal_jumps_and_falls_off() {
+    let out = trace("shaman/restoration", "heal_raid", 60);
+    let events = out["events"].as_array().unwrap();
+    let mut by_time: std::collections::BTreeMap<String, Vec<f64>> = Default::default();
+    for e in events.iter().filter(|e| e["kind"] == "heal" && e["name"] == "Chain Heal") {
+        let full = e["amount"].as_f64().unwrap() + e["over"].as_f64().unwrap();
+        by_time.entry(format!("{:.3}", e["t"].as_f64().unwrap())).or_default().push(full);
+    }
+    let jumps: Vec<&Vec<f64>> = by_time.values().filter(|v| v.len() > 1).collect();
+    assert!(!jumps.is_empty(), "Chain Heal never jumped");
+    let mut ratios = Vec::new();
+    for v in jumps {
+        assert!(v.len() <= 3, "at most three targets: {v:?}");
+        for k in 1..v.len() {
+            // half the one before, give or take a critical heal and each
+            // target's own roll within the spell's range (about 7% each way)
+            assert!(v[k] <= 0.5 * 1.5 * 1.16 * v[k - 1], "jump {k} heals {} after {}", v[k], v[k - 1]);
+            ratios.push(v[k] / v[k - 1]);
+        }
+    }
+    ratios.sort_by(f64::total_cmp);
+    let med = ratios[ratios.len() / 2];
+    assert!((0.4..0.62).contains(&med), "a typical jump heals {med} of the one before");
+}
+
+/// `rank = "fit"` casts the smallest rank that covers what's missing.
+#[test]
+fn fitted_heals_downrank_for_small_gaps() {
+    let w = world();
+    let mut b = load_build(&w, Path::new("builds/shaman/restoration.toml"), Some(60)).unwrap();
+    b.rotation = b.heal_rotation.clone().unwrap();
+    let sc = &w.scenarios["heal_dungeon"];
+    let mut sim = forever_sim::engine::Sim::new(&w, 1, defaults(&w, sc));
+    let p = sim.spawn_player(&b, 0, 1);
+    let tank = sim.spawn_ally(&w.allies["tank"], 60, 0, 0, 100);
+    sim.tank = Some(tank);
+    let mage = sim.spawn_ally(&w.allies["mage"], 60, 0, 0, 101);
+    let rot = sim.actors[p].rotation.unwrap();
+    let line = rot.actions.iter().find(|a| w.spells[a.spell as usize].id == "healing_wave" && a.rank == RankPick::Fit && a.target == SpellTarget::Lowest).unwrap();
+    let top = sim.known(p, line.spell).unwrap();
+    let rank_for = |sim: &mut forever_sim::engine::Sim, missing: f64| {
+        sim.actors[mage].hp = sim.actors[mage].max_hp - missing;
+        sim.line_plan(p, line, false, &mut None).expect("the line applies").rank.unwrap()
+    };
+    let small = rank_for(&mut sim, 0.31 * 3000.0);
+    let big = rank_for(&mut sim, 0.65 * 3000.0);
+    assert!(small < top, "a 930 gap takes a lower rank than the top ({small} of {top})");
+    assert!(big > small, "a bigger gap takes a bigger rank ({big} vs {small})");
+}
+
+/// Alone, a heal is on yourself: the party targets change nothing solo.
+#[test]
+fn solo_heals_are_on_yourself() {
+    let out = trace("priest/holy", "solo_2_hard", 40);
+    let me = out["me"].as_str().unwrap();
+    let heals: Vec<&serde_json::Value> = out["events"].as_array().unwrap().iter().filter(|e| e["kind"] == "heal" && e["who"] == me).collect();
+    assert!(!heals.is_empty());
+    assert!(heals.iter().all(|e| e["target"].is_null() || e["target"] == me), "solo heals land on the healer");
+}
+
+/// The healing tests give the same numbers however the fights are split.
+#[test]
+fn healing_results_do_not_depend_on_threads() {
+    let w = world();
+    let sc = &w.scenarios["heal_dungeon"];
+    let mk = || {
+        HEALERS.iter().take(2).map(|f| {
+            let b = load_build(&w, Path::new(&format!("builds/{f}.toml")), Some(40)).unwrap();
+            Variant { world: 0, name: b.name.clone(), opts: defaults(&w, sc), build: b, opponent: None }
+        }).collect::<Vec<_>>()
+    };
+    let cfg1 = McCfg { min_reps: 12, max_reps: 12, batch: 5, threads: 1, ..Default::default() };
+    let cfg4 = McCfg { threads: 4, batch: 3, ..cfg1.clone() };
+    let a = mc::run(&[&w], "heal_dungeon", &mk(), &cfg1);
+    let b = mc::run(&[&w], "heal_dungeon", &mk(), &cfg4);
+    assert_eq!(a.values, b.values, "results must not depend on threads or batch size");
 }

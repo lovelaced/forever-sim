@@ -64,6 +64,7 @@ fn effects<'e>(es: &'e [Effect], hit: Visit<'_, 'e>) {
                 ex(p, hit);
                 effects(then, hit)
             }
+            Effect::FromSource(then) => effects(then, hit),
             _ => {}
         }
     }

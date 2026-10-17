@@ -168,6 +168,7 @@
 .plaque .slot { grid-area: slot; justify-self: start; }
 .plaque .v { grid-area: v; font: 700 var(--fs-2xl)/1 var(--display); color: var(--text); white-space: nowrap; }
 .plaque .v.none { color: var(--text-3); font-size: var(--fs-l); }
+.plaque .v.out { font: 600 var(--fs-s)/1.2 var(--sans); color: var(--text-3); white-space: normal; }
 /* the best result wears a crown on the plaque's corner */
 .plaque .crown { position: absolute; top: -9px; right: -8px; width: calc(17 * var(--art)); height: calc(16 * var(--art)); filter: drop-shadow(0 0 4px rgba(255, 209, 0, .45)) drop-shadow(0 1px 1px #000); }
 .plaque .d { grid-area: d; margin-top: 3px; font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap; }
@@ -284,6 +285,7 @@
 .prio-n { text-align: right; color: var(--text-3); font-variant-numeric: tabular-nums; font-size: var(--fs-s); }
 .prio-what { display: grid; gap: 1px; min-width: 0; }
 .prio-what b { font-weight: 600; color: var(--wow-gold); text-shadow: 0 1px 0 #000; }
+.prio-what .prio-on { font-weight: 400; color: var(--text-2); text-shadow: none; }
 .prio-when { color: var(--text-2); font-size: var(--fs-s); line-height: 1.45; }
 .prio-stats { display: grid; justify-items: end; gap: 1px; font-size: var(--fs-s); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .prio-bar { display: block; width: 90px; height: 4px; margin-top: 3px; background: rgba(0, 0, 0, .6); }

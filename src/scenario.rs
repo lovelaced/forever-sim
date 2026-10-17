@@ -47,7 +47,36 @@ pub fn run_rep_traced(inp: &RepInput) -> RepOut {
         ScenarioKind::Pressure { attacker, attackers, lo, hi, steps, max_time, win_needs_kill } => {
             pressure(inp, attacker, *attackers, *lo, *hi, *steps, *max_time, *win_needs_kill)
         }
+        ScenarioKind::Healing(h) => healing(inp, h),
     }
+}
+
+/// Why a build can't take a test, if it can't.
+pub fn unfit(sc: &ScenarioDef, w: &World, b: &Build) -> Option<String> {
+    let ScenarioKind::Healing(h) = &sc.kind else { return None };
+    if b.heal_rotation.is_none() {
+        return Some(format!("{}: {} has no healing play style", sc.id, w.classes[b.class].name));
+    }
+    if b.level < h.min_level {
+        return Some(format!("{}: needs level {} (the build is {})", sc.id, h.min_level, b.level));
+    }
+    None
+}
+
+/// The highest scale a test still passes, by bisection on a log scale
+/// between `lo` and `hi` (the same seed every probe). Returns the breakeven
+/// and the highest probe that passed.
+fn bisect(lo: f64, hi: f64, steps: u32, mut pass: impl FnMut(f64) -> bool) -> (f64, f64) {
+    let (mut l, mut h) = (lo, hi);
+    for _ in 0..steps {
+        let mid = (l * h).sqrt();
+        if pass(mid) {
+            l = mid;
+        } else {
+            h = mid;
+        }
+    }
+    ((l * h).sqrt(), l)
 }
 
 fn new_sim<'w>(inp: &RepInput<'w>) -> Sim<'w> {
@@ -332,17 +361,7 @@ fn pressure(inp: &RepInput, attacker: &str, n: u32, lo: f64, hi: f64, steps: u32
     let w = inp.w;
     let e = &w.enemies[attacker];
     // per-replication critical scale by bisection on a log scale (same seed every probe)
-    let (mut l, mut h) = (lo, hi);
-    for _ in 0..steps {
-        let mid = (l * h).sqrt();
-        let (win, _, _, _, _) = pressure_fight(inp, attacker, n, mid, max_time, false);
-        if win {
-            l = mid;
-        } else {
-            h = mid;
-        }
-    }
-    let crit = (l * h).sqrt();
+    let (crit, _) = bisect(lo, hi, steps, |mid| pressure_fight(inp, attacker, n, mid, max_time, false).0);
     // what one unit of scale means: the attacker's damage per second before mitigation
     let probe = Sim::new(w, 0, inp.opts.to_vec());
     let cx = crate::engine::Cx::new(0, None, "");
@@ -356,5 +375,117 @@ fn pressure(inp: &RepInput, attacker: &str, n: u32, lo: f64, hi: f64, steps: u32
     put(&mut v, "breakeven_scale", crit);
     put(&mut v, "win_at_reference", if win_ref { 1.0 } else { 0.0 });
     put(&mut v, "time_alive_at_reference", t_ref);
+    (v, log, trace)
+}
+
+/// One healing fight at a damage scale: whether the party held, and what
+/// the healer did.
+fn heal_fight(inp: &RepInput, h: &HealingDef, scale: f64, log: bool) -> (bool, Values, Option<Vec<String>>, Option<Vec<TraceEv>>) {
+    let w = inp.w;
+    let mut sim = Sim::new(w, inp.seed, inp.opts.to_vec());
+    if log {
+        sim.log = Some(vec![]);
+        sim.trace = Some(vec![]);
+    }
+    let mut b = inp.build.clone();
+    if let Some(r) = &inp.build.heal_rotation {
+        b.rotation = r.clone();
+    }
+    let lvl = b.level;
+    let p = sim.spawn_player(&b, 0, 1);
+    let tank = sim.spawn_ally(&w.allies[&h.tank], lvl, 0, 0, 100);
+    sim.tank = Some(tank);
+    let members = h.party.iter().map(|a| (a, 0)).chain(h.raid.iter().map(|a| (a, 1)));
+    for (j, (a, g)) in members.enumerate() {
+        let id = sim.spawn_ally(&w.allies[a], lvl, 0, g, 101 + j as u64);
+        // a second Mage is "Mage 2"
+        let name = sim.actors[id].name.clone();
+        let same = sim.actors[..id].iter().filter(|x| x.name == name || x.name.starts_with(&format!("{name} "))).count();
+        if same > 0 {
+            sim.actors[id].name = format!("{name} {}", same + 1);
+        }
+    }
+    sim.precombat(p);
+    let e = &w.enemies[&h.boss];
+    let bl = (lvl as i32 + e.level_offset).max(1) as u32;
+    let boss = sim.spawn_enemy(e, bl, 1, 1000, scale);
+    sim.actors[boss].target = Some(tank);
+    sim.actors[p].target = Some(boss);
+    sim.enter_combat();
+    sim.start_script(boss);
+    sim.opener(p);
+    let start = sim.t;
+    let out = sim.run(Stop::Party { until: start + h.duration, max_dead: h.max_dead });
+    let el = (sim.t - start).max(1e-9);
+    let held = out != Outcome::Failed && !sim.party_failed(h.max_dead);
+    let party: Vec<usize> = (0..sim.actors.len()).filter(|&i| sim.actors[i].team == 0 && !sim.actors[i].is_pet()).collect();
+    let m = &sim.metrics[p];
+    let absorbed: f64 = party.iter().map(|&i| sim.metrics[i].absorbed).sum();
+    let taken: f64 = party.iter().map(|&i| sim.metrics[i].taken).sum();
+    let x = &sim.actors[p];
+    let mut v = Values::new();
+    put(&mut v, "held", if held { 1.0 } else { 0.0 });
+    put(&mut v, "time_held", el);
+    put(&mut v, "hps", m.heal / el);
+    put(&mut v, "overheal_share", m.overheal / (m.heal + m.overheal).max(1e-9));
+    put(&mut v, "shield_share", absorbed / (m.heal + absorbed).max(1e-9));
+    put(&mut v, "tank_share", sim.metrics[tank].healed_in / m.heal.max(1e-9));
+    put(&mut v, "self_share", sim.metrics[p].healed_in / m.heal.max(1e-9));
+    put(&mut v, "taken_per_sec", taken / el);
+    put(&mut v, "mana_left", if x.max_res[Res::Mana as usize] > 0.0 { x.res[Res::Mana as usize] / x.max_res[Res::Mana as usize] } else { 0.0 });
+    put(&mut v, "deaths", party.iter().filter(|&&i| !sim.actors[i].alive).count() as f64);
+    breakdown(&mut v, "hps:", &m.heal_by, el);
+    breakdown(&mut v, "casts_per_min:", &m.casts, el / 60.0);
+    line_counts(&mut v, &sim, p, el, 1.0, None);
+    (held, v, sim.log.take(), sim.trace.take())
+}
+
+/// What one unit of a healing test's scale means: the boss's damage per
+/// second before armor, dodges and shields, at your level.
+fn heal_unit_dps(inp: &RepInput, h: &HealingDef) -> f64 {
+    let w = inp.w;
+    let e = &w.enemies[&h.boss];
+    let mut probe = Sim::new(w, 0, inp.opts.to_vec());
+    let bl = (inp.build.level as i32 + e.level_offset).max(1) as u32;
+    let id = probe.spawn_enemy(e, bl, 1, 1, 1.0);
+    let cx = crate::engine::Cx::new(id, None, "");
+    let size = 2 + h.party.len() + h.raid.len();
+    let mut dps = if e.attacks { probe.ev(&e.dmg, &cx) / e.speed } else { 0.0 };
+    for s in &e.script {
+        let n = match s.targets {
+            ScriptTargets::Tank => 1,
+            ScriptTargets::All => size,
+            ScriptTargets::Random(n) => (n as usize).min(size),
+            ScriptTargets::Others(n) => (n as usize).min(size - 1),
+        };
+        dps += probe.ev(&s.dmg, &cx) * n as f64 / s.every;
+    }
+    dps
+}
+
+/// A healing test: the damage the healer keeps the party alive through,
+/// found per replication by bisection, and the details of the hardest fight
+/// they held.
+fn healing(inp: &RepInput, h: &HealingDef) -> RepOut {
+    // the probes that held climb, so the last one is the hardest fight held:
+    // its numbers are kept rather than played again (unless it's logged)
+    let mut last: Option<(f64, Values)> = None;
+    let (crit, held_at) = bisect(h.lo, h.hi, h.steps, |s| {
+        let (held, v, _, _) = heal_fight(inp, h, s, false);
+        if held {
+            last = Some((s, v));
+        }
+        held
+    });
+    let (mut v, log, trace) = match last {
+        Some((s, v)) if s == held_at && !inp.log => (v, None, None),
+        _ => {
+            let (_, v, log, trace) = heal_fight(inp, h, held_at, inp.log);
+            (v, log, trace)
+        }
+    };
+    put(&mut v, "heal_breakeven", crit * heal_unit_dps(inp, h));
+    put(&mut v, "heal_breakeven_scale", crit);
+    put(&mut v, "holds_standard", if crit >= 1.0 { 1.0 } else { 0.0 });
     (v, log, trace)
 }

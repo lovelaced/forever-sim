@@ -42,7 +42,7 @@ impl<'w> Sim<'w> {
             }
         };
         for p in &x.passives {
-            if p.spell_mods.is_empty() {
+            if !p.spell_mods.iter().any(|m| m.applies(spell, school)) {
                 continue;
             }
             if let Some(c) = &p.cond {
@@ -70,25 +70,31 @@ impl<'w> Sim<'w> {
     }
 
     fn costs(&self, a: usize, spell: SpellId, rank: Option<usize>, sm: &SmVals, tgt: usize) -> Vec<(Res, f64)> {
+        self.cost_iter(a, spell, rank, sm, tgt).collect()
+    }
+
+    fn cost_iter<'s>(&'s self, a: usize, spell: SpellId, rank: Option<usize>, sm: &'s SmVals, tgt: usize) -> impl Iterator<Item = (Res, f64)> + 's {
         let sp = &self.w.spells[spell as usize];
         let mut cx = Cx::new(a, Some(tgt), "");
         cx.rank = rank.map(|r| (spell, r));
         cx.spell = Some(spell);
         let cm = self.actors[a].st[Stat::CostMult as usize];
-        sp.cost
-            .iter()
-            .enumerate()
-            .map(|(i, (r, e))| {
-                let mut c = self.ev(e, &cx) * sm.cost_mul;
-                if i == 0 {
-                    c += sm.cost_add;
-                }
-                if *r != Res::Hp {
-                    c *= cm;
-                }
-                (*r, c.max(0.0))
-            })
-            .collect()
+        sp.cost.iter().enumerate().map(move |(i, (r, e))| {
+            let mut c = self.ev(e, &cx) * sm.cost_mul;
+            if i == 0 {
+                c += sm.cost_add;
+            }
+            if *r != Res::Hp {
+                c *= cm;
+            }
+            (*r, c.max(0.0))
+        })
+    }
+
+    /// Whether the caster can pay a cast's costs (without listing them).
+    fn affordable(&self, a: usize, spell: SpellId, rank: Option<usize>, sm: &SmVals, tgt: usize) -> bool {
+        let x = &self.actors[a];
+        self.cost_iter(a, spell, rank, sm, tgt).all(|(r, c)| if r == Res::Hp { x.hp > c } else { x.res[r as usize] + 1e-6 >= c })
     }
 
     fn afford(&self, a: usize, costs: &[(Res, f64)]) -> bool {
@@ -135,18 +141,100 @@ impl<'w> Sim<'w> {
             SpellTarget::Enemy => x.target.filter(|&t| self.actors[t].alive && self.hostile(a, t)),
             SpellTarget::Me | SpellTarget::Friendly => Some(a),
             SpellTarget::Pet => x.pets.iter().copied().find(|&p| self.actors[p].alive),
+            SpellTarget::Tank => Some(self.tank_of(a)).filter(|&t| self.actors[t].alive),
+            SpellTarget::Lowest => self.hurt_order(a).first().copied(),
         }
     }
 
     /// Everything that must hold for a spell to be cast right now.
     pub fn can_cast(&self, a: usize, spell: SpellId, kind: SpellTarget, relaxed: bool) -> Option<Plan> {
+        let target = self.resolve_target(a, kind)?;
+        self.can_cast_at(a, spell, kind, target, relaxed, None)
+    }
+
+    /// The plan for a rotation line: its spell can be cast and its condition
+    /// holds. A line on the most hurt ally tries each ally in turn, most hurt
+    /// first, and takes the first one the line accepts. `order` keeps that
+    /// list between the lines of one decision.
+    pub fn line_plan(&self, a: usize, act: &Action, relaxed: bool, order: &mut Option<Vec<usize>>) -> Option<Plan> {
+        let known = self.ready(a, act.spell, relaxed)?;
+        let mut sm = None;
+        if act.target == SpellTarget::Lowest {
+            let order = order.get_or_insert_with(|| self.hurt_order(a));
+            return order.iter().find_map(|&t| self.plan_on(a, act, t, relaxed, known, &mut sm));
+        }
+        let t = self.resolve_target(a, act.target)?;
+        self.plan_on(a, act, t, relaxed, known, &mut sm)
+    }
+
+    /// One line on one target. The condition goes first (it's the cheapest
+    /// check, and while nobody needs healing it's the one that fails), unless
+    /// it reads the numbers of a rank still to be fitted.
+    fn plan_on(&self, a: usize, act: &Action, target: usize, relaxed: bool, known: Option<usize>, sm: &mut Option<SmVals>) -> Option<Plan> {
+        let early = !(act.rank == RankPick::Fit && act.cond_rank);
+        if early {
+            if let Some(c) = &act.cond {
+                let cx = self.action_cx(a, &Plan { spell: act.spell, rank: known, target, cast_time: 0.0, sm: SmVals::default() });
+                if self.ev(c, &cx) == 0.0 {
+                    return None;
+                }
+            }
+        }
+        let sm = *sm.get_or_insert_with(|| self.spell_mod_vals(a, Some(act.spell), None));
+        let mut plan = self.plan_at(a, act.spell, act.target, target, relaxed, known, sm)?;
+        if act.rank == RankPick::Fit {
+            let r = self.fit_rank(a, &plan);
+            if r.is_some() && r != plan.rank {
+                plan = self.plan_at(a, act.spell, act.target, target, relaxed, r, sm)?;
+            }
+        }
+        if !early {
+            if let Some(c) = &act.cond {
+                let cx = self.action_cx(a, &plan);
+                if self.ev(c, &cx) == 0.0 {
+                    return None;
+                }
+            }
+        }
+        Some(plan)
+    }
+
+    /// The smallest known rank whose heal covers the target's missing
+    /// health, or the highest when none does.
+    fn fit_rank(&self, a: usize, plan: &Plan) -> Option<usize> {
+        let top = plan.rank?;
+        let sp = &self.w.spells[plan.spell as usize];
+        let t = &self.actors[plan.target];
+        let need = t.max_hp - t.hp;
+        let mut cx = self.action_cx(a, plan);
+        for r in 0..top {
+            cx.rank = Some((plan.spell, r));
+            if self.heal_estimate(&cx, &sp.effects)? >= need {
+                return Some(r);
+            }
+        }
+        Some(top)
+    }
+
+    /// `can_cast` on a chosen target, optionally with a lower rank than the
+    /// highest known.
+    pub fn can_cast_at(&self, a: usize, spell: SpellId, kind: SpellTarget, target: usize, relaxed: bool, rank: Option<usize>) -> Option<Plan> {
+        let known = self.ready(a, spell, relaxed)?;
+        let sm = self.spell_mod_vals(a, Some(spell), None);
+        self.plan_at(a, spell, kind, target, relaxed, known.map(|k| rank.unwrap_or(k).min(k)), sm)
+    }
+
+    /// What a cast needs of the caster alone, whoever it's on: the spell is
+    /// known, nothing (stun, silence, form) stops it, and it's off its
+    /// cooldown. Returns the highest known rank (None for a spell without ranks).
+    fn ready(&self, a: usize, spell: SpellId, relaxed: bool) -> Option<Option<usize>> {
         let w = self.w;
         let x = &self.actors[a];
         if !x.alive || x.cast.is_some() {
             return None;
         }
-        let rank = self.known(a, spell)?;
-        let rank = if rank == usize::MAX { None } else { Some(rank) };
+        let known = self.known(a, spell)?;
+        let rank = if known == usize::MAX { None } else { Some(known) };
         let sp = &w.spells[spell as usize];
         for m in self.hard_cc_mech(a) {
             if !sp.usable_while.contains(&m) {
@@ -170,9 +258,18 @@ impl<'w> Sim<'w> {
         if sp.next_swing && x.queued == Some(spell) {
             return None;
         }
-        let target = self.resolve_target(a, kind)?;
+        Some(rank)
+    }
+
+    /// The rest of `can_cast` for one target and rank: what the spell
+    /// requires there, its cost, and its cast time.
+    #[allow(clippy::too_many_arguments)]
+    fn plan_at(&self, a: usize, spell: SpellId, kind: SpellTarget, target: usize, relaxed: bool, rank: Option<usize>, sm: SmVals) -> Option<Plan> {
+        let x = &self.actors[a];
+        let sp = &self.w.spells[spell as usize];
         let mut cx = Cx::new(a, Some(target), sp.name.as_str());
-        if kind == SpellTarget::Me {
+        if matches!(kind, SpellTarget::Me | SpellTarget::Tank | SpellTarget::Lowest) {
+            cx.ally = Some(target).filter(|&t| t != a);
             cx.tgt = x.target.or(Some(a));
         }
         cx.rank = rank.map(|r| (spell, r));
@@ -182,12 +279,8 @@ impl<'w> Sim<'w> {
                 return None;
             }
         }
-        let sm = self.spell_mod_vals(a, Some(spell), None);
-        if !relaxed {
-            let costs = self.costs(a, spell, rank, &sm, target);
-            if !self.afford(a, &costs) {
-                return None;
-            }
+        if !relaxed && !self.affordable(a, spell, rank, &sm, target) {
+            return None;
         }
         let cast_time = if sp.channel.is_some() || relaxed {
             0.0
@@ -201,6 +294,7 @@ impl<'w> Sim<'w> {
         let sp = &self.w.spells[plan.spell as usize];
         let mut cx = Cx::new(a, Some(plan.target), sp.name.as_str());
         if sp.target == SpellTarget::Me {
+            cx.ally = Some(plan.target).filter(|&t| t != a);
             cx.tgt = self.actors[a].target.or(Some(a));
         }
         cx.rank = plan.rank.map(|r| (plan.spell, r));
@@ -222,14 +316,9 @@ impl<'w> Sim<'w> {
             }
         }
         let list = if self.rest_phase { &rot.rest } else { &rot.actions };
+        let mut order = None;
         for (k, act) in list.iter().enumerate() {
-            let Some(plan) = self.can_cast(a, act.spell, act.target, false) else { continue };
-            if let Some(c) = &act.cond {
-                let cx = self.action_cx(a, &plan);
-                if self.ev(c, &cx) == 0.0 {
-                    continue;
-                }
-            }
+            let Some(plan) = self.line_plan(a, act, false, &mut order) else { continue };
             if self.w.spells[act.spell as usize].auto_repeat && self.actors[a].wanding == Some(act.spell) {
                 // the chosen action is the wand that is already shooting: keep it going
                 return false;
@@ -251,17 +340,8 @@ impl<'w> Sim<'w> {
     pub fn can_act_rest(&self, a: usize) -> bool {
         let x = &self.actors[a];
         let Some(rot) = x.rotation else { return false };
-        for act in &rot.rest {
-            let Some(plan) = self.can_cast(a, act.spell, act.target, false) else { continue };
-            if let Some(c) = &act.cond {
-                let cx = self.action_cx(a, &plan);
-                if self.ev(c, &cx) == 0.0 {
-                    continue;
-                }
-            }
-            return true;
-        }
-        false
+        let mut order = None;
+        rot.rest.iter().any(|act| self.line_plan(a, act, false, &mut order).is_some())
     }
 
     /// Run the precombat list: buffs, pets, forms. Free and instant (the
@@ -298,23 +378,17 @@ impl<'w> Sim<'w> {
                 return Some(false);
             }
             // a move that can't be used now (cooldown, cost, stance) is skipped
-            if let Some(plan) = self.can_cast(a, act.spell, act.target, false) {
-                let ok = act.cond.as_ref().map_or(true, |c| {
-                    let cx = self.action_cx(a, &plan);
-                    self.ev(c, &cx) != 0.0
-                });
-                if ok {
-                    self.actors[a].opening = Some(k + 1);
-                    if self.actors[a].owner.is_none() {
-                        let v = &mut self.metrics[a].opener_lines;
-                        if v.len() <= k {
-                            v.resize(k + 1, 0.0);
-                        }
-                        v[k] += 1.0;
+            if let Some(plan) = self.line_plan(a, act, false, &mut None) {
+                self.actors[a].opening = Some(k + 1);
+                if self.actors[a].owner.is_none() {
+                    let v = &mut self.metrics[a].opener_lines;
+                    if v.len() <= k {
+                        v.resize(k + 1, 0.0);
                     }
-                    self.begin(a, plan);
-                    return Some(true);
+                    v[k] += 1.0;
                 }
+                self.begin(a, plan);
+                return Some(true);
             }
             k += 1;
         }
@@ -324,13 +398,7 @@ impl<'w> Sim<'w> {
 
     fn run_free(&mut self, a: usize, list: &'w [Action]) {
         for (k, act) in list.iter().enumerate() {
-            let Some(plan) = self.can_cast(a, act.spell, act.target, true) else { continue };
-            if let Some(c) = &act.cond {
-                let cx = self.action_cx(a, &plan);
-                if self.ev(c, &cx) == 0.0 {
-                    continue;
-                }
-            }
+            let Some(plan) = self.line_plan(a, act, true, &mut None) else { continue };
             if self.actors[a].owner.is_none() {
                 let v = &mut self.metrics[a].precombat_lines;
                 if v.len() <= k {
@@ -404,9 +472,9 @@ impl<'w> Sim<'w> {
         if c.channel {
             return;
         }
-        let sp = &self.w.spells[c.spell as usize];
         let target = c.target;
-        if sp.target == SpellTarget::Enemy && !self.actors[target].alive {
+        // a cast on a unit that died meanwhile fizzles (heals included)
+        if !self.actors[target].alive {
             return;
         }
         let plan = Plan { spell: c.spell, rank: c.rank, target, cast_time: 0.0, sm: c.sm };
@@ -551,6 +619,7 @@ impl<'w> Sim<'w> {
                 let team = self.actors[cx.me].team;
                 self.actors.iter().filter(|x| x.alive && x.team != team).map(|x| x.id).take(n).collect()
             }
+            TargetSel::Ally | TargetSel::Party | TargetSel::Allies(_) => self.friendly_sel(sel, cx).unwrap_or_default(),
         }
     }
 
@@ -664,6 +733,7 @@ impl<'w> Sim<'w> {
                 let tgt = self.holders(who, &cx).first().copied();
                 let sp = &w.spells[*spell as usize];
                 let mut c2 = Cx::new(cx.me, tgt, sp.name.as_str());
+                c2.ally = cx.ally;
                 c2.rank = rank.map(|r| (*spell, r));
                 c2.spell = Some(*spell);
                 c2.depth = cx.depth + 1;
@@ -687,6 +757,16 @@ impl<'w> Sim<'w> {
                 } else {
                     self.run_effects(els, cx);
                 }
+            }
+            Effect::FromSource(then) => {
+                let Some((holder, uid)) = cx.aura else { return self.run_effects(then, cx) };
+                let src = self.actors[holder].auras.iter().find(|i| i.uid == uid).map_or(holder, |i| i.src);
+                let src = if self.actors[src].alive { src } else { holder };
+                let mut c2 = cx;
+                c2.me = src;
+                c2.tgt = Some(holder);
+                c2.ally = Some(holder).filter(|&h| h != src);
+                self.run_effects(then, c2);
             }
             Effect::Chance { p, then } => {
                 let p = self.ev(p, &cx);

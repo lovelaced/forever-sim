@@ -56,7 +56,7 @@ pub fn is_proportion(k: &str) -> bool {
 }
 /// Metrics summarised by their median (distribution-free interval).
 pub fn is_median(k: &str) -> bool {
-    matches!(k, "breakeven" | "breakeven_scale")
+    matches!(k, "breakeven" | "breakeven_scale" | "heal_breakeven" | "heal_breakeven_scale")
 }
 
 pub fn rep_seed(cfg: &McCfg, sc: &ScenarioDef, r: usize) -> u64 {

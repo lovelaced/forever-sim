@@ -10,6 +10,8 @@ pub enum Roll {
     Glance,
     Block,
     Crit,
+    /// A crushing blow: 150% damage, from a monster well above its target's level.
+    Crush,
     Hit,
 }
 
@@ -85,6 +87,18 @@ impl<'w> Sim<'w> {
         }
     }
 
+    /// Crushing blows (percent): monsters 2 or more levels above a player
+    /// or party member, 2% per point of weapon skill over the target's
+    /// level-based defense, minus 15% (15% for a boss 3 levels up).
+    fn crush_chance(&self, att: usize, def: usize) -> f64 {
+        let (a, d) = (&self.actors[att], &self.actors[def]);
+        if a.kind != Kind::Enemy || a.enemy.map_or(false, |e| e.player_like) || d.kind == Kind::Enemy {
+            return 0.0;
+        }
+        let skill = 5.0 * (a.level as f64 - d.level as f64);
+        (2.0 * skill - 15.0).max(0.0)
+    }
+
     pub fn roll_melee(&mut self, att: usize, def: usize, hand: Hand, white: bool, crit_add: f64) -> Roll {
         let ranged = hand == Hand::Ranged;
         let dual = self.actors[att].weapons[1].is_some();
@@ -123,6 +137,13 @@ impl<'w> Sim<'w> {
             edge += crit.max(0.0);
             if r < edge {
                 return Roll::Crit;
+            }
+            let crush = self.crush_chance(att, def);
+            if crush > 0.0 {
+                edge += crush;
+                if r < edge {
+                    return Roll::Crush;
+                }
             }
             Roll::Hit
         } else {
@@ -293,6 +314,9 @@ impl<'w> Sim<'w> {
         if roll == Roll::Glance {
             dmg *= CombatCfg::by_diff(&self.w.combat.glance_mult, self.level_diff(a, tgt));
         }
+        if roll == Roll::Crush {
+            dmg *= 1.5;
+        }
         dmg = self.mitigate(a, tgt, dmg, School::Physical, false);
         if roll == Roll::Block {
             dmg = (dmg - self.actors[tgt].st[Stat::BlockValue as usize]).max(0.0);
@@ -316,6 +340,73 @@ impl<'w> Sim<'w> {
             x.res[Res::Rage as usize] = (x.res[Res::Rage as usize] + r).min(x.max_res[Res::Rage as usize]);
         }
         self.after_hit(a, tgt, ev, hand == Hand::Ranged, false);
+    }
+
+    /// One of a boss's scripted attacks (the healing tests), scaled like its
+    /// melee by the test's damage scale.
+    pub fn script_hit(&mut self, a: usize, h: &'w ScriptHit) {
+        let team = self.actors[a].team;
+        let mut pool: Vec<usize> = self.actors.iter().filter(|x| x.alive && x.team != team && !x.is_pet()).map(|x| x.id).collect();
+        let tank = self.actors[a].target.filter(|&t| self.actors[t].alive);
+        let targets: Vec<usize> = match h.targets {
+            ScriptTargets::Tank => tank.into_iter().collect(),
+            ScriptTargets::All => pool,
+            ScriptTargets::Random(n) | ScriptTargets::Others(n) => {
+                if matches!(h.targets, ScriptTargets::Others(_)) {
+                    pool.retain(|&x| Some(x) != tank);
+                }
+                let mut out = Vec::new();
+                for _ in 0..n {
+                    if pool.is_empty() {
+                        break;
+                    }
+                    let i = ((self.actors[a].rng[2].f64() * pool.len() as f64) as usize).min(pool.len() - 1);
+                    out.push(pool.swap_remove(i));
+                }
+                out
+            }
+        };
+        let cx = Cx::new(a, None, h.name.as_str());
+        let base = self.ev(&h.dmg, &cx) * self.actors[a].dmg_scale;
+        let tag: &'w str = h.name.as_str();
+        for t in targets {
+            if !self.actors[t].alive || !self.actors[a].alive {
+                continue;
+            }
+            let mut dmg = base * self.actors[a].rng[2].range(1.0 - h.spread, 1.0 + h.spread);
+            let mut ev = Ev { other: Some(t), school: h.school, special: true, ..Ev::default() };
+            if h.melee {
+                let roll = self.roll_melee(a, t, Hand::Mh, false, 0.0);
+                if self.avoided(a, t, roll, Hand::Mh) {
+                    continue;
+                }
+                if roll == Roll::Crit {
+                    dmg *= self.w.combat.melee_crit_mult;
+                    ev.crit = true;
+                }
+                dmg = self.mitigate(a, t, dmg, h.school, false);
+                if roll == Roll::Block {
+                    dmg = (dmg - self.actors[t].st[Stat::BlockValue as usize]).max(0.0);
+                }
+                ev.rolled = true;
+            } else {
+                dmg = self.mitigate(a, t, dmg, h.school, false);
+            }
+            ev.amount = dmg;
+            ev.pct = dmg / self.actors[t].max_hp.max(1.0);
+            self.apply_damage(a, t, dmg, ev, tag);
+            if self.actors[t].alive {
+                let mut evd = ev;
+                evd.other = Some(a);
+                self.emit(t, EventKind::Struck, evd, 0);
+                if h.melee {
+                    self.emit(t, EventKind::StruckMelee, evd, 0);
+                }
+                if ev.crit {
+                    self.emit(t, EventKind::StruckCrit, evd, 0);
+                }
+            }
+        }
     }
 
     /// Handles avoidance events. Returns true if the attack did not land.
@@ -415,6 +506,7 @@ impl<'w> Sim<'w> {
                 v.truncate(n);
                 v
             }
+            TargetSel::Ally | TargetSel::Party | TargetSel::Allies(_) => self.friendly_sel(&fx.targets, &cx).unwrap_or_default(),
         };
         let mut any = false;
         for t in targets {
@@ -757,24 +849,25 @@ impl<'w> Sim<'w> {
                 let team = self.actors[cx.me].team;
                 self.actors.iter().filter(|x| x.alive && x.team == team).map(|x| x.id).collect()
             }
+            TargetSel::Ally | TargetSel::Party | TargetSel::Allies(_) => self.friendly_sel(&fx.targets, &cx).unwrap_or_default(),
         };
         let a = cx.me;
-        for t in targets {
+        let falloff = fx.falloff.as_ref().map(|f| self.ev(f, &cx));
+        for (k, t) in targets.into_iter().enumerate() {
             if !self.actors[t].alive {
                 continue;
             }
             let mut c2 = cx;
             c2.tgt = Some(t);
-            let mut amt = 0.0;
+            let mut rolled = 0.0;
             if let (Some(lo), Some(hi)) = (&fx.min, &fx.max) {
                 let (lo, hi) = (self.ev(lo, &c2), self.ev(hi, &c2));
-                amt += self.actors[a].rng[0].range(lo, hi);
+                rolled = self.actors[a].rng[0].range(lo, hi);
             }
-            amt += self.evo(&fx.amount, &c2, 0.0);
-            if let Some(c) = &fx.coef {
-                amt += self.ev(c, &c2) * self.downrank(a, cx.rank) * self.actors[a].st[Stat::HealPower as usize];
+            let mut amt = self.heal_amount(fx, &c2, rolled);
+            if let Some(f) = falloff {
+                amt *= f.powi(k as i32);
             }
-            amt *= self.evo(&fx.mult, &c2, 1.0) * cx.sm.heal * self.actors[a].st[Stat::HealDone as usize];
             let crit = if fx.can_crit {
                 let ca = self.evo(&fx.crit, &c2, 0.0) + cx.sm.crit;
                 self.roll_spell(a, t, true, ca, true) == Roll::Crit
@@ -797,6 +890,40 @@ impl<'w> Sim<'w> {
         }
     }
 
+    /// A heal effect's amount before crits and the target's healing taken,
+    /// from its rolled base (between `min` and `max`).
+    pub fn heal_amount(&self, fx: &HealFx, cx: &Cx<'w>, rolled: f64) -> f64 {
+        let a = cx.me;
+        let mut amt = rolled;
+        amt += self.evo(&fx.amount, cx, 0.0);
+        if let Some(c) = &fx.coef {
+            amt += self.ev(c, cx) * self.downrank(a, cx.rank) * self.actors[a].st[Stat::HealPower as usize];
+        }
+        amt * (self.evo(&fx.mult, cx, 1.0) * cx.sm.heal * self.actors[a].st[Stat::HealDone as usize])
+    }
+
+    /// What a cast's direct heals land for on average (no crits), or None
+    /// when it has none.
+    pub fn heal_estimate(&self, cx: &Cx<'w>, effs: &[Effect]) -> Option<f64> {
+        let mut total = None;
+        for e in effs {
+            if let Effect::Heal(fx) = e {
+                if fx.periodic || !matches!(fx.targets, TargetSel::Me | TargetSel::Ally | TargetSel::Allies(_)) {
+                    continue;
+                }
+                let t = self.ally_of(cx);
+                let mut c2 = *cx;
+                c2.tgt = Some(t);
+                let mid = match (&fx.min, &fx.max) {
+                    (Some(lo), Some(hi)) => 0.5 * (self.ev(lo, &c2) + self.ev(hi, &c2)),
+                    _ => 0.0,
+                };
+                *total.get_or_insert(0.0) += self.heal_amount(fx, &c2, mid) * self.actors[t].st[Stat::HealTaken as usize];
+            }
+        }
+        total
+    }
+
     /// Apply healing; returns effective healing.
     pub fn heal_raw(&mut self, src: usize, dst: usize, amount: f64, tag: &'w str, crit: bool, by: Option<u32>) -> f64 {
         if !self.actors[dst].alive || amount <= 0.0 {
@@ -810,9 +937,14 @@ impl<'w> Sim<'w> {
         m.heal += eff;
         m.overheal += amount - eff;
         *m.heal_by.entry(tag).or_insert(0.0) += eff;
+        self.metrics[dst].healed_in += eff;
         if self.log.is_some() && eff > 0.0 {
             self.logf(|s| format!("{} {} heals {} {:.0} [{:.0}/{:.0}]", s.actors[src].name, tag, s.actors[dst].name, eff, s.actors[dst].hp, s.actors[dst].max_hp));
-            self.tracef(|s| TraceEv { amount: eff, crit, key: s.spell_key(by), hp: Some((s.actors[dst].hp / s.actors[dst].max_hp).clamp(0.0, 1.0)), ..s.tev("heal", src, Some(dst), tag) });
+            self.tracef(|s| TraceEv {
+                amount: eff, crit, key: s.spell_key(by), over: amount - eff,
+                hp: Some((s.actors[dst].hp / s.actors[dst].max_hp).clamp(0.0, 1.0)),
+                ..s.tev("heal", src, Some(dst), tag)
+            });
         }
         // healing threat, split across enemies fighting the healer's team
         if eff > 0.0 && self.actors[src].in_combat {

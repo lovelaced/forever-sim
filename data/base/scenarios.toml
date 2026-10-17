@@ -64,3 +64,31 @@ max_time = 180
 kind = "duel"
 desc = "Duel against another build (--vs), standing and trading, 180 s limit"
 max_time = 180
+
+[scenarios.heal_dungeon]
+kind = "healing"
+desc = "Dungeon healing: you, a tank and three others against a boss for 120 s. Breakeven = the boss's damage per second (before armor) you heal through without anyone dying, half the time"
+boss = "heal_dungeon_boss"
+tank = "tank"
+party = ["rogue", "mage", "hunter"]
+duration = 120
+max_dead = 1
+
+[scenarios.heal_tank]
+kind = "healing"
+desc = "Main tank healing: you keep one tank alive against a raid boss three levels up for 180 s. Breakeven = the boss's damage per second (before armor) you heal through, half the time"
+boss = "heal_tank_boss"
+tank = "tank"
+duration = 180
+max_dead = 1
+
+[scenarios.heal_raid]
+kind = "healing"
+desc = "Raid healing at 60: ten players in two groups against Onyxia for 150 s. Breakeven = the boss's damage per second (before armor) you heal through with the tank and you alive and at most two others down, half the time"
+boss = "heal_raid_boss"
+tank = "raid_tank"
+party = ["warrior", "rogue", "mage"]
+raid = ["hunter", "warlock", "mage", "rogue", "warrior"]
+duration = 150
+max_dead = 3
+min_level = 60

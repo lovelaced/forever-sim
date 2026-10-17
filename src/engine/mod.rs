@@ -102,6 +102,8 @@ impl Default for SmVals {
 pub struct Cx<'w> {
     pub me: usize,
     pub tgt: Option<usize>,
+    /// The friendly unit a heal or buff is cast on, when it isn't you.
+    pub ally: Option<usize>,
     pub rank: Option<(SpellId, usize)>,
     pub stacks: f64,
     pub ev: Option<Ev>,
@@ -114,7 +116,7 @@ pub struct Cx<'w> {
 
 impl<'w> Cx<'w> {
     pub fn new(me: usize, tgt: Option<usize>, tag: &'w str) -> Self {
-        Cx { me, tgt, rank: None, stacks: 1.0, ev: None, aura: None, spell: None, depth: 0, tag, sm: SmVals::default() }
+        Cx { me, tgt, ally: None, rank: None, stacks: 1.0, ev: None, aura: None, spell: None, depth: 0, tag, sm: SmVals::default() }
     }
 }
 
@@ -158,6 +160,8 @@ pub enum Kind {
     Player,
     Pet(u16),
     Enemy,
+    /// A party member in the healing tests: it takes hits and heals, nothing more.
+    Ally,
 }
 
 #[derive(Clone, Debug)]
@@ -166,6 +170,8 @@ pub struct Actor<'w> {
     pub name: String,
     pub kind: Kind,
     pub team: u8,
+    /// The party within the team (raids have two).
+    pub group: u8,
     pub class: Option<usize>,
     pub race: Option<usize>,
     pub level: u32,
@@ -213,6 +219,8 @@ pub struct Actor<'w> {
     pub in_combat: bool,
     pub dmg_scale: f64,
     pub stun_sched: Vec<(f64, f64)>,
+    /// When each of the boss's scripted attacks comes next.
+    pub script_next: Vec<f64>,
     /// PvP diminishing returns per mechanic: (window ends, applications in window).
     pub dr: [(f64, u8); 9],
     pub passives: Vec<&'w Passive>,
@@ -256,6 +264,8 @@ pub struct Metrics<'w> {
     pub heal: f64,
     pub heal_by: BTreeMap<&'w str, f64>,
     pub overheal: f64,
+    /// Healing this unit received (from anyone).
+    pub healed_in: f64,
     pub taken: f64,
     pub absorbed: f64,
     pub casts: BTreeMap<&'w str, f64>,
@@ -304,11 +314,15 @@ pub struct TraceEv {
     pub icon: String,
     /// The target's health after a hit or heal, as a share of its maximum.
     pub hp: Option<f64>,
+    /// Healing past full health (heals only).
+    pub over: f64,
     /// Actor numbers, so the trace request can tell same-named mobs apart.
     #[serde(skip)]
     pub who_id: usize,
     #[serde(skip)]
     pub target_id: Option<usize>,
+    #[serde(skip)]
+    pub target_team: Option<u8>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -319,6 +333,9 @@ pub enum Stop {
     Rest { actor: usize, until: f64 },
     /// Just let time pass (travel).
     Until(f64),
+    /// A healing test: run until the time, or until the party fails (you or
+    /// the tank die, or `max_dead` of the others do).
+    Party { until: f64, max_dead: u32 },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -327,6 +344,8 @@ pub enum Outcome {
     PlayerDied,
     EnemiesDead,
     Idle,
+    /// The party failed a healing test.
+    Failed,
 }
 
 pub struct Sim<'w> {
@@ -347,6 +366,8 @@ pub struct Sim<'w> {
     pub downrank_penalty: f64,
     /// Scales rage from damage taken (assumption `rage_taken_mult`).
     pub rage_taken_mult: f64,
+    /// The player team's tank in the healing tests (yourself otherwise).
+    pub tank: Option<usize>,
 }
 
 struct EnvRef<'a, 'w> {
@@ -385,6 +406,7 @@ impl<'w> Sim<'w> {
             uid: 0,
             log: None,
             trace: None,
+            tank: None,
         }
     }
 
@@ -458,7 +480,8 @@ impl<'w> Sim<'w> {
             target: target.map(|t| self.actors[t].name.clone()), name: name.to_string(),
             amount: 0.0, crit: false, tick: false, stacks: 0.0,
             key: String::new(), school: "", absorbed: 0.0, via: String::new(),
-            icon: String::new(), hp: None, who_id: who, target_id: target,
+            icon: String::new(), hp: None, over: 0.0, who_id: who, target_id: target,
+            target_team: target.map(|t| self.actors[t].team),
         }
     }
 
@@ -506,7 +529,58 @@ impl<'w> Sim<'w> {
             Who::Target => cx.tgt.or(me.target),
             Who::Owner => me.owner,
             Who::Pet => me.pets.iter().copied().find(|&p| self.actors[p].alive),
+            Who::Ally => Some(self.ally_of(cx)),
+            Who::Tank => Some(self.tank_of(cx.me)),
+            Who::Lowest => self.hurt_order(cx.me).first().copied(),
         }
+    }
+
+    /// The friendly unit a cast is on: its ally, or yourself.
+    pub fn ally_of(&self, cx: &Cx<'w>) -> usize {
+        cx.ally.unwrap_or(cx.me)
+    }
+
+    /// Your team's tank, or yourself when there's none.
+    pub fn tank_of(&self, a: usize) -> usize {
+        self.tank.filter(|&t| self.actors[t].team == self.actors[a].team).unwrap_or(a)
+    }
+
+    /// Live team-mates (you included, no pets), optionally only your group.
+    pub fn allies(&self, a: usize, group: bool) -> impl Iterator<Item = usize> + '_ {
+        let (team, g) = (self.actors[a].team, self.actors[a].group);
+        self.actors.iter().filter(move |x| x.alive && x.team == team && !x.is_pet() && (!group || x.group == g)).map(|x| x.id)
+    }
+
+    /// Live team-mates, most hurt first (share of health; ties keep spawn
+    /// order, so you come first among the unhurt).
+    pub fn hurt_order(&self, a: usize) -> Vec<usize> {
+        let t = self.t;
+        let mut v: Vec<(f64, usize)> = self.allies(a, false).map(|i| (self.actors[i].hp_pct(t), i)).collect();
+        v.sort_by(|x, y| x.0.total_cmp(&y.0).then(x.1.cmp(&y.1)));
+        v.into_iter().map(|(_, i)| i).collect()
+    }
+
+    /// Who a friendly effect target reaches, or None for the other targets.
+    pub fn friendly_sel(&self, sel: &TargetSel, cx: &Cx<'w>) -> Option<Vec<usize>> {
+        Some(match sel {
+            TargetSel::Ally => {
+                let a = self.ally_of(cx);
+                if self.actors[a].alive { vec![a] } else { vec![] }
+            }
+            TargetSel::Party => self.allies(cx.me, true).collect(),
+            TargetSel::Allies(max) => {
+                let n = self.ev(max, cx).max(0.0) as usize;
+                let first = self.ally_of(cx);
+                let mut v: Vec<usize> = Vec::with_capacity(n);
+                if self.actors[first].alive {
+                    v.push(first);
+                }
+                v.extend(self.hurt_order(cx.me).into_iter().filter(|&i| i != first));
+                v.truncate(n);
+                v
+            }
+            _ => return None,
+        })
     }
 
     fn talent_owner(&self, a: usize) -> usize {
@@ -680,6 +754,16 @@ impl<'w> Sim<'w> {
             VarRef::GcdRemains => (self.actors[cx.me].gcd_end - self.t).max(0.0),
             VarRef::InCombat => b(self.actors[cx.me].in_combat),
             VarRef::Spell(s) => b(cx.spell == Some(*s as u32) || cx.ev.map_or(false, |e| e.by == Some(*s as u32))),
+            VarRef::Deficit(who) => self.who(cx, *who).map_or(0.0, |a| (self.actors[a].max_hp - self.actors[a].hp).max(0.0)),
+            VarRef::Absorb(who) => self.who(cx, *who).map_or(0.0, |a| self.actors[a].auras.iter().map(|i| i.absorb).sum()),
+            VarRef::IsTank(who) => self.who(cx, *who).map_or(0.0, |a| b(a == self.tank_of(cx.me))),
+            VarRef::IsMe(who) => self.who(cx, *who).map_or(0.0, |a| b(a == cx.me)),
+            VarRef::Hurt { group, pct } => {
+                let t = self.t;
+                let line = *pct as f64 / 100.0;
+                self.allies(cx.me, *group).filter(|&i| self.actors[i].hp_pct(t) < line).count() as f64
+            }
+            VarRef::AllyCount(group) => self.allies(cx.me, *group).count() as f64,
         }
     }
 
@@ -745,6 +829,7 @@ impl<'w> Sim<'w> {
             in_combat: false,
             dmg_scale: 1.0,
             stun_sched: vec![],
+            script_next: vec![],
             dr: [(0.0, 0); 9],
             passives: vec![],
             weapons: [None; 3],
@@ -752,6 +837,7 @@ impl<'w> Sim<'w> {
             timed_hp: None,
             slot,
             lockout: 0.0,
+            group: 0,
         });
         self.metrics.push(Metrics::default());
         id
@@ -825,6 +911,62 @@ impl<'w> Sim<'w> {
         self.refresh_stats(id);
         self.fill(id);
         id
+    }
+
+    /// A party member from an ally template, at your level.
+    pub fn spawn_ally(&mut self, e: &'w EnemyDef, level: u32, team: u8, group: u8, slot: u64) -> usize {
+        let id = self.spawn_enemy(e, level, team, slot, 1.0);
+        let a = &mut self.actors[id];
+        a.kind = Kind::Ally;
+        a.group = group;
+        a.auto_melee = false;
+        a.rotation = None;
+        a.has_res = [true, false, false, false];
+        self.refresh_stats(id);
+        self.fill(id);
+        id
+    }
+
+    /// Start a boss's scripted attacks on their timers.
+    pub fn start_script(&mut self, a: usize) {
+        let t = self.t;
+        if let Some(e) = self.actors[a].enemy {
+            self.actors[a].script_next = e.script.iter().map(|h| t + h.first).collect();
+        }
+    }
+
+    fn script_hits(&mut self, a: usize) {
+        let Some(e) = self.actors[a].enemy else { return };
+        if e.script.is_empty() || !self.actors[a].in_combat {
+            return;
+        }
+        let t = self.t;
+        for (k, h) in e.script.iter().enumerate() {
+            while self.actors[a].script_next.get(k).map_or(false, |&n| n <= t + EPS) {
+                self.actors[a].script_next[k] += h.every;
+                self.script_hit(a, h);
+                if !self.actors[a].alive {
+                    return;
+                }
+            }
+        }
+    }
+
+    /// Whether a healing test's party has failed.
+    pub fn party_failed(&self, max_dead: u32) -> bool {
+        let mut dead = 0;
+        for x in &self.actors {
+            if x.team != 0 || x.alive {
+                continue;
+            }
+            match x.kind {
+                Kind::Player => return true,
+                Kind::Ally if Some(x.id) == self.tank => return true,
+                Kind::Ally => dead += 1,
+                _ => {}
+            }
+        }
+        dead >= max_dead
     }
 
     pub fn spawn_pet(&mut self, owner: usize, pet: u16) -> usize {
@@ -930,6 +1072,11 @@ impl<'w> Sim<'w> {
                 let def = &w.auras[inst.def as usize];
                 for m in &def.mods {
                     let mut cx = cx0;
+                    // a party member's buffs read their caster's talents
+                    // (a priest's Inspiration on the tank)
+                    if x.kind == Kind::Ally {
+                        cx.me = inst.src;
+                    }
                     cx.rank = inst.rank;
                     cx.stacks = inst.stacks as f64;
                     cx.tgt = Some(inst.src);
@@ -1207,7 +1354,7 @@ impl<'w> Sim<'w> {
 
     fn next_time(&self, stop: &Stop) -> f64 {
         let mut n = match stop {
-            Stop::Fight { until } | Stop::Rest { until, .. } | Stop::Until(until) => *until,
+            Stop::Fight { until } | Stop::Rest { until, .. } | Stop::Until(until) | Stop::Party { until, .. } => *until,
         };
         for (i, x) in self.actors.iter().enumerate() {
             if !x.alive {
@@ -1248,6 +1395,11 @@ impl<'w> Sim<'w> {
             if let Some((_, u)) = x.taunt {
                 if u > self.t {
                     n = n.min(u);
+                }
+            }
+            if x.in_combat {
+                for &st in &x.script_next {
+                    n = n.min(st.max(self.t));
                 }
             }
         }
@@ -1295,8 +1447,12 @@ impl<'w> Sim<'w> {
                 let Some(k) = x.auras.iter().position(|i| i.expires <= t + EPS) else { break };
                 self.remove_aura_at(a, k, true);
             }
-            // scripted stuns (pressure attackers)
+            // scripted stuns (pressure attackers) and attacks (healing bosses)
             self.scripted_stuns(a);
+            self.script_hits(a);
+            if !self.actors[a].alive {
+                continue;
+            }
             // resource tick
             if self.actors[a].next_tick <= t + EPS {
                 self.actors[a].next_tick += w.combat.tick;
@@ -1412,6 +1568,14 @@ impl<'w> Sim<'w> {
                         return Outcome::Timeout;
                     }
                 }
+                Stop::Party { until, max_dead } => {
+                    if self.party_failed(max_dead) {
+                        return Outcome::Failed;
+                    }
+                    if self.t >= until - EPS {
+                        return Outcome::Timeout;
+                    }
+                }
             }
             for a in 0..self.actors.len() {
                 if self.actors[a].alive && !self.rest_phase {
@@ -1427,6 +1591,11 @@ impl<'w> Sim<'w> {
             }
             if matches!(stop, Stop::Fight { .. }) && (!self.players_alive() || !self.enemies_alive()) {
                 continue;
+            }
+            if let Stop::Party { max_dead, .. } = stop {
+                if self.party_failed(max_dead) {
+                    continue;
+                }
             }
             let n = self.next_time(&stop);
             self.t = n.max(self.t);

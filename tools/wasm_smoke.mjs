@@ -37,8 +37,10 @@ const sheet = call({ op: 'sheet', build: preset });
 if (!sheet.rows.length) fail('empty character sheet');
 if (!call({ op: 'nope' }).error) fail('bad requests should come back as errors');
 
-for (const scenario of ['boss', 'solo_2', 'pressure']) {
-  const { id } = call({ op: 'start', scenario, builds: [preset, cat.presets[1]], precision: 0.05, max_reps: 200 });
+const healers = cat.presets.filter((p) => p.role === 'healer').slice(0, 2);
+for (const scenario of ['boss', 'solo_2', 'pressure', 'heal_dungeon']) {
+  const builds = scenario.startsWith('heal_') ? healers : [preset, cat.presets[1]];
+  const { id } = call({ op: 'start', scenario, builds, precision: 0.05, max_reps: 200 });
   let st;
   const t = performance.now();
   do st = call({ op: 'step', id, reps: 16 }); while (!st.finished);
@@ -46,7 +48,7 @@ for (const scenario of ['boss', 'solo_2', 'pressure']) {
   call({ op: 'drop', id });
   const m = res.variants[0].metrics.find((x) => x.name === res.scenario.primary);
   if (!Number.isFinite(m.mean)) fail(`${scenario}: no result`);
-  console.log(`${scenario.padEnd(9)} ${String(res.reps).padStart(4)} reps  ${res.scenario.primary} ${m.mean.toFixed(1)}  ${(performance.now() - t).toFixed(0)} ms`);
+  console.log(`${scenario.padEnd(12)} ${String(res.reps).padStart(4)} reps  ${res.scenario.primary} ${m.mean.toFixed(1)}  ${(performance.now() - t).toFixed(0)} ms`);
 }
 // The page splits a run between workers: ranges of fights delivered in any
 // order must give exactly what stepping through on one engine gives.

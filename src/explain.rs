@@ -71,10 +71,27 @@ impl Explain<'_> {
         self.class.and_then(|c| self.w.classes[c].talents.get(t as usize)).map_or_else(|| "the talent".into(), |t| t.name.clone())
     }
     fn whose(who: Who) -> &'static str {
-        match who { Who::Me => "your", Who::Target => "the target's", Who::Pet => "your pet's", Who::Owner => "your master's" }
+        match who {
+            Who::Me => "your",
+            Who::Target => "the target's",
+            Who::Pet => "your pet's",
+            Who::Owner => "your master's",
+            // the ally a heal line is on: "their health is below 40%"
+            Who::Ally => "their",
+            Who::Tank => "the tank's",
+            Who::Lowest => "the most hurt ally's",
+        }
     }
     fn subject(who: Who) -> &'static str {
-        match who { Who::Me => "you", Who::Target => "the target", Who::Pet => "your pet", Who::Owner => "your master" }
+        match who {
+            Who::Me => "you",
+            Who::Target => "the target",
+            Who::Pet => "your pet",
+            Who::Owner => "your master",
+            Who::Ally => "they",
+            Who::Tank => "the tank",
+            Who::Lowest => "the most hurt ally",
+        }
     }
 
     /// The node as a true-or-false phrase.
@@ -130,13 +147,16 @@ impl Explain<'_> {
             VarRef::AuraUp(Who::Me, a) if self.stance(*a) => format!("you're in {}", self.aura(*a)),
             VarRef::AuraUp(Who::Me, a) if self.window(*a) => format!("the {} is open", self.aura(*a)),
             VarRef::AuraUp(Who::Me, a) => format!("{} is up", self.aura(*a)),
+            VarRef::AuraUp(Who::Ally, a) => format!("they have {}", self.aura(*a)),
             VarRef::AuraUp(who, a) => format!("{} has {}", Self::subject(*who), self.aura(*a)),
+            VarRef::IsTank(Who::Ally) => "they're the tank".into(),
+            VarRef::IsMe(Who::Ally) => "it's on you".into(),
             VarRef::Boss(Who::Target) => "the target is a boss".into(),
             VarRef::IsPlayer(Who::Target) => "the target is a player".into(),
             VarRef::Known(s) => format!("you know {}", self.spell(*s)),
             VarRef::CdReady(s) => format!("{} is ready", self.spell(*s)),
-            VarRef::Mech(who, m) => format!("{} {} {}", Self::subject(*who), if *who == Who::Me { "are" } else { "is" }, mech(*m)),
-            VarRef::Casting(who) => format!("{} {} casting", Self::subject(*who), if *who == Who::Me { "are" } else { "is" }),
+            VarRef::Mech(who, m) => format!("{} {} {}", Self::subject(*who), if matches!(*who, Who::Me | Who::Ally) { "are" } else { "is" }, mech(*m)),
+            VarRef::Casting(who) => format!("{} {} casting", Self::subject(*who), if matches!(*who, Who::Me | Who::Ally) { "are" } else { "is" }),
             VarRef::Wanding(Who::Me) => "your wand is shooting".into(),
             VarRef::Form(f) => format!("you're in {}", humanize(self.w.forms.get(*f as usize).map_or("a form", |s| s.as_str()))),
             VarRef::InAnyForm => "you're in a form".into(),
@@ -172,13 +192,16 @@ impl Explain<'_> {
             VarRef::AuraUp(Who::Me, a) if self.stance(*a) => format!("you're not in {}", self.aura(*a)),
             VarRef::AuraUp(Who::Me, a) if self.window(*a) => format!("the {} isn't open", self.aura(*a)),
             VarRef::AuraUp(Who::Me, a) => format!("{} is not up", self.aura(*a)),
+            VarRef::AuraUp(Who::Ally, a) => format!("they don't have {}", self.aura(*a)),
             VarRef::AuraUp(who, a) => format!("{} doesn't have {}", Self::subject(*who), self.aura(*a)),
+            VarRef::IsTank(Who::Ally) => "they're not the tank".into(),
+            VarRef::IsMe(Who::Ally) => "it's on someone else".into(),
             VarRef::Boss(Who::Target) => "the target isn't a boss".into(),
             VarRef::IsPlayer(Who::Target) => "the target isn't a player".into(),
             VarRef::Known(s) => format!("you don't know {} yet", self.spell(*s)),
             VarRef::CdReady(s) => format!("{} isn't ready", self.spell(*s)),
-            VarRef::Mech(who, m) => format!("{} {} not {}", Self::subject(*who), if *who == Who::Me { "are" } else { "is" }, mech(*m)),
-            VarRef::Casting(who) => format!("{} {} not casting", Self::subject(*who), if *who == Who::Me { "are" } else { "is" }),
+            VarRef::Mech(who, m) => format!("{} {} not {}", Self::subject(*who), if matches!(*who, Who::Me | Who::Ally) { "are" } else { "is" }, mech(*m)),
+            VarRef::Casting(who) => format!("{} {} not casting", Self::subject(*who), if matches!(*who, Who::Me | Who::Ally) { "are" } else { "is" }),
             VarRef::Wanding(Who::Me) => "your wand isn't shooting".into(),
             VarRef::Form(f) => format!("you're not in {}", humanize(self.w.forms.get(*f as usize).map_or("a form", |s| s.as_str()))),
             VarRef::InAnyForm => "you're not in a form".into(),
@@ -253,18 +276,18 @@ impl Explain<'_> {
                 _ => format!("you have {} {} combo points", rel("more", "fewer"), num(c)),
             },
             VarRef::AuraStacks(who, a) => {
-                let on = if *who == Who::Me { String::new() } else { format!(" on {}", Self::subject(*who)) };
+                let on = if *who == Who::Me { String::new() } else { format!(" on {}", if *who == Who::Ally { "them" } else { Self::subject(*who) }) };
                 match op {
                     "<" => format!("{}{} has fewer than {} stacks", self.aura(*a), on, num(c)),
                     _ => format!("{}{} has {} {} stacks", self.aura(*a), on, rel("more", "fewer"), num(c)),
                 }
             }
             VarRef::AuraRemains(who, a) => {
-                let on = if *who == Who::Me { String::new() } else { format!(" on {}", Self::subject(*who)) };
+                let on = if *who == Who::Me { String::new() } else { format!(" on {}", if *who == Who::Ally { "them" } else { Self::subject(*who) }) };
                 format!("{}{} has {} {} sec left", self.aura(*a), on, rel("more", "less"), num(c))
             }
             VarRef::AuraCharges(who, a) => {
-                let on = if *who == Who::Me { String::new() } else { format!(" on {}", Self::subject(*who)) };
+                let on = if *who == Who::Me { String::new() } else { format!(" on {}", if *who == Who::Ally { "them" } else { Self::subject(*who) }) };
                 match op {
                     "<" => format!("{}{} has fewer than {} charges", self.aura(*a), on, num(c)),
                     _ => format!("{}{} has {} {} charges", self.aura(*a), on, rel("more", "fewer"), num(c)),
@@ -289,6 +312,18 @@ impl Explain<'_> {
                 _ => format!("you have {} {} points in {}", rel("more", "fewer"), num(c), self.talent(*t)),
             },
             VarRef::Level(Who::Me) => format!("you're level {} {}", rel("above", "below"), num(c)),
+            // "3 or more in your group are below 75% health"
+            VarRef::Hurt { group, pct: p } => {
+                let who = if *group { "in your group" } else { "allies" };
+                let below = format!("below {p}% health");
+                match (op, c) {
+                    (">=", n) => format!("{} or more {who} are {below}", num(n)),
+                    (">", n) => format!("more than {} {who} are {below}", num(n)),
+                    _ => format!("{} {} {who} are {below}", rel("more", "fewer"), num(c)),
+                }
+            }
+            VarRef::AllyCount(group) => format!("{} {} {} alive", rel("more", "fewer"), num(c), if *group { "in your group are" } else { "allies are" }),
+            VarRef::Deficit(who) => format!("{} missing health is {} {}", Self::whose(*who), rel("above", "below"), num(c)),
             VarRef::Stat(who, s) => format!("{} {} is {} {}", Self::whose(*who), s.name().replace('_', " "), rel("above", "below"), num(c)),
             _ => return None,
         })

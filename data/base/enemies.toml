@@ -48,3 +48,133 @@ crit = 25.0
 dodge = "interp(level, 20,8, 40,10, 60,12)"
 parry = 5.0
 stuns = [[0, 4], [10, 6]]
+
+# ------------------------------------------------------------ healing tests
+# The bosses of the healing tests hit to a timetable: melee on the tank plus
+# the `script` attacks (each line's `dmg` is per target, before armor). Every
+# number scales with the test's damage scale, which the breakeven searches.
+# `D` in the comments is the boss's total damage per second before armor at
+# scale 1 (5 players in the dungeon, 1 tank, 10 in the raid), calibrated so a
+# Holy priest preset breaks even near 1.
+
+# Dungeon boss (+2): 55% melee on the tank, 10% Mortal Strike on the tank,
+# 20% Fire Nova on everyone, 15% Shadow Bolts on someone other than the tank.
+[enemies.heal_dungeon_boss]
+name = "Dungeon boss"
+creature = "humanoid"
+level_offset = 2
+boss = true
+hp = "1e12"
+armor = "interp(level, 22,450, 42,900, 62,1500)"
+dodge = "5.4"
+speed = 2.0
+crit = 5.0
+dmg = "0.55 * 2.0 * interp(level, 10,43, 15,56, 20,65, 25,99, 30,129, 35,168, 40,216, 45,259, 50,324, 55,423, 60,648)"
+script = [
+  { name = "Mortal Strike", icon = "ability_warrior_savageblow", melee = true, target = "tank", every = 8, first = 5, dmg = "0.10 * 8 * interp(level, 10,43, 15,56, 20,65, 25,99, 30,129, 35,168, 40,216, 45,259, 50,324, 55,423, 60,648)" },
+  { name = "Fire Nova", icon = "spell_fire_sealoffire", school = "fire", target = "all", every = 6, first = 4, dmg = "0.20 * 6 / 5 * interp(level, 10,43, 15,56, 20,65, 25,99, 30,129, 35,168, 40,216, 45,259, 50,324, 55,423, 60,648)" },
+  { name = "Shadow Bolt", icon = "spell_shadow_shadowbolt", school = "shadow", target = "others", count = 1, every = 3, first = 2, dmg = "0.15 * 3 * interp(level, 10,43, 15,56, 20,65, 25,99, 30,129, 35,168, 40,216, 45,259, 50,324, 55,423, 60,648)" },
+]
+mods = [{ stat = "immune_stun", add = 1 }, { stat = "immune_root", add = 1 }, { stat = "immune_fear", add = 1 }, { stat = "immune_incap", add = 1 }]
+
+# Main tank boss (+3, crushing blows): 70% melee, 20% Mortal Strike, 10%
+# Flame Breath, all on the tank.
+[enemies.heal_tank_boss]
+name = "Raid boss"
+creature = "dragonkin"
+level_offset = 3
+boss = true
+hp = "1e12"
+armor = "interp(level, 23,450, 43,900, 63,1500)"
+dodge = "5.6"
+speed = 2.0
+crit = 5.0
+dmg = "0.70 * 2.0 * interp(level, 10,34, 15,40, 20,47, 25,71, 30,96, 35,123, 40,159, 45,169, 50,205, 55,288, 60,549)"
+script = [
+  { name = "Mortal Strike", icon = "ability_warrior_savageblow", melee = true, target = "tank", every = 10, first = 6, dmg = "0.20 * 10 * interp(level, 10,34, 15,40, 20,47, 25,71, 30,96, 35,123, 40,159, 45,169, 50,205, 55,288, 60,549)" },
+  { name = "Flame Breath", icon = "spell_fire_fire", school = "fire", target = "tank", every = 15, first = 9, dmg = "0.10 * 15 * interp(level, 10,34, 15,40, 20,47, 25,71, 30,96, 35,123, 40,159, 45,169, 50,205, 55,288, 60,549)" },
+]
+mods = [{ stat = "immune_stun", add = 1 }, { stat = "immune_root", add = 1 }, { stat = "immune_fear", add = 1 }, { stat = "immune_incap", add = 1 }]
+
+# Raid boss (level 63, ten players in two groups): 20% melee on the tank,
+# 30% Fireballs on two random players, 50% Eruption on everyone.
+[enemies.heal_raid_boss]
+name = "Onyxia"
+creature = "dragonkin"
+level_offset = 3
+boss = true
+hp = "1e12"
+armor = "1500"
+dodge = "5.6"
+speed = 2.0
+crit = 5.0
+dmg = "0.20 * 2.0 * 535"
+script = [
+  { name = "Fireball", icon = "spell_fire_fireball02", school = "fire", target = "random", count = 2, every = 4, first = 3, dmg = "0.30 * 4 / 2 * 535" },
+  { name = "Eruption", icon = "spell_fire_volcano", school = "fire", target = "all", every = 8, first = 6, dmg = "0.50 * 8 / 10 * 535" },
+]
+mods = [{ stat = "immune_stun", add = 1 }, { stat = "immune_root", add = 1 }, { stat = "immune_fear", add = 1 }, { stat = "immune_incap", add = 1 }]
+
+# Party members: they take hits and heals, nothing more (no damage, threat
+# or buffs of their own). The tank follows the Protection warrior preset's
+# unbuffed sheet at each level; the others are cloth, leather, mail and
+# plate wearers of your level.
+[allies.tank]
+name = "Tank"
+hp = "interp(level, 10,700, 20,1160, 30,1900, 40,2630, 50,3930, 60,5240)"
+armor = "interp(level, 10,700, 20,1440, 30,2750, 40,4070, 50,5940, 60,7810)"
+dodge = "interp(level, 10,6.2, 20,5.6, 30,6.2, 40,6.5, 50,7.7, 60,8.5)"
+parry = "interp(level, 50,5, 60,10)"
+block = 10
+attacks = false
+mods = [{ stat = "defense", add = "interp(level, 20,2, 30,6, 40,10, 50,37.5, 60,45)" }, { stat = "block_value", add = "interp(level, 20,12, 30,21, 40,30, 50,45, 60,60)" }]
+
+[allies.raid_tank]
+name = "Tank"
+hp = "7000"
+armor = "9500"
+dodge = "11"
+parry = "11"
+block = 14
+attacks = false
+mods = [{ stat = "defense", add = 80 }, { stat = "block_value", add = 90 }]
+
+[allies.mage]
+name = "Mage"
+hp = "interp(level, 10,330, 20,620, 30,1000, 40,1450, 50,2100, 60,3000)"
+armor = "interp(level, 10,100, 60,1000)"
+dodge = "3"
+parry = "0"
+attacks = false
+
+[allies.warlock]
+name = "Warlock"
+hp = "interp(level, 10,360, 20,680, 30,1100, 40,1600, 50,2300, 60,3300)"
+armor = "interp(level, 10,100, 60,1000)"
+dodge = "3"
+parry = "0"
+attacks = false
+
+[allies.rogue]
+name = "Rogue"
+hp = "interp(level, 10,380, 20,720, 30,1150, 40,1650, 50,2400, 60,3450)"
+armor = "interp(level, 10,300, 60,2600)"
+dodge = "8"
+parry = "5"
+attacks = false
+
+[allies.hunter]
+name = "Hunter"
+hp = "interp(level, 10,380, 20,720, 30,1150, 40,1650, 50,2400, 60,3450)"
+armor = "interp(level, 10,400, 60,3500)"
+dodge = "6"
+parry = "0"
+attacks = false
+
+[allies.warrior]
+name = "Warrior"
+hp = "interp(level, 10,450, 20,850, 30,1350, 40,1950, 50,2800, 60,4000)"
+armor = "interp(level, 10,600, 60,5000)"
+dodge = "5"
+parry = "5"
+attacks = false

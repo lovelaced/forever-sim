@@ -6,13 +6,20 @@ import { h, art, withTip, tt, flash, fmtMetric, fmtNum, fmtSec } from './ui.js';
 import { S, env, bus, classOf, presetOf, presetTags, isExperimental, baseName, accuracyOf, scenarioMeta, primaryOf, classColor, nameOf, apiBuild, raceOf, baselineBuild } from './state.js';
 import { metricOf, rangeTip } from './results.js';
 
-// The ranking's seven tests, in the order the switcher shows them.
-export const RANK_TESTS = ['solo_1', 'solo_2', 'solo_2_hard', 'solo_3', 'boss', 'pressure', 'pressure_2v1'];
+// The ranking's tests, in the order the switcher shows them: seven for
+// everyone, then three for the healers (the raid at level 60 only).
+export const RANK_TESTS = ['solo_1', 'solo_2', 'solo_2_hard', 'solo_3', 'boss', 'pressure', 'pressure_2v1', 'heal_dungeon', 'heal_tank', 'heal_raid'];
 // Quickest first, so lists appear while the slow three-mob test runs.
-const RANK_RUN_ORDER = ['boss', 'solo_1', 'solo_2', 'solo_2_hard', 'pressure', 'pressure_2v1', 'solo_3'];
+const RANK_RUN_ORDER = ['boss', 'solo_1', 'heal_dungeon', 'heal_tank', 'heal_raid', 'solo_2', 'solo_2_hard', 'pressure', 'pressure_2v1', 'solo_3'];
 // Rough share of the run each test takes (timed on Standard), for the progress bar.
-const RANK_COST = { boss: 1, solo_1: 4, solo_2: 12, solo_2_hard: 11, pressure: 13, pressure_2v1: 30, solo_3: 80 };
-const RANK_TITLES = { solo_1: 'One mob', solo_2: 'Two mobs', solo_2_hard: 'Two tough mobs', solo_3: 'Three mobs', boss: 'Dungeon boss', pressure: 'World PvP', pressure_2v1: 'Two attackers' };
+const RANK_COST = { boss: 1, solo_1: 4, solo_2: 12, solo_2_hard: 11, pressure: 13, pressure_2v1: 30, solo_3: 80, heal_dungeon: 1, heal_tank: 1, heal_raid: 2 };
+const RANK_TITLES = {
+  solo_1: 'One mob', solo_2: 'Two mobs', solo_2_hard: 'Two tough mobs', solo_3: 'Three mobs', boss: 'Dungeon boss', pressure: 'World PvP', pressure_2v1: 'Two attackers',
+  heal_dungeon: 'Dungeon healing', heal_tank: 'Main tank healing', heal_raid: 'Raid healing',
+};
+const isHealTest = (t) => scenarioMeta(t).group === 'healing';
+// The tests a ranking at this level runs.
+const rankTests = (level) => RANK_RUN_ORDER.filter((t) => level >= (scenarioMeta(t).minLevel || 1));
 // Role filter for the lists.
 const ROLES = [['all', 'All'], ['damage', 'Damage'], ['healer', 'Healers'], ['tank', 'Tanks']];
 const roleOf = (p) => p.role || 'damage';
@@ -68,19 +75,22 @@ function estimateReps(st, est) {
 export async function runRankings() {
   if (anyRunning()) { flash('Another simulation is still running. Wait for it or stop it first.'); return; }
   const st = S.rank;
-  const presets = pool(st.experiments);
-  const builds = presets.map((p) => presetApi(p, st.level));
+  const everyone = pool(st.experiments);
   const a = accuracyOf(st.acc);
   const key = settingsKey(st);
-  const total = RANK_RUN_ORDER.reduce((a, t) => a + RANK_COST[t], 0);
+  const tests = rankTests(st.level);
+  const total = tests.reduce((a, t) => a + RANK_COST[t], 0);
   let done = 0;
-  const run = { i: 0, frac: 0, test: RANK_RUN_ORDER[0], t0: performance.now(), cancelled: false, finished: false, n: RANK_RUN_ORDER.length };
+  const run = { i: 0, frac: 0, test: tests[0], t0: performance.now(), cancelled: false, finished: false, n: tests.length };
   st.run = run;
   bus.render();
-  for (const test of RANK_RUN_ORDER) {
+  for (const test of tests) {
     if (run.cancelled) break;
     run.test = test;
     bus.render();
+    // the healing tests are for the healer builds
+    const presets = isHealTest(test) ? everyone.filter((p) => p.role === 'healer') : everyone;
+    const builds = presets.map((p) => presetApi(p, st.level));
     const req = { op: 'start', scenario: test, builds, precision: a.precision, max_reps: a.max_reps, min_reps: 32 };
     if (Object.keys(S.opts).length) req.opts = { ...S.opts };
     const t0 = performance.now();
@@ -250,9 +260,10 @@ export function renderRankings(root) {
   const st = S.rank;
   const running = !!st.run && !st.run.finished;
   const count = pool(st.experiments).length;
+  const healers = pool(st.experiments).filter((p) => p.role === 'healer').length;
   const out = [
     banner(M.sideArt(raceOf(baselineBuild()?.race)?.faction).inn, 'Every spec, ranked', 'fr-oak'),
-    h('p.lede', `All ${count} builds through seven tests. About four minutes on Standard on a fast laptop, longer on a phone; each list shows up as its test finishes.`),
+    h('p.lede', `All ${count} builds through seven tests, and the ${healers} healers through the healing tests (the raid at level 60). About four minutes on Standard on a fast laptop, longer on a phone; each list shows up as its test finishes.`),
     controls(st, { go: runRankings, goLabel: `Rank ${count} builds`, running, stopLabel: 'Stop', frame: 'fr-oak' }),
   ];
   if (running) out.push(progressBlock(st.run, `${RANK_TITLES[st.run.test]}, ${Math.min(st.run.i + 1, st.run.n)} of ${st.run.n} tests`));

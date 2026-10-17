@@ -139,7 +139,7 @@ named_enum!(CreatureType {
     Elemental = "elemental", Dragonkin = "dragonkin", Giant = "giant", Mechanical = "mechanical",
 });
 
-named_enum!(Who { Me = "self", Target = "target", Owner = "owner", Pet = "pet" });
+named_enum!(Who { Me = "self", Target = "target", Owner = "owner", Pet = "pet", Ally = "ally", Tank = "tank", Lowest = "lowest" });
 
 // Fields available on the event that triggered a proc.
 named_enum!(EvField {
@@ -201,4 +201,17 @@ pub enum VarRef {
     GcdRemains,
     InCombat,
     Spell(u16),
+    /// Missing health of a unit.
+    Deficit(Who),
+    /// Absorb shield left on a unit.
+    Absorb(Who),
+    /// The unit is the group's tank.
+    IsTank(Who),
+    /// The unit is the one acting.
+    IsMe(Who),
+    /// Live allies (you included) below a share of their health, `pct` in
+    /// percent; `group` counts only your group.
+    Hurt { group: bool, pct: u8 },
+    /// Live allies, you included; `group` counts only your group.
+    AllyCount(bool),
 }

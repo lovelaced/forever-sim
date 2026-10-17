@@ -325,8 +325,26 @@ impl Reg {
 
     fn resolve(&mut self, name: &str, ctx: Ctx) -> R<VarRef> {
         let w = &self.w;
+        // allies in the group (`party.`) or everywhere (`raid.`)
+        for (pre, group) in [("party.", true), ("raid.", false)] {
+            if let Some(r) = name.strip_prefix(pre) {
+                if r == "count" {
+                    return Ok(VarRef::AllyCount(group));
+                }
+                if let Some(n) = r.strip_prefix("hurt_").and_then(|n| n.parse::<u8>().ok()) {
+                    return Ok(VarRef::Hurt { group, pct: n });
+                }
+                return Err(format!("'{name}': use {pre}count or {pre}hurt_<percent>"));
+            }
+        }
         let (who, rest) = if let Some(r) = name.strip_prefix("target.") {
             (Who::Target, r)
+        } else if let Some(r) = name.strip_prefix("ally.") {
+            (Who::Ally, r)
+        } else if let Some(r) = name.strip_prefix("tank.") {
+            (Who::Tank, r)
+        } else if let Some(r) = name.strip_prefix("lowest.") {
+            (Who::Lowest, r)
         } else if let Some(r) = name.strip_prefix("owner.") {
             (Who::Owner, r)
         } else if let Some(r) = name.strip_prefix("self.") {
@@ -454,6 +472,7 @@ impl Reg {
             "casting" => return Ok(VarRef::Casting(who)),
             "wanding" => return Ok(VarRef::Wanding(who)),
             "is_player" => return Ok(VarRef::IsPlayer(who)),
+            "is_me" => return Ok(VarRef::IsMe(who)),
             "boss" => return Ok(VarRef::Boss(who)),
             "base_mana" => return Ok(VarRef::BaseMana(who)),
             "base_hp" => return Ok(VarRef::BaseHp(who)),
@@ -467,6 +486,9 @@ impl Reg {
             "slowed" => return Ok(VarRef::Mech(who, Mechanic::Slow)),
             "crit" => return Ok(VarRef::Stat(who, Stat::MeleeCrit)),
             "max_hp" => return Ok(VarRef::ResMax(who, Res::Hp)),
+            "deficit" => return Ok(VarRef::Deficit(who)),
+            "absorb" => return Ok(VarRef::Absorb(who)),
+            "is_tank" => return Ok(VarRef::IsTank(who)),
             _ => {}
         }
         if let Some(ct) = CreatureType::from_name(rest) {
@@ -522,6 +544,9 @@ impl Reg {
             "pet" => TargetSel::Pet,
             "owner" => TargetSel::Owner,
             "my_target" => TargetSel::MyTarget,
+            "ally" => TargetSel::Ally,
+            "party" | "group" => TargetSel::Party,
+            "allies" => TargetSel::Allies(self.exd(t, "max_targets", "100", ctx, path)?),
             "enemies" | "all_enemies" => {
                 TargetSel::Enemies(self.exd(t, "max_targets", "100", ctx, path)?)
             }
@@ -613,6 +638,7 @@ impl Reg {
                     tag: s(t, "tag"),
                     periodic,
                     on_crit: self.effects(t.get("on_crit"), ctx, &format!("{path}.on_crit"))?,
+                    falloff: self.ex(t, "falloff", ctx, path)?,
                 }))
             }
             "resource" => {
@@ -644,6 +670,7 @@ impl Reg {
             }
             "remove_self" => Effect::RemoveSelf,
             "consume" | "consume_charge" => Effect::ConsumeCharge,
+            "from_source" => Effect::FromSource(self.effects(t.get("effects"), ctx, &format!("{path}.effects"))?),
             "emit" => {
                 let ev = s(t, "event").ok_or_else(|| format!("{path}: emit needs `event`"))?;
                 Effect::Emit(Self::intern(&mut self.w.customs, &ev))
@@ -871,6 +898,11 @@ impl Reg {
                                 Some(c) => format!("{sp} if {c}"),
                                 None => sp.clone(),
                             };
+                            if let Some(r) = s(at, "rank") {
+                                if r != "fit" && r != "max" {
+                                    return Err(format!("{p}.rank: use \"fit\" or \"max\""));
+                                }
+                            }
                             (sp, self.ex(at, "if", ctx, &p)?, s(at, "target"), line)
                         }
                         _ => return Err(format!("{p}: expected a spell name or table")),
@@ -881,9 +913,22 @@ impl Reg {
                         Some("self") => SpellTarget::Me,
                         Some("target") | Some("enemy") => SpellTarget::Enemy,
                         Some("pet") => SpellTarget::Pet,
+                        Some("tank") => SpellTarget::Tank,
+                        Some("lowest") => SpellTarget::Lowest,
                         Some(x) => return Err(format!("{p}.target: unknown '{x}'")),
                     };
-                    acts.push(Action { spell, cond, target: tgt, line });
+                    if matches!(tgt, SpellTarget::Tank | SpellTarget::Lowest) && self.w.spells[spell as usize].target != SpellTarget::Me {
+                        return Err(format!("{p}.target: only spells cast on yourself (heals, shields) can go on an ally"));
+                    }
+                    let rank = match e.as_table().and_then(|t| t.get("rank")).and_then(|v| v.as_str()) {
+                        Some("fit") => RankPick::Fit,
+                        _ => RankPick::Max,
+                    };
+                    let mut cond_rank = false;
+                    if let Some(c) = &cond {
+                        c.visit_vars(&mut |v| cond_rank |= matches!(v, VarRef::Rank(_)));
+                    }
+                    acts.push(Action { spell, cond, target: tgt, rank, cond_rank, line });
                 }
             }
             lists.push(acts);
@@ -903,6 +948,7 @@ impl Reg {
             rest,
             eat_below: f(t, "eat_below", 0.5),
             drink_below: f(t, "drink_below", 0.4),
+            healer: bl(t, "healer", false),
         })
     }
 }
@@ -1136,6 +1182,7 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         rank_fields: vec![],
         gear: BTreeMap::new(),
         enemies: BTreeMap::new(),
+        allies: BTreeMap::new(),
         scenarios: BTreeMap::new(),
         rest,
         common_passives: vec![],
@@ -1621,49 +1668,17 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         reg.w.gear.insert(gid.clone(), GearKit { id: gid.clone(), desc: s(gt, "desc").unwrap_or_default(), anchors });
     }
 
-    for (eid, ev) in sub(root, "enemies").unwrap_or(&empty) {
-        let p = format!("enemies.{eid}");
-        let et = tbl(ev, &p)?;
-        let ctx = Ctx { class: None, rank_alias: None };
-        let rotation = match sub(et, "rotation") {
-            Some(rt) => Some(reg.rotation(eid, rt, ctx, &format!("{p}.rotation"))?),
-            None => None,
-        };
-        let mut stuns = Vec::new();
-        if let Some(Value::Array(a)) = et.get("stuns") {
-            for x in a {
-                let v = num_list(Some(x));
-                if v.len() == 2 {
-                    stuns.push((v[0], v[1]));
-                }
+    for (kind, list) in [("enemies", false), ("allies", true)] {
+        for (eid, ev) in sub(root, kind).unwrap_or(&empty) {
+            let p = format!("{kind}.{eid}");
+            let et = tbl(ev, &p)?;
+            let e = enemy_def(&mut reg, eid, et, &p)?;
+            if list {
+                reg.w.allies.insert(eid.clone(), e);
+            } else {
+                reg.w.enemies.insert(eid.clone(), e);
             }
         }
-        let ctn = s(et, "creature").unwrap_or("humanoid".into());
-        let school = s(et, "school").unwrap_or("physical".into());
-        let e = EnemyDef {
-            id: eid.clone(),
-            name: s(et, "name").unwrap_or(eid.clone()),
-            creature: CreatureType::from_name(&ctn).ok_or_else(|| format!("{p}.creature"))?,
-            level_offset: f(et, "level_offset", 0.0) as i32,
-            hp: reg.exd(et, "hp", "100", ctx, &p)?,
-            armor: reg.exd(et, "armor", "0", ctx, &p)?,
-            dmg: reg.exd(et, "dmg", "10", ctx, &p)?,
-            dmg_spread: f(et, "dmg_spread", 0.15),
-            speed: f(et, "speed", 2.0),
-            crit: f(et, "crit", 5.0),
-            dodge: reg.ex(et, "dodge", ctx, &p)?,
-            parry: reg.ex(et, "parry", ctx, &p)?,
-            block: f(et, "block", 0.0),
-            attacks: bl(et, "attacks", true),
-            boss: bl(et, "boss", false),
-            player_like: bl(et, "player_like", false),
-            behind: bl(et, "behind", false),
-            school: School::from_name(&school).ok_or_else(|| format!("{p}.school"))?,
-            rotation,
-            stuns,
-            mods: reg.stat_mods(et.get("mods"), ctx, &format!("{p}.mods"))?,
-        };
-        reg.w.enemies.insert(eid.clone(), e);
     }
 
     for (sid, sv) in sub(root, "scenarios").unwrap_or(&empty) {
@@ -1691,7 +1706,19 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
                 max_time: f(st, "max_time", 180.0),
                 win_needs_kill: bl(st, "win_needs_kill", true),
             },
-            x => return Err(format!("{p}.kind: unknown {x:?} (leveling, boss, duel, pressure)")),
+            Some("healing") => ScenarioKind::Healing(HealingDef {
+                boss: s(st, "boss").ok_or_else(|| format!("{p}: needs a `boss`"))?,
+                tank: s(st, "tank").unwrap_or("tank".into()),
+                party: strs(st, "party"),
+                raid: strs(st, "raid"),
+                duration: f(st, "duration", 120.0),
+                max_dead: f(st, "max_dead", 1.0) as u32,
+                lo: f(st, "lo", 0.2),
+                hi: f(st, "hi", 5.0),
+                steps: f(st, "steps", 8.0) as u32,
+                min_level: f(st, "min_level", 1.0) as u32,
+            }),
+            x => return Err(format!("{p}.kind: unknown {x:?} (leveling, boss, duel, pressure, healing)")),
         };
         let mut sopts = Vec::new();
         if let Some(ot) = sub(st, "opts") {
@@ -1705,6 +1732,7 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
             ScenarioKind::Boss { .. } => "dps",
             ScenarioKind::Duel { .. } => "win",
             ScenarioKind::Pressure { .. } => "breakeven",
+            ScenarioKind::Healing(_) => "heal_breakeven",
         };
         reg.w.scenarios.insert(
             sid.clone(),
@@ -1724,6 +1752,14 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         let e = match &sc.kind {
             ScenarioKind::Leveling { enemy, .. } | ScenarioKind::Boss { enemy, .. } => Some(enemy),
             ScenarioKind::Pressure { attacker, .. } => Some(attacker),
+            ScenarioKind::Healing(h) => {
+                for a in std::iter::once(&h.tank).chain(&h.party).chain(&h.raid) {
+                    if !reg.w.allies.contains_key(a) {
+                        return Err(format!("scenarios.{}: unknown ally '{a}'", sc.id));
+                    }
+                }
+                Some(&h.boss)
+            }
             _ => None,
         };
         if let Some(e) = e {
@@ -1733,4 +1769,78 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         }
     }
     Ok(reg.w)
+}
+
+/// An enemy or ally template.
+fn enemy_def(reg: &mut Reg, eid: &str, et: &Table, p: &str) -> R<EnemyDef> {
+    let ctx = Ctx { class: None, rank_alias: None };
+    let rotation = match sub(et, "rotation") {
+        Some(rt) => Some(reg.rotation(eid, rt, ctx, &format!("{p}.rotation"))?),
+        None => None,
+    };
+    let mut stuns = Vec::new();
+    if let Some(Value::Array(a)) = et.get("stuns") {
+        for x in a {
+            let v = num_list(Some(x));
+            if v.len() == 2 {
+                stuns.push((v[0], v[1]));
+            }
+        }
+    }
+    let mut script = Vec::new();
+    if let Some(Value::Array(a)) = et.get("script") {
+        for (k, x) in a.iter().enumerate() {
+            let q = format!("{p}.script[{k}]");
+            let xt = tbl(x, &q)?;
+            let sch = s(xt, "school").unwrap_or("physical".into());
+            let targets = match s(xt, "target").as_deref().unwrap_or("tank") {
+                "tank" => ScriptTargets::Tank,
+                "all" | "party" => ScriptTargets::All,
+                "random" => ScriptTargets::Random(f(xt, "count", 1.0) as u32),
+                "others" => ScriptTargets::Others(f(xt, "count", 1.0) as u32),
+                o => return Err(format!("{q}.target: unknown '{o}' (tank, all, random, others)")),
+            };
+            let every = f(xt, "every", 0.0);
+            if every <= 0.0 {
+                return Err(format!("{q}: needs `every` (seconds)"));
+            }
+            script.push(ScriptHit {
+                name: s(xt, "name").ok_or_else(|| format!("{q}: needs a `name`"))?,
+                icon: s(xt, "icon").unwrap_or_default(),
+                school: School::from_name(&sch).ok_or_else(|| format!("{q}.school"))?,
+                dmg: reg.exd(xt, "dmg", "0", ctx, &q)?,
+                spread: f(xt, "spread", 0.1),
+                every,
+                first: f(xt, "first", every),
+                targets,
+                melee: bl(xt, "melee", false),
+            });
+        }
+    }
+    let ctn = s(et, "creature").unwrap_or("humanoid".into());
+    let school = s(et, "school").unwrap_or("physical".into());
+    Ok(EnemyDef {
+        id: eid.to_string(),
+        name: s(et, "name").unwrap_or(eid.to_string()),
+        creature: CreatureType::from_name(&ctn).ok_or_else(|| format!("{p}.creature"))?,
+        level_offset: f(et, "level_offset", 0.0) as i32,
+        hp: reg.exd(et, "hp", "100", ctx, p)?,
+        armor: reg.exd(et, "armor", "0", ctx, p)?,
+        dmg: reg.exd(et, "dmg", "10", ctx, p)?,
+        dmg_spread: f(et, "dmg_spread", 0.15),
+        speed: f(et, "speed", 2.0),
+        crit: f(et, "crit", 5.0),
+        dodge: reg.ex(et, "dodge", ctx, p)?,
+        parry: reg.ex(et, "parry", ctx, p)?,
+        block: f(et, "block", 0.0),
+        attacks: bl(et, "attacks", true),
+        boss: bl(et, "boss", false),
+        player_like: bl(et, "player_like", false),
+        behind: bl(et, "behind", false),
+        school: School::from_name(&school).ok_or_else(|| format!("{p}.school"))?,
+        rotation,
+        stuns,
+        mods: reg.stat_mods(et.get("mods"), ctx, &format!("{p}.mods"))?,
+        script,
+    })
 }

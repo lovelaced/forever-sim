@@ -370,8 +370,8 @@ icon = "spell_nature_protectionformnature"
 tree = "Restoration"
 points = 10
 ranks = 5
-text = "Healing Touch, Regrowth, Rejuvenation, Swiftmend and Wild Growth heal 10% more."
-spell_mods = [{ spells = ["healing_touch", "regrowth", "rejuvenation", "swiftmend_heal", "wild_growth"], prop = "heal", mul = "1 + 0.02 * rank" }]
+text = "Healing Touch, Regrowth, Rejuvenation, Swiftmend, Wild Growth and Tranquility heal 10% more."
+spell_mods = [{ spells = ["healing_touch", "regrowth", "rejuvenation", "swiftmend_heal", "wild_growth", "tranquility"], prop = "heal", mul = "1 + 0.02 * rank" }]
 [talents.gift_of_the_earthmother]
 icon = "spell_nature_spiritarmor"
 tree = "Restoration"
@@ -384,8 +384,8 @@ icon = "spell_holy_elunesgrace"
 tree = "Restoration"
 points = 15
 ranks = 5
-text = "Healing Touch costs 10% less."
-spell_mods = [{ spells = ["healing_touch"], prop = "cost", mul = "1 - 0.02 * rank" }]
+text = "Healing Touch and Tranquility cost 10% less."
+spell_mods = [{ spells = ["healing_touch", "tranquility"], prop = "cost", mul = "1 - 0.02 * rank" }]
 [talents.improved_rejuvenation]
 icon = "spell_nature_rejuvenation"
 tree = "Restoration"
@@ -418,7 +418,8 @@ icon = "spell_nature_tranquility"
 tree = "Restoration"
 points = 20
 ranks = 2
-text = "Tranquility threat -100% and cooldown -60% (Tranquility, a party heal, is not simulated)."
+text = "Tranquility cooldown -30% per point (-60% at 2/2) and threat -100%."
+spell_mods = [{ spells = ["tranquility"], prop = "cooldown", mul = "1 - 0.3 * rank" }, { spells = ["tranquility"], prop = "threat", mul = "1 - 0.5 * rank" }]
 [talents.improved_regrowth]
 icon = "spell_nature_resistnature"
 tree = "Restoration"
@@ -1006,14 +1007,30 @@ ranks = [
   { level = 56, id = 9889, lo = 1762, lo_per_level = 6.055, hi = 2078, hi_per_level = 7.144, mana = 755, cast = 3.5, max_level = 61, coef = 1 },
   { level = 60, id = 25297, lo = 2139, lo_per_level = 6.694, hi = 2525, hi_per_level = 7.906, mana = 840, cast = 3.5, max_level = 65, coef = 1 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Healing Touch" }]
+effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Healing Touch" }]
+[spells.tranquility]
+name = "Tranquility"
+icon = "spell_nature_tranquility"
+school = "nature"
+target = "self"
+cooldown = 300
+forms = ["none"]
+ranks = [
+  { level = 30, id = 740, tick = 87, tick_per_level = 0.6, mana = 375, max_level = 36 },
+  { level = 40, id = 8918, tick = 129, tick_per_level = 0.7, mana = 505, max_level = 46 },
+  { level = 50, id = 9862, tick = 196, tick_per_level = 0.9, mana = 695, max_level = 56 },
+  { level = 60, id = 9863, tick = 285, tick_per_level = 1, mana = 925, max_level = 66 },
+]
+text = "A 10 sec channel that heals your party every 2 sec."
+effects = []
+channel = { duration = 10, interval = 2, effects = [{ type = "heal", target = "party", amount = "r.tick", coef = 0.067, periodic = true, can_crit = false, tag = "Tranquility" }] }
 [spells.rejuvenation]
 name = "Rejuvenation"
 icon = "spell_nature_rejuvenation"
 school = "nature"
 target = "self"
 forms = ["none"]
-requires = "!aura.rejuvenation.up"
+requires = "!ally.aura.rejuvenation.up"
 ranks = [
   { level = 4, id = 774, total = 32, mana = 25 },
   { level = 10, id = 1058, total = 48, mana = 40 },
@@ -1027,7 +1044,7 @@ ranks = [
   { level = 58, id = 9841, total = 644, mana = 335 },
   { level = 60, id = 25299, total = 776, mana = 360 },
 ]
-effects = [{ type = "aura", aura = "rejuvenation" }]
+effects = [{ type = "aura", aura = "rejuvenation", target = "ally" }]
 [spells.regrowth]
 name = "Regrowth"
 icon = "spell_nature_resistnature"
@@ -1046,7 +1063,7 @@ ranks = [
   { level = 54, id = 9857, lo = 771, lo_per_level = 5.664, hi = 863, hi_per_level = 6.336, hot = 791, mana = 445, max_level = 59, coef = 0.286 },
   { level = 60, id = 9858, lo = 965, lo_per_level = 6.428, hi = 1077, hi_per_level = 7.172, hot = 994, mana = 525, max_level = 65, coef = 0.286 },
 ]
-effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Regrowth" }, { type = "aura", aura = "regrowth", target = "self" }]
+effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Regrowth" }, { type = "aura", aura = "regrowth", target = "ally" }]
 [spells.swiftmend]
 name = "Swiftmend"
 icon = "inv_relics_idolofrejuvenation"
@@ -1055,11 +1072,11 @@ school = "nature"
 cooldown = 15
 target = "self"
 forms = ["none"]
-requires = "aura.rejuvenation.up || aura.regrowth.up"
+requires = "ally.aura.rejuvenation.up || ally.aura.regrowth.up"
 cost = { mana = "0.2 * base_mana" }
 ranks = [{ level = 1, id = 18562 }]
 text = "Heals for the full Rejuvenation amount (your highest rank) without consuming it."
-effects = [{ type = "cast", spell = "swiftmend_heal", target = "self" }]
+effects = [{ type = "cast", spell = "swiftmend_heal", target = "ally" }]
 [spells.swiftmend_heal]
 name = "Swiftmend (heal)"
 icon = "inv_relics_idolofrejuvenation"
@@ -1079,7 +1096,7 @@ ranks = [
   { level = 58, total = 644 },
   { level = 60, total = 776 },
 ]
-effects = [{ type = "heal", target = "self", amount = "r.total", coef = 0.8, can_crit = true, mult = "(1 + 0.05 * t.improved_rejuvenation) * (1 + 0.01 * t.genesis)", tag = "Swiftmend" }]
+effects = [{ type = "heal", target = "ally", amount = "r.total", coef = 0.8, can_crit = true, mult = "(1 + 0.05 * t.improved_rejuvenation) * (1 + 0.01 * t.genesis)", tag = "Swiftmend" }]
 [spells.wild_growth]
 name = "Wild Growth"
 icon = "ability_druid_flourish"
@@ -1094,7 +1111,7 @@ ranks = [
   { level = 50, id = 1238214, total = 420, total_per_level = 9.1, max_level = 58, mana = 755 },
   { level = 60, id = 1238215, total = 679, total_per_level = 11.2, max_level = 68, mana = 1050 },
 ]
-effects = [{ type = "aura", aura = "wild_growth", target = "self" }]
+effects = [{ type = "aura", aura = "wild_growth", target = "allies", max_targets = 5 }]
 [spells.natures_swiftness]
 name = "Nature's Swiftness"
 icon = "spell_nature_ravenform"
@@ -1266,3 +1283,27 @@ rest = [
 ]
 eat_below = 0.45
 drink_below = 0.4
+
+# Healing a group (the healing tests): Rejuvenation kept on the tank, heals on
+# whoever is most hurt, sized to what they're missing; nothing while everyone
+# is topped up.
+[rotations.heal]
+desc = "Group healing: Rejuvenation on the tank and anyone hurt, Swiftmend and Regrowth for big gaps, Healing Touch sized to what's missing, Wild Growth and Tranquility when many are hurt"
+healer = true
+auto_melee = false
+precombat = ["mark_of_the_wild"]
+opener = []
+actions = [
+  { cast = "mana_potion", if = "opt.potions && mana_pct < 0.3" },
+  { cast = "natures_swiftness", if = "lowest.hp_pct < 0.3" },
+  { cast = "healing_touch", target = "lowest", if = "aura.natures_swiftness.up && ally.hp_pct < 0.35" },
+  { cast = "swiftmend", target = "lowest", if = "ally.hp_pct < 0.5" },
+  { cast = "tranquility", if = "party.hurt_60 >= 3" },
+  { cast = "wild_growth", target = "lowest", if = "raid.hurt_85 >= 3" },
+  { cast = "regrowth", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.5 && !ally.aura.regrowth.up" },
+  { cast = "rejuvenation", target = "tank", if = "ally.hp_pct < 0.97" },
+  { cast = "healing_touch", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.6" },
+  { cast = "rejuvenation", target = "lowest", if = "ally.hp_pct < 0.85" },
+  { cast = "regrowth", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.75 && !ally.aura.regrowth.up" },
+]
+rest = []

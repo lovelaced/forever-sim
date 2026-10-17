@@ -39,6 +39,8 @@ export const S = {
 // ------------------------------------------------------------------ lookups
 
 export const classOf = (id) => env.catalog.classes.find((c) => c.id === id);
+// A class's play styles for its own fights (the healing one is for the healing tests).
+export const soloRotations = (c) => c.rotations.filter((r) => !r.healer);
 export const raceOf = (id) => env.catalog.races.find((r) => r.id === id);
 export const presetOf = (file) => env.catalog.presets.find((p) => p.file === file);
 // A class's builds: standard specs first, in talent tree order, then the
@@ -71,6 +73,25 @@ export function baselineBuild() {
   return buildOf(S.baseline) || S.builds[0];
 }
 
+// The healing tests are for healers: the healer presets, and any build of a
+// healing class that the player marks as healing in group tests (`healer`
+// set on the build overrides the preset).
+export const healRotationOf = (cls) => classOf(cls)?.rotations.find((r) => r.healer) || null;
+export function healsGroups(b) {
+  if (!b || !healRotationOf(b.cls)) return false;
+  if (typeof b.healer === 'boolean') return b.healer;
+  return presetOf(b.preset)?.role === 'healer';
+}
+// Why a build sits a test out, or null when it takes it.
+export function sitsOut(b, test) {
+  const sc = M.SCENARIOS.find((s) => s.id === test);
+  if (sc?.group !== 'healing') return null;
+  if (!healsGroups(b)) return 'Not a healer';
+  if (b.level < (sc.minLevel || 1)) return `Level ${sc.minLevel} only`;
+  return null;
+}
+export const takesTest = (b, test) => !sitsOut(b, test);
+
 // ------------------------------------------------------------------ builds
 
 export function buildFromPreset(p, level) {
@@ -88,7 +109,7 @@ export function emptyBuild(cls, level) {
   const c = classOf(cls);
   return {
     uid: uidSeq++, cls, race: p ? p.race : c.races[0], level: level || 60, talents: {}, plan: null,
-    gear: p ? p.gear : env.catalog.gear[0].id, rotation: p ? p.rotation : c.rotations[0].id,
+    gear: p ? p.gear : env.catalog.gear[0].id, rotation: p ? p.rotation : soloRotations(c)[0].id,
     preset: null, order: null, popts: null, edited: false, customName: null, seq: 0,
   };
 }
@@ -162,7 +183,7 @@ export function serial() {
     v: 1,
     b: S.builds.map((b) => ({
       c: b.cls, r: b.race, l: b.level, t: b.plan || b.talents, p: b.preset || undefined, e: b.edited ? 1 : undefined,
-      g: b.gear, ro: b.rotation, n: b.customName || undefined,
+      g: b.gear, ro: b.rotation, n: b.customName || undefined, h: typeof b.healer === 'boolean' ? Number(b.healer) : undefined,
     })),
     // `a` and `s` are what older versions of the page read: the build shown and the test picked.
     a: ed >= 0 ? ed : bl, s: S.open || 'solo_1', acc: S.accuracy,
@@ -183,9 +204,10 @@ export function restore(d) {
       uid: uidSeq++, cls: c.id, race: c.races.includes(x.r) ? x.r : c.races[0],
       level: Math.min(60, Math.max(10, Number(x.l) || 60)), talents, plan: { ...talents },
       gear: env.catalog.gear.some((g) => g.id === x.g) ? x.g : (p ? p.gear : env.catalog.gear[0].id),
-      rotation: c.rotations.some((r) => r.id === x.ro) ? x.ro : c.rotations[0].id,
+      rotation: soloRotations(c).some((r) => r.id === x.ro) ? x.ro : soloRotations(c)[0].id,
       preset: p ? p.file : null, order: p && !x.e ? p.order || null : null, popts: p ? p.opts || null : null,
       edited: !!x.e, customName: typeof x.n === 'string' ? x.n.slice(0, 48) : null, seq: 0,
+      healer: x.h === 0 || x.h === 1 ? x.h === 1 : undefined,
     });
   }
   if (!builds.length) return false;

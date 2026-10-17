@@ -3,7 +3,7 @@
 // each test's detail opening inside its row.
 import * as M from './meta.js';
 import { h, fmtMetric, fmtDiff, fmtNum } from './ui.js';
-import { S, env, bus, sig, nameOf, slotOf, baselineBuild, raceOf, scenarioMeta, primaryOf, accuracyOf, presetOf, presetsFor, baseName, buildDiff, diffText, saveLocal } from './state.js';
+import { S, env, bus, sig, nameOf, slotOf, baselineBuild, raceOf, scenarioMeta, primaryOf, accuracyOf, presetOf, presetsFor, baseName, buildDiff, diffText, saveLocal, sitsOut } from './state.js';
 import { scorecardTests, cellOf, pairOf, duelWin, changesFor, simulateAll } from './runner.js';
 import { renderDetail, leaders, metricOf } from './results.js';
 
@@ -32,8 +32,9 @@ const badge = (c) => h('span.slot', { style: { '--slot': c.color }, 'aria-hidden
 
 function rowWinner(test, row, cols) {
   if (!row || row.error) return undefined;
-  const live = cols.filter((c) => c.cell && c.cell.current);
-  if (live.length < 2 || live.length < cols.length) return undefined;
+  const takers = cols.filter((c) => !sitsOut(c.b, test));
+  const live = takers.filter((c) => c.cell && c.cell.current);
+  if (live.length < 2 || live.length < takers.length) return undefined;
   if (test === 'duel') {
     if (row.one) return undefined;
     for (const c of live) {
@@ -168,6 +169,8 @@ function trialHead(test, open) {
 // best, and how it compares with the main build.
 function plaque(test, row, c, cols, best) {
   const el = h('div.plaque', { style: { '--slot': c.color } }, badge(c), h('span.sr-only', `${c.name}: `));
+  const out = sitsOut(c.b, test);
+  if (out) { el.classList.add('out'); el.append(h('span.v.out', out)); return el; }
   if (!c.cell) { el.append(h('span.v.none', '—')); return el; }
   if (!c.cell.current) el.classList.add('stale');
   const base = cols.find((x) => x.isBase);
@@ -252,7 +255,7 @@ export function renderScorecard(root, { onRender }) {
 
   // notices
   const notes = [];
-  const staleBuilds = S.builds.filter((b) => listed.some((t) => { const c = cellOf(S.rows[t], b); return S.rows[t] && !S.rows[t].error && (!c || !c.current); }));
+  const staleBuilds = S.builds.filter((b) => listed.some((t) => { const c = cellOf(S.rows[t], b); return S.rows[t] && !S.rows[t].error && !sitsOut(b, t) && (!c || !c.current); }));
   if (anyRow && staleBuilds.length && !running) {
     notes.push(h('div.notice', `${joinAnd(staleBuilds.map((b) => nameOf(b)))} changed since the last run. Simulate to update the faded numbers.`));
   }
@@ -279,7 +282,10 @@ export function renderScorecard(root, { onRender }) {
     } else if (row?.error) {
       vals.append(h('p.error-cell', `This test failed: ${row.error}`));
     } else if (!row) {
-      for (const c of cols) vals.append(h('div.plaque', { style: { '--slot': c.color } }, badge(c), h('span.v.none', isRunning ? '…' : '—')));
+      for (const c of cols) {
+        const why = sitsOut(c.b, test);
+        vals.append(h('div.plaque', { style: { '--slot': c.color }, class: why ? 'out' : '' }, badge(c), why ? h('span.v.out', why) : h('span.v.none', isRunning ? '…' : '—')));
+      }
     } else {
       const best = test === 'duel' ? new Set() : leaders(row.res, cols.filter((c) => c.cell), row.res.scenario.primary, (M.METRICS[row.res.scenario.primary] || {}).good);
       for (const c of cols) vals.append(plaque(test, row, c, cols, best));

@@ -168,6 +168,9 @@ fn catalog(w: &World) -> J {
                     let sp = &w.spells[a.spell as usize];
                     json!({
                         "spell": sp.id, "name": sp.name, "icon": sp.icon,
+                        // a heal line on the tank or the most hurt ally, sized to what's missing
+                        "on": match a.target { SpellTarget::Tank => Some("tank"), SpellTarget::Lowest => Some("lowest"), _ => None },
+                        "fit": a.rank == RankPick::Fit,
                         "when": a.cond.as_ref().and_then(|e| crate::explain::condition(w, ci, e)),
                         // what the spell itself needs (Victory Rush after a kill)
                         "needs": sp.requires.as_ref().and_then(|e| crate::explain::condition(w, ci, e)),
@@ -178,7 +181,7 @@ fn catalog(w: &World) -> J {
                 "id": r.id, "desc": r.desc, "lines": lines(&r.actions), "rest": lines(&r.rest),
                 "precombat": r.precombat.iter().map(|a| w.spells[a.spell as usize].name.clone()).collect::<Vec<_>>(),
                 "precombat_icons": r.precombat.iter().map(|a| w.spells[a.spell as usize].icon.clone()).collect::<Vec<_>>(),
-                "opener": lines(&r.opener),
+                "opener": lines(&r.opener), "healer": r.healer,
             })).collect();
             let races: Vec<&str> = w.races.iter().filter(|r| r.classes.is_empty() || r.classes.contains(&c.id)).map(|r| r.id.as_str()).collect();
             json!({
@@ -202,8 +205,13 @@ fn catalog(w: &World) -> J {
                 ScenarioKind::Boss { .. } => "boss",
                 ScenarioKind::Duel { .. } => "duel",
                 ScenarioKind::Pressure { .. } => "pressure",
+                ScenarioKind::Healing(_) => "healing",
             };
-            json!({ "id": s.id, "desc": s.desc, "kind": kind, "primary": s.primary })
+            let min_level = match &s.kind {
+                ScenarioKind::Healing(h) => h.min_level,
+                _ => 1,
+            };
+            json!({ "id": s.id, "desc": s.desc, "kind": kind, "primary": s.primary, "min_level": min_level })
         })
         .collect();
     let options: Vec<J> = w
@@ -277,7 +285,7 @@ fn aura_icons(w: &World) -> Vec<Option<String>> {
                     walk(then, out);
                     walk(els, out);
                 }
-                Effect::Chance { then, .. } => walk(then, out),
+                Effect::Chance { then, .. } | Effect::FromSource(then) => walk(then, out),
                 _ => {}
             }
         }
@@ -462,6 +470,9 @@ fn trace(w: &World, v: &J) -> Result<J, String> {
     let sc = w.scenarios.get(scenario).ok_or_else(|| format!("unknown scenario '{scenario}'"))?;
     let level = v.get("level").and_then(|x| x.as_u64()).map(|x| x as u32);
     let b = parse_build(w, v.get("build").ok_or("trace needs a build")?, level)?;
+    if let Some(e) = crate::scenario::unfit(sc, w, &b) {
+        return Err(e);
+    }
     let opponent = match v.get("opponent") {
         Some(o) if !o.is_null() => Some(parse_build(w, o, level).map_err(|e| format!("opponent: {e}"))?),
         _ => None,
@@ -480,6 +491,10 @@ fn trace(w: &World, v: &J) -> Result<J, String> {
     let (_, _, events) = run_rep_traced(&RepInput { w, sc: &short, build: &b, opponent: opponent.as_ref(), opts: &opts, seed: mc::rep_seed(&cfg, sc, rep), log: true });
     let mut events = events.unwrap_or_default();
     let leveling = matches!(sc.kind, ScenarioKind::Leveling { .. });
+    let healing = match &sc.kind {
+        ScenarioKind::Healing(h) => Some(h),
+        _ => None,
+    };
     if leveling {
         // from the first pull to the next one (at most two and a half minutes)
         let first = events.iter().position(|e| e.kind == "pull").unwrap_or(0);
@@ -487,8 +502,27 @@ fn trace(w: &World, v: &J) -> Result<J, String> {
         let next = events.iter().skip(first + 1).position(|e| e.kind == "pull").map(|k| k + first + 1).unwrap_or(events.len());
         events = events.drain(first..next).filter(|e| e.t <= t0 + 150.0).collect();
     } else {
-        let until = v.get("until").and_then(|x| x.as_f64()).unwrap_or(30.0);
+        let until = v.get("until").and_then(|x| x.as_f64()).unwrap_or(if healing.is_some() { 60.0 } else { 30.0 });
         events.retain(|e| e.t <= until + 1e-9);
+    }
+    if let Some(h) = healing {
+        // a healer's fight is the whole party's: everything on your side,
+        // and everything the boss does to it
+        events.retain(|e| e.team == 0 || e.target_team == Some(0) || e.kind == "death");
+        let me = b.name.clone();
+        let tank = w.allies.get(&h.tank).map(|a| a.name.clone()).unwrap_or_default();
+        let mut party: Vec<String> = Vec::new();
+        for e in &events {
+            let names = [Some(&e.who).filter(|_| e.team == 0 && !e.pet), e.target.as_ref().filter(|_| e.target_team == Some(0))];
+            for n in names.into_iter().flatten() {
+                if *n != me && !party.contains(n) {
+                    party.push(n.clone());
+                }
+            }
+        }
+        party.sort_by_key(|n| *n != tank);
+        dress_trace(w, &b, sc, &mut events);
+        return Ok(json!({ "me": me, "pets": [], "leveling": false, "party": party, "tank": tank, "events": events }));
     }
     // what concerns the build: its own (and its pet's) actions, what it puts
     // on others, and what is done to it
@@ -534,7 +568,8 @@ fn dress_trace(w: &World, b: &Build, sc: &ScenarioDef, events: &mut Vec<crate::e
         PET_ICONS.iter().find(|x| n.contains(x.0)).map_or("ability_hunter_beastsoothe", |x| x.1).to_string()
     };
     // enemies in the order they first show up
-    let ours: BTreeSet<usize> = events.iter().filter(|e| e.team == 0).map(|e| e.who_id).collect();
+    let ours: BTreeSet<usize> = events.iter().filter(|e| e.team == 0).map(|e| e.who_id)
+        .chain(events.iter().filter(|e| e.target_team == Some(0)).filter_map(|e| e.target_id)).collect();
     let mut foes: Vec<usize> = Vec::new();
     for e in events.iter() {
         for id in [Some(e.who_id).filter(|_| e.team != 0), e.target_id.filter(|t| !ours.contains(t))].into_iter().flatten() {
@@ -544,7 +579,7 @@ fn dress_trace(w: &World, b: &Build, sc: &ScenarioDef, events: &mut Vec<crate::e
         }
     }
     let kind = match sc.kind {
-        ScenarioKind::Boss { .. } => "Boss",
+        ScenarioKind::Boss { .. } | ScenarioKind::Healing(_) => "Boss",
         ScenarioKind::Pressure { .. } => "Attacker",
         ScenarioKind::Duel { .. } => "",
         _ => "Mob",
@@ -580,6 +615,9 @@ fn dress_trace(w: &World, b: &Build, sc: &ScenarioDef, events: &mut Vec<crate::e
                     "auto shot" | "wand" => weapon(&b.gear.ranged),
                     _ => weapon(&b.gear.mh),
                 };
+            } else if let Some(sh) = Some(()).filter(|_| e.team != 0).and_then(|_| w.enemies.values().flat_map(|x| x.script.iter()).find(|s| s.name == e.name && !s.icon.is_empty())) {
+                // a healing boss's timed attacks
+                e.icon = sh.icon.clone();
             } else if let Some((name, icon)) = by_name(&e.name) {
                 e.icon = icon;
                 if matches!(e.kind, "hit" | "heal") {
@@ -666,6 +704,9 @@ fn start(st: &mut State, world: Arc<World>, v: &J) -> Result<J, String> {
     let mut variants = Vec::new();
     for (i, bj) in builds.iter().enumerate() {
         let b = parse_build(w, bj, level).map_err(|e| format!("build {}: {e}", i + 1))?;
+        if let Some(e) = crate::scenario::unfit(sc, w, &b) {
+            return Err(format!("build {}: {e}", i + 1));
+        }
         let opts = opts_for(w, &b, Some(sc), v.get("opts"))?;
         variants.push(Variant { world: 0, name: b.name.clone(), build: b, opponent: opponent.clone(), opts });
     }

@@ -12,18 +12,21 @@ const TABS = [['summary', 'Summary'], ['played', 'How it played'], ['log', 'One 
 
 const UNIT = {
   kills_per_hour: 'kills per hour', dps: 'damage per second', breakeven: 'attacker damage per second', win: 'of duels won',
+  heal_breakeven: 'boss damage per second',
 };
 
 const PHRASE = {
   kills_per_hour: (a, up) => `gets ${a} ${up ? 'more' : 'fewer'} kills per hour than`,
   dps: (a, up) => `does ${a} ${up ? 'more' : 'less'} damage per second than`,
   breakeven: (a, up) => `survives attackers doing ${a} ${up ? 'more' : 'less'} damage per second than`,
+  heal_breakeven: (a, up) => `heals through ${a} ${up ? 'more' : 'less'} boss damage per second than`,
 };
 
 const CHANGE = {
   kills_per_hour: (a, up) => `${up ? 'added' : 'cost'} ${a} kills per hour`,
   dps: (a, up) => `${up ? 'added' : 'cost'} ${a} damage per second`,
   breakeven: (a, up) => `${up ? 'lets it survive' : 'leaves it losing to'} attackers doing ${a} ${up ? 'more' : 'less'} damage per second`,
+  heal_breakeven: (a, up) => `${up ? 'lets it heal through' : 'leaves it healing through'} ${a} ${up ? 'more' : 'less'} boss damage per second`,
 };
 
 export const rangeTip = () => [
@@ -136,7 +139,9 @@ function numbersPanel(ctx, cols, res, primary) {
           return cell;
         }));
       })));
-    out.push(h('div.details', h('h4', 'Every measure'), h('div.table-scroll', table)));
+    out.push(h('div.details', h('h4', 'Every measure'),
+      ctx.scenario.group === 'healing' ? h('p.hint', 'Apart from the first line, these come from the hardest fight each build held.') : null,
+      h('div.table-scroll', table)));
   }
 
   // ---------------------------------------------------------------- breakdowns, side by side
@@ -208,7 +213,7 @@ function meterGroups(v, groups, c) {
       h('div.meter', rows.slice(0, 10).map((r) => h('div.meter-row', { style: { '--slot': c.color } },
         h('i', { style: { width: `${(100 * r.mean) / max}%` } }),
         h('span', h('b', r.name),
-          h('em', kind === 'pct' ? `${fmtNum(100 * r.mean, 1)}%` : g.startsWith('dps') || g.startsWith('heal')
+          h('em', kind === 'pct' ? `${fmtNum(100 * r.mean, 1)}%` : g.startsWith('dps') || g.startsWith('heal') || g === 'hps'
             ? `${fmtNum(r.mean, r.mean < 10 ? 1 : 0)} (${fmtNum(100 * r.mean / total, 0)}%)` : fmtNum(r.mean, r.mean < 10 ? 2 : 1))))))));
   }
   if (!out.length) out.push(h('p.hint', 'Nothing to break down for this build.'));
