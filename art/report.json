@@ -321,20 +321,6 @@
   "contested": 0.335,
   "bg_removed": null
  },
- "scene-solo_2": {
-  "id": "scene-solo_2",
-  "size": [
-   395,
-   198
-  ],
-  "colors": 40,
-  "grid": [
-   4.5,
-   4.5
-  ],
-  "contested": 0.438,
-  "bg_removed": null
- },
  "scene-boss": {
   "id": "scene-boss",
   "size": [
@@ -599,20 +585,6 @@
    4.5
   ],
   "contested": 0.5,
-  "bg_removed": null
- },
- "scene-solo_2_hard": {
-  "id": "scene-solo_2_hard",
-  "size": [
-   448,
-   174
-  ],
-  "colors": 40,
-  "grid": [
-   4.5,
-   4.5
-  ],
-  "contested": 0.455,
   "bg_removed": null
  },
  "scene-solo_3": {
@@ -1385,20 +1357,6 @@
   "contested": 0.344,
   "bg_removed": null
  },
- "scene-solo_2-horde": {
-  "id": "scene-solo_2-horde",
-  "size": [
-   395,
-   198
-  ],
-  "colors": 40,
-  "grid": [
-   4.5,
-   4.5
-  ],
-  "contested": 0.434,
-  "bg_removed": null
- },
  "scene-solo_2_hard-horde": {
   "id": "scene-solo_2_hard-horde",
   "size": [
@@ -1719,6 +1677,1014 @@
    4.5
   ],
   "contested": 0.433,
+  "bg_removed": null
+ },
+ "scene-solo_2-b10": {
+  "id": "scene-solo_2-b10",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.496,
+  "bg_removed": null
+ },
+ "scene-solo_2_hard-b10": {
+  "id": "scene-solo_2_hard-b10",
+  "size": [
+   433,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.506,
+  "bg_removed": null
+ },
+ "scene-pressure-b10": {
+  "id": "scene-pressure-b10",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.374,
+  "bg_removed": null
+ },
+ "scene-pressure_2v1-b10": {
+  "id": "scene-pressure_2v1-b10",
+  "size": [
+   432,
+   181
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.392,
+  "bg_removed": null
+ },
+ "scene-duel-b10": {
+  "id": "scene-duel-b10",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.671,
+  "bg_removed": null
+ },
+ "scene-heal_dungeon-b10": {
+  "id": "scene-heal_dungeon-b10",
+  "size": [
+   442,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.511,
+  "bg_removed": null
+ },
+ "scene-heal_tank-b10": {
+  "id": "scene-heal_tank-b10",
+  "size": [
+   427,
+   183
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.349,
+  "bg_removed": null
+ },
+ "scene-solo_2-b10-horde": {
+  "id": "scene-solo_2-b10-horde",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.445,
+  "bg_removed": null
+ },
+ "scene-solo_2_hard-b10-horde": {
+  "id": "scene-solo_2_hard-b10-horde",
+  "size": [
+   433,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.461,
+  "bg_removed": null
+ },
+ "scene-boss-b10-horde": {
+  "id": "scene-boss-b10-horde",
+  "size": [
+   442,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.392,
+  "bg_removed": null
+ },
+ "scene-pressure-b10-horde": {
+  "id": "scene-pressure-b10-horde",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.431,
+  "bg_removed": null
+ },
+ "scene-pressure_2v1-b10-horde": {
+  "id": "scene-pressure_2v1-b10-horde",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.391,
+  "bg_removed": null
+ },
+ "scene-duel-b10-horde": {
+  "id": "scene-duel-b10-horde",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.56,
+  "bg_removed": null
+ },
+ "scene-heal_dungeon-b10-horde": {
+  "id": "scene-heal_dungeon-b10-horde",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.444,
+  "bg_removed": null
+ },
+ "scene-heal_tank-b10-horde": {
+  "id": "scene-heal_tank-b10-horde",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.281,
+  "bg_removed": null
+ },
+ "scene-solo_1-b20": {
+  "id": "scene-solo_1-b20",
+  "size": [
+   442,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.526,
+  "bg_removed": null
+ },
+ "scene-solo_2-b20": {
+  "id": "scene-solo_2-b20",
+  "size": [
+   442,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.45,
+  "bg_removed": null
+ },
+ "scene-solo_2_hard-b20": {
+  "id": "scene-solo_2_hard-b20",
+  "size": [
+   395,
+   198
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.465,
+  "bg_removed": null
+ },
+ "scene-solo_3-b20": {
+  "id": "scene-solo_3-b20",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.421,
+  "bg_removed": null
+ },
+ "scene-boss-b20": {
+  "id": "scene-boss-b20",
+  "size": [
+   395,
+   198
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.466,
+  "bg_removed": null
+ },
+ "scene-pressure-b20": {
+  "id": "scene-pressure-b20",
+  "size": [
+   432,
+   181
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.506,
+  "bg_removed": null
+ },
+ "scene-duel-b20": {
+  "id": "scene-duel-b20",
+  "size": [
+   456,
+   172
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.463,
+  "bg_removed": null
+ },
+ "scene-heal_dungeon-b20": {
+  "id": "scene-heal_dungeon-b20",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.413,
+  "bg_removed": null
+ },
+ "scene-heal_tank-b20": {
+  "id": "scene-heal_tank-b20",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.385,
+  "bg_removed": null
+ },
+ "scene-solo_1-b20-horde": {
+  "id": "scene-solo_1-b20-horde",
+  "size": [
+   432,
+   181
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.551,
+  "bg_removed": null
+ },
+ "scene-solo_2-b20-horde": {
+  "id": "scene-solo_2-b20-horde",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.655,
+  "bg_removed": null
+ },
+ "scene-solo_2_hard-b20-horde": {
+  "id": "scene-solo_2_hard-b20-horde",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.638,
+  "bg_removed": null
+ },
+ "scene-solo_3-b20-horde": {
+  "id": "scene-solo_3-b20-horde",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.438,
+  "bg_removed": null
+ },
+ "scene-boss-b20-horde": {
+  "id": "scene-boss-b20-horde",
+  "size": [
+   433,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.418,
+  "bg_removed": null
+ },
+ "scene-pressure-b20-horde": {
+  "id": "scene-pressure-b20-horde",
+  "size": [
+   458,
+   171
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.572,
+  "bg_removed": null
+ },
+ "scene-duel-b20-horde": {
+  "id": "scene-duel-b20-horde",
+  "size": [
+   395,
+   197
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.501,
+  "bg_removed": null
+ },
+ "scene-heal_dungeon-b20-horde": {
+  "id": "scene-heal_dungeon-b20-horde",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.507,
+  "bg_removed": null
+ },
+ "scene-heal_tank-b20-horde": {
+  "id": "scene-heal_tank-b20-horde",
+  "size": [
+   456,
+   171
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.326,
+  "bg_removed": null
+ },
+ "scene-solo_1-b40": {
+  "id": "scene-solo_1-b40",
+  "size": [
+   439,
+   178
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.306,
+  "bg_removed": null
+ },
+ "scene-solo_2-b40": {
+  "id": "scene-solo_2-b40",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.634,
+  "bg_removed": null
+ },
+ "scene-solo_2_hard-b40": {
+  "id": "scene-solo_2_hard-b40",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.369,
+  "bg_removed": null
+ },
+ "scene-solo_3-b40": {
+  "id": "scene-solo_3-b40",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.572,
+  "bg_removed": null
+ },
+ "scene-boss-b40": {
+  "id": "scene-boss-b40",
+  "size": [
+   456,
+   172
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.534,
+  "bg_removed": null
+ },
+ "scene-pressure-b40": {
+  "id": "scene-pressure-b40",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.204,
+  "bg_removed": null
+ },
+ "scene-pressure_2v1-b40": {
+  "id": "scene-pressure_2v1-b40",
+  "size": [
+   432,
+   181
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.515,
+  "bg_removed": null
+ },
+ "scene-duel-b40": {
+  "id": "scene-duel-b40",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.443,
+  "bg_removed": null
+ },
+ "scene-heal_dungeon-b40": {
+  "id": "scene-heal_dungeon-b40",
+  "size": [
+   456,
+   171
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.483,
+  "bg_removed": null
+ },
+ "scene-heal_tank-b40": {
+  "id": "scene-heal_tank-b40",
+  "size": [
+   432,
+   181
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.534,
+  "bg_removed": null
+ },
+ "scene-solo_1-b40-horde": {
+  "id": "scene-solo_1-b40-horde",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.542,
+  "bg_removed": null
+ },
+ "scene-solo_2-b40-horde": {
+  "id": "scene-solo_2-b40-horde",
+  "size": [
+   395,
+   198
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.357,
+  "bg_removed": null
+ },
+ "scene-solo_2_hard-b40-horde": {
+  "id": "scene-solo_2_hard-b40-horde",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.347,
+  "bg_removed": null
+ },
+ "scene-solo_3-b40-horde": {
+  "id": "scene-solo_3-b40-horde",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.367,
+  "bg_removed": null
+ },
+ "scene-boss-b40-horde": {
+  "id": "scene-boss-b40-horde",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.394,
+  "bg_removed": null
+ },
+ "scene-pressure-b40-horde": {
+  "id": "scene-pressure-b40-horde",
+  "size": [
+   433,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.496,
+  "bg_removed": null
+ },
+ "scene-pressure_2v1-b40-horde": {
+  "id": "scene-pressure_2v1-b40-horde",
+  "size": [
+   395,
+   198
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.474,
+  "bg_removed": null
+ },
+ "scene-heal_dungeon-b40-horde": {
+  "id": "scene-heal_dungeon-b40-horde",
+  "size": [
+   442,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.55,
+  "bg_removed": null
+ },
+ "scene-heal_tank-b40-horde": {
+  "id": "scene-heal_tank-b40-horde",
+  "size": [
+   432,
+   181
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.457,
+  "bg_removed": null
+ },
+ "scene-solo_1-b50": {
+  "id": "scene-solo_1-b50",
+  "size": [
+   421,
+   185
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.509,
+  "bg_removed": null
+ },
+ "scene-solo_2-b50": {
+  "id": "scene-solo_2-b50",
+  "size": [
+   395,
+   198
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.331,
+  "bg_removed": null
+ },
+ "scene-solo_2_hard-b50": {
+  "id": "scene-solo_2_hard-b50",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.336,
+  "bg_removed": null
+ },
+ "scene-solo_3-b50": {
+  "id": "scene-solo_3-b50",
+  "size": [
+   439,
+   178
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.506,
+  "bg_removed": null
+ },
+ "scene-boss-b50": {
+  "id": "scene-boss-b50",
+  "size": [
+   395,
+   198
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.437,
+  "bg_removed": null
+ },
+ "scene-pressure-b50": {
+  "id": "scene-pressure-b50",
+  "size": [
+   455,
+   172
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.233,
+  "bg_removed": null
+ },
+ "scene-pressure_2v1-b50": {
+  "id": "scene-pressure_2v1-b50",
+  "size": [
+   443,
+   176
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.508,
+  "bg_removed": null
+ },
+ "scene-duel-b50": {
+  "id": "scene-duel-b50",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.458,
+  "bg_removed": null
+ },
+ "scene-heal_dungeon-b50": {
+  "id": "scene-heal_dungeon-b50",
+  "size": [
+   456,
+   171
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.42,
+  "bg_removed": null
+ },
+ "scene-heal_tank-b50": {
+  "id": "scene-heal_tank-b50",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.373,
+  "bg_removed": null
+ },
+ "scene-solo_1-b50-horde": {
+  "id": "scene-solo_1-b50-horde",
+  "size": [
+   426,
+   183
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.479,
+  "bg_removed": null
+ },
+ "scene-solo_2-b50-horde": {
+  "id": "scene-solo_2-b50-horde",
+  "size": [
+   432,
+   181
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.513,
+  "bg_removed": null
+ },
+ "scene-solo_2_hard-b50-horde": {
+  "id": "scene-solo_2_hard-b50-horde",
+  "size": [
+   395,
+   198
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.328,
+  "bg_removed": null
+ },
+ "scene-solo_3-b50-horde": {
+  "id": "scene-solo_3-b50-horde",
+  "size": [
+   433,
+   181
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.573,
+  "bg_removed": null
+ },
+ "scene-boss-b50-horde": {
+  "id": "scene-boss-b50-horde",
+  "size": [
+   432,
+   181
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.5,
+  "bg_removed": null
+ },
+ "scene-pressure-b50-horde": {
+  "id": "scene-pressure-b50-horde",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.323,
+  "bg_removed": null
+ },
+ "scene-pressure_2v1-b50-horde": {
+  "id": "scene-pressure_2v1-b50-horde",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.361,
+  "bg_removed": null
+ },
+ "scene-duel-b50-horde": {
+  "id": "scene-duel-b50-horde",
+  "size": [
+   418,
+   187
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.349,
+  "bg_removed": null
+ },
+ "scene-heal_dungeon-b50-horde": {
+  "id": "scene-heal_dungeon-b50-horde",
+  "size": [
+   442,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.397,
+  "bg_removed": null
+ },
+ "scene-heal_tank-b50-horde": {
+  "id": "scene-heal_tank-b50-horde",
+  "size": [
+   456,
+   172
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.374,
   "bg_removed": null
  }
 }

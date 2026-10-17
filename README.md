@@ -47,10 +47,13 @@ Set up one to three builds (start from one in `builds/` or spend talent
 points in WoW-style talent trees), press Simulate, and every build plays
 through every test. Healers (the healer builds, and any build marked to heal
 in the editor) also take three healing tests: a dungeon, a main tank and, at
-level 60, a raid. Each test is a row with a scene from the world (Westfall,
-Fargodeep Mine, Duskwood, the Westfall coast, the Deadmines, Stranglethorn
-Vale, Hillsbrad, Gurubashi Arena) where the main build's hero stands, and
-every build's result beside it. A row opens into four tabs: a summary, how
+level 60, a raid. Each test is a row with a scene from the world where the
+main build's hero stands, and every build's result beside it. The scenes
+follow the main build's level and side: Westfall and the Barrens in the 10s,
+Duskwood and Ashenvale in the 20s, Arathi and Thousand Needles in the 30s,
+Tanaris and Feralas in the 40s, the Plaguelands and Un'Goro at the top, with
+each bracket's dungeons for the boss and healing tests, from the Deadmines
+and Ragefire Chasm to Blackrock Depths, Molten Core and Onyxia's Lair. A row opens into four tabs: a summary, how
 each build played (its priority list as a spellbook page), one fight step by
 step (every move with the game's icon, and everyone's health above it), and
 every number. The main build wears a gold dragon ring: the others are

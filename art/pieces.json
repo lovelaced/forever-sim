@@ -32,7 +32,7 @@
   "scene": {
    "asset": "wide illustration for a website list row (a combat test), source art for pixel-art cleanup",
    "medium": "detailed modern hi-bit pixel art (in the spirit of Octopath Traveler or Sea of Stars) drawn on a fine logical pixel grid and upscaled with nearest-neighbor, every logical pixel a crisp equal-sized square block; hard pixel edges, no anti-aliasing, no blur; rich but limited palette of about 32 colors; atmospheric lighting; faithful to the look of classic World of Warcraft (2004 to 2006): its painterly colors, chunky stylized proportions and recognizable places.",
-   "framing": "a wide side-view scene like a 2D game screen; the ground is flat and open along the bottom of the picture; on the left third of the picture the flat ground reaches down to the bottom edge and nothing stands there, because the player's hero will be placed there later; the enemies stand on the same ground in the right half, facing left, at the scale of ordinary people standing in the scene (a man-sized enemy is about a third of the picture's height, never more than half).",
+   "framing": "a wide side-view scene like a 2D game screen; the ground is flat and open along the bottom of the picture; on the left third of the picture the flat ground reaches down to the bottom edge and nothing stands there, because the player's hero will be placed there later; the enemies stand on the same ground in the right half, facing left. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human.",
    "backdrop": "the full scene edge to edge, no border.",
    "aspect": "wide",
    "constraints": "No player character in the scene."
@@ -61,7 +61,7 @@
   "party": {
    "asset": "wide illustration for a website list row (a healing test: a party fighting a boss), source art for pixel-art cleanup",
    "medium": "detailed modern hi-bit pixel art (in the spirit of Octopath Traveler or Sea of Stars) drawn on a fine logical pixel grid and upscaled with nearest-neighbor, every logical pixel a crisp equal-sized square block; hard pixel edges, no anti-aliasing, no blur; rich but limited palette of about 32 colors; atmospheric lighting; faithful to the look of classic World of Warcraft (2004 to 2006): its painterly colors, chunky stylized proportions and recognizable places.",
-   "framing": "a wide side-view scene like a 2D game screen; the floor is flat and open along the bottom of the picture; on the left third of the picture the flat floor reaches down to the bottom edge and nobody stands there, because the healer hero will be placed there later; in the middle third the adventuring party stands on the same floor, all facing right toward the boss, the tank in front and closest to the boss; the boss stands in the right third facing left; everyone at the scale of ordinary people standing in the scene (a man-sized figure about a third of the picture's height), the boss bigger but never more than two thirds of the height.",
+   "framing": "a wide side-view scene like a 2D game screen; the floor is flat and open along the bottom of the picture; on the left third of the picture the floor reaches down to the bottom edge and nobody stands there, because the healer hero will be placed there later; the party stands in the middle third, all facing right toward the boss, the tank in front and closest to the boss; the boss stands in the right third facing left. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human. They stand a little apart, not overlapping. Keep every figure at this size, as big as the hero: if the boss is big, let it run off the top or right edge of the picture rather than shrinking anyone.",
    "backdrop": "the full scene edge to edge, no border.",
    "aspect": "wide",
    "constraints": "The left third stays empty."
@@ -288,12 +288,6 @@
    "prompt": "Durotar in classic World of Warcraft at a red-orange sunset: the spiked brown wooden walls and great gate of Orgrimmar set into red rock canyon cliffs, dusty red earth, thorny scrub and spiked orcish huts with red banners along a dirt road, a wyvern flying in the sky."
   },
   {
-   "id": "scene-solo_2",
-   "group": "scenes",
-   "style": "scene",
-   "prompt": "the entrance of Fargodeep Mine in Elwynn Forest, classic World of Warcraft: a timber-framed mine mouth in a rocky hillside among tall green pines, a mine cart on rails, and two snarling kobold miners with lit candles on their heads and pickaxes, at dusk."
-  },
-  {
    "id": "scene-boss",
    "group": "scenes",
    "style": "scene",
@@ -338,12 +332,6 @@
    "group": "scenes",
    "style": "scene",
    "prompt": "the golden wheat fields of Westfall in classic World of Warcraft at a warm late afternoon: a tall wooden windmill with turning sails, a crooked scarecrow, a dirt road and a broken fence, and one Defias bandit thug in a red bandana mask with a short sword, facing left."
-  },
-  {
-   "id": "scene-solo_2_hard",
-   "group": "scenes",
-   "style": "scene",
-   "prompt": "Duskwood in classic World of Warcraft at night: gnarled black dead trees, creeping blue mist and a pale full moon over the Vul'Gol ogre mound, and two hulking two-headed ogres with huge clubs, facing left."
   },
   {
    "id": "scene-solo_3",
@@ -425,12 +413,6 @@
    "group": "scenes-horde",
    "style": "scene",
    "prompt": "the golden savanna of the Barrens in classic World of Warcraft at a hot afternoon: dry yellow grass, thorny acacia-like trees, a wooden Horde watchtower in the distance, and one Razormane quilboar (a tusked boar-man with a spiked club), facing left."
-  },
-  {
-   "id": "scene-solo_2-horde",
-   "group": "scenes-horde",
-   "style": "scene",
-   "prompt": "the red rocky coast of Durotar in classic World of Warcraft by the stone walls of Tiragarde Keep: red earth, cacti, the blue sea, and two Kul Tiran marines in blue and white tabards with swords, facing left."
   },
   {
    "id": "scene-solo_2_hard-horde",
@@ -583,6 +565,476 @@
    "style": "party",
    "prompt": "inside Onyxia's Lair in classic World of Warcraft: a vast dark volcanic cave with glowing lava cracks in the floor, scattered bones and eggs, and a huge black dragon with spread wings and fire glowing in her open mouth. A Horde raid fights her: a tauren warrior tank in heavy plate with a shield closest to the dragon, and behind him orcs, trolls, tauren and Forsaken undead: warriors, rogues, hunters with bows, mages and warlocks casting.",
    "framing": "a wide side-view scene like a 2D game screen; the cave floor is flat and open along the bottom of the picture; on the left third of the picture the floor reaches down to the bottom edge and nobody stands there, because the healer hero will be placed there later; from the middle to the right, a raid of about nine small adventurers spread out in a loose arc on the floor, all facing right, the tank closest to the dragon; the huge dragon fills the right third, facing left; the adventurers are small (about a fifth of the picture's height), the dragon several times bigger."
+  },
+  {
+   "id": "scene-solo_2-b10",
+   "group": "scenes-b10",
+   "style": "scene",
+   "prompt": "the hills of Loch Modan in classic World of Warcraft on a bright day: green hills and pines, the great stone Stonewrought Dam in the distance, and two Stonesplinter troggs (squat grey-skinned cave brutes with spiked clubs, each about 30% of the picture's height), facing left."
+  },
+  {
+   "id": "scene-solo_2_hard-b10",
+   "group": "scenes-b10",
+   "style": "scene",
+   "prompt": "the dark shore of Darkshore in classic World of Warcraft at dusk: tall violet-blue trees, the grey sea, crumbling night elf ruins, and two big Blackwood furbolgs (bear-men with brown fur, tusks and wooden clubs, each about 42% of the picture's height), facing left."
+  },
+  {
+   "id": "scene-pressure-b10",
+   "group": "scenes-b10",
+   "style": "scene",
+   "prompt": "the dusty road near the goblin port of Ratchet in the Barrens, classic World of Warcraft, at sunset: dry yellow grass, a few thorny trees, the sea glinting far off. An enemy Horde rogue (a gaunt Forsaken undead in dark leather armor and a hood) bursts out of stealth in mid-leap from the right toward the left, two daggers drawn, at the size of an ordinary person, the body crisp against the background, a fading purple-grey stealth shimmer trailing behind, and a puff of dust on the ground where they leapt from.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; the rogue is in the right half, airborne mid-leap toward the left, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-pressure_2v1-b10",
+   "group": "scenes-b10",
+   "style": "scene",
+   "prompt": "the dirt road near the Crossroads in the Barrens of classic World of Warcraft: dry savanna, the Crossroads' wooden walls and watchtower behind, and two enemy Horde players charging in from the right, a green-skinned orc warrior with a raised axe and a Forsaken undead rogue with daggers, at the size of ordinary people."
+  },
+  {
+   "id": "scene-duel-b10",
+   "group": "scenes-b10",
+   "style": "scene",
+   "prompt": "the road outside the Lion's Pride Inn in Goldshire, Elwynn Forest, classic World of Warcraft: the timber-framed inn with warm lit windows, a blacksmith, tall oak trees and green grass, and one opposing duelist, a human warrior in plain mail and a sword and shield, waiting on the right side on the near ground line, facing left, a little over a third of the picture's height, the same size as the hero.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; one opposing duelist stands in the right half facing left, weapon ready, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-heal_dungeon-b10",
+   "group": "scenes-b10",
+   "style": "party",
+   "prompt": "inside the Wailing Caverns of classic World of Warcraft: a lush underground cavern with glowing green fungus, mossy rocks, steaming vents and a misty pool under a small waterfall. In the middle, an Alliance dungeon party facing right: a dwarf warrior tank in heavy plate with a big shield in front, then a human rogue with daggers, a gnome mage in robes and a night elf hunter with a bow. On the right, the boss: Mutanus the Devourer, a huge bloated murloc with dark green skin and a gaping fanged mouth, about 60% of the picture's height, facing left. Each party member is drawn big, the same size as the hero: the humans and orcs a little over a third of the picture's height, the tauren and trolls taller.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-heal_tank-b10",
+   "group": "scenes-b10",
+   "style": "party",
+   "prompt": "on the deck of the great pirate ship in the Deadmines cavern of classic World of Warcraft: wooden planks, rigging, lanterns, cannons and the dark cave behind. In the middle, the only party member: a human warrior tank in heavy blue and gold plate, braced behind a raised shield and facing right. On the right, the boss: Edwin VanCleef, the masked leader of the Defias, a human in a red mask and dark leather armor with a cutlass in each hand, the size of a human, attacking the tank, facing left.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-solo_2-b10-horde",
+   "group": "scenes-b10-horde",
+   "style": "scene",
+   "prompt": "the dark pine woods of Silverpine Forest in classic World of Warcraft under a grey sky: tall dark pines, mist, Shadowfang Keep's towers on a far hill, and two Moonrage worgen (snarling wolf-men with grey fur and claws, each about 42% of the picture's height), facing left."
+  },
+  {
+   "id": "scene-solo_2_hard-b10-horde",
+   "group": "scenes-b10-horde",
+   "style": "scene",
+   "prompt": "the golden plains of the Barrens in classic World of Warcraft at noon: dry yellow grass, a small oasis with palms, and two Kolkar centaurs (horse-bodied warriors with tribal paint, spears and bows, each about 46% of the picture's height), facing left."
+  },
+  {
+   "id": "scene-boss-b10-horde",
+   "group": "scenes-b10-horde",
+   "style": "scene",
+   "prompt": "inside Ragefire Chasm beneath Orgrimmar in classic World of Warcraft: a fiery red-rock cavern with pools and rivers of glowing lava and rough stone pillars. On the right, towering over everything, the boss Taragaman the Hungerer: a huge red-skinned fel demon with horns and claws, about two thirds of the picture's height.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-pressure-b10-horde",
+   "group": "scenes-b10-horde",
+   "style": "scene",
+   "prompt": "the dusty road by the oasis near the Wailing Caverns in the Barrens, classic World of Warcraft, at sunset: dry yellow grass, palms around the water, a rocky hill with a cave mouth. An enemy Alliance rogue (a night elf with lavender skin, long ears and long hair, in dark leather armor) bursts out of stealth in mid-leap from the right toward the left, two daggers drawn, at the size of an ordinary person, the body crisp against the background, a fading purple-grey stealth shimmer trailing behind, and a puff of dust on the ground where they leapt from.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; the rogue is in the right half, airborne mid-leap toward the left, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-pressure_2v1-b10-horde",
+   "group": "scenes-b10-horde",
+   "style": "scene",
+   "prompt": "the dirt road through the southern Barrens in classic World of Warcraft: dry savanna, thorny trees and a distant mesa, and two enemy Alliance players charging in from the right, a dwarf warrior in blue plate with a hammer and a night elf rogue with daggers, drawn big, at the hero's scale: the dwarf about 26% of the picture's height and the night elf about 40%."
+  },
+  {
+   "id": "scene-duel-b10-horde",
+   "group": "scenes-b10-horde",
+   "style": "scene",
+   "prompt": "the Crossroads in the Barrens of classic World of Warcraft: a dusty crossroads inside wooden palisade walls, a Horde inn with red banners, a watchtower and a wind rider post, and one opposing duelist, an orc warrior in plain leather and mail with an axe, waiting on the right side, facing left.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; one opposing duelist stands in the right half facing left, weapon ready, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-heal_dungeon-b10-horde",
+   "group": "scenes-b10-horde",
+   "style": "party",
+   "prompt": "inside the Wailing Caverns of classic World of Warcraft: a lush underground cavern with glowing green fungus, mossy rocks, steaming vents and a misty pool under a small waterfall. In the middle, a Horde dungeon party facing right: a tauren warrior tank in heavy plate with a big shield in front, then an orc rogue with daggers, a Forsaken undead mage in robes and a troll hunter with a bow. On the right, the boss: Mutanus the Devourer, a huge bloated murloc with dark green skin and a gaping fanged mouth, about 60% of the picture's height, facing left. Each party member is drawn big, the same size as the hero: the humans and orcs a little over a third of the picture's height, the tauren and trolls taller.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-heal_tank-b10-horde",
+   "group": "scenes-b10-horde",
+   "style": "party",
+   "prompt": "inside Ragefire Chasm beneath Orgrimmar in classic World of Warcraft: a fiery red-rock cavern with pools and rivers of glowing lava and rough stone pillars. In the middle, the only party member: a green-skinned orc warrior tank in heavy spiked plate, braced behind a raised shield and facing right. On the right, the boss: Bazzalan, a red-skinned satyr with curled horns and goat legs holding two curved daggers, a little taller than a human, attacking the tank, facing left.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-solo_1-b20",
+   "group": "scenes-b20",
+   "style": "scene",
+   "prompt": "the red hills of Redridge Mountains in classic World of Warcraft at a warm afternoon: red rock ridges, a blue lake with Lakeshire's stone bridge and timber houses in the distance, and one Blackrock orc grunt in black and red armor with a cleaver, facing left."
+  },
+  {
+   "id": "scene-solo_2-b20",
+   "group": "scenes-b20",
+   "style": "scene",
+   "prompt": "the misty marshes of the Wetlands in classic World of Warcraft: green bogs, reeds and dead trees, the grey cliffs of Grim Batol in the distance, and two Mosshide gnolls (hyena-headed beast-men in rags with spears, each about 38% of the picture's height), facing left."
+  },
+  {
+   "id": "scene-solo_2_hard-b20",
+   "group": "scenes-b20",
+   "style": "scene",
+   "prompt": "Duskwood in classic World of Warcraft at night: gnarled black dead trees, creeping blue mist and a pale full moon over the Vul'Gol ogre mound, and two hulking one-headed Splinter Fist ogres (one head each, grey-green skin, huge clubs, each about half the picture's height), facing left."
+  },
+  {
+   "id": "scene-solo_3-b20",
+   "group": "scenes-b20",
+   "style": "scene",
+   "prompt": "Raven Hill cemetery in Duskwood, classic World of Warcraft, at night: crooked gravestones, a ruined crypt, dead trees, green-blue mist and a pale moon, and three skeletal undead warriors with rusty swords rising from the graves, facing left."
+  },
+  {
+   "id": "scene-boss-b20",
+   "group": "scenes-b20",
+   "style": "scene",
+   "prompt": "inside Blackfathom Deeps in classic World of Warcraft: a sunken night elf temple of blue-grey stone with broken columns, dark water channels and glowing blue moonlight. Rising from the dark water on the right, towering over everything, the boss Aku'mai: a huge blue-green turtle-shelled hydra with three snapping heads, about two thirds of the picture's height.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-pressure-b20",
+   "group": "scenes-b20",
+   "style": "scene",
+   "prompt": "a forest road through Ashenvale, classic World of Warcraft, at dusk: tall blue-green trees, glowing violet flowers, a night elf moonwell glimmering far off. An enemy Horde rogue (a gaunt Forsaken undead in dark leather armor and a hood) bursts out of stealth in mid-leap from the right toward the left, two daggers drawn, at the size of an ordinary person, the body crisp against the background, a fading purple-grey stealth shimmer trailing behind, and a puff of dust on the ground where they leapt from.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; the rogue is in the right half, airborne mid-leap toward the left, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-duel-b20",
+   "group": "scenes-b20",
+   "style": "scene",
+   "prompt": "outside the great gates of Stormwind City in classic World of Warcraft: the white stone walls and blue-roofed towers, the bridge and statues, blue and gold banners, and one opposing duelist, a human paladin in plain plate with a mace and shield, waiting on the right side, facing left.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; one opposing duelist stands in the right half facing left, weapon ready, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-heal_dungeon-b20",
+   "group": "scenes-b20",
+   "style": "party",
+   "prompt": "inside Shadowfang Keep in classic World of Warcraft: a dark gothic castle hall of grey stone with tall arched windows, torn banners, cobwebs and moonlight. In the middle, an Alliance dungeon party facing right: a dwarf warrior tank in heavy plate with a big shield in front, then a human rogue with daggers, a gnome mage in robes and a night elf hunter with a bow. On the right, the boss: Archmage Arugal, an old human archmage in purple and black robes with a staff, crackling with violet shadow magic, the size of a human, facing left.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-heal_tank-b20",
+   "group": "scenes-b20",
+   "style": "party",
+   "prompt": "inside Shadowfang Keep in classic World of Warcraft: a dark gothic castle hall of grey stone with tall arched windows, torn banners, cobwebs and moonlight. In the middle, the only party member: a human warrior tank in heavy blue and gold plate, braced behind a raised shield and facing right. On the right, the boss: Fenrus the Devourer, a huge black wolf with glowing eyes, its back about as high as a man's head, attacking the tank, facing left.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-solo_1-b20-horde",
+   "group": "scenes-b20-horde",
+   "style": "scene",
+   "prompt": "the rocky Stonetalon Mountains in classic World of Warcraft: tall grey peaks, felled tree stumps, a Venture Co. goblin lumber camp with a rusty shredder machine in the distance, and one Venture Co. goblin in a hard hat with a big wrench (about 22% of the picture's height), facing left."
+  },
+  {
+   "id": "scene-solo_2-b20-horde",
+   "group": "scenes-b20-horde",
+   "style": "scene",
+   "prompt": "the green farmland of Hillsbrad Foothills in classic World of Warcraft on a sunny day: fenced fields, a red-roofed barn, haystacks and an apple orchard, and two Hillsbrad farmers (human peasants in plain clothes with pitchforks, each a little over a third of the picture's height, standing on the near ground line), facing left."
+  },
+  {
+   "id": "scene-solo_2_hard-b20-horde",
+   "group": "scenes-b20-horde",
+   "style": "scene",
+   "prompt": "the deep forest of Ashenvale in classic World of Warcraft: tall blue-green trees, ferns and glowing violet flowers, and two hulking Thistlefur furbolgs (bear-men with grey fur, tusks and big clubs, each about 44% of the picture's height), facing left."
+  },
+  {
+   "id": "scene-solo_3-b20-horde",
+   "group": "scenes-b20-horde",
+   "style": "scene",
+   "prompt": "the rocky coast of Hillsbrad Foothills in classic World of Warcraft: grey rocks, crashing waves and kelp, and three Daggerspine naga (serpent-tailed sea creatures with fins, scales and tridents, each about 42% of the picture's height), facing left."
+  },
+  {
+   "id": "scene-boss-b20-horde",
+   "group": "scenes-b20-horde",
+   "style": "scene",
+   "prompt": "inside Shadowfang Keep in classic World of Warcraft: a dark gothic castle hall of grey stone with tall arched windows, torn banners, cobwebs and moonlight. On the right, the boss Archmage Arugal on a raised stone dais: an old human archmage in purple and black robes with a staff, crackling with violet shadow magic, with two snarling worgen at his sides.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-pressure-b20-horde",
+   "group": "scenes-b20-horde",
+   "style": "scene",
+   "prompt": "a forest road through Ashenvale, classic World of Warcraft, at dusk: tall blue-green trees, glowing violet flowers, a Horde outpost's red banners far off. An enemy Alliance rogue (a night elf with lavender skin, long ears and long hair, in dark leather armor) bursts out of stealth in mid-leap from the right toward the left, two daggers drawn, at the size of an ordinary person, the body crisp against the background, a fading purple-grey stealth shimmer trailing behind, and a puff of dust on the ground where they leapt from.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; the rogue is in the right half, airborne mid-leap toward the left, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-duel-b20-horde",
+   "group": "scenes-b20-horde",
+   "style": "scene",
+   "prompt": "the ruined courtyard of Lordaeron above the Undercity in classic World of Warcraft: broken grey stone walls, the shattered throne room, dead trees, green-grey sky, Forsaken purple banners, and one opposing duelist, a Forsaken undead warrior in plain mail with an axe, waiting on the right side, facing left.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; one opposing duelist stands in the right half facing left, weapon ready, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-heal_dungeon-b20-horde",
+   "group": "scenes-b20-horde",
+   "style": "party",
+   "prompt": "inside Blackfathom Deeps in classic World of Warcraft: a sunken night elf temple of blue-grey stone with broken columns, dark water channels and glowing blue moonlight. In the middle, a Horde dungeon party facing right: a tauren warrior tank in heavy plate with a big shield in front, then an orc rogue with daggers, a Forsaken undead mage in robes and a troll hunter with a bow. On the right, the boss: Aku'mai, a huge blue-green turtle-shelled hydra with three snapping heads rising from the water, its heads running off the top of the picture, facing left. Each party member is drawn big, the same size as the hero: the humans and orcs a little over a third of the picture's height, the tauren and trolls taller.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-heal_tank-b20-horde",
+   "group": "scenes-b20-horde",
+   "style": "party",
+   "prompt": "inside Shadowfang Keep in classic World of Warcraft: a dark gothic castle hall of grey stone with tall arched windows, torn banners, cobwebs and moonlight. In the middle, the only party member: a green-skinned orc warrior tank in heavy spiked plate, braced behind a raised shield and facing right. On the right, the boss: Fenrus the Devourer, a huge black wolf with glowing eyes, its back about as high as a man's head, attacking the tank, facing left.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-solo_1-b40",
+   "group": "scenes-b40",
+   "style": "scene",
+   "prompt": "the golden dunes of Tanaris in classic World of Warcraft under a blazing sun: sand dunes, cacti, bleached bones, the walls of Gadgetzan far off, and one Wastewander bandit (a human desert bandit in a turban and sand-colored robes with a scimitar), facing left."
+  },
+  {
+   "id": "scene-solo_2-b40",
+   "group": "scenes-b40",
+   "style": "scene",
+   "prompt": "the green hills of the Hinterlands in classic World of Warcraft: rolling green hills, tall pines, crumbling troll ruins with carved heads, and two Vilebranch trolls (tall green-skinned jungle trolls with tusks, mohawks, axes and spears), facing left."
+  },
+  {
+   "id": "scene-solo_2_hard-b40",
+   "group": "scenes-b40",
+   "style": "scene",
+   "prompt": "the scorched Searing Gorge in classic World of Warcraft: black and red rock, rivers of lava, smoke, and the dark peak of Blackrock Mountain behind, and two hulking lava elementals (bodies of molten rock and fire, each about half the picture's height), facing left."
+  },
+  {
+   "id": "scene-solo_3-b40",
+   "group": "scenes-b40",
+   "style": "scene",
+   "prompt": "the coast of Azshara in classic World of Warcraft at autumn dusk: red and orange trees, ancient night elf ruins with broken columns, the sea, and three Haldarr satyrs (horned goat-legged demons with red-purple skin and curved blades), facing left."
+  },
+  {
+   "id": "scene-boss-b40",
+   "group": "scenes-b40",
+   "style": "scene",
+   "prompt": "inside the titan vault of Uldaman in classic World of Warcraft: huge grey stone halls carved with glowing blue runes, giant statues along the walls, and on the right, towering over everything, the boss Archaedas: a colossal stone titan watcher statue coming to life with glowing blue eyes, about two thirds of the picture's height.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-pressure-b40",
+   "group": "scenes-b40",
+   "style": "scene",
+   "prompt": "among the sand dunes of Tanaris, classic World of Warcraft, at sunset: an orange sky, dunes, cacti and the stone ruins of an old troll city far off. An enemy Horde rogue (a gaunt Forsaken undead in dark leather armor and a hood) bursts out of stealth in mid-leap from the right toward the left, two daggers drawn, at the size of an ordinary person, the body crisp against the background, a fading purple-grey stealth shimmer trailing behind, and a puff of dust on the ground where they leapt from.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; the rogue is in the right half, airborne mid-leap toward the left, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-pressure_2v1-b40",
+   "group": "scenes-b40",
+   "style": "scene",
+   "prompt": "the road through the Hinterlands near Aerie Peak in classic World of Warcraft: green hills, pines, the dwarven gryphon aerie on a cliff behind, and two enemy Horde players charging in from the right, a tauren warrior with a huge two-handed axe and a Forsaken undead rogue with daggers, at the size of ordinary people."
+  },
+  {
+   "id": "scene-duel-b40",
+   "group": "scenes-b40",
+   "style": "scene",
+   "prompt": "the dusty main street of Gadgetzan in Tanaris, classic World of Warcraft: goblin adobe houses, a water tower, crates and barrels, a goblin bruiser guard far off, and one opposing duelist, a warrior in plain armor with a sword, waiting on the right side, facing left.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; one opposing duelist stands in the right half facing left, weapon ready, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-heal_dungeon-b40",
+   "group": "scenes-b40",
+   "style": "party",
+   "prompt": "at the sacred pool of Zul'Farrak in classic World of Warcraft: a sandstone troll temple in the desert with carved columns, steps and a green-blue pool of water. In the middle, an Alliance dungeon party facing right: a dwarf warrior tank in heavy plate with a big shield in front, then a human rogue with daggers, a gnome mage in robes and a night elf hunter with a bow. On the right, the boss: Gahz'rilla, a huge blue-scaled hydra with several heads rising from the pool, its heads running off the top of the picture, facing left. Each party member is drawn big, the same size as the hero: the humans and orcs a little over a third of the picture's height, the tauren and trolls taller.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-heal_tank-b40",
+   "group": "scenes-b40",
+   "style": "party",
+   "prompt": "inside Maraudon in classic World of Warcraft: a vast cavern with giant purple and green crystals, waterfalls, vines and a misty floor. In the middle, the only party member: a human warrior tank in heavy blue and gold plate, braced behind a raised shield and facing right. On the right, the boss: Princess Theradras, an enormous earth elemental woman made of rock, crystal and vines, running off the top of the picture, attacking the tank, facing left. The tank is drawn big, the same size as the hero: a little over a third of the picture's height.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-solo_1-b40-horde",
+   "group": "scenes-b40-horde",
+   "style": "scene",
+   "prompt": "the giant forest of Feralas in classic World of Warcraft: huge ancient trees with thick moss, ferns and mist, and one Woodpaw gnoll (a hyena-headed beast-man with a crude axe, about 38% of the picture's height), facing left."
+  },
+  {
+   "id": "scene-solo_2-b40-horde",
+   "group": "scenes-b40-horde",
+   "style": "scene",
+   "prompt": "the red canyons of the Badlands in classic World of Warcraft: dry red rock, bones of a giant dragon, dust, and two Dustbelcher ogres (one head each, big tusks and spiked clubs, each about half the picture's height), facing left."
+  },
+  {
+   "id": "scene-solo_2_hard-b40-horde",
+   "group": "scenes-b40-horde",
+   "style": "scene",
+   "prompt": "the scorched Searing Gorge in classic World of Warcraft: black and red rock, rivers of lava, smoke, and the dark peak of Blackrock Mountain behind, and two Dark Iron dwarf sentries in heavy black armor with hammers (dwarf size, about 26% of the picture's height), facing left."
+  },
+  {
+   "id": "scene-solo_3-b40-horde",
+   "group": "scenes-b40-horde",
+   "style": "scene",
+   "prompt": "outside the sandstone gates of Zul'Farrak in Tanaris, classic World of Warcraft, at a hot afternoon: dunes, carved troll walls and stairs, and three Sandfury trolls (pale-skinned desert trolls with tusks, mohawks and spears), facing left."
+  },
+  {
+   "id": "scene-boss-b40-horde",
+   "group": "scenes-b40-horde",
+   "style": "scene",
+   "prompt": "inside Razorfen Downs in classic World of Warcraft: tunnels of giant thorny brambles, bones and dim green light, and on the right, towering over everything, the boss Amnennar the Coldbringer: a huge skeletal quilboar lich in tattered robes with icy blue magic, about two thirds of the picture's height.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-pressure-b40-horde",
+   "group": "scenes-b40-horde",
+   "style": "scene",
+   "prompt": "a forest road through the giant trees of Feralas, classic World of Warcraft, at dusk: huge mossy trunks, ferns and golden light through the mist. An enemy Alliance rogue (a night elf with lavender skin, long ears and long hair, in dark leather armor) bursts out of stealth in mid-leap from the right toward the left, two daggers drawn, at the size of an ordinary person, the body crisp against the background, a fading purple-grey stealth shimmer trailing behind, and a puff of dust on the ground where they leapt from.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; the rogue is in the right half, airborne mid-leap toward the left, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-pressure_2v1-b40-horde",
+   "group": "scenes-b40-horde",
+   "style": "scene",
+   "prompt": "the road through the Hinterlands near Revantusk Village in classic World of Warcraft: green hills, pines, troll huts by the sea behind, and two enemy Alliance players charging in from the right, a human paladin in silver and blue plate with a hammer and a gnome mage casting a frostbolt, at the size of ordinary people."
+  },
+  {
+   "id": "scene-heal_dungeon-b40-horde",
+   "group": "scenes-b40-horde",
+   "style": "party",
+   "prompt": "at the sacred pool of Zul'Farrak in classic World of Warcraft: a sandstone troll temple in the desert with carved columns, steps and a green-blue pool of water. In the middle, a Horde dungeon party facing right: a tauren warrior tank in heavy plate with a big shield in front, then an orc rogue with daggers, a Forsaken undead mage in robes and a troll hunter with a bow. On the right, the boss: Gahz'rilla, a huge blue-scaled hydra with several heads rising from the pool, its heads running off the top of the picture, facing left. Each party member is drawn big, the same size as the hero: the humans and orcs a little over a third of the picture's height, the tauren and trolls taller.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-heal_tank-b40-horde",
+   "group": "scenes-b40-horde",
+   "style": "party",
+   "prompt": "inside Maraudon in classic World of Warcraft: a vast cavern with giant purple and green crystals, waterfalls, vines and a misty floor. In the middle, the only party member: a green-skinned orc warrior tank in heavy spiked plate, braced behind a raised shield and facing right. On the right, the boss: Princess Theradras, an enormous earth elemental woman made of rock, crystal and vines, running off the top of the picture, attacking the tank, facing left. The tank is drawn big, the same size as the hero: a little over a third of the picture's height.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-solo_1-b50",
+   "group": "scenes-b50",
+   "style": "scene",
+   "prompt": "the steaming jungle of Un'Goro Crater in classic World of Warcraft: giant ferns, huge prehistoric plants, a smoking volcano behind, and one Un'Goro raptor (a green and orange striped dinosaur, about 34% of the picture's height), facing left."
+  },
+  {
+   "id": "scene-solo_2-b50",
+   "group": "scenes-b50",
+   "style": "scene",
+   "prompt": "the blighted Eastern Plaguelands in classic World of Warcraft: dead grey-brown trees, sickly green fog, a ruined farmhouse, and two Scourge ghouls (rotting undead with long claws), facing left."
+  },
+  {
+   "id": "scene-solo_2_hard-b50",
+   "group": "scenes-b50",
+   "style": "scene",
+   "prompt": "the Burning Steppes in classic World of Warcraft: scorched black earth, glowing cracks of lava, smoke and fire, Blackrock Mountain behind, and two hulking Blackrock orc warlords in black spiked armor with huge axes, facing left."
+  },
+  {
+   "id": "scene-solo_3-b50",
+   "group": "scenes-b50",
+   "style": "scene",
+   "prompt": "the snowy valleys of Winterspring in classic World of Warcraft: deep snow, frosted pine trees, ice-blue light, and three Winterfall furbolgs (white-furred bear-men with tusks and clubs, each about 42% of the picture's height), facing left."
+  },
+  {
+   "id": "scene-boss-b50",
+   "group": "scenes-b50",
+   "style": "scene",
+   "prompt": "in the Imperial Seat of Blackrock Depths in classic World of Warcraft: a black stone throne hall with lava channels, braziers and red banners, and on the right, before his throne, the boss Emperor Dagran Thaurissan: a Dark Iron dwarf emperor in ornate black and gold armor with a crown and a flaming hammer, dwarf size, with his huge molten golem guards behind him.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-pressure-b50",
+   "group": "scenes-b50",
+   "style": "scene",
+   "prompt": "the desert of Silithus, classic World of Warcraft, at a yellow-orange dusk: sand, giant silithid hive mounds and crystal formations far off. An enemy Horde rogue (a gaunt Forsaken undead in dark leather armor and a hood) bursts out of stealth in mid-leap from the right toward the left, two daggers drawn, at the size of an ordinary person, the body crisp against the background, a fading purple-grey stealth shimmer trailing behind, and a puff of dust on the ground where they leapt from.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; the rogue is in the right half, airborne mid-leap toward the left, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-pressure_2v1-b50",
+   "group": "scenes-b50",
+   "style": "scene",
+   "prompt": "the scorched road of the Burning Steppes near Blackrock Mountain in classic World of Warcraft: black earth, lava cracks, the great chain bridge into the mountain behind, and two enemy Horde players charging in from the right, an orc warrior in red spiked plate with a two-handed axe and a troll shaman casting lightning, at the size of ordinary people."
+  },
+  {
+   "id": "scene-duel-b50",
+   "group": "scenes-b50",
+   "style": "scene",
+   "prompt": "before the great gates of Ironforge in Dun Morogh, classic World of Warcraft: snowy mountains, the huge carved stone gate with giant dwarf statues, braziers, and one opposing duelist, a dwarf warrior in plain plate with an axe and shield, waiting on the right side, facing left.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; one opposing duelist stands in the right half facing left, weapon ready, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-heal_dungeon-b50",
+   "group": "scenes-b50",
+   "style": "party",
+   "prompt": "inside Upper Blackrock Spire in classic World of Warcraft: a huge black-stone hall with red dragon banners, braziers, chains and glowing lava below. In the middle, an Alliance dungeon party facing right: a dwarf warrior tank in heavy plate with a big shield in front, then a human rogue with daggers, a gnome mage in robes and a night elf hunter with a bow. On the right, the boss: General Drakkisath, a huge black dragonkin warrior in heavy black armor with a great sword, his head and wings running off the top of the picture, facing left. Each party member is drawn big, the same size as the hero: the humans and orcs a little over a third of the picture's height, the tauren and trolls taller.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-heal_tank-b50",
+   "group": "scenes-b50",
+   "style": "party",
+   "prompt": "inside the Molten Core in classic World of Warcraft: a vast volcanic cavern with a lake of bubbling lava, black rock and fiery light. In the middle, the only party member: a human warrior tank in heavy blue and gold plate, braced behind a raised shield and facing right. On the right, the boss: Ragnaros the Firelord, a colossal fire elemental lord rising waist-deep from the lava with a giant flaming hammer, so big that his head and shoulders run off the top of the picture, attacking the tank, facing left. The tank is drawn big, the same size as the hero: a little over a third of the picture's height.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-solo_1-b50-horde",
+   "group": "scenes-b50-horde",
+   "style": "scene",
+   "prompt": "the corrupted forest of Felwood in classic World of Warcraft: twisted dark trees, glowing green fel pools, sickly green light, and one Jadefire satyr (a horned goat-legged demon with green fel flames, about 40% of the picture's height), facing left."
+  },
+  {
+   "id": "scene-solo_2-b50-horde",
+   "group": "scenes-b50-horde",
+   "style": "scene",
+   "prompt": "the Western Plaguelands in classic World of Warcraft: grey fields of dead grass, a burned farm, a Scarlet Crusade watchtower far off, and two Scarlet Crusade soldiers (humans in red and white tabards with swords and shields), facing left."
+  },
+  {
+   "id": "scene-solo_2_hard-b50-horde",
+   "group": "scenes-b50-horde",
+   "style": "scene",
+   "prompt": "the desert of Silithus in classic World of Warcraft: sand, giant silithid hive mounds and crystals, a yellow sky, and two Hive'Ashi silithid warriors (huge insect soldiers with blade-like claws and armored carapaces, each about half the picture's height), facing left."
+  },
+  {
+   "id": "scene-solo_3-b50-horde",
+   "group": "scenes-b50-horde",
+   "style": "scene",
+   "prompt": "the steaming jungle of Un'Goro Crater in classic World of Warcraft: giant ferns, huge prehistoric plants, a smoking volcano behind, and three Un'Goro gorillas (big grey-brown apes, each about 40% of the picture's height), facing left."
+  },
+  {
+   "id": "scene-boss-b50-horde",
+   "group": "scenes-b50-horde",
+   "style": "scene",
+   "prompt": "in the burning streets of Stratholme in classic World of Warcraft: a ruined plagued human city with burning houses, green plague fog and a dark sky, and on the right, the boss Baron Rivendare: an undead death knight in black spiked armor with a huge scythe, riding a skeletal horse, about two thirds of the picture's height.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-pressure-b50-horde",
+   "group": "scenes-b50-horde",
+   "style": "scene",
+   "prompt": "the blighted Eastern Plaguelands, classic World of Warcraft, at dusk: dead trees, green-grey fog and a ruined tower far off. An enemy Alliance rogue (a night elf with lavender skin, long ears and long hair, in dark leather armor) bursts out of stealth in mid-leap from the right toward the left, two daggers drawn, at the size of an ordinary person, the body crisp against the background, a fading purple-grey stealth shimmer trailing behind, and a puff of dust on the ground where they leapt from.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; the rogue is in the right half, airborne mid-leap toward the left, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-pressure_2v1-b50-horde",
+   "group": "scenes-b50-horde",
+   "style": "scene",
+   "prompt": "the scorched road of the Burning Steppes near Blackrock Mountain in classic World of Warcraft: black earth, lava cracks, the great chain bridge into the mountain behind, and two enemy Alliance players charging in from the right, a human warrior in blue and gold plate with a sword and a night elf hunter shooting a bow, at the size of ordinary people."
+  },
+  {
+   "id": "scene-duel-b50-horde",
+   "group": "scenes-b50-horde",
+   "style": "scene",
+   "prompt": "before the great gates of Orgrimmar in Durotar, classic World of Warcraft: red rock canyon walls, the huge spiked iron and wood gates with red Horde banners, braziers, and one opposing duelist, a troll warrior in plain mail with an axe and shield, waiting on the right side, facing left.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; on the left third the ground reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; one opposing duelist stands in the right half facing left, weapon ready, the only figure in the scene. Everyone's feet rest on one flat ground line about 15% of the picture's height above the bottom edge. Figures are drawn at one consistent scale, the same as the hero who will stand on the left: an ordinary human is a little over a third of the picture's height from head to feet (about 36%), a dwarf about 26%, a gnome about 20%, a night elf or troll about 40%, an orc about 38%, a tauren about 44%; creatures at their natural size next to a human."
+  },
+  {
+   "id": "scene-heal_dungeon-b50-horde",
+   "group": "scenes-b50-horde",
+   "style": "party",
+   "prompt": "inside Upper Blackrock Spire in classic World of Warcraft: a huge black-stone hall with red dragon banners, braziers, chains and glowing lava below. In the middle, a Horde dungeon party facing right: a tauren warrior tank in heavy plate with a big shield in front, then an orc rogue with daggers, a Forsaken undead mage in robes and a troll hunter with a bow. On the right, the boss: General Drakkisath, a huge black dragonkin warrior in heavy black armor with a great sword, his head and wings running off the top of the picture, facing left. Each party member is drawn big, the same size as the hero: the humans and orcs a little over a third of the picture's height, the tauren and trolls taller.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "scene-heal_tank-b50-horde",
+   "group": "scenes-b50-horde",
+   "style": "party",
+   "prompt": "inside the Molten Core in classic World of Warcraft: a vast volcanic cavern with a lake of bubbling lava, black rock and fiery light. In the middle, the only party member: a green-skinned orc warrior tank in heavy spiked plate, braced behind a raised shield and facing right. On the right, the boss: Ragnaros the Firelord, a colossal fire elemental lord rising waist-deep from the lava with a giant flaming hammer, so big that his head and shoulders run off the top of the picture, attacking the tank, facing left. The tank is drawn big, the same size as the hero: a little over a third of the picture's height.",
+   "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
   }
  ],
  "heroes": {
