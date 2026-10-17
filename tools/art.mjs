@@ -67,7 +67,8 @@ function promptFor(p) {
     `Style/medium: ${st.medium}`,
     `Composition/framing: ${p.framing || st.framing}`,
     `Scene/backdrop: ${p.backdrop || st.backdrop}`,
-    `Constraints: ${spec.constraints}${st.constraints ? ' ' + st.constraints : ''}`,
+    // a piece can replace the shared constraints (a scene with a named boss)
+    `Constraints: ${p.constraints || spec.constraints}${st.constraints ? ' ' + st.constraints : ''}`,
   ];
   return lines.join('\n');
 }

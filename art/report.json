@@ -1585,28 +1585,28 @@
   "id": "scene-heal_dungeon-b30",
   "size": [
    484,
-   162
+   161
   ],
   "colors": 40,
   "grid": [
    4.5,
    4.5
   ],
-  "contested": 0.362,
+  "contested": 0.416,
   "bg_removed": null
  },
  "scene-heal_tank-b30": {
   "id": "scene-heal_tank-b30",
   "size": [
-   433,
-   181
+   456,
+   171
   ],
   "colors": 40,
   "grid": [
    4.5,
    4.5
   ],
-  "contested": 0.296,
+  "contested": 0.383,
   "bg_removed": null
  },
  "scene-solo_1-b30-horde": {
@@ -1668,22 +1668,8 @@
  "scene-heal_dungeon-b30-horde": {
   "id": "scene-heal_dungeon-b30-horde",
   "size": [
-   442,
-   177
-  ],
-  "colors": 40,
-  "grid": [
-   4.5,
-   4.5
-  ],
-  "contested": 0.404,
-  "bg_removed": null
- },
- "scene-heal_tank-b30-horde": {
-  "id": "scene-heal_tank-b30-horde",
-  "size": [
-   442,
-   177
+   456,
+   172
   ],
   "colors": 40,
   "grid": [
@@ -1691,6 +1677,20 @@
    4.5
   ],
   "contested": 0.347,
+  "bg_removed": null
+ },
+ "scene-heal_tank-b30-horde": {
+  "id": "scene-heal_tank-b30-horde",
+  "size": [
+   456,
+   171
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.317,
   "bg_removed": null
  },
  "scene-heal_raid-b50": {

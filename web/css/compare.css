@@ -358,12 +358,14 @@
   .trial-head { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .trial-btn { grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--s2); }
   .trial-btn .scene { grid-column: 1 / -1; width: 100%; }
+  /* a narrow view: the hero steps left, clear of a party in the middle */
+  .trial-btn .scene .hero { left: calc(8 * var(--art)); }
   /* wider than the art: draw it at twice the size, still whole pixels */
   .trial-btn { container: trial / inline-size; }
   @container trial (min-width: 400px) {
     .scene { --k: 2; height: calc(256 * var(--art)); max-width: calc(780 * var(--art)); justify-self: center; }
     .scene .bg { right: calc(var(--rpad, 0) * -2 * var(--art)); top: calc(var(--top, 40) * -2 * var(--art)); transform: scale(2); transform-origin: top right; }
-    .scene .hero { left: calc(36 * var(--art)); bottom: calc(var(--ground, 16) * 2 * var(--art)); }
+    .trial-btn .scene .hero { left: calc(16 * var(--art)); bottom: calc(var(--ground, 16) * 2 * var(--art)); }
   }
   .trial-text { padding-left: var(--s3); }
   .trial-vals { flex-wrap: wrap; padding: var(--s2) var(--s3) var(--s3); }

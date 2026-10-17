@@ -132,10 +132,10 @@ export const SCENES = {
     b30: { both: S1('scene-duel', 'Gurubashi Arena', 34) },
   },
   heal_dungeon: {
-    b30: { alliance: S1('scene-heal_dungeon-b30', 'Scarlet Monastery', 24), horde: S1('scene-heal_dungeon-b30-horde', 'Scarlet Monastery', 17) },
+    b30: { alliance: S1('scene-heal_dungeon-b30', 'Scarlet Monastery', 20, 20), horde: S1('scene-heal_dungeon-b30-horde', 'Scarlet Monastery', 26, 10) },
   },
   heal_tank: {
-    b30: { alliance: S1('scene-heal_tank-b30', 'The Scarlet Monastery armory', 38), horde: S1('scene-heal_tank-b30-horde', 'The Scarlet Monastery armory', 36) },
+    b30: { alliance: S1('scene-heal_tank-b30', 'The Scarlet Monastery armory', 28), horde: S1('scene-heal_tank-b30-horde', 'The Scarlet Monastery armory', 27) },
   },
   heal_raid: {
     b50: { alliance: S1('scene-heal_raid-b50', 'Onyxia’s Lair', 38), horde: S1('scene-heal_raid-b50-horde', 'Onyxia’s Lair', 40) },
