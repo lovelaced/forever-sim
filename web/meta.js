@@ -94,7 +94,7 @@ export const SCENES = {
   solo_2_hard: { zone: 'Vul’Gol, Duskwood', top: 26, horde: { zone: 'Dustwallow Marsh', top: 23 } },
   solo_3: { zone: 'The Westfall coast', top: 28, horde: { zone: 'The Barrens', top: 36 } },
   boss: { zone: 'The Deadmines', top: 38, horde: { zone: 'Razorfen Kraul', top: 40 } },
-  pressure: { zone: 'Stranglethorn Vale', top: 36, horde: { zone: 'Stranglethorn Vale', top: 38 } },
+  pressure: { zone: 'Stranglethorn Vale', top: 36, horde: { zone: 'Stranglethorn Vale', top: 32 } },
   pressure_2v1: { zone: 'Hillsbrad Foothills', top: 50, horde: { zone: 'Hillsbrad Foothills', top: 56 } },
   duel: { zone: 'Gurubashi Arena', top: 34 },
 };

@@ -352,15 +352,15 @@
  "scene-pressure": {
   "id": "scene-pressure",
   "size": [
-   432,
-   180
+   441,
+   177
   ],
   "colors": 40,
   "grid": [
    4.5,
    4.5
   ],
-  "contested": 0.64,
+  "contested": 0.391,
   "bg_removed": null
  },
  "face-mob": {
@@ -1444,15 +1444,15 @@
  "scene-pressure-horde": {
   "id": "scene-pressure-horde",
   "size": [
-   426,
-   183
+   461,
+   170
   ],
   "colors": 40,
   "grid": [
    4.5,
    4.5
   ],
-  "contested": 0.587,
+  "contested": 0.322,
   "bg_removed": null
  },
  "scene-pressure_2v1-horde": {

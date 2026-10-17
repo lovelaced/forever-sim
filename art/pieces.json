@@ -291,7 +291,8 @@
    "id": "scene-pressure",
    "group": "scenes",
    "style": "scene",
-   "prompt": "a jungle path in Stranglethorn Vale, classic World of Warcraft: dense green jungle, vines, giant ferns and crumbling troll ruins, and one enemy Horde rogue (a gaunt Forsaken undead in dark leather with twin daggers, the size of an ordinary person) lunging out of the bushes, half hidden in a shimmer of stealth."
+   "prompt": "an open dirt road through a clearing in Stranglethorn Vale, classic World of Warcraft, at dusk: a low horizon with a bright orange and pink sunset sky filling the upper half, distant palm trees and crumbling troll ruins in dark silhouette, the jungle kept to the far left and right edges. An enemy Horde rogue (a gaunt Forsaken undead in dark leather armor and a hood, two daggers drawn) bursts out of stealth in mid-leap from the right toward the left, at the size of an ordinary person, the whole body a crisp dark silhouette against the bright sky, a fading purple-grey stealth shimmer trailing behind, and a puff of dust on the road where they leapt from.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat dirt road runs along the bottom of the picture; on the left third the road reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; the rogue is in the right half, airborne mid-leap toward the left, about a third of the picture's height, the only figure in the scene."
   },
   {
    "id": "face-mob",
@@ -441,7 +442,8 @@
    "id": "scene-pressure-horde",
    "group": "scenes-horde",
    "style": "scene",
-   "prompt": "a jungle path in Stranglethorn Vale, classic World of Warcraft: dense green jungle, vines, giant ferns and crumbling troll ruins, and one enemy Alliance rogue (a night elf with lavender skin in dark leather with twin daggers, the size of an ordinary person) lunging out of the bushes, half hidden in a shimmer of stealth."
+   "prompt": "an open dirt road through a clearing in Stranglethorn Vale, classic World of Warcraft, at dusk: a low horizon with a bright orange and pink sunset sky filling the upper half, distant palm trees and crumbling troll ruins in dark silhouette, the jungle kept to the far left and right edges. An enemy Alliance rogue (a night elf with lavender skin, long ears and long hair, in dark leather armor, two daggers drawn) bursts out of stealth in mid-leap from the right toward the left, at the size of an ordinary person, the whole body a crisp dark silhouette against the bright sky, a fading purple-grey stealth shimmer trailing behind, and a puff of dust on the road where they leapt from.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat dirt road runs along the bottom of the picture; on the left third the road reaches the bottom edge and is open with nobody on it, because the player's hero will be placed there later; the rogue is in the right half, airborne mid-leap toward the left, about a third of the picture's height, the only figure in the scene."
   },
   {
    "id": "scene-pressure_2v1-horde",
