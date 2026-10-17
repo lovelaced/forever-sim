@@ -83,19 +83,32 @@ export const SCENARIOS = [
     help: 'Stand and fight until one of you dies, with a three-minute limit.' },
 ];
 
-// Each test's scene (web/art/scene-<test>.png): where in the world it's
-// set, how far down the picture to look (top, in art pixels) and where the
-// ground is for the hero (ground, art pixels up from the bottom of the view).
+// Each test's scene (web/art/scene-<test>.png, and scene-<test>-horde.png
+// for a Horde main build): where in the world it's set and how far down
+// the picture to look (top, in art pixels), so the hero stands on the same
+// ground as the enemies (ground: art pixels up from the bottom of the view).
+// The PvP scenes show the other faction attacking; the duel is neutral.
 export const SCENES = {
-  solo_1: { zone: 'Westfall', top: 40, ground: 16 },
-  solo_2: { zone: 'Fargodeep Mine, Elwynn Forest', top: 50, ground: 18 },
-  solo_2_hard: { zone: 'Vul’Gol, Duskwood', top: 40, ground: 16 },
-  solo_3: { zone: 'The Westfall coast', top: 40, ground: 16 },
-  boss: { zone: 'The Deadmines', top: 30, ground: 22 },
-  pressure: { zone: 'Stranglethorn Vale', top: 34, ground: 18 },
-  pressure_2v1: { zone: 'Hillsbrad Foothills', top: 40, ground: 16 },
-  duel: { zone: 'Gurubashi Arena', top: 40, ground: 16 },
+  solo_1: { zone: 'Westfall', top: 21, horde: { zone: 'The Barrens', top: 46 } },
+  solo_2: { zone: 'Fargodeep Mine, Elwynn Forest', top: 29, horde: { zone: 'Tiragarde Keep, Durotar', top: 40 } },
+  solo_2_hard: { zone: 'Vul’Gol, Duskwood', top: 26, horde: { zone: 'Dustwallow Marsh', top: 23 } },
+  solo_3: { zone: 'The Westfall coast', top: 28, horde: { zone: 'The Barrens', top: 36 } },
+  boss: { zone: 'The Deadmines', top: 38, horde: { zone: 'Razorfen Kraul', top: 40 } },
+  pressure: { zone: 'Stranglethorn Vale', top: 36, horde: { zone: 'Stranglethorn Vale', top: 38 } },
+  pressure_2v1: { zone: 'Hillsbrad Foothills', top: 50, horde: { zone: 'Hillsbrad Foothills', top: 56 } },
+  duel: { zone: 'Gurubashi Arena', top: 34 },
 };
+export function sceneFor(test, faction) {
+  const sc = SCENES[test];
+  if (!sc) return null;
+  const horde = faction === 'horde' && sc.horde;
+  const v = horde ? sc.horde : sc;
+  return { file: `art/scene-${test}${horde ? '-horde' : ''}.png`, zone: v.zone, top: v.top, ground: v.ground ?? 14 };
+}
+// The side of the world things are drawn from: Horde art for a Horde build.
+export const sideArt = (faction) => (faction === 'horde'
+  ? { endcap: 'art/wyvern.png', inn: 'banner-inn-horde' }
+  : { endcap: 'art/gryphon.png', inn: 'banner-inn' });
 // The hero sprite for a race and class (web/art/hero-<race>-<class>.png).
 export const heroArt = (race, cls) => `art/hero-${race}-${cls}.png`;
 

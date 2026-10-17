@@ -32,7 +32,7 @@
   "scene": {
    "asset": "wide illustration for a website list row (a combat test), source art for pixel-art cleanup",
    "medium": "detailed modern hi-bit pixel art (in the spirit of Octopath Traveler or Sea of Stars) drawn on a fine logical pixel grid and upscaled with nearest-neighbor, every logical pixel a crisp equal-sized square block; hard pixel edges, no anti-aliasing, no blur; rich but limited palette of about 32 colors; atmospheric lighting; faithful to the look of classic World of Warcraft (2004 to 2006): its painterly colors, chunky stylized proportions and recognizable places.",
-   "framing": "a wide side-view scene like a 2D game screen, ground line in the lower third; the enemies stand in the right half facing left; the left third of the ground is open and calm with no characters, because the player's hero will be placed there later.",
+   "framing": "a wide side-view scene like a 2D game screen; the ground is flat and open along the bottom of the picture; on the left third of the picture the flat ground reaches down to the bottom edge and nothing stands there, because the player's hero will be placed there later; the enemies stand on the same ground in the right half, facing left, at the scale of ordinary people standing in the scene (a man-sized enemy is about a third of the picture's height, never more than half).",
    "backdrop": "the full scene edge to edge, no border.",
    "aspect": "wide",
    "constraints": "No player character in the scene."
@@ -209,9 +209,9 @@
    "id": "seal-game",
    "group": "kit",
    "style": "badge",
-   "prompt": "a round red wax seal pressed with a gold-filled gryphon emblem, slightly irregular wax edge.",
+   "prompt": "a round red wax seal pressed with a gold-filled emblem of an open book, slightly irregular wax edge.",
    "fix": {
-    "grid": 39.2
+    "grid": 39
    }
   },
   {
@@ -291,7 +291,7 @@
    "id": "scene-pressure",
    "group": "scenes",
    "style": "scene",
-   "prompt": "a jungle path in Stranglethorn Vale, classic World of Warcraft: dense green jungle, vines, giant ferns and crumbling troll ruins, and a stealthy enemy rogue in dark leather with twin daggers lunging out of the bushes, half hidden in a shimmer of stealth."
+   "prompt": "a jungle path in Stranglethorn Vale, classic World of Warcraft: dense green jungle, vines, giant ferns and crumbling troll ruins, and one enemy Horde rogue (a gaunt Forsaken undead in dark leather with twin daggers, the size of an ordinary person) lunging out of the bushes, half hidden in a shimmer of stealth."
   },
   {
    "id": "face-mob",
@@ -342,13 +342,13 @@
    "id": "scene-pressure_2v1",
    "group": "scenes",
    "style": "scene",
-   "prompt": "the dirt road through Hillsbrad Foothills in classic World of Warcraft between Tarren Mill and Southshore: green rolling hills, a wooden signpost and a farm, and two enemy players charging in from the right, a plate-armored warrior with a raised axe and a hooded rogue with daggers."
+   "prompt": "the dirt road through Hillsbrad Foothills in classic World of Warcraft, Tarren Mill's dark rooftops on the hill behind: green rolling hills, a wooden signpost and a farm, and two enemy Horde players charging in from the right, a green-skinned orc warrior in spiked plate with a raised axe and a Forsaken undead rogue with daggers, both the size of ordinary people."
   },
   {
    "id": "scene-duel",
    "group": "scenes",
    "style": "scene",
-   "prompt": "inside the Gurubashi Arena in Stranglethorn Vale, classic World of Warcraft: the round stone arena with carved troll statues, torches and a sandy floor, a dueling flag planted in the sand in the middle, and one opposing duelist in armor waiting on the right side, facing left."
+   "prompt": "inside the Gurubashi Arena in Stranglethorn Vale, classic World of Warcraft: the round stone arena with carved troll statues, torches and a sandy floor, plain unmarked cloth banners in goblin colours (no faction emblems), a dueling flag planted in the sand in the middle, and one opposing duelist in plain armor waiting on the right side, facing left."
   },
   {
    "id": "banner-inn",
@@ -360,7 +360,7 @@
    "id": "banner-arena",
    "group": "iron",
    "style": "panorama",
-   "prompt": "the great gate of the Gurubashi Arena in Stranglethorn Vale, classic World of Warcraft: a heavy iron portcullis in a carved stone archway flanked by troll statues and burning torches, jungle around it, a dueling flag in front."
+   "prompt": "the great gate of the Gurubashi Arena in Stranglethorn Vale, classic World of Warcraft: a heavy iron portcullis in a carved stone archway flanked by troll statues and burning torches, plain unmarked cloth banners in goblin colours (no faction emblems), jungle around it, a dueling flag in front."
   },
   {
    "id": "medal-gold",
@@ -406,6 +406,63 @@
    "fix": {
     "grid": 12
    }
+  },
+  {
+   "id": "scene-solo_1-horde",
+   "group": "scenes-horde",
+   "style": "scene",
+   "prompt": "the golden savanna of the Barrens in classic World of Warcraft at a hot afternoon: dry yellow grass, thorny acacia-like trees, a wooden Horde watchtower in the distance, and one Razormane quilboar (a tusked boar-man with a spiked club), facing left."
+  },
+  {
+   "id": "scene-solo_2-horde",
+   "group": "scenes-horde",
+   "style": "scene",
+   "prompt": "the red rocky coast of Durotar in classic World of Warcraft by the stone walls of Tiragarde Keep: red earth, cacti, the blue sea, and two Kul Tiran marines in blue and white tabards with swords, facing left."
+  },
+  {
+   "id": "scene-solo_2_hard-horde",
+   "group": "scenes-horde",
+   "style": "scene",
+   "prompt": "the misty swamps of Dustwallow Marsh in classic World of Warcraft at dusk: murky water, gnarled mangrove trees, reeds and moss, and two hulking Stonemaul ogres with huge clubs, facing left."
+  },
+  {
+   "id": "scene-solo_3-horde",
+   "group": "scenes-horde",
+   "style": "scene",
+   "prompt": "a rocky outcrop in the Barrens of classic World of Warcraft: dry grass, a big twig-and-bone harpy nest on the rocks, and three Witchwing harpies (winged bird-women with talons), hovering and landing, facing left."
+  },
+  {
+   "id": "scene-boss-horde",
+   "group": "scenes-horde",
+   "style": "scene",
+   "prompt": "inside the Razorfen Kraul dungeon of classic World of Warcraft: a huge tunnel of giant twisted thorny brambles and roots with glowing totems, and an enormous quilboar boss in a feathered headdress with a spiked staff, towering over everything on the right."
+  },
+  {
+   "id": "scene-pressure-horde",
+   "group": "scenes-horde",
+   "style": "scene",
+   "prompt": "a jungle path in Stranglethorn Vale, classic World of Warcraft: dense green jungle, vines, giant ferns and crumbling troll ruins, and one enemy Alliance rogue (a night elf with lavender skin in dark leather with twin daggers, the size of an ordinary person) lunging out of the bushes, half hidden in a shimmer of stealth."
+  },
+  {
+   "id": "scene-pressure_2v1-horde",
+   "group": "scenes-horde",
+   "style": "scene",
+   "prompt": "the dirt road through Hillsbrad Foothills in classic World of Warcraft, Southshore's white walls and harbor on the hill behind: green rolling hills, a wooden signpost and a farm, and two enemy Alliance players charging in from the right, a human warrior in blue and gold plate with a raised sword and a night elf rogue with daggers, both the size of ordinary people.",
+   "fix": {
+    "grid": 4.25
+   }
+  },
+  {
+   "id": "wyvern",
+   "group": "kit",
+   "style": "badge",
+   "prompt": "a heraldic Horde wind rider (wyvern) sitting upright in profile facing right, wings half raised, like the end caps of a fantasy MMORPG action bar for the Horde: a lion-like head with a shaggy mane, pointed ears and fangs (no beak), leathery bat-like wings, a lion's body and a curled scorpion tail, carved dark bronze with red accents and dark shading."
+  },
+  {
+   "id": "banner-inn-horde",
+   "group": "oak",
+   "style": "panorama",
+   "prompt": "the warm interior of an orcish inn in Orgrimmar, classic World of Warcraft: a big wooden notice board on the wall covered in pinned parchment notices and wanted posters, red Horde banners, spiked wooden beams, a big fire pit, animal skins and tankards on a table."
   }
  ],
  "heroes": {

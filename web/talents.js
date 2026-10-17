@@ -125,7 +125,8 @@ export function renderTrees(ctx) {
     const pts = treePoints(prep, talents, tree.index);
     const [tint, mark, treeIcon] = style[tree.index] || ['#2a2420', 'rune-stone', null];
     const grid = h('div.tree-grid', {
-      style: { '--cell': `${CELL}px`, '--gap': `${ROW_GAP}px ${GAP}px`, width: `${4 * CELL + 3 * GAP}px`, margin: '0 auto' },
+      // every tree is drawn at full height, so trees of other classes don't change the page's size
+      style: { '--cell': `${CELL}px`, '--gap': `${ROW_GAP}px ${GAP}px`, width: `${4 * CELL + 3 * GAP}px`, margin: '0 auto', gridTemplateRows: `repeat(${tree.rows}, ${CELL}px)` },
     });
     grid.append(arrows(prep, talents, tree));
     for (const t of tree.talents) grid.append(talentButton(ctx, t));

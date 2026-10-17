@@ -44,7 +44,12 @@ function renderViews() {
   $('duels').hidden = view !== 'duels';
   // the header shows the main build's side of the world
   const main = baselineBuild();
-  $('mast').classList.toggle('horde', raceOf(main?.race)?.faction === 'horde');
+  const faction = raceOf(main?.race)?.faction;
+  $('mast').classList.toggle('horde', faction === 'horde');
+  for (const img of document.querySelectorAll('.mast .endcap')) {
+    const src = M.sideArt(faction).endcap;
+    if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+  }
   document.body.dataset.view = view;
 }
 

@@ -198,16 +198,16 @@
  "seal-game": {
   "id": "seal-game",
   "size": [
-   29,
+   28,
    28
   ],
   "colors": 17,
   "grid": [
-   39.2,
-   39.2
+   39,
+   39
   ],
-  "contested": 0.475,
-  "bg_removed": 43
+  "contested": 0.309,
+  "bg_removed": 59
  },
  "seal-estimate": {
   "id": "seal-estimate",
@@ -360,7 +360,7 @@
    4.5,
    4.5
   ],
-  "contested": 0.552,
+  "contested": 0.64,
   "bg_removed": null
  },
  "face-mob": {
@@ -632,29 +632,29 @@
  "scene-pressure_2v1": {
   "id": "scene-pressure_2v1",
   "size": [
-   438,
-   178
+   395,
+   198
   ],
   "colors": 40,
   "grid": [
    4.5,
    4.5
   ],
-  "contested": 0.472,
+  "contested": 0.486,
   "bg_removed": null
  },
  "scene-duel": {
   "id": "scene-duel",
   "size": [
-   442,
-   177
+   432,
+   180
   ],
   "colors": 40,
   "grid": [
    4.5,
    4.5
   ],
-  "contested": 0.516,
+  "contested": 0.565,
   "bg_removed": null
  },
  "banner-inn": {
@@ -674,15 +674,15 @@
  "banner-arena": {
   "id": "banner-arena",
   "size": [
-   661,
-   265
+   724,
+   242
   ],
   "colors": 40,
   "grid": [
    3,
    3
   ],
-  "contested": 0.579,
+  "contested": 0.54,
   "bg_removed": null
  },
  "medal-gold": {
@@ -1370,5 +1370,131 @@
   ],
   "contested": 0.407,
   "bg_removed": 352
+ },
+ "scene-solo_1-horde": {
+  "id": "scene-solo_1-horde",
+  "size": [
+   395,
+   198
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.344,
+  "bg_removed": null
+ },
+ "scene-solo_2-horde": {
+  "id": "scene-solo_2-horde",
+  "size": [
+   395,
+   198
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.434,
+  "bg_removed": null
+ },
+ "scene-solo_2_hard-horde": {
+  "id": "scene-solo_2_hard-horde",
+  "size": [
+   439,
+   178
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.535,
+  "bg_removed": null
+ },
+ "scene-solo_3-horde": {
+  "id": "scene-solo_3-horde",
+  "size": [
+   395,
+   198
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.423,
+  "bg_removed": null
+ },
+ "scene-boss-horde": {
+  "id": "scene-boss-horde",
+  "size": [
+   428,
+   183
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.44,
+  "bg_removed": null
+ },
+ "scene-pressure-horde": {
+  "id": "scene-pressure-horde",
+  "size": [
+   426,
+   183
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.587,
+  "bg_removed": null
+ },
+ "scene-pressure_2v1-horde": {
+  "id": "scene-pressure_2v1-horde",
+  "size": [
+   394,
+   222
+  ],
+  "colors": 40,
+  "grid": [
+   4.25,
+   4.25
+  ],
+  "contested": 0.564,
+  "bg_removed": null
+ },
+ "wyvern": {
+  "id": "wyvern",
+  "size": [
+   100,
+   98
+  ],
+  "colors": 17,
+  "grid": [
+   11.66,
+   12.03
+  ],
+  "contested": 0.205,
+  "bg_removed": 411
+ },
+ "banner-inn-horde": {
+  "id": "banner-inn-horde",
+  "size": [
+   724,
+   242
+  ],
+  "colors": 40,
+  "grid": [
+   3,
+   3
+  ],
+  "contested": 0.418,
+  "bg_removed": null
  }
 }

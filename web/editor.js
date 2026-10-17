@@ -150,7 +150,7 @@ export function renderEditor(root, actions) {
   const spec = h('div.spec', { 'aria-label': 'Talent points per tree' }, prep.trees.map((tr) => {
     const pts = tr.talents.reduce((a, t) => a + (b.talents[t.id] || 0), 0);
     const [, glyph, wow] = treeStyle[tr.index] || [];
-    return h('span.spec-chip', { class: pts ? '' : 'empty' }, ability(glyph || 'rune-stone', null, wow), tr.name, h('b', String(pts)));
+    return h('span.spec-chip', { class: pts ? '' : 'empty', title: `${tr.name}: ${pts} point${pts === 1 ? '' : 's'}` }, ability(glyph || 'rune-stone', null, wow), h('span.spec-name', tr.name), h('b', String(pts)));
   }));
   // the character as they'd stand in a scene, at twice the scenes' size, on
   // a stage of fixed size so a tauren or a gnome doesn't move the page
@@ -158,11 +158,8 @@ export function renderEditor(root, actions) {
   const size = () => { img.style.width = `calc(${2 * img.naturalWidth} * var(--art))`; img.style.height = `calc(${2 * img.naturalHeight} * var(--art))`; };
   if (img.complete && img.naturalWidth) size(); else img.addEventListener('load', size, { once: true });
   img.addEventListener('error', () => img.remove(), { once: true });
-  // the character on a pedestal, with the race's face and the class crest
-  const stage = h('div.hero-stage', { style: { '--cc': M.CLASS_COLORS[b.cls] } },
-    h('span.hero-sprite', img),
-    h('span.stage-face', art(M.RACE_ICONS[b.race] || 'rune-stone', race?.icon)),
-    h('span.stage-crest', art(M.CLASS_ICONS[b.cls], c.icon)));
+  // the character on a pedestal
+  const stage = h('div.hero-stage', { style: { '--cc': M.CLASS_COLORS[b.cls] } }, h('span.hero-sprite', img));
   const head = h('div.hero', stage,
     h('div.hero-text', nameInput,
       h('p.hero-sub', `Level ${b.level} ${race?.name || ''} `, h('span.cls', { style: { '--cc': cc } }, c.name)),
@@ -179,15 +176,22 @@ export function renderEditor(root, actions) {
         () => [tt.title(x.name), tt.line(M.CLASS_BLURB[x.id] || '', 'gold')]))),
       h('div.picker-note', { style: { '--cc': cc } }, h('b', c.name), h('span', M.CLASS_BLURB[b.cls] || ''))));
 
-  // Race: Alliance, then Horde
-  const races = env.catalog.races.filter((r) => c.races.includes(r.id));
-  const raceButton = (r) => withTip(
-    h('button.pick', {
-      type: 'button', 'aria-pressed': String(r.id === b.race), 'aria-label': r.name,
-      onclick: () => { if (b.race !== r.id) { b.race = r.id; changed(b); } },
-    }, art(M.RACE_ICONS[r.id] || 'rune-stone', r.icon)),
-    () => [tt.title(r.name), tt.line(r.faction === 'alliance' ? 'Alliance' : 'Horde', 'grey'),
-      ...r.passives.flatMap((p) => [tt.gap(p, 'gold'), M.RACE_BLURB[p] ? tt.line(M.RACE_BLURB[p]) : null])]);
+  // Race: Alliance, then Horde. Every race is always shown, as in character
+  // creation, with the ones this class can't be greyed out, so changing
+  // class never moves the page.
+  const races = env.catalog.races;
+  const raceButton = (r) => {
+    const open = c.races.includes(r.id);
+    return withTip(
+      h('button.pick', {
+        type: 'button', 'aria-pressed': String(r.id === b.race), 'aria-label': open ? r.name : `${r.name} (not available to ${c.name}s)`,
+        'aria-disabled': open ? null : 'true', class: open ? '' : 'unavailable',
+        onclick: () => { if (open && b.race !== r.id) { b.race = r.id; changed(b); } },
+      }, art(M.RACE_ICONS[r.id] || 'rune-stone', r.icon)),
+      () => [tt.title(r.name), tt.line(r.faction === 'alliance' ? 'Alliance' : 'Horde', 'grey'),
+        open ? null : tt.line(`${r.name}s can’t be ${c.name}s in Forever.`, 'red'),
+        ...r.passives.flatMap((p) => [tt.gap(p, 'gold'), M.RACE_BLURB[p] ? tt.line(M.RACE_BLURB[p]) : null])].filter(Boolean));
+  };
   const alliance = races.filter((r) => r.faction === 'alliance').map(raceButton);
   const horde = races.filter((r) => r.faction === 'horde').map(raceButton);
   const raceNote = race ? race.passives.map((p) => (M.RACE_BLURB[p] ? `${p}: ${M.RACE_BLURB[p].replace(/\.$/, '').toLowerCase()}` : p)).join('. ') + '.' : '';
@@ -223,7 +227,7 @@ export function renderEditor(root, actions) {
           .map(([label, list]) => h('optgroup', { label }, list.map((x) => h('option', { value: x.file, selected: x.file === b.preset },
             baseName(x.name) + (x.role === 'healer' ? ' (healer)' : x.role === 'tank' ? ' (tank)' : '')))))
           .concat([h('option', { value: '', selected: !b.preset }, 'No talents (start from scratch)')])),
-      h('p.note', p ? presetNote(p, b) : 'Spend your own talent points below.')));
+      h('p.note.preset-note', p ? presetNote(p, b) : 'Spend your own talent points below.')));
 
   // Inner tabs
   const tabDefs = [['talents', 'Talents'], ['sheet', 'Character sheet'], ['gear', 'Gear and play style']];

@@ -29,11 +29,6 @@
   background: radial-gradient(ellipse 60% 14% at 50% 92%, rgba(0, 0, 0, .65), transparent 70%), radial-gradient(ellipse 70% 60% at 50% 62%, color-mix(in srgb, var(--cc) 16%, transparent), transparent 70%);
 }
 .hero-stage .hero-sprite { position: absolute; left: 0; right: 0; bottom: 6px; height: calc(166 * var(--art)); }
-.stage-face, .stage-crest { position: absolute; bottom: 0; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; background: #000; box-shadow: 0 0 0 1px #000, 0 0 0 2px var(--gilt-line); }
-.stage-face { left: 0; }
-.stage-crest { left: 34px; }
-.stage-face img, .stage-crest img { position: absolute; inset: -12%; width: 124%; height: 124%; }
-.stage-face svg, .stage-crest svg { width: 30px; height: 30px; padding: 5px; fill: var(--cc, #cdbfa5); }
 .hero-text { min-width: 0; }
 .portrait {
   position: relative; width: 104px; height: 104px; border-radius: 50%;
@@ -58,9 +53,12 @@
 .name-input:focus { border-color: var(--gilt-line); background: rgba(0, 0, 0, .3); outline: none; }
 .hero-sub { margin-top: var(--s1); min-height: 2.8em; color: var(--text-2); font-size: var(--fs-m); line-height: 1.4; }
 .hero-sub .cls { color: var(--cc); font-weight: 500; }
-.spec { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
-.spec-chip { display: inline-flex; align-items: center; gap: var(--s2); padding: 3px 10px 3px 3px; background: rgba(0, 0, 0, .35); box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2px var(--hair); color: var(--text-2); font-size: var(--fs-s); }
-.spec-chip .ability { width: 22px; height: 22px; }
+/* one row of three, whatever the tree names: the page doesn't move with the class */
+.spec { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); margin-top: var(--s3); }
+.spec-chip { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 3px 8px 3px 3px; white-space: nowrap; background: rgba(0, 0, 0, .35); box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2px var(--hair); color: var(--text-2); font-size: var(--fs-s); }
+.spec-chip .ability { width: 22px; height: 22px; flex: none; }
+.spec-chip .spec-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.spec-chip b { margin-left: auto; }
 .spec-chip b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 .spec-chip.empty { opacity: .5; }
 
@@ -86,7 +84,13 @@
 .pick:active { transform: scale(.96); }
 .picker-note { min-width: 0; flex: 1 1 220px; }
 .picker-note b { display: block; font: 400 var(--fs-l)/1.25 var(--display-2); color: var(--cc, var(--text)); }
-.picker-note span { display: block; color: var(--text-2); font-size: var(--fs-s); line-height: 1.5; }
+.picker-note span { display: block; min-height: 3em; color: var(--text-2); font-size: var(--fs-s); line-height: 1.5; }
+.field-row:nth-child(2) .picker-note span { min-height: 4.5em; }
+.pick.unavailable { cursor: not-allowed; box-shadow: 0 0 0 1px #000, 0 0 0 3px #2a241c, 0 0 0 4px #000; }
+.pick.unavailable img { filter: grayscale(1) brightness(.35); }
+.pick.unavailable:hover { box-shadow: 0 0 0 1px #000, 0 0 0 3px #3a3226, 0 0 0 4px #000; }
+.pick.unavailable:hover img { filter: grayscale(1) brightness(.5); }
+.pick.unavailable:active { transform: none; }
 /* level: an experience bar */
 .level { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s4); padding-top: 6px; }
 .level-value { min-width: 2ch; font: 700 var(--fs-xl)/1 var(--display); font-variant-numeric: tabular-nums; color: var(--wow-gold); text-shadow: 0 1px 0 #000; }
@@ -127,7 +131,8 @@
 }
 .tree .watermark { position: absolute; right: -30px; bottom: -24px; width: 200px; height: 200px; fill: #fff; opacity: .04; pointer-events: none; }
 .tree-head { position: relative; display: flex; justify-content: space-between; align-items: center; gap: var(--s2); margin: 0 var(--s2) var(--s4); }
-.tree-head h4 { display: flex; align-items: center; gap: var(--s2); min-width: 0; font: 400 var(--fs-l)/1.2 var(--display-2); }
+.tree-head h4 { display: flex; align-items: center; gap: var(--s2); min-width: 0; font: 400 var(--fs-l)/1.2 var(--display-2); white-space: nowrap; }
+.tree-head h4 > span:last-child, .tree-head h4 { overflow: hidden; text-overflow: ellipsis; }
 .tree-head h4 .ability { width: 26px; height: 26px; flex: none; }
 .tree-head .pts { color: var(--text-2); font-size: var(--fs-s); white-space: nowrap; }
 .tree-head .pts b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -229,8 +234,6 @@ dialog .check { background: #fff8e4; box-shadow: inset 0 0 0 1px #8a6a3a; border
   .hero-stage { width: calc(96 * var(--art)); height: calc(104 * var(--art)); }
   .hero-stage .hero-sprite { height: calc(84 * var(--art)); bottom: 4px; }
   .hero-sprite img { transform: translateX(-50%) scale(.5); transform-origin: bottom center; }
-  .stage-face, .stage-crest { width: 24px; height: 24px; }
-  .stage-crest { left: 27px; }
   .portrait { width: 76px; height: 76px; }
   .portrait .crest { width: 28px; height: 28px; }
   .name-input { font-size: var(--fs-2xl); }
@@ -242,3 +245,8 @@ dialog .check { background: #fff8e4; box-shadow: inset 0 0 0 1px #8a6a3a; border
   .opt { grid-template-columns: auto minmax(0, 1fr); }
   .opt > :nth-child(3) { grid-column: 2; justify-self: start; }
 }
+/* the starting spec's note is kept the same height, so the editor's height
+   doesn't change with the class or spec */
+.preset-note { min-height: 12.4em; }
+@media (max-width: 760px) { .preset-note { min-height: 0; } }
+@media (max-width: 760px) { .spec-chip .spec-name { display: none; } .spec-chip { justify-content: center; gap: 8px; } .spec-chip b { margin-left: 0; } }

@@ -3,7 +3,7 @@
 // the same engine pool as the scorecard, one run at a time.
 import * as M from './meta.js';
 import { h, art, withTip, tt, flash, fmtMetric, fmtNum, fmtSec } from './ui.js';
-import { S, env, bus, classOf, presetOf, presetTags, isExperimental, baseName, accuracyOf, scenarioMeta, primaryOf, classColor, nameOf, apiBuild } from './state.js';
+import { S, env, bus, classOf, presetOf, presetTags, isExperimental, baseName, accuracyOf, scenarioMeta, primaryOf, classColor, nameOf, apiBuild, raceOf, baselineBuild } from './state.js';
 import { metricOf, rangeTip } from './results.js';
 
 // The ranking's seven tests, in the order the switcher shows them.
@@ -251,7 +251,7 @@ export function renderRankings(root) {
   const running = !!st.run && !st.run.finished;
   const count = pool(st.experiments).length;
   const out = [
-    banner('banner-inn', 'Every spec, ranked', 'fr-oak'),
+    banner(M.sideArt(raceOf(baselineBuild()?.race)?.faction).inn, 'Every spec, ranked', 'fr-oak'),
     h('p.lede', `Runs every build on the site through seven tests and ranks them: leveling one, two, two tough and three mobs at a time, a dungeon boss, and two world PvP ambushes. That's ${count} builds, so it takes a while: about four minutes on a fast laptop on Standard, and much longer on a phone. Quick is several times faster; Precise takes much longer. Each list appears as soon as its test finishes, and the slow three-mob test runs last.`),
     controls(st, { go: runRankings, goLabel: `Rank ${count} builds`, running, stopLabel: 'Stop', frame: 'fr-oak' }),
   ];
@@ -263,7 +263,7 @@ export function renderRankings(root) {
     out.push(h('div.rank-tests', { role: 'tablist', 'aria-label': 'Test' }, RANK_TESTS.map((t) => h('button.rank-test', {
       type: 'button', role: 'tab', 'aria-selected': String(st.test === t), disabled: !st.results[t],
       onclick: () => { st.test = t; save(); bus.render(); },
-    }, h('span.thumb', h('img.px', { src: `art/scene-${t}.png`, alt: '' })), h('b', RANK_TITLES[t]), h('span', scenarioMeta(t).per)))));
+    }, h('span.thumb', h('img.px', { src: M.sceneFor(t, raceOf(baselineBuild()?.race)?.faction).file, alt: '' })), h('b', RANK_TITLES[t]), h('span', scenarioMeta(t).per)))));
     out.push(h('div.quick.role-chips', { role: 'group', 'aria-label': 'Role' }, ROLES.map(([id, label]) => h('button.chip', {
       type: 'button', 'aria-pressed': String((st.role || 'all') === id), onclick: () => { st.role = id; save(); bus.render(); },
     }, label))));
