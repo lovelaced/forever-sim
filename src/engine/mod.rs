@@ -540,7 +540,8 @@ pub struct Metrics<'w> {
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct TraceEv {
     pub t: f64,
-    /// cast, hit, miss, dodge, parry, heal, gain, lose, death, pull, rest or eat
+    /// cast, hit, miss, dodge, parry, heal, gain, lose, death, pull, rest,
+    /// eat, or power (a player's mana or health share, for the graphs)
     pub kind: &'static str,
     pub who: String,
     pub team: u8,
@@ -650,6 +651,9 @@ pub struct Sim<'w> {
     pub log: Option<Vec<String>>,
     /// Structured events, recorded whenever `log` is on.
     pub trace: Option<Vec<TraceEv>>,
+    /// Traced fights: each player's last recorded mana (or rage or energy)
+    /// and health shares, so a "power" event goes out only when one moves.
+    pub power_seen: Vec<(f64, f64)>,
     /// Coefficient penalties switched by assumptions (see downrank()).
     pub low_level_penalty: f64,
     pub downrank_penalty: f64,
@@ -726,6 +730,7 @@ impl<'w> Sim<'w> {
             uid: 0,
             log: None,
             trace: None,
+            power_seen: Vec::new(),
             tank: None,
             live: Vec::new(),
             scratch: Vec::new(),
@@ -989,6 +994,40 @@ impl<'w> Sim<'w> {
             let e = ev(self);
             if let Some(t) = &mut self.trace {
                 t.push(e);
+            }
+        }
+    }
+
+    /// Traced fights: a "power" event whenever a player's mana moves (rage
+    /// or energy for those without mana), as a share of its most, for the
+    /// website's mana graph; and one named "hp" when its health does, so the
+    /// health graph shows regeneration between hits too.
+    fn trace_power(&mut self) {
+        // buffing up before a fight dips and refills both: left out
+        if self.trace.is_none() || self.phase == Phase::Prep {
+            return;
+        }
+        for a in 0..self.actors.len() {
+            let x = &self.actors[a];
+            if x.kind != Kind::Player || !x.alive {
+                continue;
+            }
+            let hp = (x.hp / x.max_hp).clamp(0.0, 1.0);
+            let res = [Res::Mana, Res::Rage, Res::Energy].into_iter().find(|&r| x.has_res[r as usize] && x.max_res[r as usize] > 0.0);
+            let pw = res.map(|r| (x.res[r as usize] / x.max_res[r as usize]).clamp(0.0, 1.0));
+            if self.power_seen.len() <= a {
+                self.power_seen.resize(a + 1, (f64::NAN, f64::NAN));
+            }
+            let (seen_pw, seen_hp) = self.power_seen[a];
+            if let (Some(r), Some(v)) = (res, pw) {
+                if !((seen_pw - v).abs() < 1e-4) {
+                    self.power_seen[a].0 = v;
+                    self.tracef(|s| TraceEv { amount: v, ..s.tev("power", a, None, r.name()) });
+                }
+            }
+            if !((seen_hp - hp).abs() < 1e-4) {
+                self.power_seen[a].1 = hp;
+                self.tracef(|s| TraceEv { amount: hp, ..s.tev("power", a, None, "hp") });
             }
         }
     }
@@ -2485,6 +2524,7 @@ impl<'w> Sim<'w> {
     pub fn run(&mut self, stop: Stop) -> Outcome {
         let mut iters: u64 = 0;
         let mut still: u32 = 0;
+        self.trace_power();
         loop {
             iters += 1;
             if iters > 5_000_000 {
@@ -2538,6 +2578,7 @@ impl<'w> Sim<'w> {
                 self.give_back(ids);
             }
             self.act_all(&stop);
+            self.trace_power();
             if self.phase == Phase::Fight {
                 self.plan_motion();
             }
@@ -2578,6 +2619,7 @@ impl<'w> Sim<'w> {
             }
             self.t = n.max(self.t);
             self.process();
+            self.trace_power();
         }
     }
 }

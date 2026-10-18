@@ -57,6 +57,12 @@ export function leaders(res, cols, metric, good = 'high') {
   return out;
 }
 
+function tabStrip(ctx, tabs, tab) {
+  return h('div.detail-tabs', { role: 'tablist', 'aria-label': `${ctx.scenario.title} in detail` }, tabs.map(([t, label]) => h('button.detail-tab', {
+    type: 'button', role: 'tab', 'aria-selected': String(t === tab), onclick: () => { S.detailTab = t; bus.detail(); },
+  }, label)));
+}
+
 // ctx: {test, scenario (meta), row, cols: [{k, b, letter, color, name, cell}], base (col),
 //       changes: Map uid -> change for this test, onPrecise, onOpponent, opponentPicker}
 export function renderDetail(ctx) {
@@ -68,10 +74,7 @@ export function renderDetail(ctx) {
   const cols = ctx.cols.filter((c) => c.cell);
   const unitWord = UNIT_PLURAL[ctx.scenario.unit] || 'runs';
   const tab = TABS.some(([t]) => t === S.detailTab) ? S.detailTab : 'summary';
-  const tabs = h('div.detail-tabs', { role: 'tablist', 'aria-label': `${ctx.scenario.title} in detail` }, TABS.map(([t, label]) => h('button.detail-tab', {
-    type: 'button', role: 'tab', 'aria-selected': String(t === tab), onclick: () => { S.detailTab = t; bus.detail(); },
-  }, label)));
-  const out = h('div.detail', tabs);
+  const out = h('div.detail', tabStrip(ctx, TABS, tab));
   if (tab === 'played') { out.append(h('div.tab-panel', { role: 'tabpanel' }, playedPanel(ctx, cols, res))); return out; }
   if (tab === 'log') { out.append(h('div.tab-panel', { role: 'tabpanel' }, logPanel(ctx, cols, res))); return out; }
   if (tab === 'numbers') { out.append(h('div.tab-panel', { role: 'tabpanel' }, numbersPanel(ctx, cols, res, primary))); return out; }
@@ -222,22 +225,31 @@ function meterGroups(v, groups, c) {
 
 // ------------------------------------------------------------------ duels
 
-const pct = (x) => `${fmtNum(100 * x, 0)}%`;
+const pct = (x) => `${fmtNum(100 * Math.max(0, x), 0)}%`;
 
+// A duel in two tabs: who beats whom, and one duel step by step.
+const DUEL_TABS = [['summary', 'Summary'], ['log', 'One fight']];
 function renderDuel(ctx) {
   const { row } = ctx;
-  const out = h('div.detail');
   const cols = ctx.cols.filter((c) => c.cell);
-  if (row.one || cols.length < 2) {
-    out.append(h('p.detail-meta', 'To the death, three minutes at most. You start 5 to 10 yards apart, and whoever reacts first strikes first.'));
-    out.append(ctx.opponentPicker());
-    out.append(playLikePicker());
-    const c = cols[0];
-    const w = c && ctx.opponentSig && duelWin(row, c.cell.sig, ctx.opponentSig);
-    if (w) out.append(duelLine(c, { name: ctx.opponentName, color: '#9d9d9d', letter: null }, w));
+  const tab = S.detailTab === 'log' ? 'log' : 'summary';
+  const out = h('div.detail', tabStrip(ctx, DUEL_TABS, tab));
+  const panel = h('div.tab-panel', { role: 'tabpanel' });
+  out.append(panel);
+  if (tab === 'log') {
+    panel.append(logPanel(ctx, cols));
     return out;
   }
-  out.append(h('p.detail-meta', 'Each pair duels to the death, three minutes at most. They start 5 to 10 yards apart, and whoever reacts first strikes first.'));
+  if (row.one || cols.length < 2) {
+    panel.append(h('p.detail-meta', 'To the death, three minutes at most. You start 5 to 10 yards apart, and whoever reacts first strikes first.'));
+    panel.append(ctx.opponentPicker());
+    panel.append(playLikePicker());
+    const c = cols[0];
+    const w = c && ctx.opponentSig && duelWin(row, c.cell.sig, ctx.opponentSig);
+    if (w) panel.append(duelLine(c, { name: ctx.opponentName, color: '#9d9d9d', letter: null }, w));
+    return out;
+  }
+  panel.append(h('p.detail-meta', 'Each pair duels to the death, three minutes at most. They start 5 to 10 yards apart, and whoever reacts first strikes first.'));
   const lines = [];
   for (const c of cols) {
     if (c === ctx.base) continue;
@@ -251,7 +263,7 @@ function renderDuel(ctx) {
       if (w) lines.push(duelLine(cols[x], cols[y], w));
     }
   }
-  out.append(h('div.verdicts', lines));
+  panel.append(h('div.verdicts', lines));
   return out;
 }
 

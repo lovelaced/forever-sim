@@ -508,22 +508,28 @@ fn trace(w: &World, v: &J) -> Result<J, String> {
         *minutes = minutes.min(4.0);
     }
     let (_, _, events) = run_rep_traced(&RepInput { w, sc: &short, build: &b, opponent: opponent.as_ref(), opts: &opts, seed: mc::rep_seed(&cfg, sc, rep), log: true });
-    let mut events = events.unwrap_or_default();
+    // mana samples go to the mana graph, not the log
+    let (power, mut events): (Vec<_>, Vec<_>) = events.unwrap_or_default().into_iter().partition(|e| e.kind == "power");
     let leveling = matches!(sc.kind, ScenarioKind::Leveling { .. });
     let healing = match &sc.kind {
         ScenarioKind::Healing(h) => Some(h),
         _ => None,
     };
+    let (from, to);
     if leveling {
         // from the first pull to the next one (at most two and a half minutes)
         let first = events.iter().position(|e| e.kind == "pull").unwrap_or(0);
         let t0 = events.get(first).map_or(0.0, |e| e.t);
         let next = events.iter().skip(first + 1).position(|e| e.kind == "pull").map(|k| k + first + 1).unwrap_or(events.len());
         events = events.drain(first..next).filter(|e| e.t <= t0 + 150.0).collect();
+        (from, to) = (t0, events.last().map_or(t0, |e| e.t));
     } else {
         let until = v.get("until").and_then(|x| x.as_f64()).unwrap_or(if healing.is_some() { 60.0 } else { 30.0 });
         events.retain(|e| e.t <= until + 1e-9);
+        (from, to) = (0.0, until);
     }
+    let pvp = matches!(sc.kind, ScenarioKind::Duel { .. } | ScenarioKind::Skirmish { .. });
+    let power = power_series(&power, &b.name, from, to, |e| e.who_id == 0 || (pvp && e.team != 0));
     if let Some(h) = healing {
         // a healer's fight is the whole party's: everything on your side,
         // and everything the boss does to it
@@ -541,18 +547,64 @@ fn trace(w: &World, v: &J) -> Result<J, String> {
         }
         party.sort_by_key(|n| *n != tank);
         dress_trace(w, &b, sc, &mut events);
-        return Ok(json!({ "me": me, "pets": [], "leveling": false, "party": party, "tank": tank, "events": events }));
+        return Ok(json!({ "me": me, "pets": [], "leveling": false, "party": party, "tank": tank, "events": events, "power": power }));
     }
     // what concerns the build: its own (and its pet's) actions, what it puts
     // on others, and what is done to it
     // you are the first character spawned (the boss test's tank comes after)
-    let me = events.iter().find(|e| e.team == 0 && !e.pet && e.who_id == 0).or_else(|| events.iter().find(|e| e.team == 0 && !e.pet)).map(|e| e.who.clone()).unwrap_or_else(|| b.name.clone());
+    let you = events.iter().find(|e| e.team == 0 && !e.pet && e.who_id == 0).or_else(|| events.iter().find(|e| e.team == 0 && !e.pet));
+    let (me, me_id) = you.map_or((b.name.clone(), 0), |e| (e.who.clone(), e.who_id));
     // a pet often holds the mob (a hunter's, a Voidwalker): what's done to it counts too
     let pets: BTreeSet<String> = events.iter().filter(|e| e.team == 0 && e.pet).map(|e| e.who.clone()).collect();
-    // your side's moves are yours and your pets' (not the tank's)
-    events.retain(|e| (e.team == 0 && (e.who_id == 0 || e.pet)) || e.kind == "death" || e.target.as_ref().map_or(false, |t| *t == me || pets.contains(t)));
+    let pet_ids: BTreeSet<usize> = events.iter().filter(|e| e.team == 0 && e.pet).map(|e| e.who_id).collect();
+    // your side's moves are yours and your pets' (not the tank's); by actor,
+    // since a mirror match's opponent shares your name
+    events.retain(|e| (e.team == 0 && (e.who_id == me_id || e.pet)) || e.kind == "death" || e.target_id.map_or(false, |t| t == me_id || pet_ids.contains(&t)));
     dress_trace(w, &b, sc, &mut events);
-    Ok(json!({ "me": me, "pets": pets, "leveling": leveling, "events": events }))
+    Ok(json!({ "me": me, "pets": pets, "leveling": leveling, "events": events, "power": power }))
+}
+
+/// An opponent's name in the log, told apart from yours or your pet's when
+/// they match.
+fn foe_name(name: &str, ours: &BTreeSet<String>) -> String {
+    if ours.contains(name) {
+        format!("Enemy {name}")
+    } else {
+        name.to_string()
+    }
+}
+
+/// Each player's mana (or rage or energy) and health over the shown stretch
+/// of a fight, for the website's graphs: `[{ who, you, res, pts: [[t, share],
+/// ...] }]` with `res` "hp" for health, each starting from where it stood when
+/// the stretch began.
+fn power_series(power: &[crate::engine::TraceEv], me: &str, from: f64, to: f64, keep: impl Fn(&crate::engine::TraceEv) -> bool) -> J {
+    let mut out: Vec<(usize, &str, &str, Vec<[f64; 2]>)> = Vec::new();
+    for e in power.iter().filter(|e| keep(e) && e.t <= to + 1e-9) {
+        let k = match out.iter().position(|x| x.0 == e.who_id && x.2 == e.name) {
+            Some(k) => k,
+            None => {
+                out.push((e.who_id, e.who.as_str(), e.name.as_str(), Vec::new()));
+                out.len() - 1
+            }
+        };
+        let pts = &mut out[k].3;
+        // before the stretch: only the latest level counts, as its start
+        if e.t < from {
+            pts.clear();
+        }
+        let p = [e.t.max(from), (e.amount * 1000.0).round() / 1000.0];
+        match pts.last_mut() {
+            Some(q) if (q[0] - p[0]).abs() < 1e-9 => *q = p,
+            _ => pts.push(p),
+        }
+    }
+    out.sort_by_key(|x| x.0 != 0);
+    let ours = BTreeSet::from([me.to_string()]);
+    J::Array(out.into_iter().filter(|x| !x.3.is_empty()).map(|(id, who, res, pts)| {
+        let who = if id == 0 { who.to_string() } else { foe_name(who, &ours) };
+        json!({ "who": who, "you": id == 0, "res": res, "pts": pts })
+    }).collect())
 }
 
 /// Make a traced fight readable: the game's icon on every event, real
@@ -605,10 +657,13 @@ fn dress_trace(w: &World, b: &Build, sc: &ScenarioDef, events: &mut Vec<crate::e
         ScenarioKind::Duel { .. } | ScenarioKind::Skirmish { .. } => "",
         _ => "Mob",
     };
+    // a mirror match: the other side's same-named player or pet is "Enemy Frost"
+    let our_names: BTreeSet<&str> = events.iter().filter(|e| e.team == 0).map(|e| e.who.as_str()).chain([b.name.as_str()]).collect();
+    let our_names: BTreeSet<String> = our_names.into_iter().map(String::from).collect();
     let label = |id: usize, name: &str| -> String {
         let Some(k) = foes.iter().position(|&f| f == id) else { return name.to_string() };
         match kind {
-            "" => name.to_string(),
+            "" => foe_name(name, &our_names),
             "Boss" if k == 0 => "Boss".to_string(),
             "Boss" => format!("Add {k}"),
             _ if foes.len() == 1 => kind.to_string(),

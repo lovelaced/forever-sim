@@ -1,13 +1,14 @@
 // Two tabs of a test's detail. "How it played": the build's priority list
 // as a spellbook page, with how often each line fired in this test and its
 // share of the damage. "One fight": the run's first fight (the same dice as
-// the results) step by step, every move with the game's icon, and a chart of
-// everyone's health above it. Both show the main build first; small portrait
+// the results) step by step, every move with the game's icon, and charts of
+// everyone's health and mana above it. Both show the main build first; small portrait
 // buttons switch to another build.
 import * as M from './meta.js';
 import { h, art, ability, withTip, tt, fmtNum, fmtSec } from './ui.js';
 import { S, env, bus, classOf, raceOf, apiBuild, nameOf, sig, baselineBuild, healRotationOf } from './state.js';
 import { metricOf } from './results.js';
+import { opponentApi } from './runner.js';
 
 const traces = new Map(); // key -> {events, me, leveling} | {error} | 'loading'
 
@@ -22,9 +23,9 @@ function portrait(b) {
 }
 
 // "Showing Arms (main build)" with buttons for the other builds.
-function whoseHead(cols, c, what) {
+function whoseHead(cols, c, what, after = null) {
   const main = baselineBuild();
-  const title = h('h4.whose', portrait(c.b), h('span', `${what} `, h('b', c.name)), c.b === main && cols.length > 1 ? h('span.tag.main', 'Main build') : null);
+  const title = h('h4.whose', portrait(c.b), h('span', `${what} `, h('b', c.name), after ? ` ${after}` : null), c.b === main && cols.length > 1 ? h('span.tag.main', 'Main build') : null);
   if (cols.length < 2) return h('div.played-head', title);
   return h('div.played-head', title,
     h('div.whose-pick', { role: 'group', 'aria-label': 'Show another build' }, h('span.muted', 'Show:'),
@@ -161,8 +162,19 @@ function healShare(v) {
 
 // ------------------------------------------------------------------ one fight
 
-function traceKey(ctx, b) {
-  return JSON.stringify([ctx.test, sig(b), S.opts, ctx.test === 'duel' ? S.opponent : S.versus[ctx.test] ?? null]);
+function traceKey(ctx, b, foe) {
+  return JSON.stringify([ctx.test, sig(b), S.opts, foe ? foe.key : S.versus[ctx.test] ?? null]);
+}
+
+// Who a duel is against: the opponent picked, or between your own builds,
+// the main build (the main build itself faces the next one).
+function duelFoe(ctx, cols, c) {
+  if (ctx.row.one || cols.length < 2) {
+    const api = opponentApi(c.b.level);
+    return api && { key: S.opponent, name: ctx.opponentName, api };
+  }
+  const o = c.b.uid === ctx.base?.b.uid ? cols.find((x) => x !== c) : ctx.base || cols.find((x) => x !== c);
+  return o && { key: sig(o.b), name: o.name, api: apiBuild(o.b, nameOf(o.b)) };
 }
 
 export function logPanel(ctx, cols) {
@@ -170,12 +182,18 @@ export function logPanel(ctx, cols) {
   const c = pickCol(cols);
   const leveling = ctx.scenario.group === 'leveling';
   const healing = ctx.scenario.group === 'healing';
-  const key = traceKey(ctx, c.b);
+  const duel = ctx.test === 'duel';
+  const foe = duel ? duelFoe(ctx, cols, c) : null;
+  if (duel && !foe) return h('section.played.fight', whoseHead(cols, c, 'One duel:'), h('p.hint', 'Pick an opponent under Summary to watch a duel.'));
+  const key = traceKey(ctx, c.b, foe);
   const tr = traces.get(key);
-  const box = h('section.played.fight', whoseHead(cols, c, leveling ? 'One pull:' : healing ? 'The first minute of the hardest fight it held:' : 'The first 30 seconds:'));
+  const box = h('section.played.fight', whoseHead(cols, c, leveling ? 'One pull:' : healing ? 'The first minute of the hardest fight it held:' : duel ? 'One duel:' : 'The first 30 seconds:',
+    duel ? `against ${foe.name}` : null));
   if (!tr) {
     traces.set(key, 'loading');
-    env.engine.call({ op: 'trace', scenario: ctx.test, build: apiBuild(c.b, nameOf(c.b)), opts: S.opts, versus: S.versus[ctx.test] ?? undefined })
+    // a duel plays to the end (three minutes at most)
+    env.engine.call({ op: 'trace', scenario: ctx.test, build: apiBuild(c.b, nameOf(c.b)), opts: S.opts, versus: S.versus[ctx.test] ?? undefined,
+      opponent: foe?.api, until: duel ? 180 : undefined })
       .then((r) => { traces.set(key, r); bus.detail(); })
       .catch((e) => { traces.set(key, { error: e.message || String(e) }); bus.detail(); });
   }
@@ -410,23 +428,24 @@ function attachTip(el, e) {
 }
 
 // Everyone's health across the fight, from the health after each hit and
-// heal. Clicking a point scrolls the log to that moment.
+// heal, with mana underneath. Clicking a point scrolls the log to that moment.
 function healthChart(tr, t0, end) {
   const me = tr.me;
   const pets = new Set(tr.pets || []);
-  const series = new Map([[me, [[0, 1]]]]); // name -> [[t, hp]]; you are always drawn
+  // name -> [[t, hp]]; you are always drawn. Players' health is also read
+  // whenever it moves (regeneration between fights), the others' after hits.
+  const read = new Map((tr.power || []).filter((p) => p.res === 'hp').map((p) => [p.you ? me : p.who, p.pts.map(([t, v]) => [t - t0, v])]));
+  const series = new Map([[me, read.get(me) || [[0, 1]]]]);
   for (const e of tr.events) {
     if (e.hp == null || !e.target) continue;
-    if (!series.has(e.target)) series.set(e.target, [[0, 1]]);
+    if (!series.has(e.target)) series.set(e.target, read.get(e.target) || [[0, 1]]);
     series.get(e.target).push([e.t - t0, e.hp]);
   }
+  for (const pts of series.values()) pts.sort((a, b) => a[0] - b[0]);
   if (end <= 0) return null;
-  const W = 600, H = 72;
-  const x = (t) => (W * t) / end;
-  const y = (v) => 4 + (H - 8) * (1 - v);
+  const H = 72;
   // you in green, your pets in teal, enemies in reds and oranges; in a
   // healing fight, the tank in blue and the others who came closest to dying
-  const FOES = ['#ff7a64', '#ffb35a', '#e6739f'];
   const ALLIES = ['#e0b35a', '#d58ad0', '#9d8cf0'];
   let foeN = 0;
   let allyN = 0;
@@ -443,13 +462,54 @@ function healthChart(tr, t0, end) {
     : party.includes(n) ? ALLIES[allyN++ % ALLIES.length] : FOES[foeN++ % FOES.length]]));
   const label = (n) => (n === me ? 'You' : pets.has(n) ? `Your ${n.toLowerCase()}` : n);
   const lines = who.map((n) => {
-    let d = `M${x(0).toFixed(1)},${y(1).toFixed(1)}`;
-    for (const [t, v] of series.get(n)) d += ` H${x(t).toFixed(1)} V${y(v).toFixed(1)}`;
     // still standing at the end: carry the line to the end of the fight
-    if (series.get(n).at(-1)[1] > 0) d += ` H${x(end).toFixed(1)}`;
+    const pts = series.get(n);
+    return { pts, color: color.get(n), to: pts.at(-1)[1] > 0 ? end : null };
+  });
+  const legend = h('div.hp-legend', who.map((n) => h('span', { style: { '--c': color.get(n) } }, label(n))));
+  return h('div.hp-box', h('div.hp-head', h('span.hp-title', 'Health'), legend, h('span.muted.hp-end', clock(end))), stepChart(lines, end, H, 'hp-chart'),
+    ...manaChart(tr, t0, end, color));
+}
+
+// Mana across the fight (rage or energy for builds without mana): yours in
+// the game's colors, and in PvP your opponent's, dashed in their health
+// line's color. Sits under the health graph on the same clock.
+const POWER = { mana: '#5c9dff', rage: '#e5533d', energy: '#f2d14b' };
+const FOES = ['#ff7a64', '#ffb35a', '#e6739f'];
+function manaChart(tr, t0, end, healthColor) {
+  const power = (tr.power || []).filter((p) => p.res !== 'hp' && p.pts.length);
+  if (!power.length || end <= 0) return [];
+  const died = new Map(tr.events.filter((e) => e.kind === 'death').map((e) => [e.who, e.t - t0]));
+  const kinds = [...new Set(power.map((p) => p.res))];
+  const mixed = kinds.length > 1;
+  const name = (p) => (p.you ? 'You' : p.who) + (mixed ? ` (${p.res})` : '');
+  let foeN = 0;
+  const colorOf = new Map(power.map((p) => [p, p.you ? POWER[p.res] || POWER.mana : healthColor.get(p.who) || FOES[foeN++ % FOES.length]]));
+  const lines = power.map((p) => {
+    const pts = p.pts.map(([t, v]) => [t - t0, v]).filter(([t]) => t <= end + 1e-6);
+    return { pts, color: colorOf.get(p), dash: !p.you, to: died.get(p.you ? tr.me : p.who) ?? end };
+  }).filter((l) => l.pts.length);
+  if (!lines.length) return [];
+  const title = kinds.map((k, i) => (i ? k : k[0].toUpperCase() + k.slice(1))).join(' and ');
+  const legend = h('div.hp-legend', power.map((p) => h(`span${p.you ? '' : '.dash'}`, { style: { '--c': colorOf.get(p) } }, name(p))));
+  return [h('div.hp-head.mp-head', h('span.hp-title', title), legend), stepChart(lines, end, 48, 'hp-chart.mp-chart')];
+}
+
+// Lines that step from one reading to the next across the fight, in a strip
+// you can click to jump the log to that moment.
+function stepChart(lines, end, H, cls) {
+  const W = 600;
+  const x = (t) => (W * Math.max(0, t)) / end;
+  const y = (v) => 4 + (H - 8) * (1 - v);
+  const paths = lines.map(({ pts, color, dash, to }) => {
+    // from the start of the fight at its first reading
+    let d = `M${x(0).toFixed(1)},${y(pts[0][1]).toFixed(1)}`;
+    for (const [t, v] of pts) d += ` H${x(t).toFixed(1)} V${y(v).toFixed(1)}`;
+    if (to != null) d += ` H${x(to).toFixed(1)}`;
     const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     p.setAttribute('d', d);
-    p.setAttribute('stroke', color.get(n));
+    p.setAttribute('stroke', color);
+    if (dash) p.setAttribute('stroke-dasharray', '5 4');
     return p;
   });
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -457,9 +517,8 @@ function healthChart(tr, t0, end) {
   svg.setAttribute('preserveAspectRatio', 'none');
   svg.setAttribute('class', 'hp-lines');
   svg.setAttribute('aria-hidden', 'true');
-  svg.append(...lines);
-  const legend = h('div.hp-legend', who.map((n) => h('span', { style: { '--c': color.get(n) } }, label(n))));
-  const chart = h('div.hp-chart', { title: 'Click to jump to that moment' }, svg);
+  svg.append(...paths);
+  const chart = h(`div.${cls}`, { title: 'Click to jump to that moment' }, svg);
   chart.addEventListener('click', (ev) => {
     const r = chart.getBoundingClientRect();
     const t = ((ev.clientX - r.left) / r.width) * end;
@@ -469,5 +528,5 @@ function healthChart(tr, t0, end) {
     target?.classList.add('ping');
     setTimeout(() => target?.classList.remove('ping'), 900);
   });
-  return h('div.hp-box', h('div.hp-head', h('span.hp-title', 'Health'), legend, h('span.muted.hp-end', clock(end))), chart);
+  return chart;
 }

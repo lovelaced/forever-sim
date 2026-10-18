@@ -59,8 +59,10 @@ Tanaris and Feralas in the 40s, the Plaguelands and Un'Goro at the top, with
 each bracket's dungeons for the boss and healing tests, from the Deadmines
 and Ragefire Chasm to Blackrock Depths, Molten Core and Onyxia's Lair. A row opens into four tabs: a summary, how
 each build played (its priority list as a spellbook page), one fight step by
-step (every move with the game's icon, and everyone's health above it), and
-every number. The main build wears a gold dragon ring: the others are
+step (every move with the game's icon, with everyone's health and your mana
+above it, or rage or energy for builds without mana; in PvP your opponent's
+too), and every number. The duel's row has two: who beats whom, and one
+whole duel step by step. The main build wears a gold dragon ring: the others are
 measured against it, its fights are shown first, and the header shows its
 side of the world. After you change a build and simulate again, the page
 says what the change did in each test, measured on the same fights as

@@ -33,7 +33,7 @@ function rolesOf(builds) {
 
 const plain = ({ sig: s, uids }) => ({ sig: s, uids: [...uids] });
 
-function opponentApi(level) {
+export function opponentApi(level) {
   const p = S.opponent && presetOf(S.opponent.slice(7));
   if (!p) return null;
   const { file, note, ...rest } = p;
