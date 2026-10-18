@@ -65,6 +65,14 @@
    "backdrop": "the full scene edge to edge, no border.",
    "aspect": "wide",
    "constraints": "The left third stays empty."
+  },
+  "race_icon": {
+   "asset": "square portrait icon for a website's race picker, painted (not pixel art)",
+   "medium": "painted in the style of Blizzard's original 2004 World of Warcraft character-creation race portraits and Warcraft III hero portraits: a cartoon-like stylized painting with chunky exaggerated features (oversized eyes, big heavy brows, broad cheekbones, a strong jaw), thick painterly strokes and large simple shapes of color, very little detail, strong contrast between lit and shadowed planes. It must look like a small game icon hand-painted in 2004, not a modern high-definition illustration: no fine detail, no skin texture, no individual hair strands, no realistic lighting; not pixel art, not anime.",
+   "framing": "an extreme close-up of the face, centered in the square: the face fills the whole square, cropped just above the eyebrows at the top and just below the chin at the bottom; the ears and hair may be cut off at the sides; nothing else in the picture.",
+   "backdrop": "a dark, muted, softly mottled background in deep browns and dark teal, fading to near black at the corners; no frame, no border, no rounded corners.",
+   "aspect": "square",
+   "constraints": "No frame or border: the frame is added later."
   }
  },
  "fix": {
@@ -110,6 +118,16 @@
   "party": {
    "grid": 4.5,
    "colors": 40
+  },
+  "race_icon": {
+   "icon": true,
+   "size": 64,
+   "crop": 0.94,
+   "crop_x": 0.5,
+   "crop_y": 0.45,
+   "paint_at": 48,
+   "contrast": 1.3,
+   "sharpen": 0.8
   }
  },
  "pieces": [
@@ -1089,6 +1107,170 @@
    "style": "party",
    "prompt": "inside the Molten Core in classic World of Warcraft: a vast volcanic cavern with a lake of bubbling lava, black rock and fiery light. In the middle, the only party member: a green-skinned orc warrior tank in heavy spiked plate, braced behind a raised shield and facing right. On the right, the boss: Ragnaros the Firelord, a colossal fire elemental lord rising waist-deep from the lava with a giant flaming hammer, so big that his head and shoulders run off the top of the picture, attacking the tank, facing left. The tank is drawn big, the same size as the hero: a little over a third of the picture's height.",
    "constraints": "no text, no letters, no numbers, no logos, no watermark, no user interface, no signature."
+  },
+  {
+   "id": "race-high_order-m",
+   "group": "race-icons",
+   "style": "race_icon",
+   "prompt": "a Skyborne elf of the High Order (the new elven race of World of Warcraft: Forever, descended from the Highborne): tall and slender like a high elf, fair skin, long pointed ears, white and pale-gold feathers braided into long silver hair, faint sky-blue tattoos on the face, colors of white, gold and sky blue; a man, a stern, determined face with big exaggerated eyebrows, as their race's portrait icon. Big white and pale-gold feathers braided into the hair frame the face on both sides, clearly visible beside the cheeks. Dark and saturated like the official night elf and orc female icons: deep jewel-tone shadows, glowing eyes catching the light, a moody dark background."
+  },
+  {
+   "id": "race-high_order-f",
+   "group": "race-icons",
+   "style": "race_icon",
+   "prompt": "a Skyborne elf of the High Order (the new elven race of World of Warcraft: Forever, descended from the Highborne): tall and slender like a high elf, fair skin, long pointed ears, white and pale-gold feathers braided into long silver hair, faint sky-blue tattoos on the face, colors of white, gold and sky blue; a woman, a stern, determined face with big exaggerated eyebrows, as their race's portrait icon. Big white and pale-gold feathers braided into the hair frame the face on both sides, clearly visible beside the cheeks. Dark and saturated like the official night elf and orc female icons: deep jewel-tone shadows, glowing eyes catching the light, a moody dark background."
+  },
+  {
+   "id": "race-windshaper-m",
+   "group": "race-icons",
+   "style": "race_icon",
+   "prompt": "a Skyborne elf of the Windshapers (the new elven race of World of Warcraft: Forever, descended from the Highborne): tall and slender like a high elf, sun-tanned skin, long pointed ears, teal and bronze feathers braided into long dark hair, swirling wind tattoos, colors of teal, bronze and deep blue; a man, a stern, determined face with big exaggerated eyebrows, as their race's portrait icon. Big teal and bronze feathers braided into the hair frame the face on both sides, clearly visible beside the cheeks. Dark and saturated like the official night elf and orc female icons: deep jewel-tone shadows, glowing eyes catching the light, a moody dark background."
+  },
+  {
+   "id": "race-windshaper-f",
+   "group": "race-icons",
+   "style": "race_icon",
+   "prompt": "a Skyborne elf of the Windshapers (the new elven race of World of Warcraft: Forever, descended from the Highborne): tall and slender like a high elf, sun-tanned skin, long pointed ears, teal and bronze feathers braided into long dark hair, swirling wind tattoos, colors of teal, bronze and deep blue; a woman, a stern, determined face with big exaggerated eyebrows, as their race's portrait icon. Big teal and bronze feathers braided into the hair frame the face on both sides, clearly visible beside the cheeks. Dark and saturated like the official night elf and orc female icons: deep jewel-tone shadows, glowing eyes catching the light, a moody dark background."
+  },
+  {
+   "id": "scene-strike_first-b10",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the dirt road through Westfall's golden fields near the Dagger Hills in classic World of Warcraft, a burned farmhouse and a low stone wall, warm late afternoon. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-strike_first-b10-horde",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the dirt road through Silverpine Forest near Pyrewood Village in classic World of Warcraft, dark pines and low fog, a grey afternoon. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-strike_first-b20",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the stone bridge over Lake Everstill near Lakeshire in the Redridge Mountains, classic World of Warcraft, red rocky hills and sunny skies. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-strike_first-b20-horde",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "a mountain trail in Stonetalon Mountains near Sun Rock Retreat, classic World of Warcraft, tall pines and rocky cliffs, a clear morning. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-strike_first-b30",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the jungle road near Nesingwary's camp in northern Stranglethorn Vale, classic World of Warcraft, giant ferns and hanging vines, bright noon. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-strike_first-b30-horde",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the road near Grom'gol Base Camp in Stranglethorn Vale, classic World of Warcraft, jungle and a goblin zeppelin tower far off, afternoon. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-strike_first-b40",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "a forest road in Feralas near the coast, classic World of Warcraft, gigantic trees and moss-covered ancient elven ruins, a misty morning. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-strike_first-b40-horde",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the cliff road of Azshara above the sea, classic World of Warcraft, autumn-red trees and broken elven ruins, sunset. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-strike_first-b50",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the snowy road to Everlook in Winterspring, classic World of Warcraft, frosted pines and a pale blue sky. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-strike_first-b50-horde",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the burned farmland road near Andorhal in the Western Plaguelands, classic World of Warcraft, dead trees and a grey overcast sky. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-struck_first-b10",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the beach road near Auberdine in Darkshore, classic World of Warcraft, tall violet trees and the grey sea at dusk. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-struck_first-b10-horde",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the dusty road at the edge of Mulgore by the gate to the Barrens, classic World of Warcraft, rolling grassy plains and a wooden watchtower, dusk. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-struck_first-b20",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the muddy road near Menethil Harbor in the Wetlands, classic World of Warcraft, reeds and grey rain. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-struck_first-b20-horde",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the southern road of the Barrens near Camp Taurajo, classic World of Warcraft, dry savanna and a tauren tent village far off, overcast. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-struck_first-b30",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "a snowy mountain pass in the Alterac Mountains near the ruins of Alterac, classic World of Warcraft, dark pines at dusk. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-struck_first-b30-horde",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the coast road near Shadowprey Village in Desolace, classic World of Warcraft, grey cliffs and a pale grey sea. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-struck_first-b40",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the desert road in Tanaris near Steamwheedle Port, classic World of Warcraft, sand dunes and a goblin tower, hot afternoon. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-struck_first-b40-horde",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the ashen road through Searing Gorge, classic World of Warcraft, rivers of lava, slag heaps and a red sky. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-struck_first-b50",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the jungle path into Un'Goro Crater near Marshal's Refuge, classic World of Warcraft, steam vents and glowing crystals. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
+  },
+  {
+   "id": "scene-struck_first-b50-horde",
+   "group": "scenes-pvp",
+   "style": "scene",
+   "prompt": "the corrupted road through Felwood near Bloodvenom Post, classic World of Warcraft, sickly green trees and toxic pools. An empty stretch of road with nobody on it: no people, no creatures.",
+   "framing": "a wide side-view scene like a 2D game screen; the flat ground runs along the bottom of the picture; nobody and nothing stands on it anywhere, because two players' characters will be placed later, one on the left third and one in the right third; the ground line is flat and about 15% of the picture's height above the bottom edge. Keep the scenery at the scale of the figures who will stand there: an ordinary human is a little over a third of the picture's height (about 36%)."
   }
  ],
  "heroes": {
@@ -1152,44 +1334,64 @@
   ],
   "races": {
    "human": {
-    "desc": "a Human of Stormwind: tall and broad-shouldered, fair skin, short brown hair and a trimmed beard or neat hair",
-    "height": 76
+    "desc": "a Human of Stormwind with fair skin",
+    "height": 76,
+    "male": "a man, tall and broad-shouldered, with short brown hair and a trimmed beard",
+    "female": "a woman, tall and athletic, with long brown hair tied back"
    },
    "dwarf": {
-    "desc": "a Dwarf of Ironforge: short and very stocky with thick arms, ruddy skin, a huge braided red or brown beard",
-    "height": 56
+    "desc": "a Dwarf of Ironforge: short and very stocky with thick arms and ruddy skin",
+    "height": 56,
+    "male": "a man with a huge braided red or brown beard",
+    "female": "a woman with thick red hair in two long braids, no beard"
    },
    "night_elf": {
-    "desc": "a Night Elf of Darnassus: very tall and lean, lavender-purple skin, very long swept-back ears, glowing silver eyes, long teal hair",
-    "height": 84
+    "desc": "a Night Elf of Darnassus: very tall and lean, lavender-purple skin, very long swept-back ears, glowing silver eyes",
+    "height": 84,
+    "male": "a man with long teal hair, broad shoulders and a short pointed chin beard",
+    "female": "a woman with long teal hair"
    },
    "gnome": {
-    "desc": "a Gnome of Gnomeregan: tiny with an oversized head, big ears and nose, large round eyes, wild bright teal hair in a tall tuft",
-    "height": 42
+    "desc": "a Gnome of Gnomeregan: tiny with an oversized head, big ears and nose, large round eyes",
+    "height": 42,
+    "male": "a man with wild bright teal hair in a tall tuft and a bushy mustache",
+    "female": "a woman with bright pink hair in two big pigtails"
    },
    "high_order": {
     "desc": "a Skyborne elf of the High Order (the new elven race of World of Warcraft: Forever, descended from the Highborne): tall and slender like a high elf, fair skin, long pointed ears, white and pale-gold feathers braided into long silver hair, faint sky-blue tattoos on the face, colors of white, gold and sky blue",
-    "height": 80
+    "height": 80,
+    "male": "a man",
+    "female": "a woman"
    },
    "orc": {
-    "desc": "an Orc of Orgrimmar: huge muscular green-skinned brute with jutting lower tusks, a black topknot, hunched powerful shoulders",
-    "height": 80
+    "desc": "an Orc of Orgrimmar: green-skinned with jutting lower tusks",
+    "height": 80,
+    "male": "a huge muscular man with a black topknot and hunched powerful shoulders",
+    "female": "a strong athletic woman with long black hair in a high ponytail and smaller tusks"
    },
    "undead": {
-    "desc": "a Forsaken undead: gaunt decayed body with grey-green rotting skin, bare bone showing at the jaw and forearms, glowing yellow eyes, lank black hair",
-    "height": 74
+    "desc": "a Forsaken undead: gaunt decayed body with grey-green rotting skin, bare bone showing at the jaw and forearms, glowing yellow eyes",
+    "height": 74,
+    "male": "a man with lank black hair",
+    "female": "a woman with long lank dark hair"
    },
    "tauren": {
-    "desc": "a Tauren of Thunder Bluff: an enormous bull-like humanoid with brown fur, large curved horns, a broad muzzle with a nose ring, hooves and a braided mane",
-    "height": 94
+    "desc": "a Tauren of Thunder Bluff: an enormous bull-like humanoid with brown fur, a broad muzzle and hooves",
+    "height": 94,
+    "male": "a bull with large curved horns, a nose ring and a braided mane",
+    "female": "a cow with smaller curved horns, long braided hair and a gentler face"
    },
    "troll": {
-    "desc": "a Darkspear Troll: tall and lanky with blue skin, huge upward-curving tusks, a tall red mohawk, long pointed ears, a slouched stance and two-toed feet",
-    "height": 84
+    "desc": "a Darkspear Troll: tall and lanky with blue skin, long pointed ears, a slouched stance and two-toed feet",
+    "height": 84,
+    "male": "a man with huge upward-curving tusks and a tall red mohawk",
+    "female": "a woman with small tusks and long red hair in a high ponytail"
    },
    "windshaper": {
     "desc": "a Skyborne elf of the Windshapers (the new elven race of World of Warcraft: Forever, descended from the Highborne): tall and slender like a high elf, sun-tanned skin, long pointed ears, teal and bronze feathers braided into long dark hair, swirling wind tattoos, colors of teal, bronze and deep blue",
-    "height": 80
+    "height": 80,
+    "male": "a man",
+    "female": "a woman"
    }
   },
   "classes": {
@@ -1202,6 +1404,12 @@
    "mage": "a Mage in long blue and silver cloth robes with a tall collar, holding a crystal-topped staff, a swirl of frost magic in the other hand",
    "warlock": "a Warlock in dark purple and black cloth robes with horned skull shoulder pads, holding a staff, green fel fire in one hand, with a small red imp companion at their feet",
    "druid": "a Druid in leather armor with leaf, antler and feather details, holding a gnarled wooden staff topped with leaves, a faint green nature glow"
-  }
+  },
+  "genders": {
+   "m": "male",
+   "f": "female"
+  },
+  "female_scale": 0.95,
+  "about": "One sprite per race, class and gender (hero-<race>-<class>-<m|f>): the race's shared look, then the man's or woman's. A woman stands at female_scale of the race's height, as in the game's models."
  }
 }

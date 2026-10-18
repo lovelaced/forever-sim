@@ -23,7 +23,7 @@ kind = "standard"
 class = "paladin"
 race = "undead"
 level = 60
-gear = "plate_ret"
+gear = "plate_ret_sp"
 rotation = "retribution"
 
 order = [

@@ -6,7 +6,8 @@
 //! Requests (`op`):
 //! * `catalog` - everything the UI needs to draw pickers and talent trees.
 //! * `sheet` {build} - validate a build and return its character sheet.
-//! * `start` {scenario, builds, opponent?, level?, opts?, precision?, max_reps?, seed?}
+//! * `start` {scenario, builds, opponent?, opponents?, level?, opts?, precision?, max_reps?, seed?}
+//!   (`opponents: "standard"`: the open-world PvP tests fight every standard build)
 //!   -> {id, max_reps}. Starts a Monte Carlo session; nothing runs yet.
 //! * `step` {id, reps} - run up to `reps` more replications per build and
 //!   report progress; call until `finished`.
@@ -208,6 +209,7 @@ fn catalog(w: &World) -> J {
                 ScenarioKind::Leveling { .. } => "leveling",
                 ScenarioKind::Boss { .. } => "boss",
                 ScenarioKind::Duel { .. } => "duel",
+                ScenarioKind::Skirmish { .. } => "skirmish",
                 ScenarioKind::Pressure { .. } => "pressure",
                 ScenarioKind::Healing(_) => "healing",
             };
@@ -215,7 +217,11 @@ fn catalog(w: &World) -> J {
                 ScenarioKind::Healing(h) => h.min_level,
                 _ => 1,
             };
-            json!({ "id": s.id, "desc": s.desc, "kind": kind, "primary": s.primary, "min_level": min_level })
+            let opponents: Vec<String> = match &s.kind {
+                ScenarioKind::Skirmish { opponents, .. } => opponents.clone(),
+                _ => vec![],
+            };
+            json!({ "id": s.id, "desc": s.desc, "kind": kind, "primary": s.primary, "min_level": min_level, "opponents": opponents })
         })
         .collect();
     let options: Vec<J> = w
@@ -484,7 +490,16 @@ fn trace(w: &World, v: &J) -> Result<J, String> {
     if matches!(sc.kind, ScenarioKind::Duel { .. }) && opponent.is_none() {
         return Err("a duel needs an opponent".into());
     }
-    let opts = opts_for(w, &b, Some(sc), v.get("opts"))?;
+    let mut opts = opts_for(w, &b, Some(sc), v.get("opts"))?;
+    // open-world PvP: which opponent's fight to show (by its place in the list)
+    if let (Some(k), Some(i)) = (v.get("versus").and_then(|x| x.as_u64()), w.opt_index("skirmish_show")) {
+        opts[i as usize] = k as f64;
+    }
+    if v.get("opponents").and_then(|x| x.as_str()) == Some("standard") {
+        if let Some(i) = w.opt_index("skirmish_pool") {
+            opts[i as usize] = 1.0;
+        }
+    }
     let cfg = McCfg { seed: v.get("seed").and_then(|x| x.as_u64()).unwrap_or(McCfg::default().seed), ..McCfg::default() };
     let rep = v.get("rep").and_then(|x| x.as_u64()).unwrap_or(0) as usize;
     // leveling: the first pulls play out the same however long the session is
@@ -587,7 +602,7 @@ fn dress_trace(w: &World, b: &Build, sc: &ScenarioDef, events: &mut Vec<crate::e
     let kind = match sc.kind {
         ScenarioKind::Boss { .. } | ScenarioKind::Healing(_) => "Boss",
         ScenarioKind::Pressure { .. } => "Attacker",
-        ScenarioKind::Duel { .. } => "",
+        ScenarioKind::Duel { .. } | ScenarioKind::Skirmish { .. } => "",
         _ => "Mob",
     };
     let label = |id: usize, name: &str| -> String {
@@ -713,7 +728,13 @@ fn start(st: &mut State, world: Arc<World>, v: &J) -> Result<J, String> {
         if let Some(e) = crate::scenario::unfit(sc, w, &b) {
             return Err(format!("build {}: {e}", i + 1));
         }
-        let opts = opts_for(w, &b, Some(sc), v.get("opts"))?;
+        let mut opts = opts_for(w, &b, Some(sc), v.get("opts"))?;
+        // open-world PvP against every standard build, not one of each class
+        if v.get("opponents").and_then(|x| x.as_str()) == Some("standard") {
+            if let Some(i) = w.opt_index("skirmish_pool") {
+                opts[i as usize] = 1.0;
+            }
+        }
         variants.push(Variant { world: 0, name: b.name.clone(), build: b, opponent: opponent.clone(), opts });
     }
     let d = McCfg::default();

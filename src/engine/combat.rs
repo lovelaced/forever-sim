@@ -257,6 +257,9 @@ impl<'w> Sim<'w> {
     }
 
     pub fn auto_attack(&mut self, a: usize, hand: Hand) {
+        if let Some(t) = self.actors[a].target {
+            self.rouse(t, a);
+        }
         if hand == Hand::Ranged {
             if let Some(spell) = self.actors[a].wanding {
                 let sp = &self.w.spells[spell as usize];
@@ -675,6 +678,9 @@ impl<'w> Sim<'w> {
         if !self.actors[dst].aware && self.hostile(src, dst) {
             self.wake(dst, Some(src));
         }
+        if self.hostile(src, dst) {
+            self.rouse(dst, src);
+        }
         let w = self.w;
         let mut rest = amount;
         // absorbs
@@ -767,8 +773,7 @@ impl<'w> Sim<'w> {
         // crowd control that breaks on damage
         let mut j = 0;
         while j < self.actors[dst].auras.len() {
-            let def = &self.w.auras[self.actors[dst].auras[j].def as usize];
-            if let Some(th) = def.break_on_damage {
+            if let Some(th) = self.actors[dst].auras[j].break_at {
                 let maxhp = self.actors[dst].max_hp;
                 self.actors[dst].auras[j].dmg_since += rest;
                 if self.actors[dst].auras[j].dmg_since > th * maxhp {

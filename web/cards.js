@@ -77,7 +77,7 @@ function card(b, k, isBase, base, actions) {
   return h('article.card.fr-gold', { class: [editing ? 'editing' : '', isBase ? 'main' : ''].join(' '), style: { '--slot': slot.color, '--cc': M.CLASS_COLORS[b.cls] }, 'aria-label': `Build ${slot.letter}: ${nameOf(b)}${isBase ? ', the main build' : ''}` },
     h('div.card-top',
       h('span.card-portrait', { class: isBase ? 'elite' : '' },
-        h('span.face', art(M.RACE_ICONS[b.race] || 'rune-stone', race?.icon)),
+        h('span.face', art(M.RACE_ICONS[b.race] || 'rune-stone', M.raceIcon(b.race, b.gender))),
         isBase ? h('img.ring.px', { src: 'art/elite-ring.png', alt: '' }) : null,
         h('span.crest', art(M.CLASS_ICONS[b.cls], c.icon))),
       h('div.card-id',

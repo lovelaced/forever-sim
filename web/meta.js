@@ -79,6 +79,10 @@ export const SCENARIOS = [
     help: 'A geared melee player opens with a stun. The number is how hard they can hit before you lose.' },
   { id: 'pressure_2v1', phrase: 'the two-attacker ambush', abbr: 'attacker DPS', icon: 'two-shadows', wow: 'ability_rogue_ambush', title: 'World PvP: two attackers', short: 'Two attackers', group: 'pvp', unit: 'ambush', per: 'attacker DPS you survive',
     help: 'The same ambush, two attackers at once.' },
+  { id: 'strike_first', phrase: 'striking first in the open world', abbr: 'score', icon: 'charging-bull', wow: 'ability_warrior_charge', title: 'World PvP: you strike first', short: 'You strike first', group: 'pvp', unit: 'fight', per: 'score against each class',
+    help: 'You and an enemy player see each other 30 to 40 yards apart, and you make the first move; they react a moment later. One fight against one build of each class at your level. A win counts 1, a draw or a two-minute stalemate half.' },
+  { id: 'struck_first', phrase: 'being struck first in the open world', abbr: 'score', icon: 'shield-reflect', wow: 'ability_warrior_defensivestance', title: 'World PvP: they strike first', short: 'They strike first', group: 'pvp', unit: 'fight', per: 'score against each class',
+    help: 'The same meeting on the road, but they make the first move and you react a moment later.' },
   { id: 'duel', phrase: 'the duel', abbr: 'pts', icon: 'fencer', wow: 'ability_parry', title: 'Duel', short: 'Duel', group: 'duel', unit: 'duel', per: 'duel score',
     help: 'Stand and fight until one of you dies, with a three-minute limit.' },
   { id: 'heal_dungeon', phrase: 'dungeon healing', abbr: 'boss DPS', icon: 'healing', wow: 'spell_holy_renew', title: 'Healing: dungeon', short: 'Dungeon', group: 'healing', unit: 'fight', per: 'boss damage per second you heal through',
@@ -88,6 +92,10 @@ export const SCENARIOS = [
   { id: 'heal_raid', phrase: 'raid healing', abbr: 'boss DPS', icon: 'angel-wings', wow: 'spell_holy_prayerofhealing02', title: 'Healing: raid', short: 'Raid', group: 'healing', unit: 'fight', per: 'boss damage per second you heal through', minLevel: 60,
     help: 'Two and a half minutes healing ten players in two groups against Onyxia, alone. The tank and you have to live, and no more than two others can fall.' },
 ];
+
+// The Compare page's two tabs, and which tests each holds.
+export const MODES = [['pve', 'PvE'], ['pvp', 'PvP']];
+export const modeOf = (id) => (['pvp', 'duel'].includes(SCENARIOS.find((s) => s.id === id)?.group) ? 'pvp' : 'pve');
 
 // Each test's scene by level bracket and side of the world: where it's set,
 // the picture (web/art/<art>.png), and how far down the picture to look
@@ -150,6 +158,21 @@ export const SCENES = {
     b40: { alliance: S1('scene-pressure_2v1-b40', 'The Hinterlands, near Aerie Peak', 33), horde: S1('scene-pressure_2v1-b40-horde', 'The Hinterlands, near Revantusk', 45) },
     b50: { alliance: S1('scene-pressure_2v1-b50', 'Burning Steppes', 24), horde: S1('scene-pressure_2v1-b50-horde', 'Burning Steppes', 33) },
   },
+  // the open-world PvP tests: an empty road; the enemy is a hero sprite
+  strike_first: {
+    b10: { alliance: S1('scene-strike_first-b10', 'Westfall', 39), horde: S1('scene-strike_first-b10-horde', 'Silverpine Forest', 36) },
+    b20: { alliance: S1('scene-strike_first-b20', 'Redridge Mountains', 36), horde: S1('scene-strike_first-b20-horde', 'Stonetalon Mountains', 64) },
+    b30: { alliance: S1('scene-strike_first-b30', 'Northern Stranglethorn', 40), horde: S1('scene-strike_first-b30-horde', 'Grom’gol, Stranglethorn Vale', 39) },
+    b40: { alliance: S1('scene-strike_first-b40', 'Feralas', 40), horde: S1('scene-strike_first-b40-horde', 'Azshara', 54) },
+    b50: { alliance: S1('scene-strike_first-b50', 'Winterspring', 39), horde: S1('scene-strike_first-b50-horde', 'Western Plaguelands', 36) },
+  },
+  struck_first: {
+    b10: { alliance: S1('scene-struck_first-b10', 'Darkshore', 39), horde: S1('scene-struck_first-b10-horde', 'Mulgore', 39) },
+    b20: { alliance: S1('scene-struck_first-b20', 'The Wetlands', 39), horde: S1('scene-struck_first-b20-horde', 'The southern Barrens', 39) },
+    b30: { alliance: S1('scene-struck_first-b30', 'Alterac Mountains', 36), horde: S1('scene-struck_first-b30-horde', 'Desolace', 40) },
+    b40: { alliance: S1('scene-struck_first-b40', 'Tanaris', 36), horde: S1('scene-struck_first-b40-horde', 'Searing Gorge', 36) },
+    b50: { alliance: S1('scene-struck_first-b50', 'Un’Goro Crater', 36), horde: S1('scene-struck_first-b50-horde', 'Felwood', 36) },
+  },
   duel: {
     b10: { alliance: S1('scene-duel-b10', 'Goldshire', 33), horde: S1('scene-duel-b10-horde', 'The Crossroads', 34) },
     b20: { alliance: S1('scene-duel-b20', 'Stormwind City', 35), horde: S1('scene-duel-b20-horde', 'The ruins of Lordaeron', 48) },
@@ -197,18 +220,29 @@ export function sceneFor(test, faction, level) {
 export const sideArt = (faction) => (faction === 'horde'
   ? { endcap: 'art/wyvern.png', inn: 'banner-inn-horde' }
   : { endcap: 'art/gryphon.png', inn: 'banner-inn' });
-// The hero sprite for a race and class (web/art/hero-<race>-<class>.png).
-export const heroArt = (race, cls) => `art/hero-${race}-${cls}.png`;
+// The hero sprite for a race, class and gender (web/art/hero-<race>-<class>-<m|f>.png).
+export const heroArt = (race, cls, g = 'm') => `art/hero-${race}-${cls}-${g === 'f' ? 'f' : 'm'}.png`;
+// The other gender's sprite, for one not drawn yet.
+export const otherHero = (src) => src.replace(/-([mf])\.png$/, (_, g) => (g === 'm' ? '-f.png' : '-m.png'));
+
+// A race's portrait icon for a gender: the game's own, or the painted ones
+// for the two Skyborne races (web/art/race-<race>-<m|f>.png).
+const RACE_ICON_KEY = { night_elf: 'nightelf' };
+const PAINTED_RACES = new Set(['high_order', 'windshaper']);
+export function raceIcon(race, g = 'm') {
+  if (PAINTED_RACES.has(race)) return `art/race-${race}-${g === 'f' ? 'f' : 'm'}.png`;
+  return `achievement_character_${RACE_ICON_KEY[race] || race}_${g === 'f' ? 'female' : 'male'}`;
+}
 
 // Shown while the simulator starts, one at random.
 export const LOADING_TIPS = [
   'Every build in a comparison faces the same dice rolls, so a gap between them comes from the builds, not from luck.',
   'Two tough mobs hit 40% harder than normal ones. That test shows which builds can afford greedy pulls.',
   'Talents with a grey corner aren’t simulated yet and change nothing.',
-  'The simulated player plays like a typical player: half-second reactions and the odd slip. Switch to expert under Assumptions.',
+  'The simulated player plays like a typical player: half-second reactions and the odd slip. Switch to expert under Settings.',
   'Change a build and simulate again: the results say what your change did, measured on the same fights.',
   'Duels start on the same tick, a few yards apart, and whoever reacts first strikes first.',
-  'Numbers the game doesn’t publish are guesses you can change under Assumptions.',
+  'Numbers the game doesn’t publish are guesses you can change under Settings.',
   'The leveling tests count everything: travel, eating, drinking and the corpse run after a death.',
   'Openers are real casts: Charge waits for its cooldown, and the first hit ends Stealth.',
   'The world PvP tests ask how hard an attacker has to hit to beat you half the time.',
@@ -222,13 +256,13 @@ export const LOADING_TIPS = [
   'Share these builds from the top of the page: anyone who opens the link sees the same builds.',
   'Everything runs in your browser. Nothing you set up leaves your computer.',
   'Open a test to watch one of its fights step by step, every spell with its icon.',
-  'Healers take three healing tests: a dungeon, a main tank and, at level 60, a raid.',
+  'Every priest, druid, paladin and shaman also heals: a dungeon, a main tank and, at level 60, a raid.',
   'In the healing tests, heals are sized to what’s missing: a small gap gets a low rank.',
 ];
 
 // Tests run in this order, quickest first, so the scorecard starts filling
 // at once. The scorecard itself keeps the order above.
-export const RUN_ORDER = ['boss', 'pressure', 'pressure_2v1', 'duel', 'solo_1', 'solo_2', 'solo_2_hard', 'solo_3', 'heal_dungeon', 'heal_tank', 'heal_raid'];
+export const RUN_ORDER = ['boss', 'pressure', 'pressure_2v1', 'duel', 'strike_first', 'struck_first', 'solo_1', 'solo_2', 'solo_2_hard', 'solo_3', 'heal_dungeon', 'heal_tank', 'heal_raid'];
 
 export const GROUP_NAMES = { leveling: 'leveling', boss: 'the dungeon boss', pvp: 'world PvP', duel: 'duels', healing: 'healing' };
 
@@ -447,6 +481,7 @@ const SCHOOL = {
 const ICON_SCHOOL = {
   'broadsword': 'steel', 'crossed-swords': 'steel', 'crowned-skull': 'shadow', 'sword-array': 'steel',
   'dragon-head': 'fire', 'hooded-assassin': 'shadow', 'two-shadows': 'blood', 'fencer': 'gold',
+  'charging-bull': 'blood', 'shield-reflect': 'steel',
 };
 
 export function iconColors(name, school) {
@@ -513,6 +548,7 @@ export function extraWowIcons() {
     ...SCENARIOS.map((s) => s.wow),
     ...Object.values(TREE_STYLE).flat().map((t) => t[2]),
     ...['cloth', 'leather', 'mail', 'plate'].map((a) => gearWowIcon(a)),
+    ...['human', 'dwarf', 'night_elf', 'gnome', 'orc', 'undead', 'tauren', 'troll'].flatMap((r) => [raceIcon(r, 'm'), raceIcon(r, 'f')]),
   ].filter(Boolean);
 }
 

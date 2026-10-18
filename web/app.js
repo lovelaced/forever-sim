@@ -209,8 +209,8 @@ function renderRunbar() {
     title: `${a.note} of the true answer`,
   }, h('img.px', { src: `art/hourglass-${a.id}.png`, alt: '' }), h('span', a.title), h('small', a.short))));
   const assume = relevantOptions().length ? h('button.btn.btn-small.assume-btn', { type: 'button', onclick: openAssumptions },
-    changedN ? `Assumptions (${changedN} changed)` : 'Assumptions') : null;
-  // on phones the run bar is at the bottom, so assumptions sit under the cards
+    changedN ? `Settings (${changedN} changed)` : 'Settings') : null;
+  // on phones the run bar is at the bottom, so the settings sit under the cards
   const assumePhone = assume ? assume.cloneNode(true) : null;
   if (assumePhone) assumePhone.addEventListener('click', openAssumptions);
   $('run-options').replaceChildren(...[assumePhone].filter(Boolean));
@@ -232,7 +232,7 @@ function relevantOptions() {
   for (const b of S.builds) { tags.add(b.cls); tags.add(b.race); }
   const opp = S.opponent && presetOf(S.opponent.slice(7));
   if (opp) { tags.add(opp.class); tags.add(opp.race); }
-  return env.catalog.options.filter((o) => !o.applies.length || o.applies.some((t) => tags.has(t)) || o.name in S.opts);
+  return env.catalog.options.filter((o) => o.kind !== 'internal' && (!o.applies.length || o.applies.some((t) => tags.has(t)) || o.name in S.opts));
 }
 
 function setOpt(o, x) {

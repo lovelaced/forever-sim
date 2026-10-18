@@ -1275,6 +1275,7 @@ actions = [
   { cast = "turn_undead", target = "other_enemy", if = "enemies >= 2 && !target.feared" },
   { cast = "blessing_of_freedom", if = "(rooted || frozen || slowed) && target.dist > 5" },
   { cast = "repentance", if = "hp_pct < 0.4 && target.is_player" },
+  { cast = "hammer_of_justice", if = "hp_pct < 0.4 && target.dist < 6 && !target.stunned && !target.boss" },   # stun it, then heal in peace
   { cast = "flash_of_light", if = "hp_pct < 0.4 && !target.is_player" },
   { cast = "holy_light", if = "hp_pct < 0.4 && target.stunned" },
   { cast = "blood_fury" },
@@ -1351,6 +1352,7 @@ actions = [
   { cast = "blessing_of_protection", if = "hp_pct < 0.15 && !aura.divine_shield.up" },   # escape
   { cast = "lay_on_hands", if = "hp_pct < 0.15" },
   { cast = "divine_favor", if = "hp_pct < 0.5" },
+  { cast = "hammer_of_justice", if = "hp_pct < 0.4 && target.dist < 6 && !target.stunned && !target.boss" },   # stun it, then heal in peace
   { cast = "holy_shock_heal", if = "(hp_pct < 0.5) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "flash_of_light", if = "(hp_pct < 0.45) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "hammer_of_justice", if = "(target.is_player || target.casting || (target.fleeing && target.humanoid)) && !target.stunned" },

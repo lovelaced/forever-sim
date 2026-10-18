@@ -636,6 +636,98 @@ fn duels_are_fair_both_ways_round() {
     assert!(first < 0.01, "an expert opponent always reacts first ({first})");
 }
 
+/// A caster whose target is rooted next to it steps out of its reach before
+/// casting: a typical player a reaction later and less far than an expert.
+#[test]
+fn rooted_mobs_get_left_behind() {
+    use forever_sim::engine::{Cx, Sim, Stop};
+    let w = world();
+    let sc = &w.scenarios["solo_1"];
+    let b = load_build(&w, Path::new("builds/druid/balance.toml"), Some(40)).unwrap();
+    let mut seen = vec![];
+    for expert in [false, true] {
+        let mut opts = defaults(&w, sc);
+        opts[w.opt_index("play_like").unwrap() as usize] = if expert { 1.0 } else { 0.0 };
+        // a root that holds through the druid's DoTs, for the test
+        opts[w.opt_index("root_break").unwrap() as usize] = 1.0;
+        let mut sim = Sim::new(&w, 3, opts);
+        let p = sim.spawn_player(&b, 0, 1);
+        sim.precombat(p);
+        sim.log = Some(vec![]);
+        sim.trace = Some(vec![]);
+        let e = sim.spawn_enemy(&w.enemies["humanoid"], 40, 1, 1000, 1.0);
+        sim.place(p, 0.0);
+        sim.place(e, 3.0);
+        sim.actors[p].target = Some(e);
+        sim.actors[e].target = Some(p);
+        sim.enter_combat();
+        let t0 = sim.t;
+        // its DoTs are up already, so the next move is a cast
+        let cx = Cx::new(p, Some(e), "");
+        for dot in ["druid.moonfire", "druid.insect_swarm"] {
+            sim.apply_aura(e, w.aura_index[dot], p, 1, Some(30.0), None, cx);
+        }
+        sim.apply_aura(e, w.aura_index["root"], p, 1, Some(20.0), None, cx);
+        sim.run(Stop::Until(t0 + 4.0));
+        let tr = sim.trace.take().unwrap();
+        let back = tr.iter().find(|ev| ev.kind == "move" && ev.name == "backs" && ev.who_id == p).map(|ev| ev.t - t0).expect("it backs off");
+        let stop = tr.iter().find(|ev| ev.kind == "move" && ev.name == "stops" && ev.who_id == p && ev.t - t0 > back).map(|ev| ev.amount).expect("and stops");
+        assert!(stop > 6.0, "out of the mob's reach ({stop} yd)");
+        seen.push((back, stop));
+    }
+    let ((tb, td), (eb, ed)) = (seen[0], seen[1]);
+    assert!(tb >= 0.5 - 1e-9 && eb < tb, "a typical player backs off a reaction later ({tb} s vs {eb} s)");
+    assert!(td < ed, "and less far ({td} yd vs {ed} yd)");
+}
+
+/// Roots break once the rooted unit has taken damage worth a share of its
+/// health (setting `root_break`).
+#[test]
+fn roots_break_on_damage() {
+    use forever_sim::engine::{Cx, Ev, Sim};
+    let w = world();
+    let sc = &w.scenarios["solo_1"];
+    let b = load_build(&w, Path::new("builds/druid/balance.toml"), Some(40)).unwrap();
+    let mut sim = Sim::new(&w, 1, defaults(&w, sc));
+    let p = sim.spawn_player(&b, 0, 1);
+    let e = sim.spawn_enemy(&w.enemies["humanoid"], 40, 1, 1000, 1.0);
+    let root = w.aura_index["root"];
+    sim.apply_aura(e, root, p, 1, Some(20.0), None, Cx::new(p, Some(e), ""));
+    let hp = sim.actors[e].max_hp;
+    let th = w.opts[w.opt_index("root_break").unwrap() as usize].default;
+    sim.apply_damage_t(p, e, 0.6 * th * hp, Ev::default(), "test", 1.0);
+    assert!(sim.actors[e].aura_index(root, None).is_some(), "60% of the threshold: still rooted");
+    sim.apply_damage_t(p, e, 0.6 * th * hp, Ev::default(), "test", 1.0);
+    assert!(sim.actors[e].aura_index(root, None).is_none(), "120%: the root breaks");
+}
+
+/// Open-world PvP: striking first is worth something, and whoever is struck
+/// first acts no sooner than a reaction after the first hostile move.
+#[test]
+fn whoever_strikes_first_gets_a_head_start() {
+    let w = world();
+    let b = load_build(&w, Path::new("builds/mage/frost.toml"), Some(40)).unwrap();
+    let score = |id: &str| -> f64 {
+        let sc = &w.scenarios[id];
+        let v = vec![Variant { world: 0, name: "x".into(), opts: defaults(&w, sc), build: b.clone(), opponent: None }];
+        let r = mc::run(&[&w], id, &v, &McCfg { min_reps: 120, max_reps: 120, ..Default::default() });
+        let s = mc::summarise(&r.values[0], 0.99);
+        assert_eq!(s.iter().find(|q| q.name == "engine_spins").map_or(0.0, |q| q.mean), 0.0);
+        s.iter().find(|q| q.name == "score").unwrap().mean
+    };
+    let (first, second) = (score("strike_first"), score("struck_first"));
+    assert!(first > second + 0.03, "striking first {first:.3} vs struck first {second:.3}");
+    // the fight log: the mage notices the warrior's first move, then waits a reaction
+    let sc = &w.scenarios["struck_first"];
+    let opts = defaults(&w, sc);
+    let (_, _, ev) = forever_sim::scenario::run_rep_traced(&RepInput { w: &w, sc, build: &b, opponent: None, opts: &opts, seed: 5, log: true });
+    let ev = ev.unwrap();
+    let notice = ev.iter().find(|e| e.kind == "notice" && e.who_id == 0).map(|e| e.t).expect("the mage notices");
+    let acts = ev.iter().find(|e| e.who_id == 0 && e.t > notice && (e.kind == "cast" || e.kind == "move")).map(|e| e.t).expect("then acts");
+    assert!(acts >= notice + 0.35 - 1e-9, "acts {acts} after noticing at {notice}");
+    assert!(!ev.iter().any(|e| e.who_id == 0 && e.t < notice && e.t > 4.0 && (e.kind == "move")), "no moving before it");
+}
+
 /// Bows and guns can't fire inside 8 yards, and only standing still.
 #[test]
 fn auto_shot_has_a_dead_zone() {

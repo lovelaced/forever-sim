@@ -256,7 +256,7 @@ impl<'w> Sim<'w> {
     fn plan_one(&mut self, a: usize) {
         let c = &self.w.combat;
         let x = &self.actors[a];
-        if self.phase != Phase::Fight || (x.kind == Kind::Enemy && !x.aware) {
+        if self.phase != Phase::Fight || (x.kind == Kind::Enemy && !x.aware) || self.held_back(a) {
             self.stop(a);
             return;
         }

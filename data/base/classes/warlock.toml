@@ -1331,6 +1331,7 @@ actions = [
   { cast = "shadow_bolt", if = "aura.shadow_trance.up" },
   { cast = "drain_life", if = "hp_pct < 0.7" },
   { cast = "drain_soul", if = "target.hp_pct < 0.25 && !target.boss" },
+  { cast = "fear", if = "!target.is_player && !target.boss && !target.feared && hp_pct < 0.5 && has_aggro && target.dist < 8" },   # it's on you: fear it off, let the DoTs work
   { cast = "fear", if = "target.is_player && !target.feared && hp_pct < 0.8" },   # duels: fear, let the DoTs work
   { cast = "curse_of_exhaustion", if = "target.fleeing && !target.slowed" },
   { cast = "curse_of_recklessness", if = "target.humanoid && !target.is_player && !target.boss && target.hp_pct < 0.25 && target.hp_pct > 0.15 && !target.fleeing && enemies < 2" },   # it won't run
@@ -1375,6 +1376,7 @@ actions = [
   { cast = "immolate", if = "target.hp_pct > 0.4 && !known.siphon_life" },
   { cast = "shadow_bolt", if = "aura.shadow_trance.up" },
   { cast = "drain_life", if = "(hp_pct < 0.75) && !(!target.is_player && target.hp < 0.5 * hp && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
+  { cast = "fear", if = "!target.is_player && !target.boss && !target.feared && hp_pct < 0.5 && has_aggro && target.dist < 8" },   # it's on you: fear it off, let the DoTs work
   { cast = "fear", if = "target.is_player && !target.feared && hp_pct < 0.8" },   # duels: fear, let the DoTs work
   { cast = "curse_of_exhaustion", if = "target.fleeing && !target.slowed" },
   { cast = "curse_of_recklessness", if = "target.humanoid && !target.is_player && !target.boss && target.hp_pct < 0.25 && target.hp_pct > 0.15 && !target.fleeing && enemies < 2" },   # it won't run
@@ -1430,6 +1432,7 @@ actions = [
   { cast = "fear", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && !target.boss && !target.feared && !target.incapacitated && !target.stunned" },
   { cast = "conflagrate" },
   { cast = "corruption", if = "target.boss" },
+  { cast = "fear", if = "!target.is_player && !target.boss && !target.feared && hp_pct < 0.5 && has_aggro && target.dist < 8" },   # it's on you: fear it off, let the DoTs work
   { cast = "fear", if = "target.is_player && !target.feared && hp_pct < 0.8" },   # duels: fear, let the DoTs work
   { cast = "curse_of_exhaustion", if = "target.fleeing && !target.slowed" },
   { cast = "curse_of_recklessness", if = "target.humanoid && !target.is_player && !target.boss && target.hp_pct < 0.25 && target.hp_pct > 0.15 && !target.fleeing && enemies < 2" },   # it won't run
@@ -1492,6 +1495,7 @@ actions = [
   { cast = "fear", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && !target.boss && !target.feared && !target.incapacitated && !target.stunned" },
   { cast = "immolate", if = "target.hp_pct > 0.4 || target.boss" },
   { cast = "soul_fire", if = "aura.decimation.up" },
+  { cast = "fear", if = "!target.is_player && !target.boss && !target.feared && hp_pct < 0.5 && has_aggro && target.dist < 8" },   # it's on you: fear it off, let the DoTs work
   { cast = "fear", if = "target.is_player && !target.feared && hp_pct < 0.8" },   # duels: fear, let the DoTs work
   { cast = "curse_of_exhaustion", if = "target.fleeing && !target.slowed" },
   { cast = "curse_of_recklessness", if = "target.humanoid && !target.is_player && !target.boss && target.hp_pct < 0.25 && target.hp_pct > 0.15 && !target.fleeing && enemies < 2" },   # it won't run

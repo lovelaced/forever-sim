@@ -140,6 +140,7 @@ pub const ENV_KEY: u64 = 0x454e_5600;
 pub const ENV_PULL: u64 = 1;
 pub const ENV_FIGHT: u64 = 2;
 pub const ENV_DUEL: u64 = 3;
+pub const ENV_SKIRMISH: u64 = 4;
 
 /// Who an effect lands on, in order: a fixed-size list, so picking targets
 /// never allocates.
@@ -240,6 +241,8 @@ pub struct AuraInst {
     pub absorb: f64,
     pub applied: f64,
     pub dmg_since: f64,
+    /// Damage (a share of the holder's health) that breaks it, if any.
+    pub break_at: Option<f64>,
     pub uid: u64,
     /// Counter value when the aura was last applied or refreshed: a spell
     /// doesn't use up an aura its own effects just granted.
@@ -282,6 +285,8 @@ pub struct React {
     /// Seconds late with long cooldowns, and with reapplying upkeep.
     pub late_cd: f64,
     pub lapse: f64,
+    /// How far it backs off from a held enemy before casting (yards).
+    pub kite: f64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -399,6 +404,9 @@ pub struct Actor<'w> {
     pub tracking: Option<CreatureType>,
     /// Your totems (fire, earth, water, air) and trap on the ground.
     pub totems: [Option<usize>; 5],
+    /// Has seen the enemy but waits for it to make the first move (the
+    /// open-world PvP test where they strike first).
+    pub waits: bool,
     /// A totem's or trap's own state.
     pub totem: Option<totems::TotemState<'w>>,
     pub react: Option<React>,
@@ -829,7 +837,7 @@ impl<'w> Sim<'w> {
     pub fn setup_react(&mut self, a: usize) {
         let spread = self.opt_named(a, "react_spread");
         let r = if self.opt_named(a, "play_like") >= 0.5 {
-            React { base: self.opt_named(a, "react_expert"), spread, ..React::default() }
+            React { base: self.opt_named(a, "react_expert"), spread, kite: 20.0, ..React::default() }
         } else {
             React {
                 base: self.opt_named(a, "react_typical"),
@@ -838,6 +846,7 @@ impl<'w> Sim<'w> {
                 miss: self.opt_named(a, "miss_proc_typical"),
                 late_cd: self.opt_named(a, "late_cd_typical"),
                 lapse: self.opt_named(a, "lapse_typical"),
+                kite: 12.0,
             }
         };
         self.actors[a].react = Some(r);
@@ -1474,6 +1483,7 @@ impl<'w> Sim<'w> {
             tracking: None,
             totems: [None; 5],
             totem: None,
+            waits: false,
             dice: {
                 let mut r = mk(5);
                 [r.f64(), r.f64(), r.f64(), r.f64(), r.f64(), r.f64()]
@@ -2042,7 +2052,41 @@ impl<'w> Sim<'w> {
         base / haste.max(0.05)
     }
 
+    /// Waiting for the other side to make the first move (and its pets
+    /// with it).
+    pub fn held_back(&self, a: usize) -> bool {
+        let x = &self.actors[a];
+        x.waits || x.owner.map_or(false, |o| self.actors[o].waits)
+    }
+
+    /// The first hostile move against someone who was waiting: it starts to
+    /// act one reaction later, swings included.
+    pub fn rouse(&mut self, d: usize, by: usize) {
+        let o = self.actors[d].owner.unwrap_or(d);
+        if !self.actors[o].waits {
+            return;
+        }
+        self.actors[o].waits = false;
+        let r = if self.reacting(o) { self.reaction(o) } else { 0.0 };
+        let until = self.t + r;
+        let mut who = self.actors[o].pets.clone();
+        who.push(o);
+        for u in who {
+            let x = &mut self.actors[u];
+            x.react_until = x.react_until.max(until);
+            for s in x.swing.iter_mut() {
+                if *s < INF {
+                    *s = s.max(until);
+                }
+            }
+        }
+        self.tracef(|s| s.tev("notice", o, Some(by), ""));
+    }
+
     pub fn can_swing(&self, a: usize, hand: Hand) -> bool {
+        if self.held_back(a) {
+            return false;
+        }
         let x = &self.actors[a];
         // Auto Shot keeps firing while the hunter casts (Forever's Oct 15
         // notes); melee swings and wands wait for the cast to end.

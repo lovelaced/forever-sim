@@ -246,6 +246,31 @@ desc = "Share of leveling pulls fought beside the last pull's totems"
 source = "estimate"
 applies = ["shaman"]
 
+[options.root_break]
+default = 0.25
+kind = "pct"
+label = "Damage that breaks a root"
+help = "Entangling Roots and other roots break once the rooted target has taken this much damage, as a share of its health. The game doesn't publish the number."
+desc = "Damage that breaks a root, as a share of the target's health"
+source = "estimate"
+cite = "The original game's roots could break on damage; Forever's Improved Entangling Roots talks of the damage a root takes before breaking. A quarter of its health, like Frost Nova's freeze here"
+
+# Internal switches the website sets for the open-world PvP tests (not
+# shown under Settings).
+[options.skirmish_pool]
+default = 0
+kind = "internal"
+label = "Open-world PvP opponents"
+desc = "0 = one build of each class, 1 = every standard build"
+source = "estimate"
+
+[options.skirmish_show]
+default = 0
+kind = "internal"
+label = "Which open-world fight a fight log shows"
+desc = "Index of the opponent whose fight is logged"
+source = "estimate"
+
 [options.gore_refresh_rearms]
 default = 1
 kind = "toggle"

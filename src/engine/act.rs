@@ -414,7 +414,7 @@ impl<'w> Sim<'w> {
         }
         let Some(rot) = x.rotation else { return false };
         // a mob that hasn't noticed anyone, or is running away, does nothing
-        if !x.aware || matches!(x.mo.goal, Goal::Away { .. }) {
+        if !x.aware || matches!(x.mo.goal, Goal::Away { .. }) || self.held_back(a) {
             return false;
         }
         if self.phase == Phase::Fight && x.opening.is_some() {
@@ -465,6 +465,28 @@ impl<'w> Sim<'w> {
                 self.note_chase(a);
                 return false;
             }
+            // the target is held in place but could still hit you: step out of
+            // its reach before standing still to cast (instants still go)
+            if self.phase == Phase::Fight && (plan.cast_time > 0.0 || sp.channel.is_some()) {
+                match self.make_distance(a, sp, &plan) {
+                    Some(Ok(to)) => {
+                        let m = &mut self.actors[a].mo;
+                        if !matches!(m.goal, Goal::Retreat(_)) {
+                            m.goal = Goal::Retreat(to);
+                            m.closing = false;
+                        }
+                        continue;
+                    }
+                    // still taking in that it's held: no cast in its reach meanwhile
+                    Some(Err(until)) => {
+                        let x = &mut self.actors[a];
+                        x.react_until = x.react_until.max(until);
+                        self.note_chase(a);
+                        return false;
+                    }
+                    None => {}
+                }
+            }
             // ...and now and then presses the next ability down instead of the best
             if fight && on_gcd && slipped.is_none() {
                 let p = self.actors[a].react.map_or(0.0, |r| r.slip);
@@ -484,6 +506,47 @@ impl<'w> Sim<'w> {
             return true;
         }
         false
+    }
+
+    /// Whether to back off before this cast, and how far: the target is
+    /// rooted or frozen for a while yet (it can't follow, but it still hits
+    /// whoever stands within its reach; a stunned one can't, so you heal in
+    /// place) (a typical player first takes a reaction to
+    /// see it held, and backs off less far than an expert). Weapon strikes
+    /// cast in melee (Slam) never do.
+    /// Ok(yards) to back off now, Err(time) to wait until it has seen the
+    /// hold.
+    fn make_distance(&self, a: usize, sp: &SpellDef, plan: &Plan) -> Option<Result<f64, f64>> {
+        let x = &self.actors[a];
+        if x.kind != Kind::Player || self.speed(a) <= 0.0 {
+            return None;
+        }
+        if plan.target != a && self.actors[plan.target].team != x.team && self.range_with(sp, &plan.sm) <= self.w.combat.melee_reach + 1e-9 {
+            return None;
+        }
+        let t = x.target?;
+        if !self.actors[t].alive || !self.hostile(a, t) {
+            return None;
+        }
+        if let Goal::Retreat(to) = x.mo.goal {
+            return Some(Ok(to));
+        }
+        if self.dist(a, t) > self.reach(t) + 1.0 {
+            return None;
+        }
+        let w = self.w;
+        let (since, until) = self.actors[t].auras.iter()
+            .filter(|i| matches!(w.auras[i.def as usize].mechanic, Some(Mechanic::Root | Mechanic::Freeze)))
+            .fold((INF, 0.0f64), |(s, u), i| (s.min(i.applied), u.max(i.expires)));
+        if until - self.t < 1.5 {
+            return None;
+        }
+        let r = x.react.unwrap_or_default();
+        if self.t - since < r.base - EPS {
+            return Some(Err(since + r.base));
+        }
+        let to = if r.kite > 0.0 { r.kite } else { 15.0 };
+        Some(Ok(if x.stand_at > 0.0 { to.min(x.stand_at.max(12.0)) } else { to }))
     }
 
     /// Remember a better line that was only out of reach, so the movement
@@ -709,6 +772,10 @@ impl<'w> Sim<'w> {
     pub fn begin(&mut self, a: usize, plan: Plan) {
         let w = self.w;
         let sp = &w.spells[plan.spell as usize];
+        // a first hostile move: someone waiting for it starts to react
+        if plan.target != a && self.hostile(a, plan.target) {
+            self.rouse(plan.target, a);
+        }
         if sp.auto_repeat {
             // the first shot waits for the wind-up (standing still), the
             // next ones keep the weapon's own timer
@@ -1351,6 +1418,7 @@ impl<'w> Sim<'w> {
         let seen = if def.react { self.notice_proc(holder) } else { self.t };
         let slow = def.slow.as_ref().map_or(0.0, |e| self.ev(e, &c2).clamp(0.0, 1.0));
         let fast = def.speed.as_ref().map_or(0.0, |e| self.ev(e, &c2).max(0.0));
+        let break_at = def.break_on_damage.as_ref().map(|e| self.ev(e, &c2).max(0.0));
         let inst = AuraInst {
             def: aura,
             src,
@@ -1364,6 +1432,7 @@ impl<'w> Sim<'w> {
             absorb,
             applied: self.t,
             dmg_since: 0.0,
+            break_at,
             uid,
             fresh: uid,
             seen,

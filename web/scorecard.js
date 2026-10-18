@@ -2,9 +2,9 @@
 // build's result, a one-line summary on top, what the last change did, and
 // each test's detail opening inside its row.
 import * as M from './meta.js';
-import { h, fmtMetric, fmtDiff, fmtNum } from './ui.js';
+import { h, fmtMetric, fmtDiff, fmtNum, heroImg } from './ui.js';
 import { S, env, bus, sig, nameOf, slotOf, baselineBuild, raceOf, scenarioMeta, primaryOf, accuracyOf, presetOf, presetsFor, baseName, buildDiff, diffText, saveLocal, sitsOut } from './state.js';
-import { scorecardTests, cellOf, pairOf, duelWin, changesFor, simulateAll } from './runner.js';
+import { scorecardTests, cellOf, pairOf, duelWin, changesFor, simulateAll, poolOf } from './runner.js';
 import { renderDetail, leaders, metricOf } from './results.js';
 
 const pctOf = (diff, base) => (Math.abs(base) > 1e-9 ? (100 * diff) / Math.abs(base) : null);
@@ -139,9 +139,12 @@ function scene(test) {
   const sc = mainScene(test);
   if (!sc) return h('span.scene.empty');
   const main = baselineBuild();
-  const hero = artImg('img.hero.px', M.heroArt(main.race, main.cls), { '--ground': String(sc.ground) });
-  hero.addEventListener('error', () => hero.remove(), { once: true });
-  return h('span.scene', { 'aria-hidden': 'true' }, artImg('img.bg.px', sc.file, { '--top': String(sc.top), '--rpad': String(sc.rpad) }), hero);
+  const hero = heroImg(artImg('img.hero.px', M.heroArt(main.race, main.cls, main.gender), { '--ground': String(sc.ground) }), M.otherHero);
+  // open-world PvP: an enemy player of the other side faces you down the road
+  const foe = isSkirmish(test)
+    ? heroImg(artImg('img.foe-sprite.px', M.heroArt(mainFaction() === 'horde' ? 'human' : 'orc', 'warrior', 'm'), { '--ground': String(sc.ground) }), M.otherHero)
+    : null;
+  return h('span.scene', { 'aria-hidden': 'true' }, artImg('img.bg.px', sc.file, { '--top': String(sc.top), '--rpad': String(sc.rpad) }), hero, foe);
 }
 
 // Pixel art at its own size in art pixels (whole screen pixels each).
@@ -236,17 +239,36 @@ bus.detail = () => {
   window.scrollTo({ top: scrollY });
 };
 
+// PvE and PvP: each tab has its own tests and its own Simulate.
+function modeTabs() {
+  const running = S.run && !S.run.finished;
+  return h('div.mode-tabs', { role: 'tablist', 'aria-label': 'Kind of tests' }, M.MODES.map(([m, label]) => {
+    const n = scorecardTests(m).length;
+    const busy = running && S.run.mode === m;
+    return h('button.mode-tab', {
+      type: 'button', role: 'tab', 'aria-selected': String(S.mode === m),
+      onclick: () => {
+        if (S.mode === m) return;
+        S.mode = m;
+        if (S.open && M.modeOf(S.open) !== m) S.open = null;
+        saveLocal();
+        render();
+      },
+    }, h('span', label), h('small', busy ? 'running…' : `${n} test${n === 1 ? '' : 's'}`));
+  }));
+}
+
 export function renderScorecard(root, { onRender }) {
   render = onRender;
   const tests = scorecardTests();
-  const showDuelPicker = S.builds.length === 1 && !S.opponent;
+  const showDuelPicker = S.mode === 'pvp' && S.builds.length === 1 && !S.opponent;
   const listed = showDuelPicker ? [...tests, 'duel'] : tests;
   const anyRow = listed.some((t) => S.rows[t]);
   const run = S.run;
   const running = run && !run.finished;
   const levels = new Set(S.builds.map((b) => b.level)).size;
 
-  const out = [];
+  const out = [modeTabs()];
   const sum = anyRow ? summary(tests) : null;
   out.push(sum || h('h2.summary.empty', S.builds.length > 1 ? 'How do these builds compare?' : 'How does this build do?'));
 
@@ -326,10 +348,79 @@ function detailFor(test, row, cols) {
   if (row.error) return h('div.detail', h('div.warn', row.error));
   const acc = accuracyOf(row.acc);
   const oppPreset = S.opponent && presetOf(S.opponent.slice(7));
-  return renderDetail({
+  const detail = renderDetail({
     test, scenario: meta, row, cols, base, changes,
     acc: row.acc, accLabel: acc.title, precision: acc.precision,
     onPrecise: () => simulateAll({ only: test, acc: 'precise' }),
     opponentPicker, opponentSig: S.opponent, opponentName: oppPreset ? baseName(oppPreset.name) : 'the opponent',
   });
+  const summaryTab = !S.detailTab || S.detailTab === 'summary';
+  return isSkirmish(test) && summaryTab ? h('div.skirmish-detail', breakdown(test, row, cols), detail) : detail;
+}
+
+// ------------------------------------------------------------------ open-world PvP, class by class
+
+const isSkirmish = (test) => env.catalog.scenarios.find((s) => s.id === test)?.kind === 'skirmish';
+// The race that stands for a class on each side (the first that can be it).
+const SIDE_RACES = { alliance: ['human', 'dwarf', 'night_elf', 'gnome', 'high_order'], horde: ['orc', 'undead', 'tauren', 'troll', 'windshaper'] };
+function foeRace(cls, side) {
+  const c = env.catalog.classes.find((x) => x.id === cls);
+  return SIDE_RACES[side].find((r) => c.races.includes(r)) || c.races[0];
+}
+
+// Each class you met: who stood in for it, your score against it, and a
+// button to watch that fight. With the run against every standard build,
+// each class is the average over its specs, which open underneath.
+function breakdown(test, row, cols) {
+  const sc = env.catalog.scenarios.find((s) => s.id === test);
+  const live = cols.filter((c) => c.cell);
+  if (!live.length || !sc?.opponents?.length) return null;
+  const pool = poolOf(test);
+  const running = S.run && !S.run.finished;
+  const side = mainFaction() === 'horde' ? 'alliance' : 'horde';
+  const back = M.SCENES[test] ? mainScene(test) : null;
+  const pm = M.METRICS.score;
+  const scoreOf = (c, name) => {
+    if (pool) {
+      const cell = cellOf(pool, c.b);
+      return cell ? metricOf(pool.res, cell.i, name) : null;
+    }
+    return metricOf(row.res, c.cell.i, name);
+  };
+  const bars = (name) => h('div.foe-vals', live.map((c) => {
+    const m = scoreOf(c, name);
+    return h('div.foe-val', { style: { '--slot': c.color } }, live.length > 1 ? badge(c) : null,
+      h('span.foe-bar', h('i', { style: { width: `${Math.round(100 * Math.max(0, Math.min(1, m?.mean ?? 0)))}%` } })),
+      h('b', m ? fmtMetric(m.mean, pm) : '—'));
+  }));
+  const classes = [...new Set(sc.opponents.map((id) => id.split('/')[0]))];
+  const list = h('ol.foes', classes.map((cls, n) => {
+    const c = env.catalog.classes.find((x) => x.id === cls);
+    const k = sc.opponents.findIndex((id) => id.startsWith(`${cls}/`));
+    const stand = presetOf(`${sc.opponents[k]}.toml`);
+    const race = foeRace(cls, side);
+    const tile = h('span.foe-tile', { 'aria-hidden': 'true' },
+      back ? artImg('img.bg.px', back.file, { '--top': String(back.top + 32), '--rpad': String(back.rpad) }) : null,
+      heroImg(artImg('img.foe-sprite.px', M.heroArt(race, cls, n % 2 ? 'f' : 'm'), { '--ground': String(back ? back.ground : 6) }), M.otherHero));
+    const specs = pool ? presetsFor(cls).filter((p) => p.kind === 'standard') : [];
+    const head = h('div.foe-head', tile,
+      h('div.foe-who', h('b', c.name), h('small', pool ? `${specs.length} builds, averaged` : stand ? baseName(stand.name) : '')),
+      bars(`score:${cls}`),
+      h('button.linkish.foe-watch', { type: 'button', onclick: () => { S.versus[test] = k; S.detailTab = 'log'; bus.detail(); } }, 'Watch a fight'));
+    if (!specs.length) return h('li.foe-row', { style: { '--n': String(n) } }, head);
+    return h('li.foe-row', { style: { '--n': String(n) } }, head,
+      h('details.foe-specs', h('summary', 'Each build'),
+        h('ul', specs.map((p) => h('li', h('span', baseName(p.name)), bars(`score:${p.file.replace(/\.toml$/, '')}`))))));
+  }));
+  const allBtn = h('button.btn.btn-small', {
+    type: 'button', disabled: running,
+    onclick: () => simulateAll({ only: test, pool: true }),
+  }, pool ? 'Fight all 27 builds again' : 'Fight all 27 builds');
+  return h('section.breakdown', { 'aria-label': 'By class' },
+    h('div.breakdown-head',
+      h('h3', 'By class'),
+      h('p.note', pool ? 'Against every standard build, averaged by class. Open a class for each of its builds.' : 'Against one build of each class: its main leveling spec. Fight all 27 standard builds for the full picture.'),
+      pool ? null : allBtn),
+    list,
+    pool ? h('p.note.small', allBtn) : null);
 }

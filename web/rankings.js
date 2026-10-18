@@ -2,7 +2,7 @@
 // ("Class rankings"), and one build dueling every other ("Duels"). Both use
 // the same engine pool as the scorecard, one run at a time.
 import * as M from './meta.js';
-import { h, art, withTip, tt, flash, fmtMetric, fmtNum, fmtSec } from './ui.js';
+import { h, art, withTip, tt, flash, fmtMetric, fmtNum, fmtSec, heroImg } from './ui.js';
 import { S, env, bus, classOf, presetOf, presetTags, isExperimental, baseName, accuracyOf, scenarioMeta, primaryOf, classColor, nameOf, apiBuild, raceOf, baselineBuild } from './state.js';
 import { metricOf, rangeTip, playLikePicker } from './results.js';
 
@@ -248,9 +248,8 @@ const compareButton = (p, level) => h('button.linkish.row-compare', {
 const classIcon = (p) => h('span.rank-icon', art(M.CLASS_ICONS[p.class], classOf(p.class)?.icon));
 // a podium hero, at twice the scenes' size
 const heroOf = (race, cls) => {
-  const img = h('img.podium-hero.px', { src: M.heroArt(race, cls), alt: '' });
-  img.addEventListener('load', () => { img.style.width = `calc(${2 * img.naturalWidth} * var(--art))`; }, { once: true });
-  img.addEventListener('error', () => img.remove(), { once: true });
+  const img = heroImg(h('img.podium-hero.px', { src: M.heroArt(race, cls), alt: '' }), M.otherHero);
+  img.addEventListener('load', () => { img.style.width = `calc(${2 * img.naturalWidth} * var(--art))`; });
   return img;
 };
 

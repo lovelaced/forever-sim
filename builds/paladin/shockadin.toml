@@ -4,7 +4,7 @@ kind = "experimental"
 class = "paladin"
 race = "undead"
 level = 60
-gear = "plate_holy"
+gear = "plate_shock"
 rotation = "holy_shock"
 
 [talents]

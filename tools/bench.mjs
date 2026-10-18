@@ -27,6 +27,7 @@ const healers = cat.presets.filter((p) => p.role === 'healer');
 const tests = [
   ['solo_1', mixed, [20, 40, 60]], ['solo_2', mixed, [20, 40, 60]], ['solo_3', mixed, [40]],
   ['boss', mixed, [20, 40, 60]], ['pressure', mixed, [20, 40, 60]], ['duel', mixed, [20, 40, 60]],
+  ['strike_first', mixed, [20, 40, 60]], ['struck_first', mixed, [20, 40, 60]],
   ['heal_dungeon', healers, [20, 40, 60]], ['heal_raid', healers, [60]],
 ];
 let total = 0;

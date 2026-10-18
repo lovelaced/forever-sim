@@ -24,7 +24,7 @@ kind = "standard"
 class = "shaman"
 race = "orc"
 level = 60
-gear = "mail_enh"
+gear = "mail_enh_sp"
 rotation = "enhancement"
 
 order = [

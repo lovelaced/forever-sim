@@ -66,6 +66,25 @@ kind = "duel"
 desc = "Duel against another build (--vs): 5 to 10 yards apart, both start on the same tick and each moves once it has reacted. Score: a win 1, a draw or a 180 s timeout half"
 max_time = 180
 
+# Open-world PvP: you and an enemy player of the other faction see each
+# other 30 to 40 yards apart (a world draw). The side striking first moves at
+# once; the other waits for that first hostile move, then for its own
+# reaction. One fight against one build of each class (its main leveling
+# spec) at your level; the page can also run every standard build.
+[scenarios.strike_first]
+kind = "skirmish"
+desc = "Open-world PvP, you strike first: one fight against one build of each class at your level, starting 30 to 40 yards apart. Score: a win 1, a draw or a 120 s timeout half"
+first = "you"
+max_time = 120
+opponents = ["warrior/arms", "rogue/combat", "mage/frost", "priest/shadow", "warlock/affliction", "hunter/beast_mastery", "druid/feral", "paladin/retribution", "shaman/enhancement"]
+
+[scenarios.struck_first]
+kind = "skirmish"
+desc = "Open-world PvP, they strike first: one fight against one build of each class at your level, starting 30 to 40 yards apart. Score: a win 1, a draw or a 120 s timeout half"
+first = "them"
+max_time = 120
+opponents = ["warrior/arms", "rogue/combat", "mage/frost", "priest/shadow", "warlock/affliction", "hunter/beast_mastery", "druid/feral", "paladin/retribution", "shaman/enhancement"]
+
 [scenarios.heal_dungeon]
 kind = "healing"
 desc = "Dungeon healing: you, a tank and three others against a boss for 120 s. Breakeven = the boss's damage per second (before armor) you heal through without anyone dying, half the time"

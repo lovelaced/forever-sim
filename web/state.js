@@ -9,6 +9,7 @@ export const DEFAULT_PRESET = 'warrior/arms.toml';
 export const DEFAULT_LEVEL = 30;
 const STORE_KEY = 'forever-sim/v1';
 const ROWS_KEY = 'forever-sim/rows/v1';
+const POOL_KEY = 'forever-sim/skirmish-v1';
 
 // Set once at boot.
 export const env = { engine: null, catalog: null };
@@ -26,9 +27,12 @@ export const S = {
   opponent: null, // one-build duel: 'preset:<file>' or null
   opts: {},
   tab: 'talents',
+  mode: 'pve', // the Compare page's tab: 'pve' or 'pvp'
   tree: null,
   sheets: new Map(), // uid -> character sheet (or {error})
   rows: {}, // test id -> results of its latest run (see runner.js)
+  pool: {}, // open-world PvP test id -> its run against every standard build
+  versus: {}, // open-world PvP test id -> which opponent's fight the log shows
   open: null, // test whose detail is open
   run: null, // the run in progress or just finished
   ranAs: new Map(), // uid -> {sig, build, sheet} as of its latest run
@@ -73,14 +77,11 @@ export function baselineBuild() {
   return buildOf(S.baseline) || S.builds[0];
 }
 
-// The healing tests are for healers: the healer presets, and any build of a
-// healing class that the player marks as healing in group tests (`healer`
-// set on the build overrides the preset).
+// The healing tests are for every build of a class that can heal: it heals
+// the class's way, with its own talents and gear.
 export const healRotationOf = (cls) => classOf(cls)?.rotations.find((r) => r.healer) || null;
 export function healsGroups(b) {
-  if (!b || !healRotationOf(b.cls)) return false;
-  if (typeof b.healer === 'boolean') return b.healer;
-  return presetOf(b.preset)?.role === 'healer';
+  return !!(b && healRotationOf(b.cls));
 }
 // Why a build sits a test out, or null when it takes it.
 export function sitsOut(b, test) {
@@ -100,7 +101,7 @@ export function buildFromPreset(p, level) {
     uid: uidSeq++, cls: p.class, race: p.race, level: lv,
     // below the build's own level, its full talents stay planned for later
     talents: { ...p.talents }, plan: lv < (p.level || 60) ? { ...p.talents } : null, gear: p.gear, rotation: p.rotation,
-    preset: p.file, order: p.order || null, popts: p.opts || null, edited: false, customName: null, seq: 0,
+    preset: p.file, order: p.order || null, popts: p.opts || null, edited: false, customName: null, seq: 0, gender: 'm',
   };
 }
 
@@ -110,7 +111,7 @@ export function emptyBuild(cls, level) {
   return {
     uid: uidSeq++, cls, race: p ? p.race : c.races[0], level: level || 60, talents: {}, plan: null,
     gear: p ? p.gear : env.catalog.gear[0].id, rotation: p ? p.rotation : soloRotations(c)[0].id,
-    preset: null, order: null, popts: null, edited: false, customName: null, seq: 0,
+    preset: null, order: null, popts: null, edited: false, customName: null, seq: 0, gender: 'm',
   };
 }
 
@@ -183,12 +184,12 @@ export function serial() {
     v: 1,
     b: S.builds.map((b) => ({
       c: b.cls, r: b.race, l: b.level, t: b.plan || b.talents, p: b.preset || undefined, e: b.edited ? 1 : undefined,
-      g: b.gear, ro: b.rotation, n: b.customName || undefined, h: typeof b.healer === 'boolean' ? Number(b.healer) : undefined,
+      g: b.gear, ro: b.rotation, n: b.customName || undefined, x: b.gender === 'f' ? 'f' : undefined,
     })),
     // `a` and `s` are what older versions of the page read: the build shown and the test picked.
     a: ed >= 0 ? ed : bl, s: S.open || 'solo_1', acc: S.accuracy,
     o: S.opponent || undefined, op: Object.keys(S.opts).length ? S.opts : undefined,
-    bl: bl || undefined, f: S.open || undefined,
+    bl: bl || undefined, f: S.open || undefined, md: S.mode === 'pvp' ? 'pvp' : undefined,
   };
 }
 
@@ -206,14 +207,14 @@ export function restore(d) {
       gear: env.catalog.gear.some((g) => g.id === x.g) ? x.g : (p ? p.gear : env.catalog.gear[0].id),
       rotation: soloRotations(c).some((r) => r.id === x.ro) ? x.ro : soloRotations(c)[0].id,
       preset: p ? p.file : null, order: p && !x.e ? p.order || null : null, popts: p ? p.opts || null : null,
-      edited: !!x.e, customName: typeof x.n === 'string' ? x.n.slice(0, 48) : null, seq: 0,
-      healer: x.h === 0 || x.h === 1 ? x.h === 1 : undefined,
+      edited: !!x.e, customName: typeof x.n === 'string' ? x.n.slice(0, 48) : null, seq: 0, gender: x.x === 'f' ? 'f' : 'm',
     });
   }
   if (!builds.length) return false;
   S.builds = builds;
   S.baseline = (builds[Math.min(Math.max(0, d.bl | 0), builds.length - 1)] || builds[0]).uid;
   S.open = M.SCENARIOS.some((s) => s.id === d.f) ? d.f : null;
+  S.mode = S.open ? M.modeOf(S.open) : d.md === 'pvp' ? 'pvp' : 'pve';
   if (M.ACCURACY.some((a) => a.id === d.acc)) S.accuracy = d.acc;
   if (typeof d.o === 'string' && d.o.startsWith('preset:') && presetOf(d.o.slice(7))) S.opponent = d.o;
   if (d.op && typeof d.op === 'object') {
@@ -245,6 +246,19 @@ export function loadRows() {
     const d = JSON.parse(localStorage.getItem(ROWS_KEY) || 'null');
     if (d && d.data === env.catalog.data_build && d.rows) S.rows = d.rows;
   } catch { /* ignore */ }
+  try {
+    const d = JSON.parse(localStorage.getItem(POOL_KEY) || 'null');
+    if (d && d.data === env.catalog.data_build && d.pool) S.pool = d.pool;
+  } catch { /* ignore */ }
+}
+
+// The open-world PvP runs against every standard build: kept on their own,
+// since they're big and a full storage shouldn't cost the scorecard.
+export function savePool() {
+  try {
+    const pool = JSON.parse(JSON.stringify(S.pool, (k, v) => (k === 'columns' ? undefined : v)));
+    localStorage.setItem(POOL_KEY, JSON.stringify({ data: env.catalog.data_build, pool }));
+  } catch { /* too big or private mode: fine */ }
 }
 
 export function encode(obj) {

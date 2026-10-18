@@ -25,7 +25,11 @@ COLUMNS = [
     ('Hard doubles kills/h (60)', 'solo_2_hard', None, 'kills_per_hour', 0.02),
     ('Deaths/h', 'solo_2_hard', None, 'deaths_per_hour', 0.02),
     ('PvP breakeven (60)', 'pressure', None, 'breakeven', 0.03),
+    ('You strike first (60)', 'strike_first', None, 'score', 0.03),
+    ('They strike first (60)', 'struck_first', None, 'score', 0.03),
 ]
+# Columns shown as a share (open-world PvP scores: a win 1, a draw half).
+SHARE = {'You strike first (60)', 'They strike first (60)'}
 # The healing tests, for the healer builds: boss damage per second healed through.
 HEAL_COLUMNS = [
     ('Dungeon (30)', 'heal_dungeon', 30, 'heal_breakeven', 0.015),
@@ -53,6 +57,8 @@ WHY = {
     'crowd-control': 'Every class gets its crowd control, interrupts and escapes, and uses them on the add, on casters and when things go wrong; DoTs spread to a second mob and Chain Lightning jumps',
     'totems': 'Totems are units on the ground: a shaman puts them down where it stands, their buffs reach only the party nearby, and Searing Totem only hits a target within 20 yards; hunters freeze an add with a trap before the pull',
     'duels': 'Duels start fair: on the same tick, a few yards apart, whoever reacts first striking first',
+    'kiting-and-skirmish': 'Casters and hybrids step out of a rooted or frozen enemy\'s reach before casting, roots break on damage, and two open-world PvP tests arrive: you strike first, and they strike first',
+    'hybrid-gear': 'Four hybrid gear kits from Forever\'s own items (melee gear with spell damage and healing), and the Enhancement shaman, Retribution paladin and Shockadin wear theirs',
     'talents': 'Talents that lengthen a spell\'s range, widen an area or make you faster now count, shamans Purge players\' buffs, and Improved Reincarnation brings you back stronger',
 }
 
@@ -66,7 +72,7 @@ def story(folder):
     num = lambda f: int(f.split('-', 1)[0]) if f.split('-', 1)[0].isdigit() else -1
     files = sorted((f for f in os.listdir(folder) if f.endswith('.json')), key=lambda f: (num(f), f))
     snaps = [(f[:-5].split('-', 1)[1] if '-' in f else f[:-5], json.load(open(os.path.join(folder, f)))) for f in files]
-    fmt = lambda col, v: f'{v:.2f}' if col == 'Deaths/h' else f'{v:.0f}'
+    fmt = lambda col, v: f'{v:.2f}' if col == 'Deaths/h' else f'{100 * v:.0f}%' if col in SHARE else f'{v:.0f}'
     print('## What moved and why\n')
     for (_, old), (name, new) in zip(snaps, snaps[1:]):
         moves = []
@@ -146,7 +152,7 @@ def main():
             if m:
                 v = m['median'] if m['kind'] == 'median' else m['mean']
                 values.setdefault(f'{cls}|{name}', {})[col] = {'v': v, 'lo': m['lo'], 'hi': m['hi']}
-    fmt = lambda col, v: f'{v:.2f}' if col == 'Deaths/h' else f'{v:.0f}'
+    fmt = lambda col, v: f'{v:.2f}' if col == 'Deaths/h' else f'{100 * v:.0f}%' if col in SHARE else f'{v:.0f}'
     for kind, title in ([('standard', 'Standard specs'), ('experimental', 'Forever experiments')] if only != 'healing' else []):
         print(f'\n### {title}\n')
         print('| Class | Build | ' + ' | '.join(c for c, *_ in COLUMNS) + ' |')

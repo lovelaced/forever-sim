@@ -37,17 +37,23 @@ const OUT = join(root, 'web/art');
 mkdirSync(RAW, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 
-// one hero sprite per race and class pair, all on one scale
+// one hero sprite per race, class and gender, all on one scale
 const H = spec.heroes;
-const heroes = H.pairs.map((pair) => {
+const heightOf = (race, g) => (H.races[race]?.height ?? 80) * (g === 'f' ? H.female_scale ?? 1 : 1);
+const heroes = H.pairs.flatMap((pair) => {
   const [race, cls] = pair.split('/');
   const r = H.races[race];
   const c = H.classes[cls];
   if (!r || !c) throw new Error(`hero ${pair}: no description`);
-  return {
-    id: `hero-${race}-${cls}`, group: 'heroes', style: 'sprite',
-    prompt: `${r.desc}, as ${c}, in the look of classic World of Warcraft. The character's height is about ${r.height}% of the canvas height (all heroes share one scale: a tauren nearly fills the canvas, a gnome reaches less than half).`,
-  };
+  return Object.keys(H.genders || { m: 'male' }).map((g) => {
+    const who = g === 'f' ? r.female : r.male;
+    // a dwarf hunter's rifle came out as a bow once: say it twice
+    const extra = race === 'dwarf' && cls === 'hunter' ? ' The dwarf holds a long rifle (a gun, not a bow).' : '';
+    return {
+      id: `hero-${race}-${cls}-${g}`, group: 'heroes', style: 'sprite',
+      prompt: `${r.desc}; ${who}, as ${c}, in the look of classic World of Warcraft.${extra} The character's height is about ${Math.round(heightOf(race, g))}% of the canvas height (all heroes share one scale: a tauren nearly fills the canvas, a gnome reaches less than half).`,
+    };
+  });
 });
 const all = [...spec.pieces, ...heroes];
 const pieces = all.filter((p) => !sel.length || sel.includes(p.id) || sel.includes(p.group));
@@ -220,11 +226,12 @@ async function fix(p) {
   const raw = join(RAW, `${p.id}.png`);
   if (!existsSync(raw)) return { id: p.id, error: 'no raw image (run gen first)' };
   const f = { ...spec.fix[p.style], ...(p.fix || {}) };
+  if (f.icon) return iconFix(p, raw, f);
   if (f.hero_height) {
     // heroes share one scale: a race's height in art pixels, whatever size
     // the image tool drew it
-    const race = p.id.split('-')[1];
-    const target = f.hero_height * (spec.heroes.races[race]?.height ?? 80) / 100;
+    const [, race, , g] = p.id.split('-');
+    const target = f.hero_height * heightOf(race, g) / 100;
     f.grid = +(subjectHeight(raw) / target).toFixed(3);
   }
   const out = join(OUT, `${p.id}.png`);
@@ -249,6 +256,97 @@ async function fix(p) {
     id: p.id, size, colors: d.colors_after, grid: d.grid && [d.grid.pitch_x, d.grid.pitch_y].map((x) => +(+x).toFixed(2)),
     contested: d.total_blocks ? +(d.low_confidence_blocks / d.total_blocks).toFixed(3) : null, bg_removed: d.bg_pixels_removed ?? null,
   };
+}
+
+// A painted icon in the game's own style (not pixel art): a close crop of
+// the picture, painted at a smaller size and brought up to the icon's (the
+// game's standard-definition look, without blur), a little more contrast and
+// a light sharpening, inside the frame the game's portrait icons have
+// (rounded corners, a dark outline, a grey bevel lit from the top left, a
+// thin inner shadow).
+function iconFix(p, raw, f) {
+  const size = f.size || 64;
+  const src = readPng(raw);
+  // a close crop of the picture (the face, a little above the middle)
+  const side = Math.round(Math.min(src.w, src.h) * (f.crop ?? 1));
+  const ox = Math.round((src.w - side) * (f.crop_x ?? 0.5)), oy = Math.round((src.h - side) * (f.crop_y ?? 0.5));
+  let img = new Float32Array(side * side * 3);
+  for (let y = 0; y < side; y++) for (let x = 0; x < side; x++) for (let c = 0; c < 3; c++) img[(y * side + x) * 3 + c] = src.px[((y + oy) * src.w + x + ox) * 4 + c];
+  // Lanczos-3, one direction at a time
+  const lz = (t) => (t === 0 ? 1 : Math.abs(t) >= 3 ? 0 : (3 * Math.sin(Math.PI * t) * Math.sin(Math.PI * t / 3)) / (Math.PI * Math.PI * t * t));
+  const pass = (inp, w, h, n, across) => {
+    const len = across ? w : h, other = across ? h : w, scale = len / n, sup = 3 * Math.max(1, scale), k = Math.max(1, scale);
+    const out = new Float32Array((across ? n * h : w * n) * 3);
+    for (let i = 0; i < n; i++) {
+      const c = (i + 0.5) * scale - 0.5, lo = Math.max(0, Math.ceil(c - sup)), hi = Math.min(len - 1, Math.floor(c + sup));
+      const ws = []; let sum = 0;
+      for (let j = lo; j <= hi; j++) { const wt = lz((j - c) / k); ws.push(wt); sum += wt; }
+      for (let o = 0; o < other; o++) for (let ch = 0; ch < 3; ch++) {
+        let v = 0;
+        for (let j = lo; j <= hi; j++) v += ws[j - lo] * inp[(across ? o * w + j : j * w + o) * 3 + ch];
+        out[(across ? o * n + i : i * w + o) * 3 + ch] = v / sum;
+      }
+    }
+    return out;
+  };
+  const resize = (inp, from, to) => pass(pass(inp, from, from, to, true), to, from, to, false);
+  // painted at a smaller size first: the game's own standard-definition look
+  let at = side;
+  if (f.paint_at) { img = resize(img, at, f.paint_at); at = f.paint_at; }
+  img = resize(img, at, size);
+  const clamp = (v) => Math.max(0, Math.min(255, v));
+  // contrast around the picture's mean grey (as an image editor's contrast does)
+  if (f.contrast) {
+    let mean = 0;
+    for (let i = 0; i < size * size; i++) mean += 0.299 * img[i * 3] + 0.587 * img[i * 3 + 1] + 0.114 * img[i * 3 + 2];
+    mean /= size * size;
+    for (let i = 0; i < img.length; i++) img[i] = clamp(mean + f.contrast * (img[i] - mean));
+  }
+  // a light unsharp mask (radius 1)
+  if (f.sharpen) {
+    const g = [0.0545, 0.2442, 0.4026, 0.2442, 0.0545];
+    const blur = (inp, across) => {
+      const out = new Float32Array(inp.length);
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) for (let ch = 0; ch < 3; ch++) {
+        let v = 0;
+        for (let t = -2; t <= 2; t++) {
+          const xx = across ? Math.min(size - 1, Math.max(0, x + t)) : x, yy = across ? y : Math.min(size - 1, Math.max(0, y + t));
+          v += g[t + 2] * inp[(yy * size + xx) * 3 + ch];
+        }
+        out[(y * size + x) * 3 + ch] = v;
+      }
+      return out;
+    };
+    const b = blur(blur(img, true), false);
+    for (let i = 0; i < img.length; i++) { const d = img[i] - b[i]; if (Math.abs(d) > 2) img[i] = clamp(img[i] + d * f.sharpen); }
+  }
+  const px = Buffer.alloc(size * size * 4);
+  for (let i = 0; i < size * size; i++) {
+    for (let ch = 0; ch < 3; ch++) px[i * 4 + ch] = Math.round(clamp(img[i * 3 + ch]));
+    px[i * 4 + 3] = 255;
+  }
+  // the frame
+  const rad = 5;
+  const set = (x, y, c, a = 255) => { const o = (y * size + x) * 4; px[o] = c[0]; px[o + 1] = c[1]; px[o + 2] = c[2]; px[o + 3] = a; };
+  const shade = (x, y, ring) => {
+    const top = y <= x && y <= size - 1 - x, left = x < y && x <= size - 1 - y;
+    const light = [[204, 202, 204], [126, 126, 126]], dark = [[92, 91, 92], [56, 55, 56]];
+    if (ring === 3) return [26, 22, 20];
+    return (top || left ? light : dark)[ring - 1];
+  };
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    // distance into the rounded square
+    const cx = Math.min(x, size - 1 - x), cy = Math.min(y, size - 1 - y);
+    let d = Math.min(cx, cy);
+    if (cx < rad && cy < rad) d = rad - Math.hypot(rad - cx - 0.5, rad - cy - 0.5) - 0.5;
+    if (d < -0.5) { set(x, y, [0, 0, 0], 0); continue; }
+    if (d < 0.5) { set(x, y, [8, 12, 8], Math.round(255 * Math.min(1, d + 0.5) * (d < 0 ? 0.6 : 1))); continue; }
+    const ring = Math.floor(d + 0.5);
+    if (ring <= 3) set(x, y, shade(x, y, ring));
+  }
+  const out = join(OUT, `${p.id}.png`);
+  writePng(out, size, size, px);
+  return { id: p.id, size: [size, size], colors: null, grid: [1, 1], contested: 0, bg_removed: null };
 }
 
 async function pool(items, n, fn) {

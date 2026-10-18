@@ -2,7 +2,7 @@
 //! returns named metrics. The Monte Carlo driver calls these many times.
 
 use crate::build::Build;
-use crate::engine::{Kind, Outcome, Phase, Sim, Stop, TraceEv, ENV_DUEL, ENV_PULL};
+use crate::engine::{Kind, Outcome, Phase, Sim, Stop, TraceEv, ENV_DUEL, ENV_PULL, ENV_SKIRMISH};
 use crate::model::*;
 use crate::vars::*;
 use std::collections::BTreeMap;
@@ -44,6 +44,7 @@ pub fn run_rep_traced(inp: &RepInput) -> RepOut {
         ScenarioKind::Leveling { pull, minutes, enemy, travel, mix, dmg_scale } => leveling(inp, *pull, *minutes, enemy, *travel, mix.as_deref(), *dmg_scale),
         ScenarioKind::Boss { duration, enemy, execute_by_time, tank } => boss(inp, *duration, enemy, *execute_by_time, tank.as_deref()),
         ScenarioKind::Duel { max_time, .. } => duel(inp, *max_time),
+        ScenarioKind::Skirmish { max_time, you_first, opponents } => skirmish(inp, *max_time, *you_first, opponents),
         ScenarioKind::Pressure { attacker, attackers, lo, hi, steps, max_time, win_needs_kill } => {
             pressure(inp, attacker, *attackers, *lo, *hi, *steps, *max_time, *win_needs_kill)
         }
@@ -546,6 +547,7 @@ fn duel(inp: &RepInput, max_time: f64) -> RepOut {
     put(&mut v, "score_first", if first { score } else { 0.0 });
     put(&mut v, "score_second", if first { 0.0 } else { score });
     put(&mut v, "duration", el);
+    put(&mut v, "engine_spins", sim.spins as f64);
     let m = &sim.metrics[a];
     put(&mut v, "dps", m.dmg / el.max(1e-9));
     put(&mut v, "healed", m.heal);
@@ -555,6 +557,117 @@ fn duel(inp: &RepInput, max_time: f64) -> RepOut {
     breakdown(&mut v, "dps:", &m.dmg_by, el);
     line_counts(&mut v, &sim, a, el, 1.0, None);
     (v, sim.log.take(), sim.trace.take())
+}
+
+/// The standard presets (every build file marked `kind = "standard"`), by id.
+fn standard_presets() -> Vec<String> {
+    let mut v: Vec<String> = crate::embedded::BUILD_FILES
+        .iter()
+        .filter(|(_, text)| text.lines().any(|l| l.trim() == "kind = \"standard\""))
+        .map(|(p, _)| p.trim_end_matches(".toml").to_string())
+        .collect();
+    v.sort();
+    v
+}
+
+/// One open-world fight against `opp`: both have seen each other 30 to 40
+/// yards apart, and the side striking first moves at once while the other
+/// waits for that first hostile move, then for its own reaction. Returns
+/// (score, win, loss, draw, timeout, seconds, your damage).
+fn skirmish_fight<'w>(inp: &RepInput<'w>, opp: &Build, k: usize, you_first: bool, max_time: f64, log: bool) -> ([f64; 8], Option<Vec<String>>, Option<Vec<TraceEv>>) {
+    let seed = crate::rng::derive_seed(inp.seed, &[0x534b_4952, k as u64]);
+    let mut sim = Sim::new(inp.w, seed, inp.opts.to_vec());
+    if log {
+        sim.log = Some(vec![]);
+        sim.trace = Some(vec![]);
+    }
+    let a = sim.spawn_player(inp.build, 0, 1);
+    let b = sim.spawn_player(opp, 1, 2);
+    sim.give_opts(b, opponent_opts(inp, opp));
+    sim.prep([a, b]);
+    // you've seen each other: nobody starts in Stealth
+    for x in [a, b] {
+        while let Some(j) = sim.actors[x].auras.iter().position(|i| inp.w.auras[i.def as usize].stealth) {
+            sim.remove_aura_at(x, j, false);
+        }
+        sim.top_up(x);
+    }
+    sim.actors[a].target = Some(b);
+    sim.actors[b].target = Some(a);
+    let mut env = sim.env(ENV_SKIRMISH, k as u64);
+    let gap = env.range(30.0, 40.0);
+    sim.flip = env.f64() < 0.5;
+    sim.place(a, 0.0);
+    sim.place(b, gap);
+    for (o, x) in [(a, 0.0), (b, gap)] {
+        for pt in sim.actors[o].pets.clone() {
+            sim.place(pt, x);
+        }
+    }
+    let defender = if you_first { b } else { a };
+    sim.actors[defender].waits = true;
+    sim.enter_combat();
+    let start = sim.t;
+    sim.opener(a);
+    sim.opener(b);
+    sim.run(Stop::Fight { until: start + max_time });
+    let el = sim.t - start;
+    let (a_dead, b_dead) = (!sim.actors[a].alive, !sim.actors[b].alive);
+    let b01 = |x: bool| if x { 1.0 } else { 0.0 };
+    let (win, loss, draw, timeout) = (b_dead && !a_dead, a_dead && !b_dead, a_dead && b_dead, !a_dead && !b_dead);
+    if draw {
+        sim.tracef(|s| s.tev("draw", a, Some(b), ""));
+    }
+    let score = b01(win) + 0.5 * b01(draw || timeout);
+    let dmg = sim.metrics[a].dmg;
+    ([score, b01(win), b01(loss), b01(draw), b01(timeout), el, dmg, sim.spins as f64], sim.log.take(), sim.trace.take())
+}
+
+/// Open-world PvP: one fight against each opponent (one build of each class,
+/// or every standard build when the `skirmish_pool` setting says so). The
+/// headline is the average score; each class gets its own, and with every
+/// standard build each build does too.
+fn skirmish(inp: &RepInput, max_time: f64, you_first: bool, main: &[String]) -> RepOut {
+    let w = inp.w;
+    let opt = |name: &str| w.opt_index(name).map_or(0.0, |i| inp.opts[i as usize]);
+    let ids = if opt("skirmish_pool") >= 0.5 { standard_presets() } else { main.to_vec() };
+    let show = opt("skirmish_show").max(0.0) as usize;
+    let mut v = Values::new();
+    let mut sums = [0.0; 8];
+    let mut n = 0.0f64;
+    let mut by_class: BTreeMap<String, (f64, f64)> = BTreeMap::new();
+    let (mut log, mut trace) = (None, None);
+    for (k, id) in ids.iter().enumerate() {
+        let Some(opp) = preset(w, id, inp.build.level) else { continue };
+        let (r, l, t) = skirmish_fight(inp, &opp, k, you_first, max_time, inp.log && k == show.min(ids.len() - 1));
+        if l.is_some() {
+            (log, trace) = (l, t);
+        }
+        for j in 0..8 {
+            sums[j] += r[j];
+        }
+        n += 1.0;
+        let cls = w.classes[opp.class].id.clone();
+        let e = by_class.entry(cls).or_insert((0.0, 0.0));
+        e.0 += r[0];
+        e.1 += 1.0;
+        if ids.len() > main.len() {
+            put(&mut v, &format!("score:{id}"), r[0]);
+        }
+    }
+    let n = n.max(1.0);
+    put(&mut v, "score", sums[0] / n);
+    put(&mut v, "win", sums[1] / n);
+    put(&mut v, "loss", sums[2] / n);
+    put(&mut v, "draw", sums[3] / n);
+    put(&mut v, "timeout", sums[4] / n);
+    put(&mut v, "duration", sums[5] / n);
+    put(&mut v, "dps", sums[6] / sums[5].max(1e-9));
+    put(&mut v, "engine_spins", sums[7]);
+    for (c, (s, m)) in &by_class {
+        put(&mut v, &format!("score:{c}"), s / m.max(1.0));
+    }
+    (v, log, trace)
 }
 
 #[allow(clippy::too_many_arguments)]

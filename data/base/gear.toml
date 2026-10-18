@@ -677,3 +677,202 @@ hit = 4
 armor = 1600
 mh = { min = 55, max = 102, speed = 1.8, type = "dagger" }
 oh = { min = 50, max = 94, speed = 1.8, type = "dagger" }
+
+# Hybrid kits: Forever's crafted sets and quest weapons put "+X spell damage
+# and healing" on melee gear (about +7 to 8 a piece at levels 20 to 25:
+# Totemic Leather Pants +7, Rhahk'Zor's Hammer +8). Bonus healing already
+# gives a third as much spell damage here (core.toml heal_to_spell_damage),
+# so X of both is heal_power X plus sp two thirds of X. Weapons that carry
+# spell power have a little less damage per second than the plain kits'.
+
+[gear.leather_feral_sp]
+desc = "Feral leather with a two-hander and spell power: Totemic-style leather (Strength, Intellect, spell damage and healing) and a staff or mace that carries spell power, like Rhahk'Zor's Hammer. For druids who shift out to heal or cast."
+[[gear.leather_feral_sp.levels]]
+level = 10
+str = 6
+agi = 5
+sta = 7
+int = 6
+sp = 3
+heal_power = 4
+armor = 128
+mh = { min = 18, max = 28, speed = 3.0, type = "staff" }
+[[gear.leather_feral_sp.levels]]
+level = 20
+str = 15
+agi = 11
+sta = 18
+int = 16
+sp = 12
+heal_power = 18
+armor = 320
+mh = { min = 30, max = 45, speed = 3.0, type = "staff" }
+[[gear.leather_feral_sp.levels]]
+level = 40
+str = 42
+agi = 32
+sta = 55
+int = 45
+sp = 33
+heal_power = 50
+crit = 1
+hit = 1
+armor = 900
+mh = { min = 68, max = 102, speed = 3.2, type = "staff" }
+[[gear.leather_feral_sp.levels]]
+level = 60
+str = 110
+agi = 85
+sta = 150
+int = 110
+sp = 80
+heal_power = 120
+crit = 2
+hit = 3
+armor = 1700
+mh = { min = 117, max = 176, speed = 3.4, type = "staff" }
+
+[gear.mail_enh_sp]
+desc = "Enhancement mail with spell power: Skirmisher's and Crusader's-style mail (Strength, Intellect, spell damage and healing) and a slow two-handed axe or mace that carries spell power (an axe here, for the orc's axe bonus). Mental Dexterity turns the Intellect into attack power."
+[[gear.mail_enh_sp.levels]]
+level = 10
+str = 8
+agi = 3
+sta = 8
+int = 7
+sp = 3
+heal_power = 4
+armor = 200
+mh = { min = 22, max = 32, speed = 3.5, type = "axe2h" }
+[[gear.mail_enh_sp.levels]]
+level = 20
+str = 20
+agi = 6
+sta = 20
+int = 18
+sp = 11
+heal_power = 16
+armor = 500
+mh = { min = 35, max = 52, speed = 3.5, type = "axe2h" }
+[[gear.mail_enh_sp.levels]]
+level = 40
+str = 55
+agi = 18
+sta = 58
+int = 52
+sp = 30
+heal_power = 45
+crit = 1
+hit = 1
+armor = 1500
+mh = { min = 75, max = 112, speed = 3.5, type = "axe2h" }
+[[gear.mail_enh_sp.levels]]
+level = 60
+str = 150
+agi = 45
+sta = 160
+int = 135
+sp = 73
+heal_power = 110
+crit = 3
+hit = 3
+armor = 2700
+mh = { min = 128, max = 192, speed = 3.6, type = "axe2h" }
+
+[gear.plate_ret_sp]
+desc = "Retribution plate with spell power: Justicar's-style plate (Strength, Intellect, spell damage and healing) and a two-hander that carries spell power, like Rhahk'Zor's Hammer."
+[[gear.plate_ret_sp.levels]]
+level = 10
+str = 9
+agi = 1
+sta = 9
+int = 5
+sp = 3
+heal_power = 5
+armor = 300
+mh = { min = 22, max = 32, speed = 3.5, type = "mace2h" }
+[[gear.plate_ret_sp.levels]]
+level = 20
+str = 22
+agi = 4
+sta = 22
+int = 14
+sp = 12
+heal_power = 18
+armor = 750
+mh = { min = 35, max = 52, speed = 3.5, type = "mace2h" }
+[[gear.plate_ret_sp.levels]]
+level = 40
+str = 60
+agi = 12
+sta = 60
+int = 40
+sp = 33
+heal_power = 50
+crit = 1
+hit = 1
+armor = 2100
+mh = { min = 75, max = 113, speed = 3.5, type = "mace2h" }
+[[gear.plate_ret_sp.levels]]
+level = 60
+str = 165
+agi = 35
+sta = 165
+int = 90
+sp = 87
+heal_power = 130
+crit = 3
+hit = 3
+armor = 3600
+mh = { min = 128, max = 192, speed = 3.6, type = "mace2h" }
+
+[gear.plate_shock]
+desc = "Shockadin plate with Intellect and spell power: Prefect's-style plate (Intellect, spell damage and healing), a caster mace and a shield, for paladins who nuke with Holy spells rather than heal. Hit comes from Divine Precision: Forever's plate has none."
+[[gear.plate_shock.levels]]
+level = 10
+str = 4
+sta = 9
+int = 10
+spi = 2
+sp = 5
+heal_power = 7
+armor = 320
+mh = { min = 9, max = 17, speed = 2.6, type = "mace" }
+shield = { armor = 180, block_value = 5 }
+[[gear.plate_shock.levels]]
+level = 20
+str = 10
+sta = 22
+int = 24
+spi = 6
+sp = 15
+heal_power = 22
+armor = 800
+mh = { min = 14, max = 27, speed = 2.6, type = "mace" }
+shield = { armor = 450, block_value = 12 }
+[[gear.plate_shock.levels]]
+level = 40
+str = 25
+sta = 65
+int = 70
+spi = 18
+sp = 50
+heal_power = 75
+mp5 = 3
+crit = 1
+armor = 2300
+mh = { min = 34, max = 64, speed = 2.6, type = "mace" }
+shield = { armor = 1300, block_value = 30 }
+[[gear.plate_shock.levels]]
+level = 60
+str = 50
+sta = 170
+int = 170
+spi = 40
+sp = 127
+heal_power = 190
+mp5 = 8
+crit = 2
+armor = 4200
+mh = { min = 60, max = 112, speed = 2.6, type = "mace" }
+shield = { armor = 2300, block_value = 50 }

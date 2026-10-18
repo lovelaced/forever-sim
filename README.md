@@ -44,10 +44,14 @@ and every paired difference). Global flags: `--data DIR`, `--patch FILE`
 
 `web/` is a static site that runs the same engine in the visitor's browser.
 Set up one to three builds (start from one in `builds/` or spend talent
-points in WoW-style talent trees), press Simulate, and every build plays
-through every test. Healers (the healer builds, and any build marked to heal
-in the editor) also take three healing tests: a dungeon, a main tank and, at
-level 60, a raid. Each test is a row with a scene from the world where the
+points in WoW-style talent trees; pick a race and a gender, which change the
+hero you see but not the results), press Simulate, and every build plays
+through every test on the tab you're on. PvE holds leveling, the dungeon
+boss and, for every build of a class that can heal, three healing tests: a
+dungeon, a main tank and, at level 60, a raid. PvP holds the two ambushes,
+the two open-world fights (you strike first, they strike first) and the
+duel; an open-world row opens on your score against each class, with a
+button that fights all 27 standard builds. Each test is a row with a scene from the world where the
 main build's hero stands, and every build's result beside it. The scenes
 follow the main build's level and side: Westfall and the Barrens in the 10s,
 Duskwood and Ashenvale in the 20s, Arathi and Thousand Needles in the 30s,
@@ -192,6 +196,7 @@ they say).
 | `boss` | 120 s on a +2 level boss that hits back, tanked by the Protection warrior preset at your level, with the rest of the party's buffs | DPS |
 | `pressure`, `pressure_2v1` | a geared rogue-like player opens with a 4 s stun and stuns again at 10 s; PvP diminishing returns apply | breakeven attacker DPS |
 | `duel` | a duel against another build (`--vs`), starting 5 to 10 yards apart | score (a win counts 1, a draw or timeout half) |
+| `strike_first`, `struck_first` | open-world PvP: you and an enemy player see each other 30 to 40 yards apart; one side makes the first move and the other reacts a moment later. One fight against one build of each class at your level (`opponents` in the scenario; the API's `opponents: "standard"` fights all 27 standard builds) | score, and `score:<class>` for each class |
 | `heal_dungeon` | 120 s healing a tank and three others against a +2 boss: melee and Mortal Strike on the tank, Fire Nova on everyone, Shadow Bolts on the others; fails if anyone dies | breakeven boss DPS (before armor) |
 | `heal_tank` | 180 s keeping one tank alive against a +3 boss with crushing blows: melee, Mortal Strike and Flame Breath | breakeven boss DPS |
 | `heal_raid` | level 60 only: 150 s, ten players in two groups against Onyxia: melee on the tank, Fireballs on two at random, Eruption on everyone; fails if the tank or you die, or three others do | breakeven boss DPS |
@@ -240,6 +245,13 @@ goes down at its feet, only out of combat, arms in 2 seconds and goes off on
 the first enemy within 5 yards; ranged hunters lay a Freezing Trap before
 pulling two mobs (Explosive Trap for three).
 
+**Making distance.** A player whose target is rooted or frozen, but close
+enough to hit them, steps out of its reach before starting a cast: a typical
+player half a second after the root lands, to 12 yards, an expert at once,
+to 20. Roots break once their target has taken damage worth a quarter of its
+health (`root_break`). Druids root a lone mob that reaches them once they're
+hurt, paladins stun one before healing, warlocks fear one off.
+
 **Threat.** Mobs turn on whoever passes 110% of their target's threat from
 melee range, 130% from farther away; Taunt matches the top threat. In the
 boss test you give the tank a 2 second head start and hold your damage near
@@ -276,7 +288,7 @@ same way.
 * **Assumptions.** Numbers the game does not publish are options in
   `data/base/options.toml`, each with where its default comes from (`game`,
   `community`, `classic` or `estimate`) and a citation. The website lists them
-  under Assumptions with that source.
+  under Settings with that source.
 
 ## The data
 
@@ -490,7 +502,12 @@ ones that move results most:
   Pet focus is not modeled (fixed ability cadence).
 * Gear kits are generic stat totals, the same for every build of a role, so
   results compare talents and rotations, not items. Cloth kits carry a
-  typical wand for the level. The website shows each kit's stats.
+  typical wand for the level. Four hybrid kits follow Forever's own items
+  (melee gear with spell damage and healing): feral leather with a
+  two-hander, Enhancement mail, Retribution plate and Shockadin plate. The
+  Enhancement shaman, Retribution paladin and Shockadin wear theirs; the
+  feral hybrids stay in Agility leather, which suits their cat play better.
+  The website shows each kit's stats.
 * Wands are played the typical way: started once nothing better is ready,
   never squeezed into a global cooldown, and stopped by any cast.
 * Duels start on the same tick; each side's first move waits for its own

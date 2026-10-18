@@ -65,7 +65,7 @@
     <div class="dialog-body prose">
       <h3>What it does</h3>
       <p>Forever Sim plays your character through the same fights thousands of times. Every swing, spell, critical hit, dodge and proc is a dice roll, just as in the game, so no two fights go quite the same way. Averaging them shows what a build really does.</p>
-      <p>Set up one to three builds, press Simulate, and each build plays through every test: leveling against the open world’s mix of beasts, humanoids (some of them casters), undead and more, one, two or three at a time; two tough mobs at once; a dungeon boss with a tank and a party’s buffs; two world PvP ambushes; and duels between your builds. Healers also heal a group: a dungeon, a main tank and, at level 60, a raid. Everything runs on your own computer; nothing is uploaded.</p>
+      <p>Set up one to three builds, press Simulate, and each build plays through every test on the tab you’re on. PvE has leveling against the open world’s mix of beasts, humanoids (some of them casters), undead and more, one, two or three at a time; two tough mobs at once; a dungeon boss with a tank and a party’s buffs; and, for every class that can heal, healing a dungeon, a main tank and at level 60 a raid. PvP has two world PvP ambushes, two open-world fights against one build of each class (one where you strike first, one where they do), and duels between your builds. Everything runs on your own computer; nothing is uploaded.</p>
       <p>Two more tabs run bigger jobs. Class rankings puts every build on the site through seven tests, and the healers through the healing tests, and ranks them. Duels pits one build against every other: both start a few yards apart on the same tick, and whoever reacts first strikes first.</p>
       <h3>Reading the results</h3>
       <ul>
@@ -77,10 +77,10 @@
       <h3>Trying a change</h3>
       <p>Press “Add a build to compare” to copy a build, change something in the copy, and simulate. After you change a build and simulate again, the results say what your change did, measured on the same fights as before.</p>
       <h3>What it cannot tell you</h3>
-      <p>Talents marked with a grey corner are not simulated yet and change nothing. Everyone moves along one straight line, so there’s no terrain, line of sight or pathing. A few numbers the game does not publish are guesses; you can change them under Assumptions. The simulated player plays like a typical player: it takes about half a second to react and slips now and then. Switch it to Expert under Assumptions to see what a build does at its best.</p>
+      <p>Talents marked with a grey corner are not simulated yet and change nothing. Everyone moves along one straight line, so there’s no terrain, line of sight or pathing. A few numbers the game does not publish are guesses; you can change them under Settings. The simulated player plays like a typical player: it takes about half a second to react and slips now and then. Switch it to Expert under Settings to see what a build does at its best.</p>
       <h3>Credits</h3>
       <p>Talent, class, race and spell icons are the game’s own artwork, © Blizzard Entertainment, from <a href="https://github.com/Gethe/wow-ui-textures" target="_blank" rel="noopener">wow-ui-textures</a>. Spell, talent and racial numbers come from the game's own data tables, as published by <a href="https://wago.tools" target="_blank" rel="noopener">wago.tools</a>; talent icon choices follow <a href="https://wowforevertalents.com" target="_blank" rel="noopener">wowforevertalents.com</a>. Builds follow the community's Forever guides, credited in each build's file.</p>
-      <p>The frames, buttons, scenes and heroes are original fan art, drawn with OpenAI’s image model through Codex and cleaned into pixel art with <a href="https://github.com/lovelaced/pixfix" target="_blank" rel="noopener">pixfix</a>.</p>
+      <p>The frames, buttons, scenes and heroes are original fan art, drawn with OpenAI’s image model through Codex and cleaned into pixel art with <a href="https://github.com/lovelaced/pixfix" target="_blank" rel="noopener">pixfix</a>. The two Skyborne races’ portrait icons are painted the same way, in the style of the game’s own race icons.</p>
       <p>Type: Ortica by Benedetta Bovani (Collletttivo) and Uncut Sans by Kasper Nordkvist, both under the SIL Open Font License, found through <a href="https://uncut.wtf" target="_blank" rel="noopener">uncut.wtf</a>. Stand-in icons by Lorc, Delapouite and contributors from <a href="https://game-icons.net" target="_blank" rel="noopener">game-icons.net</a> (<a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>).</p>
       <p>World of Warcraft and its artwork are trademarks and copyright of Blizzard Entertainment. This is an unofficial fan project and is not affiliated with or endorsed by Blizzard.</p>
     </div>
@@ -90,7 +90,7 @@
   </dialog>
 
   <dialog id="assumptions" class="panel" aria-labelledby="assumptions-title">
-    <h2 class="panel-title seal-title" id="assumptions-title" tabindex="-1" autofocus><img class="px" src="art/seal-estimate.png" alt="">Assumptions</h2>
+    <h2 class="panel-title seal-title" id="assumptions-title" tabindex="-1" autofocus><img class="px" src="art/seal-estimate.png" alt="">Settings</h2>
     <div class="dialog-body" id="assumptions-body"></div>
     <div class="dialog-actions">
       <button class="btn" id="assumptions-close" type="button">Done</button>

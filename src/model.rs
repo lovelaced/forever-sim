@@ -555,7 +555,7 @@ pub struct AuraDef {
     pub per_source: bool,
     pub debuff: bool,
     pub mechanic: Option<Mechanic>,
-    pub break_on_damage: Option<f64>,
+    pub break_on_damage: Option<Expr>,
     pub tick: Option<(Expr, Vec<Effect>)>,
     pub mods: Vec<StatMod>,
     pub spell_mods: Vec<SpellMod>,
@@ -902,6 +902,10 @@ pub enum ScenarioKind {
     /// boss at your level.
     Boss { duration: f64, enemy: String, execute_by_time: bool, tank: Option<String> },
     Duel { max_time: f64, opponent: Option<String> },
+    /// Open-world PvP: you and one enemy player see each other 30 to 40
+    /// yards apart and one strikes first (`you_first`), once against each
+    /// of `opponents` (preset builds at your level).
+    Skirmish { max_time: f64, you_first: bool, opponents: Vec<String> },
     Pressure { attacker: String, attackers: u32, lo: f64, hi: f64, steps: u32, max_time: f64, win_needs_kill: bool },
     Healing(HealingDef),
 }

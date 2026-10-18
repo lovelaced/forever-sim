@@ -92,6 +92,8 @@ export async function loadIconManifest() {
 }
 
 function iconUrl(wow) {
+  // our own painted icons live with the site's art
+  if (wow && wow.startsWith('art/') && !missingArt.has(wow)) return wow;
   if (!wow || missingArt.has(wow) || !iconFiles || !iconFiles[wow]) return null;
   return WOW_ICON_DIR + iconFiles[wow];
 }
@@ -262,4 +264,20 @@ export function debounce(fn, ms) {
     clearTimeout(t);
     t = setTimeout(() => fn(...a), ms);
   };
+}
+
+// A hero sprite that tries the other gender's picture while one isn't drawn,
+// and goes away if neither is.
+export function heroImg(img, other) {
+  const onError = () => {
+    if (!img.dataset.other) {
+      img.dataset.other = '1';
+      img.src = other(img.getAttribute('src'));
+    } else {
+      img.removeEventListener('error', onError);
+      img.remove();
+    }
+  };
+  img.addEventListener('error', onError);
+  return img;
 }

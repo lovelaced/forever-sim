@@ -24,6 +24,8 @@ break_on_damage = true
 name = "Rooted"
 mechanic = "root"
 debuff = true
+# damage breaks it (a share of the holder's health, setting root_break)
+break_on_damage = "opt.root_break"
 
 [common.auras.frozen]
 name = "Frozen"

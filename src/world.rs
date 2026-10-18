@@ -1260,8 +1260,9 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
                     o.unit = s(t, "unit").unwrap_or_default();
                     o.source = s(t, "source").unwrap_or_else(|| "estimate".into());
                     o.cite = s(t, "cite").unwrap_or_default();
-                    if !["toggle", "pct", "num", "choice"].contains(&o.kind.as_str()) {
-                        return Err(format!("options.{k}.kind: use toggle, pct, num or choice"));
+                    // internal: a switch the website sets, not a setting
+                    if !["toggle", "pct", "num", "choice", "internal"].contains(&o.kind.as_str()) {
+                        return Err(format!("options.{k}.kind: use toggle, pct, num, choice or internal"));
                     }
                     if (o.kind == "choice") != !o.choices.is_empty() {
                         return Err(format!("options.{k}: a choice needs `choices`, and only a choice has them"));
@@ -1623,10 +1624,12 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
             Some(m) => Some(Mechanic::from_name(&m).ok_or_else(|| format!("{path}.mechanic: unknown '{m}'"))?),
             None => None,
         };
+        // true: any damage; a number or formula: damage worth that share of
+        // the holder's health (worked out when it lands)
         let break_on_damage = match at.get("break_on_damage") {
-            Some(Value::Boolean(true)) => Some(0.0),
+            Some(Value::Boolean(true)) => Some(reg.expr("0", ctx, &path)?),
             Some(Value::Boolean(false)) | None => None,
-            Some(v) => Some(src_of(v).and_then(|x| x.parse().ok()).unwrap_or(0.0)),
+            Some(_) => reg.ex(at, "break_on_damage", ctx, &path)?,
         };
         let tick = match sub(at, "tick") {
             Some(tt) => Some((
@@ -1969,6 +1972,15 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
                 tank: s(st, "tank"),
             },
             Some("duel") => ScenarioKind::Duel { max_time: f(st, "max_time", 180.0), opponent: s(st, "opponent") },
+            Some("skirmish") => ScenarioKind::Skirmish {
+                max_time: f(st, "max_time", 120.0),
+                you_first: match s(st, "first").as_deref() {
+                    Some("you") | None => true,
+                    Some("them") => false,
+                    Some(x) => return Err(format!("{p}.first: 'you' or 'them', not '{x}'")),
+                },
+                opponents: strs(st, "opponents"),
+            },
             Some("pressure") => ScenarioKind::Pressure {
                 attacker: s(st, "attacker").unwrap_or("pressure_rogue".into()),
                 attackers: f(st, "attackers", 1.0) as u32,
@@ -2002,7 +2014,7 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         let primary_default = match &kind {
             ScenarioKind::Leveling { .. } => "kills_per_hour",
             ScenarioKind::Boss { .. } => "dps",
-            ScenarioKind::Duel { .. } => "score",
+            ScenarioKind::Duel { .. } | ScenarioKind::Skirmish { .. } => "score",
             ScenarioKind::Pressure { .. } => "breakeven",
             ScenarioKind::Healing(_) => "heal_breakeven",
         };

@@ -92,7 +92,7 @@ icon = "spell_nature_stranglevines"
 tree = "Balance"
 points = 10
 ranks = 3
-text = "Entangling Roots damage +75%. The extra damage the root takes before breaking is not simulated (roots here don't break on damage)."
+text = "Entangling Roots damage +75%. The extra damage a root takes before it breaks isn't simulated: the spell data only raises the damage."
 [talents.natures_splendor]
 icon = "spell_nature_natureresistancetotem"
 tree = "Balance"
@@ -538,8 +538,8 @@ duration = 45
 charges = 1
 text = "The first melee attacker is caught in Entangling Roots of Nature's Grasp's rank; the roots' damage over time is applied at once."
 procs = [{ on = "struck_melee", effects = [
-  { type = "aura", aura = "root", target = "target", duration = "r.dur" },
   { type = "damage", school = "nature", target = "target", hit = "spell", can_crit = false, no_proc = true, amount = "r.dot", coef = "0.02 * r.dur", mult = "(1 + 0.25 * t.improved_entangling_roots) * (1 + 0.01 * t.genesis)", tag = "Nature's Grasp" },
+  { type = "aura", aura = "root", target = "target", duration = "r.dur" },
   { type = "consume" },
 ] }]
 [auras.faerie_fire]
@@ -1000,7 +1000,7 @@ icon = "spell_nature_stranglevines"
 school = "nature"
 cast_time = 1.5
 forms = ["none", "moonkin_form"]
-requires = "!target.rooted && (target.is_player || target.fleeing)"
+requires = "!target.rooted"
 ranks = [
   { level = 8, id = 339, total = 20, dur = 12, mana = 50 },
   { level = 18, id = 1062, total = 45, dur = 15, mana = 65 },
@@ -1274,6 +1274,7 @@ actions = [
   { cast = "barkskin", if = "hp_pct < 0.5" },
   { cast = "natures_grasp", if = "hp_pct < 0.6 && target.is_player" },
   { cast = "caster_form", if = "form.cat_form && hp_pct < 0.4 && mana_pct > 0.3" },
+  { cast = "entangling_roots", if = "!form.any && hp_pct < 0.6 && target.dist < 6 && enemies_active < 2 && !target.boss && !target.is_player && !target.rooted" },   # root it and step out of reach to heal
   { cast = "natures_swiftness", if = "!form.any && hp_pct < 0.3" },
   { cast = "healing_touch", if = "!form.any && aura.natures_swiftness.up" },
   { cast = "rejuvenation", if = "!form.any && hp_pct < 0.85" },
@@ -1366,6 +1367,7 @@ actions = [
   { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
   { cast = "hibernate", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && (target.beast || target.dragonkin) && !target.boss && !target.incapacitated && !target.feared" },   # sleep the add
   { cast = "entangling_roots", if = "target.fleeing" },
+  { cast = "entangling_roots", if = "target.dist < 6 && enemies_active < 2 && hp_pct < 0.7 && !target.boss && !target.is_player && target.hp_pct > 0.2" },   # it reached you: root it, step out of reach, cast
   { cast = "hurricane", if = "enemies_active >= 3 && cc_near == 0" },
   { cast = "moonfire", if = "target.hp_pct > 0.25 || target.boss" },
   { cast = "moonfire", target = "other_enemy", pick = "undotted", if = "enemies >= 2 && target.hp_pct > 0.4 && !target.incapacitated && !target.feared" },   # spread it
@@ -1418,6 +1420,7 @@ actions = [
   { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
   { cast = "hibernate", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && (target.beast || target.dragonkin) && !target.boss && !target.incapacitated && !target.feared" },   # sleep the add
   { cast = "entangling_roots", if = "target.fleeing" },
+  { cast = "entangling_roots", if = "target.dist < 6 && enemies_active < 2 && hp_pct < 0.7 && !target.boss && !target.is_player && target.hp_pct > 0.2" },   # it reached you: root it, step out of reach, cast
   { cast = "hurricane", if = "enemies_active >= 3 && cc_near == 0" },
   { cast = "moonfire", if = "target.hp_pct > 0.25 || target.boss" },
   { cast = "moonfire", target = "other_enemy", pick = "undotted", if = "enemies >= 2 && target.hp_pct > 0.4 && !target.incapacitated && !target.feared" },   # spread it

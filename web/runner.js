@@ -8,14 +8,14 @@
 // the shared settings (`env`) are unchanged; the engine is deterministic, so
 // that variant is exactly what a new run would give.
 import * as M from './meta.js';
-import { S, env, bus, sig, envKey, apiBuild, nameOf, presetOf, primaryOf, accuracyOf, accuracyRank, buildOf, saveRows, takesTest } from './state.js';
+import { S, env, bus, sig, envKey, apiBuild, nameOf, presetOf, primaryOf, accuracyOf, accuracyRank, buildOf, saveRows, savePool, takesTest } from './state.js';
 
-// Tests in the scorecard, in display order. Head to head needs two builds,
-// or an opponent picked for a single build; the healing tests need a healer
-// (the raid, one at level 60).
-export function scorecardTests() {
+// Tests in the scorecard's tab (PvE or PvP), in display order. Head to head
+// needs two builds, or an opponent picked for a single build; the healing
+// tests need a class that heals (the raid, level 60).
+export function scorecardTests(mode = S.mode) {
   return M.SCENARIOS.map((s) => s.id).filter((id) =>
-    env.catalog.scenarios.some((x) => x.id === id) && (id !== 'duel' || S.builds.length > 1 || !!S.opponent)
+    M.modeOf(id) === mode && env.catalog.scenarios.some((x) => x.id === id) && (id !== 'duel' || S.builds.length > 1 || !!S.opponent)
     && S.builds.some((b) => takesTest(b, id)));
 }
 
@@ -41,9 +41,11 @@ function opponentApi(level) {
 }
 
 // Every request one test needs, fixed at the moment Simulate is pressed.
-function planTest(test, acc) {
+// `pool`: an open-world PvP test against every standard build.
+function planTest(test, acc, pool = false) {
   const a = accuracyOf(acc);
   const base = { op: 'start', scenario: test, precision: a.precision, max_reps: a.max_reps, min_reps: 32 };
+  if (pool) base.opponents = 'standard';
   if (Object.keys(S.opts).length) base.opts = { ...S.opts };
   const roles = rolesOf(S.builds.filter((b) => takesTest(b, test)));
   const api = (r) => apiBuild(r.build, nameOf(r.build));
@@ -77,18 +79,29 @@ export function upToDate(test, acc) {
   return want.roles.every((r) => row.roles.some((x) => x.sig === r.sig));
 }
 
+// An open-world PvP test's run against every standard build, if it still
+// stands for the builds as they are (same settings, every build in it).
+export function poolOf(test) {
+  const p = S.pool[test];
+  if (!p || p.env !== envKey()) return null;
+  const want = rolesOf(S.builds.filter((b) => takesTest(b, test)));
+  return want.every((r) => p.roles.some((x) => x.sig === r.sig)) ? p : null;
+}
+
 const estimate = (st, est) => {
   const worst = Math.max(0, ...st.precision.filter((x) => x != null));
   if (st.reps >= 32 && worst > 0) return Math.min(st.max_reps, Math.max(st.reps, st.reps * (worst / st.target) ** 2));
   return Math.max(est, st.reps);
 };
 
-// Runs the scorecard (or just `only`). Rows fill in as their tests finish.
-export async function simulateAll({ only = null, acc = S.accuracy } = {}) {
+// Runs the scorecard's tab (or just `only`). Rows fill in as their tests
+// finish. `pool`: run `only` against every standard build (an open-world
+// PvP test's breakdown), kept apart from its row.
+export async function simulateAll({ only = null, acc = S.accuracy, pool = false } = {}) {
   if (S.run && !S.run.finished) return;
-  const order = only ? [only] : [S.open, ...M.RUN_ORDER].filter((t, i, a) => t && a.indexOf(t) === i && scorecardTests().includes(t));
-  const jobs = order.filter((t) => only || !upToDate(t, acc)).map((t) => planTest(t, acc));
-  const run = { jobs: jobs.map((j) => j.test), i: 0, frac: 0, test: null, acc, cancelled: false, finished: false, stopped: false, t0: performance.now(), ms: 0, full: !only };
+  const order = only ? [only] : [S.open, ...M.RUN_ORDER, ...scorecardTests()].filter((t, i, a) => t && a.indexOf(t) === i && scorecardTests().includes(t));
+  const jobs = order.filter((t) => only || !upToDate(t, acc)).map((t) => planTest(t, acc, pool));
+  const run = { jobs: jobs.map((j) => j.test), i: 0, frac: 0, test: null, acc, cancelled: false, finished: false, stopped: false, t0: performance.now(), ms: 0, full: !only, pool, mode: S.mode };
   S.run = run;
   if (!jobs.length) {
     run.finished = true;
@@ -125,7 +138,12 @@ export async function simulateAll({ only = null, acc = S.accuracy } = {}) {
       continue;
     }
     if (run.cancelled) break;
-    await commit(job, results, performance.now() - t0);
+    if (pool) {
+      S.pool[job.test] = { acc: job.acc, env: job.env, roles: job.roles, res: results[0], ms: performance.now() - t0 };
+      savePool();
+    } else {
+      await commit(job, results, performance.now() - t0);
+    }
     run.i++;
     run.frac = run.i / jobs.length;
     bus.render();
@@ -133,7 +151,7 @@ export async function simulateAll({ only = null, acc = S.accuracy } = {}) {
   run.finished = true;
   run.ms = performance.now() - run.t0;
   run.stopped = run.cancelled;
-  if (!run.cancelled) {
+  if (!run.cancelled && !pool) {
     for (const b of S.builds) S.ranAs.set(b.uid, { sig: sig(b), build: structuredClone(b), sheet: S.sheets.get(b.uid) || null });
   }
   saveRows();

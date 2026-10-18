@@ -18,7 +18,7 @@ function pickCol(cols) {
 }
 
 function portrait(b) {
-  return h('span.mini-portrait', art(M.RACE_ICONS[b.race] || 'rune-stone', raceOf(b.race)?.icon));
+  return h('span.mini-portrait', art(M.RACE_ICONS[b.race] || 'rune-stone', M.raceIcon(b.race, b.gender)));
 }
 
 // "Showing Arms (main build)" with buttons for the other builds.
@@ -162,7 +162,7 @@ function healShare(v) {
 // ------------------------------------------------------------------ one fight
 
 function traceKey(ctx, b) {
-  return JSON.stringify([ctx.test, sig(b), S.opts, ctx.test === 'duel' ? S.opponent : null]);
+  return JSON.stringify([ctx.test, sig(b), S.opts, ctx.test === 'duel' ? S.opponent : S.versus[ctx.test] ?? null]);
 }
 
 export function logPanel(ctx, cols) {
@@ -175,7 +175,7 @@ export function logPanel(ctx, cols) {
   const box = h('section.played.fight', whoseHead(cols, c, leveling ? 'One pull:' : healing ? 'The first minute of the hardest fight it held:' : 'The first 30 seconds:'));
   if (!tr) {
     traces.set(key, 'loading');
-    env.engine.call({ op: 'trace', scenario: ctx.test, build: apiBuild(c.b, nameOf(c.b)), opts: S.opts })
+    env.engine.call({ op: 'trace', scenario: ctx.test, build: apiBuild(c.b, nameOf(c.b)), opts: S.opts, versus: S.versus[ctx.test] ?? undefined })
       .then((r) => { traces.set(key, r); bus.detail(); })
       .catch((e) => { traces.set(key, { error: e.message || String(e) }); bus.detail(); });
   }

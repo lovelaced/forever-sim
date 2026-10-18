@@ -391,174 +391,6 @@
   "contested": 0.598,
   "bg_removed": 101
  },
- "hero-human-warrior": {
-  "id": "hero-human-warrior",
-  "size": [
-   48,
-   60
-  ],
-  "colors": 33,
-  "grid": [
-   21.15,
-   21.15
-  ],
-  "contested": 0.382,
-  "bg_removed": 192
- },
- "hero-human-priest": {
-  "id": "hero-human-priest",
-  "size": [
-   44,
-   60
-  ],
-  "colors": 33,
-  "grid": [
-   20.87,
-   20.87
-  ],
-  "contested": 0.396,
-  "bg_removed": 232
- },
- "hero-dwarf-paladin": {
-  "id": "hero-dwarf-paladin",
-  "size": [
-   49,
-   45
-  ],
-  "colors": 33,
-  "grid": [
-   23.53,
-   23.53
-  ],
-  "contested": 0.474,
-  "bg_removed": 164
- },
- "hero-night_elf-hunter": {
-  "id": "hero-night_elf-hunter",
-  "size": [
-   57,
-   67
-  ],
-  "colors": 33,
-  "grid": [
-   18.56,
-   18.56
-  ],
-  "contested": 0.439,
-  "bg_removed": 423
- },
- "hero-gnome-mage": {
-  "id": "hero-gnome-mage",
-  "size": [
-   32,
-   34
-  ],
-  "colors": 33,
-  "grid": [
-   33.3,
-   33.3
-  ],
-  "contested": 0.424,
-  "bg_removed": 156
- },
- "hero-high_order-rogue": {
-  "id": "hero-high_order-rogue",
-  "size": [
-   57,
-   64
-  ],
-  "colors": 33,
-  "grid": [
-   18.98,
-   18.98
-  ],
-  "contested": 0.329,
-  "bg_removed": 278
- },
- "hero-orc-shaman": {
-  "id": "hero-orc-shaman",
-  "size": [
-   62,
-   64
-  ],
-  "colors": 33,
-  "grid": [
-   17.83,
-   17.83
-  ],
-  "contested": 0.486,
-  "bg_removed": 275
- },
- "hero-undead-rogue": {
-  "id": "hero-undead-rogue",
-  "size": [
-   48,
-   59
-  ],
-  "colors": 33,
-  "grid": [
-   21.17,
-   21.17
-  ],
-  "contested": 0.36,
-  "bg_removed": 265
- },
- "hero-undead-warlock": {
-  "id": "hero-undead-warlock",
-  "size": [
-   53,
-   59
-  ],
-  "colors": 33,
-  "grid": [
-   21.22,
-   21.22
-  ],
-  "contested": 0.493,
-  "bg_removed": 404
- },
- "hero-tauren-druid": {
-  "id": "hero-tauren-druid",
-  "size": [
-   71,
-   74
-  ],
-  "colors": 33,
-  "grid": [
-   16.49,
-   16.49
-  ],
-  "contested": 0.578,
-  "bg_removed": 417
- },
- "hero-troll-priest": {
-  "id": "hero-troll-priest",
-  "size": [
-   42,
-   66
-  ],
-  "colors": 33,
-  "grid": [
-   21.74,
-   21.74
-  ],
-  "contested": 0.479,
-  "bg_removed": 288
- },
- "hero-windshaper-hunter": {
-  "id": "hero-windshaper-hunter",
-  "size": [
-   54,
-   64
-  ],
-  "colors": 33,
-  "grid": [
-   19.38,
-   19.38
-  ],
-  "contested": 0.44,
-  "bg_removed": 430
- },
  "seal-community": {
   "id": "seal-community",
   "size": [
@@ -726,622 +558,6 @@
   ],
   "contested": 0.172,
   "bg_removed": 62
- },
- "hero-human-paladin": {
-  "id": "hero-human-paladin",
-  "size": [
-   58,
-   61
-  ],
-  "colors": 33,
-  "grid": [
-   19.97,
-   19.97
-  ],
-  "contested": 0.459,
-  "bg_removed": 207
- },
- "hero-human-hunter": {
-  "id": "hero-human-hunter",
-  "size": [
-   60,
-   60
-  ],
-  "colors": 33,
-  "grid": [
-   19.84,
-   19.84
-  ],
-  "contested": 0.456,
-  "bg_removed": 331
- },
- "hero-human-rogue": {
-  "id": "hero-human-rogue",
-  "size": [
-   57,
-   60
-  ],
-  "colors": 33,
-  "grid": [
-   18.91,
-   18.91
-  ],
-  "contested": 0.347,
-  "bg_removed": 231
- },
- "hero-human-mage": {
-  "id": "hero-human-mage",
-  "size": [
-   45,
-   60
-  ],
-  "colors": 33,
-  "grid": [
-   21.1,
-   21.1
-  ],
-  "contested": 0.398,
-  "bg_removed": 284
- },
- "hero-human-warlock": {
-  "id": "hero-human-warlock",
-  "size": [
-   57,
-   60
-  ],
-  "colors": 33,
-  "grid": [
-   20.16,
-   20.16
-  ],
-  "contested": 0.513,
-  "bg_removed": 372
- },
- "hero-dwarf-warrior": {
-  "id": "hero-dwarf-warrior",
-  "size": [
-   51,
-   45
-  ],
-  "colors": 33,
-  "grid": [
-   22.16,
-   22.16
-  ],
-  "contested": 0.4,
-  "bg_removed": 134
- },
- "hero-dwarf-hunter": {
-  "id": "hero-dwarf-hunter",
-  "size": [
-   42,
-   45
-  ],
-  "colors": 33,
-  "grid": [
-   27.1,
-   27.1
-  ],
-  "contested": 0.52,
-  "bg_removed": 222
- },
- "hero-dwarf-rogue": {
-  "id": "hero-dwarf-rogue",
-  "size": [
-   48,
-   45
-  ],
-  "colors": 33,
-  "grid": [
-   22.45,
-   22.45
-  ],
-  "contested": 0.36,
-  "bg_removed": 155
- },
- "hero-dwarf-priest": {
-  "id": "hero-dwarf-priest",
-  "size": [
-   39,
-   44
-  ],
-  "colors": 33,
-  "grid": [
-   25.94,
-   25.94
-  ],
-  "contested": 0.387,
-  "bg_removed": 133
- },
- "hero-dwarf-shaman": {
-  "id": "hero-dwarf-shaman",
-  "size": [
-   52,
-   45
-  ],
-  "colors": 33,
-  "grid": [
-   21.67,
-   21.67
-  ],
-  "contested": 0.475,
-  "bg_removed": 200
- },
- "hero-night_elf-warrior": {
-  "id": "hero-night_elf-warrior",
-  "size": [
-   47,
-   67
-  ],
-  "colors": 33,
-  "grid": [
-   20.07,
-   20.07
-  ],
-  "contested": 0.437,
-  "bg_removed": 272
- },
- "hero-night_elf-rogue": {
-  "id": "hero-night_elf-rogue",
-  "size": [
-   60,
-   67
-  ],
-  "colors": 33,
-  "grid": [
-   18.45,
-   18.45
-  ],
-  "contested": 0.362,
-  "bg_removed": 347
- },
- "hero-night_elf-priest": {
-  "id": "hero-night_elf-priest",
-  "size": [
-   39,
-   66
-  ],
-  "colors": 33,
-  "grid": [
-   21.5,
-   21.5
-  ],
-  "contested": 0.431,
-  "bg_removed": 248
- },
- "hero-night_elf-druid": {
-  "id": "hero-night_elf-druid",
-  "size": [
-   39,
-   66
-  ],
-  "colors": 33,
-  "grid": [
-   21.34,
-   21.34
-  ],
-  "contested": 0.415,
-  "bg_removed": 316
- },
- "hero-gnome-warrior": {
-  "id": "hero-gnome-warrior",
-  "size": [
-   33,
-   33
-  ],
-  "colors": 33,
-  "grid": [
-   30.92,
-   30.92
-  ],
-  "contested": 0.36,
-  "bg_removed": 109
- },
- "hero-gnome-rogue": {
-  "id": "hero-gnome-rogue",
-  "size": [
-   31,
-   34
-  ],
-  "colors": 33,
-  "grid": [
-   34.67,
-   34.67
-  ],
-  "contested": 0.401,
-  "bg_removed": 120
- },
- "hero-gnome-priest": {
-  "id": "hero-gnome-priest",
-  "size": [
-   29,
-   33
-  ],
-  "colors": 33,
-  "grid": [
-   34.49,
-   34.49
-  ],
-  "contested": 0.415,
-  "bg_removed": 137
- },
- "hero-gnome-warlock": {
-  "id": "hero-gnome-warlock",
-  "size": [
-   33,
-   33
-  ],
-  "colors": 33,
-  "grid": [
-   29.64,
-   29.64
-  ],
-  "contested": 0.402,
-  "bg_removed": 218
- },
- "hero-high_order-warrior": {
-  "id": "hero-high_order-warrior",
-  "size": [
-   52,
-   63
-  ],
-  "colors": 33,
-  "grid": [
-   20.89,
-   20.89
-  ],
-  "contested": 0.422,
-  "bg_removed": 273
- },
- "hero-high_order-hunter": {
-  "id": "hero-high_order-hunter",
-  "size": [
-   48,
-   63
-  ],
-  "colors": 33,
-  "grid": [
-   20.39,
-   20.39
-  ],
-  "contested": 0.45,
-  "bg_removed": 385
- },
- "hero-high_order-mage": {
-  "id": "hero-high_order-mage",
-  "size": [
-   41,
-   63
-  ],
-  "colors": 33,
-  "grid": [
-   22.27,
-   22.27
-  ],
-  "contested": 0.452,
-  "bg_removed": 278
- },
- "hero-high_order-druid": {
-  "id": "hero-high_order-druid",
-  "size": [
-   36,
-   63
-  ],
-  "colors": 33,
-  "grid": [
-   22.56,
-   22.56
-  ],
-  "contested": 0.411,
-  "bg_removed": 302
- },
- "hero-orc-warrior": {
-  "id": "hero-orc-warrior",
-  "size": [
-   53,
-   64
-  ],
-  "colors": 33,
-  "grid": [
-   19.7,
-   19.7
-  ],
-  "contested": 0.487,
-  "bg_removed": 215
- },
- "hero-orc-hunter": {
-  "id": "hero-orc-hunter",
-  "size": [
-   61,
-   63
-  ],
-  "colors": 33,
-  "grid": [
-   19.08,
-   19.08
-  ],
-  "contested": 0.484,
-  "bg_removed": 370
- },
- "hero-orc-rogue": {
-  "id": "hero-orc-rogue",
-  "size": [
-   62,
-   64
-  ],
-  "colors": 33,
-  "grid": [
-   18.83,
-   18.83
-  ],
-  "contested": 0.435,
-  "bg_removed": 258
- },
- "hero-orc-mage": {
-  "id": "hero-orc-mage",
-  "size": [
-   59,
-   64
-  ],
-  "colors": 33,
-  "grid": [
-   18.72,
-   18.72
-  ],
-  "contested": 0.441,
-  "bg_removed": 346
- },
- "hero-orc-warlock": {
-  "id": "hero-orc-warlock",
-  "size": [
-   60,
-   63
-  ],
-  "colors": 33,
-  "grid": [
-   18.98,
-   18.98
-  ],
-  "contested": 0.541,
-  "bg_removed": 470
- },
- "hero-undead-warrior": {
-  "id": "hero-undead-warrior",
-  "size": [
-   49,
-   59
-  ],
-  "colors": 33,
-  "grid": [
-   20.76,
-   20.76
-  ],
-  "contested": 0.387,
-  "bg_removed": 235
- },
- "hero-undead-paladin": {
-  "id": "hero-undead-paladin",
-  "size": [
-   45,
-   59
-  ],
-  "colors": 33,
-  "grid": [
-   21.01,
-   21.01
-  ],
-  "contested": 0.418,
-  "bg_removed": 215
- },
- "hero-undead-priest": {
-  "id": "hero-undead-priest",
-  "size": [
-   41,
-   58
-  ],
-  "colors": 33,
-  "grid": [
-   22.64,
-   22.64
-  ],
-  "contested": 0.454,
-  "bg_removed": 265
- },
- "hero-undead-mage": {
-  "id": "hero-undead-mage",
-  "size": [
-   42,
-   58
-  ],
-  "colors": 33,
-  "grid": [
-   23.01,
-   23.01
-  ],
-  "contested": 0.427,
-  "bg_removed": 299
- },
- "hero-tauren-warrior": {
-  "id": "hero-tauren-warrior",
-  "size": [
-   72,
-   75
-  ],
-  "colors": 33,
-  "grid": [
-   16.37,
-   16.37
-  ],
-  "contested": 0.558,
-  "bg_removed": 271
- },
- "hero-tauren-hunter": {
-  "id": "hero-tauren-hunter",
-  "size": [
-   73,
-   75
-  ],
-  "colors": 33,
-  "grid": [
-   16.37,
-   16.37
-  ],
-  "contested": 0.578,
-  "bg_removed": 453
- },
- "hero-tauren-shaman": {
-  "id": "hero-tauren-shaman",
-  "size": [
-   72,
-   74
-  ],
-  "colors": 33,
-  "grid": [
-   16.54,
-   16.54
-  ],
-  "contested": 0.613,
-  "bg_removed": 360
- },
- "hero-troll-warrior": {
-  "id": "hero-troll-warrior",
-  "size": [
-   63,
-   66
-  ],
-  "colors": 33,
-  "grid": [
-   18.44,
-   18.44
-  ],
-  "contested": 0.413,
-  "bg_removed": 290
- },
- "hero-troll-hunter": {
-  "id": "hero-troll-hunter",
-  "size": [
-   62,
-   67
-  ],
-  "colors": 33,
-  "grid": [
-   17.89,
-   17.89
-  ],
-  "contested": 0.432,
-  "bg_removed": 444
- },
- "hero-troll-rogue": {
-  "id": "hero-troll-rogue",
-  "size": [
-   57,
-   67
-  ],
-  "colors": 33,
-  "grid": [
-   18.51,
-   18.51
-  ],
-  "contested": 0.354,
-  "bg_removed": 310
- },
- "hero-troll-shaman": {
-  "id": "hero-troll-shaman",
-  "size": [
-   59,
-   67
-  ],
-  "colors": 33,
-  "grid": [
-   18.33,
-   18.33
-  ],
-  "contested": 0.456,
-  "bg_removed": 361
- },
- "hero-troll-mage": {
-  "id": "hero-troll-mage",
-  "size": [
-   50,
-   66
-  ],
-  "colors": 33,
-  "grid": [
-   19.57,
-   19.57
-  ],
-  "contested": 0.423,
-  "bg_removed": 360
- },
- "hero-troll-warlock": {
-  "id": "hero-troll-warlock",
-  "size": [
-   50,
-   67
-  ],
-  "colors": 33,
-  "grid": [
-   19.55,
-   19.55
-  ],
-  "contested": 0.486,
-  "bg_removed": 475
- },
- "hero-windshaper-warrior": {
-  "id": "hero-windshaper-warrior",
-  "size": [
-   46,
-   64
-  ],
-  "colors": 33,
-  "grid": [
-   21.81,
-   21.81
-  ],
-  "contested": 0.437,
-  "bg_removed": 224
- },
- "hero-windshaper-rogue": {
-  "id": "hero-windshaper-rogue",
-  "size": [
-   52,
-   64
-  ],
-  "colors": 33,
-  "grid": [
-   20.45,
-   20.45
-  ],
-  "contested": 0.371,
-  "bg_removed": 290
- },
- "hero-windshaper-shaman": {
-  "id": "hero-windshaper-shaman",
-  "size": [
-   52,
-   64
-  ],
-  "colors": 33,
-  "grid": [
-   20.38,
-   20.38
-  ],
-  "contested": 0.461,
-  "bg_removed": 300
- },
- "hero-windshaper-druid": {
-  "id": "hero-windshaper-druid",
-  "size": [
-   40,
-   63
-  ],
-  "colors": 33,
-  "grid": [
-   20.84,
-   20.84
-  ],
-  "contested": 0.407,
-  "bg_removed": 352
  },
  "scene-solo_1-horde": {
   "id": "scene-solo_1-horde",
@@ -2770,5 +1986,1909 @@
   ],
   "contested": 0.619,
   "bg_removed": 104
+ },
+ "hero-human-warrior-m": {
+  "id": "hero-human-warrior-m",
+  "size": [
+   48,
+   60
+  ],
+  "colors": 33,
+  "grid": [
+   21.15,
+   21.15
+  ],
+  "contested": 0.382,
+  "bg_removed": 192
+ },
+ "hero-human-paladin-m": {
+  "id": "hero-human-paladin-m",
+  "size": [
+   58,
+   61
+  ],
+  "colors": 33,
+  "grid": [
+   19.97,
+   19.97
+  ],
+  "contested": 0.459,
+  "bg_removed": 207
+ },
+ "hero-human-hunter-m": {
+  "id": "hero-human-hunter-m",
+  "size": [
+   60,
+   60
+  ],
+  "colors": 33,
+  "grid": [
+   19.84,
+   19.84
+  ],
+  "contested": 0.456,
+  "bg_removed": 331
+ },
+ "hero-human-rogue-m": {
+  "id": "hero-human-rogue-m",
+  "size": [
+   57,
+   60
+  ],
+  "colors": 33,
+  "grid": [
+   18.91,
+   18.91
+  ],
+  "contested": 0.347,
+  "bg_removed": 231
+ },
+ "hero-human-priest-m": {
+  "id": "hero-human-priest-m",
+  "size": [
+   44,
+   60
+  ],
+  "colors": 33,
+  "grid": [
+   20.87,
+   20.87
+  ],
+  "contested": 0.396,
+  "bg_removed": 232
+ },
+ "hero-human-mage-m": {
+  "id": "hero-human-mage-m",
+  "size": [
+   45,
+   60
+  ],
+  "colors": 33,
+  "grid": [
+   21.1,
+   21.1
+  ],
+  "contested": 0.398,
+  "bg_removed": 284
+ },
+ "hero-human-warlock-m": {
+  "id": "hero-human-warlock-m",
+  "size": [
+   57,
+   60
+  ],
+  "colors": 33,
+  "grid": [
+   20.16,
+   20.16
+  ],
+  "contested": 0.513,
+  "bg_removed": 372
+ },
+ "hero-dwarf-warrior-m": {
+  "id": "hero-dwarf-warrior-m",
+  "size": [
+   51,
+   45
+  ],
+  "colors": 33,
+  "grid": [
+   22.16,
+   22.16
+  ],
+  "contested": 0.4,
+  "bg_removed": 134
+ },
+ "hero-dwarf-paladin-m": {
+  "id": "hero-dwarf-paladin-m",
+  "size": [
+   49,
+   45
+  ],
+  "colors": 33,
+  "grid": [
+   23.53,
+   23.53
+  ],
+  "contested": 0.474,
+  "bg_removed": 164
+ },
+ "hero-dwarf-hunter-m": {
+  "id": "hero-dwarf-hunter-m",
+  "size": [
+   54,
+   44
+  ],
+  "colors": 33,
+  "grid": [
+   21.45,
+   21.45
+  ],
+  "contested": 0.466,
+  "bg_removed": 233
+ },
+ "hero-dwarf-rogue-m": {
+  "id": "hero-dwarf-rogue-m",
+  "size": [
+   48,
+   45
+  ],
+  "colors": 33,
+  "grid": [
+   22.45,
+   22.45
+  ],
+  "contested": 0.36,
+  "bg_removed": 155
+ },
+ "hero-dwarf-priest-m": {
+  "id": "hero-dwarf-priest-m",
+  "size": [
+   39,
+   44
+  ],
+  "colors": 33,
+  "grid": [
+   25.94,
+   25.94
+  ],
+  "contested": 0.387,
+  "bg_removed": 133
+ },
+ "hero-dwarf-shaman-m": {
+  "id": "hero-dwarf-shaman-m",
+  "size": [
+   52,
+   45
+  ],
+  "colors": 33,
+  "grid": [
+   21.67,
+   21.67
+  ],
+  "contested": 0.475,
+  "bg_removed": 200
+ },
+ "hero-night_elf-warrior-f": {
+  "id": "hero-night_elf-warrior-f",
+  "size": [
+   45,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   21.13,
+   21.13
+  ],
+  "contested": 0.435,
+  "bg_removed": 260
+ },
+ "hero-night_elf-hunter-f": {
+  "id": "hero-night_elf-hunter-f",
+  "size": [
+   53,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   19.53,
+   19.53
+  ],
+  "contested": 0.445,
+  "bg_removed": 437
+ },
+ "hero-night_elf-rogue-f": {
+  "id": "hero-night_elf-rogue-f",
+  "size": [
+   57,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   19.42,
+   19.42
+  ],
+  "contested": 0.367,
+  "bg_removed": 317
+ },
+ "hero-night_elf-priest-f": {
+  "id": "hero-night_elf-priest-f",
+  "size": [
+   37,
+   63
+  ],
+  "colors": 33,
+  "grid": [
+   22.64,
+   22.64
+  ],
+  "contested": 0.447,
+  "bg_removed": 233
+ },
+ "hero-night_elf-druid-f": {
+  "id": "hero-night_elf-druid-f",
+  "size": [
+   37,
+   63
+  ],
+  "colors": 33,
+  "grid": [
+   22.46,
+   22.46
+  ],
+  "contested": 0.421,
+  "bg_removed": 296
+ },
+ "hero-gnome-warrior-m": {
+  "id": "hero-gnome-warrior-m",
+  "size": [
+   33,
+   33
+  ],
+  "colors": 33,
+  "grid": [
+   30.92,
+   30.92
+  ],
+  "contested": 0.36,
+  "bg_removed": 109
+ },
+ "hero-gnome-priest-f": {
+  "id": "hero-gnome-priest-f",
+  "size": [
+   28,
+   31
+  ],
+  "colors": 33,
+  "grid": [
+   36.31,
+   36.31
+  ],
+  "contested": 0.399,
+  "bg_removed": 127
+ },
+ "hero-gnome-mage-f": {
+  "id": "hero-gnome-mage-f",
+  "size": [
+   30,
+   32
+  ],
+  "colors": 33,
+  "grid": [
+   35.06,
+   35.06
+  ],
+  "contested": 0.412,
+  "bg_removed": 141
+ },
+ "hero-gnome-rogue-f": {
+  "id": "hero-gnome-rogue-f",
+  "size": [
+   30,
+   32
+  ],
+  "colors": 33,
+  "grid": [
+   32.67,
+   32.67
+  ],
+  "contested": 0.37,
+  "bg_removed": 128
+ },
+ "hero-gnome-warlock-m": {
+  "id": "hero-gnome-warlock-m",
+  "size": [
+   32,
+   34
+  ],
+  "colors": 33,
+  "grid": [
+   32.26,
+   32.26
+  ],
+  "contested": 0.442,
+  "bg_removed": 189
+ },
+ "hero-high_order-warrior-m": {
+  "id": "hero-high_order-warrior-m",
+  "size": [
+   60,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   18.59,
+   18.59
+  ],
+  "contested": 0.37,
+  "bg_removed": 239
+ },
+ "hero-high_order-hunter-f": {
+  "id": "hero-high_order-hunter-f",
+  "size": [
+   45,
+   60
+  ],
+  "colors": 33,
+  "grid": [
+   21.46,
+   21.46
+  ],
+  "contested": 0.474,
+  "bg_removed": 379
+ },
+ "hero-high_order-rogue-f": {
+  "id": "hero-high_order-rogue-f",
+  "size": [
+   54,
+   61
+  ],
+  "colors": 33,
+  "grid": [
+   19.98,
+   19.98
+  ],
+  "contested": 0.331,
+  "bg_removed": 276
+ },
+ "hero-high_order-mage-f": {
+  "id": "hero-high_order-mage-f",
+  "size": [
+   39,
+   60
+  ],
+  "colors": 33,
+  "grid": [
+   23.44,
+   23.44
+  ],
+  "contested": 0.459,
+  "bg_removed": 266
+ },
+ "hero-high_order-druid-f": {
+  "id": "hero-high_order-druid-f",
+  "size": [
+   34,
+   60
+  ],
+  "colors": 33,
+  "grid": [
+   23.75,
+   23.75
+  ],
+  "contested": 0.419,
+  "bg_removed": 289
+ },
+ "hero-orc-warrior-m": {
+  "id": "hero-orc-warrior-m",
+  "size": [
+   53,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   19.7,
+   19.7
+  ],
+  "contested": 0.487,
+  "bg_removed": 215
+ },
+ "hero-orc-hunter-m": {
+  "id": "hero-orc-hunter-m",
+  "size": [
+   61,
+   63
+  ],
+  "colors": 33,
+  "grid": [
+   19.08,
+   19.08
+  ],
+  "contested": 0.484,
+  "bg_removed": 370
+ },
+ "hero-orc-rogue-m": {
+  "id": "hero-orc-rogue-m",
+  "size": [
+   62,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   18.83,
+   18.83
+  ],
+  "contested": 0.435,
+  "bg_removed": 258
+ },
+ "hero-orc-shaman-m": {
+  "id": "hero-orc-shaman-m",
+  "size": [
+   62,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   17.83,
+   17.83
+  ],
+  "contested": 0.486,
+  "bg_removed": 275
+ },
+ "hero-orc-mage-m": {
+  "id": "hero-orc-mage-m",
+  "size": [
+   59,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   18.72,
+   18.72
+  ],
+  "contested": 0.441,
+  "bg_removed": 346
+ },
+ "hero-orc-warlock-m": {
+  "id": "hero-orc-warlock-m",
+  "size": [
+   60,
+   63
+  ],
+  "colors": 33,
+  "grid": [
+   18.98,
+   18.98
+  ],
+  "contested": 0.541,
+  "bg_removed": 470
+ },
+ "hero-undead-warrior-m": {
+  "id": "hero-undead-warrior-m",
+  "size": [
+   49,
+   59
+  ],
+  "colors": 33,
+  "grid": [
+   20.76,
+   20.76
+  ],
+  "contested": 0.387,
+  "bg_removed": 235
+ },
+ "hero-undead-paladin-m": {
+  "id": "hero-undead-paladin-m",
+  "size": [
+   45,
+   59
+  ],
+  "colors": 33,
+  "grid": [
+   21.01,
+   21.01
+  ],
+  "contested": 0.418,
+  "bg_removed": 215
+ },
+ "hero-undead-rogue-m": {
+  "id": "hero-undead-rogue-m",
+  "size": [
+   50,
+   59
+  ],
+  "colors": 33,
+  "grid": [
+   20.69,
+   20.69
+  ],
+  "contested": 0.352,
+  "bg_removed": 264
+ },
+ "hero-undead-priest-m": {
+  "id": "hero-undead-priest-m",
+  "size": [
+   41,
+   58
+  ],
+  "colors": 33,
+  "grid": [
+   22.64,
+   22.64
+  ],
+  "contested": 0.454,
+  "bg_removed": 265
+ },
+ "hero-undead-mage-m": {
+  "id": "hero-undead-mage-m",
+  "size": [
+   42,
+   58
+  ],
+  "colors": 33,
+  "grid": [
+   23.01,
+   23.01
+  ],
+  "contested": 0.427,
+  "bg_removed": 299
+ },
+ "hero-undead-warlock-m": {
+  "id": "hero-undead-warlock-m",
+  "size": [
+   53,
+   59
+  ],
+  "colors": 33,
+  "grid": [
+   21.22,
+   21.22
+  ],
+  "contested": 0.493,
+  "bg_removed": 404
+ },
+ "hero-tauren-warrior-m": {
+  "id": "hero-tauren-warrior-m",
+  "size": [
+   72,
+   75
+  ],
+  "colors": 33,
+  "grid": [
+   16.37,
+   16.37
+  ],
+  "contested": 0.558,
+  "bg_removed": 271
+ },
+ "hero-tauren-hunter-m": {
+  "id": "hero-tauren-hunter-m",
+  "size": [
+   73,
+   75
+  ],
+  "colors": 33,
+  "grid": [
+   16.37,
+   16.37
+  ],
+  "contested": 0.578,
+  "bg_removed": 453
+ },
+ "hero-tauren-shaman-m": {
+  "id": "hero-tauren-shaman-m",
+  "size": [
+   72,
+   74
+  ],
+  "colors": 33,
+  "grid": [
+   16.54,
+   16.54
+  ],
+  "contested": 0.613,
+  "bg_removed": 360
+ },
+ "hero-tauren-druid-m": {
+  "id": "hero-tauren-druid-m",
+  "size": [
+   71,
+   74
+  ],
+  "colors": 33,
+  "grid": [
+   16.49,
+   16.49
+  ],
+  "contested": 0.578,
+  "bg_removed": 417
+ },
+ "hero-troll-warrior-m": {
+  "id": "hero-troll-warrior-m",
+  "size": [
+   63,
+   66
+  ],
+  "colors": 33,
+  "grid": [
+   18.44,
+   18.44
+  ],
+  "contested": 0.413,
+  "bg_removed": 290
+ },
+ "hero-troll-hunter-m": {
+  "id": "hero-troll-hunter-m",
+  "size": [
+   62,
+   67
+  ],
+  "colors": 33,
+  "grid": [
+   17.89,
+   17.89
+  ],
+  "contested": 0.432,
+  "bg_removed": 444
+ },
+ "hero-troll-rogue-m": {
+  "id": "hero-troll-rogue-m",
+  "size": [
+   57,
+   67
+  ],
+  "colors": 33,
+  "grid": [
+   18.51,
+   18.51
+  ],
+  "contested": 0.354,
+  "bg_removed": 310
+ },
+ "hero-troll-priest-m": {
+  "id": "hero-troll-priest-m",
+  "size": [
+   42,
+   66
+  ],
+  "colors": 33,
+  "grid": [
+   21.74,
+   21.74
+  ],
+  "contested": 0.479,
+  "bg_removed": 288
+ },
+ "hero-troll-shaman-m": {
+  "id": "hero-troll-shaman-m",
+  "size": [
+   59,
+   67
+  ],
+  "colors": 33,
+  "grid": [
+   18.33,
+   18.33
+  ],
+  "contested": 0.456,
+  "bg_removed": 361
+ },
+ "hero-troll-mage-m": {
+  "id": "hero-troll-mage-m",
+  "size": [
+   50,
+   66
+  ],
+  "colors": 33,
+  "grid": [
+   19.57,
+   19.57
+  ],
+  "contested": 0.423,
+  "bg_removed": 360
+ },
+ "hero-troll-warlock-m": {
+  "id": "hero-troll-warlock-m",
+  "size": [
+   50,
+   67
+  ],
+  "colors": 33,
+  "grid": [
+   19.55,
+   19.55
+  ],
+  "contested": 0.486,
+  "bg_removed": 475
+ },
+ "hero-windshaper-warrior-m": {
+  "id": "hero-windshaper-warrior-m",
+  "size": [
+   46,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   21.81,
+   21.81
+  ],
+  "contested": 0.437,
+  "bg_removed": 224
+ },
+ "hero-windshaper-hunter-f": {
+  "id": "hero-windshaper-hunter-f",
+  "size": [
+   51,
+   61
+  ],
+  "colors": 33,
+  "grid": [
+   20.39,
+   20.39
+  ],
+  "contested": 0.457,
+  "bg_removed": 390
+ },
+ "hero-windshaper-rogue-f": {
+  "id": "hero-windshaper-rogue-f",
+  "size": [
+   48,
+   61
+  ],
+  "colors": 33,
+  "grid": [
+   21.53,
+   21.53
+  ],
+  "contested": 0.375,
+  "bg_removed": 274
+ },
+ "hero-windshaper-shaman-f": {
+  "id": "hero-windshaper-shaman-f",
+  "size": [
+   49,
+   61
+  ],
+  "colors": 33,
+  "grid": [
+   21.45,
+   21.45
+  ],
+  "contested": 0.464,
+  "bg_removed": 281
+ },
+ "hero-windshaper-druid-f": {
+  "id": "hero-windshaper-druid-f",
+  "size": [
+   39,
+   60
+  ],
+  "colors": 33,
+  "grid": [
+   21.94,
+   21.94
+  ],
+  "contested": 0.408,
+  "bg_removed": 332
+ },
+ "race-high_order-f": {
+  "id": "race-high_order-f",
+  "size": [
+   64,
+   64
+  ],
+  "colors": null,
+  "grid": [
+   1,
+   1
+  ],
+  "contested": 0,
+  "bg_removed": null
+ },
+ "scene-strike_first-b30": {
+  "id": "scene-strike_first-b30",
+  "size": [
+   432,
+   181
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.672,
+  "bg_removed": null
+ },
+ "hero-human-warrior-f": {
+  "id": "hero-human-warrior-f",
+  "size": [
+   49,
+   58
+  ],
+  "colors": 33,
+  "grid": [
+   21.24,
+   21.24
+  ],
+  "contested": 0.344,
+  "bg_removed": 204
+ },
+ "hero-night_elf-warrior-m": {
+  "id": "hero-night_elf-warrior-m",
+  "size": [
+   57,
+   67
+  ],
+  "colors": 33,
+  "grid": [
+   18.44,
+   18.44
+  ],
+  "contested": 0.382,
+  "bg_removed": 256
+ },
+ "race-high_order-m": {
+  "id": "race-high_order-m",
+  "size": [
+   64,
+   64
+  ],
+  "colors": null,
+  "grid": [
+   1,
+   1
+  ],
+  "contested": 0,
+  "bg_removed": null
+ },
+ "race-windshaper-m": {
+  "id": "race-windshaper-m",
+  "size": [
+   64,
+   64
+  ],
+  "colors": null,
+  "grid": [
+   1,
+   1
+  ],
+  "contested": 0,
+  "bg_removed": null
+ },
+ "race-windshaper-f": {
+  "id": "race-windshaper-f",
+  "size": [
+   64,
+   64
+  ],
+  "colors": null,
+  "grid": [
+   1,
+   1
+  ],
+  "contested": 0,
+  "bg_removed": null
+ },
+ "scene-strike_first-b10": {
+  "id": "scene-strike_first-b10",
+  "size": [
+   433,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.503,
+  "bg_removed": null
+ },
+ "scene-strike_first-b10-horde": {
+  "id": "scene-strike_first-b10-horde",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.455,
+  "bg_removed": null
+ },
+ "scene-strike_first-b20": {
+  "id": "scene-strike_first-b20",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.518,
+  "bg_removed": null
+ },
+ "scene-strike_first-b20-horde": {
+  "id": "scene-strike_first-b20-horde",
+  "size": [
+   372,
+   210
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.445,
+  "bg_removed": null
+ },
+ "scene-strike_first-b30-horde": {
+  "id": "scene-strike_first-b30-horde",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.596,
+  "bg_removed": null
+ },
+ "scene-strike_first-b40": {
+  "id": "scene-strike_first-b40",
+  "size": [
+   433,
+   181
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.427,
+  "bg_removed": null
+ },
+ "scene-strike_first-b40-horde": {
+  "id": "scene-strike_first-b40-horde",
+  "size": [
+   395,
+   198
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.567,
+  "bg_removed": null
+ },
+ "scene-strike_first-b50": {
+  "id": "scene-strike_first-b50",
+  "size": [
+   433,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.533,
+  "bg_removed": null
+ },
+ "scene-strike_first-b50-horde": {
+  "id": "scene-strike_first-b50-horde",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.45,
+  "bg_removed": null
+ },
+ "scene-struck_first-b10": {
+  "id": "scene-struck_first-b10",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.439,
+  "bg_removed": null
+ },
+ "scene-struck_first-b10-horde": {
+  "id": "scene-struck_first-b10-horde",
+  "size": [
+   433,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.396,
+  "bg_removed": null
+ },
+ "scene-struck_first-b20": {
+  "id": "scene-struck_first-b20",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.469,
+  "bg_removed": null
+ },
+ "scene-struck_first-b20-horde": {
+  "id": "scene-struck_first-b20-horde",
+  "size": [
+   432,
+   180
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.419,
+  "bg_removed": null
+ },
+ "scene-struck_first-b30": {
+  "id": "scene-struck_first-b30",
+  "size": [
+   442,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.393,
+  "bg_removed": null
+ },
+ "scene-struck_first-b30-horde": {
+  "id": "scene-struck_first-b30-horde",
+  "size": [
+   432,
+   181
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.407,
+  "bg_removed": null
+ },
+ "scene-struck_first-b40": {
+  "id": "scene-struck_first-b40",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.356,
+  "bg_removed": null
+ },
+ "scene-struck_first-b40-horde": {
+  "id": "scene-struck_first-b40-horde",
+  "size": [
+   442,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.295,
+  "bg_removed": null
+ },
+ "scene-struck_first-b50": {
+  "id": "scene-struck_first-b50",
+  "size": [
+   442,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.567,
+  "bg_removed": null
+ },
+ "scene-struck_first-b50-horde": {
+  "id": "scene-struck_first-b50-horde",
+  "size": [
+   441,
+   177
+  ],
+  "colors": 40,
+  "grid": [
+   4.5,
+   4.5
+  ],
+  "contested": 0.528,
+  "bg_removed": null
+ },
+ "hero-human-paladin-f": {
+  "id": "hero-human-paladin-f",
+  "size": [
+   44,
+   57
+  ],
+  "colors": 33,
+  "grid": [
+   21.85,
+   21.85
+  ],
+  "contested": 0.349,
+  "bg_removed": 176
+ },
+ "hero-human-hunter-f": {
+  "id": "hero-human-hunter-f",
+  "size": [
+   46,
+   58
+  ],
+  "colors": 33,
+  "grid": [
+   22.23,
+   22.23
+  ],
+  "contested": 0.411,
+  "bg_removed": 300
+ },
+ "hero-human-rogue-f": {
+  "id": "hero-human-rogue-f",
+  "size": [
+   47,
+   58
+  ],
+  "colors": 33,
+  "grid": [
+   20.88,
+   20.88
+  ],
+  "contested": 0.307,
+  "bg_removed": 233
+ },
+ "hero-human-priest-f": {
+  "id": "hero-human-priest-f",
+  "size": [
+   35,
+   58
+  ],
+  "colors": 33,
+  "grid": [
+   25.04,
+   25.04
+  ],
+  "contested": 0.414,
+  "bg_removed": 218
+ },
+ "hero-human-mage-f": {
+  "id": "hero-human-mage-f",
+  "size": [
+   39,
+   58
+  ],
+  "colors": 33,
+  "grid": [
+   23.51,
+   23.51
+  ],
+  "contested": 0.395,
+  "bg_removed": 219
+ },
+ "hero-human-warlock-f": {
+  "id": "hero-human-warlock-f",
+  "size": [
+   38,
+   56
+  ],
+  "colors": 33,
+  "grid": [
+   25.47,
+   25.47
+  ],
+  "contested": 0.553,
+  "bg_removed": 339
+ },
+ "hero-dwarf-warrior-f": {
+  "id": "hero-dwarf-warrior-f",
+  "size": [
+   43,
+   43
+  ],
+  "colors": 33,
+  "grid": [
+   25.35,
+   25.35
+  ],
+  "contested": 0.377,
+  "bg_removed": 119
+ },
+ "hero-dwarf-paladin-f": {
+  "id": "hero-dwarf-paladin-f",
+  "size": [
+   42,
+   42
+  ],
+  "colors": 33,
+  "grid": [
+   25,
+   25
+  ],
+  "contested": 0.407,
+  "bg_removed": 143
+ },
+ "hero-dwarf-hunter-f": {
+  "id": "hero-dwarf-hunter-f",
+  "size": [
+   52,
+   42
+  ],
+  "colors": 33,
+  "grid": [
+   22.96,
+   22.96
+  ],
+  "contested": 0.462,
+  "bg_removed": 208
+ },
+ "hero-dwarf-rogue-f": {
+  "id": "hero-dwarf-rogue-f",
+  "size": [
+   47,
+   43
+  ],
+  "colors": 33,
+  "grid": [
+   24.84,
+   24.84
+  ],
+  "contested": 0.37,
+  "bg_removed": 159
+ },
+ "hero-dwarf-priest-f": {
+  "id": "hero-dwarf-priest-f",
+  "size": [
+   32,
+   42
+  ],
+  "colors": 33,
+  "grid": [
+   27,
+   27
+  ],
+  "contested": 0.38,
+  "bg_removed": 156
+ },
+ "hero-dwarf-shaman-f": {
+  "id": "hero-dwarf-shaman-f",
+  "size": [
+   45,
+   42
+  ],
+  "colors": 33,
+  "grid": [
+   23.9,
+   23.9
+  ],
+  "contested": 0.417,
+  "bg_removed": 175
+ },
+ "hero-night_elf-hunter-m": {
+  "id": "hero-night_elf-hunter-m",
+  "size": [
+   57,
+   67
+  ],
+  "colors": 33,
+  "grid": [
+   18.96,
+   18.96
+  ],
+  "contested": 0.518,
+  "bg_removed": 428
+ },
+ "hero-night_elf-rogue-m": {
+  "id": "hero-night_elf-rogue-m",
+  "size": [
+   55,
+   67
+  ],
+  "colors": 33,
+  "grid": [
+   19.39,
+   19.39
+  ],
+  "contested": 0.393,
+  "bg_removed": 317
+ },
+ "hero-night_elf-priest-m": {
+  "id": "hero-night_elf-priest-m",
+  "size": [
+   44,
+   67
+  ],
+  "colors": 33,
+  "grid": [
+   19.6,
+   19.6
+  ],
+  "contested": 0.4,
+  "bg_removed": 244
+ },
+ "hero-night_elf-druid-m": {
+  "id": "hero-night_elf-druid-m",
+  "size": [
+   49,
+   67
+  ],
+  "colors": 33,
+  "grid": [
+   19.38,
+   19.38
+  ],
+  "contested": 0.417,
+  "bg_removed": 343
+ },
+ "hero-gnome-warrior-f": {
+  "id": "hero-gnome-warrior-f",
+  "size": [
+   32,
+   31
+  ],
+  "colors": 33,
+  "grid": [
+   32.11,
+   32.11
+  ],
+  "contested": 0.39,
+  "bg_removed": 126
+ },
+ "hero-gnome-rogue-m": {
+  "id": "hero-gnome-rogue-m",
+  "size": [
+   36,
+   33
+  ],
+  "colors": 33,
+  "grid": [
+   29.38,
+   29.38
+  ],
+  "contested": 0.335,
+  "bg_removed": 128
+ },
+ "hero-gnome-priest-m": {
+  "id": "hero-gnome-priest-m",
+  "size": [
+   29,
+   33
+  ],
+  "colors": 33,
+  "grid": [
+   32.62,
+   32.62
+  ],
+  "contested": 0.424,
+  "bg_removed": 143
+ },
+ "hero-gnome-mage-m": {
+  "id": "hero-gnome-mage-m",
+  "size": [
+   33,
+   33
+  ],
+  "colors": 33,
+  "grid": [
+   31.76,
+   31.76
+  ],
+  "contested": 0.402,
+  "bg_removed": 165
+ },
+ "hero-gnome-warlock-f": {
+  "id": "hero-gnome-warlock-f",
+  "size": [
+   39,
+   32
+  ],
+  "colors": 33,
+  "grid": [
+   29.32,
+   29.32
+  ],
+  "contested": 0.408,
+  "bg_removed": 225
+ },
+ "hero-high_order-warrior-f": {
+  "id": "hero-high_order-warrior-f",
+  "size": [
+   45,
+   60
+  ],
+  "colors": 33,
+  "grid": [
+   21.33,
+   21.33
+  ],
+  "contested": 0.361,
+  "bg_removed": 176
+ },
+ "hero-high_order-hunter-m": {
+  "id": "hero-high_order-hunter-m",
+  "size": [
+   53,
+   63
+  ],
+  "colors": 33,
+  "grid": [
+   20.23,
+   20.23
+  ],
+  "contested": 0.467,
+  "bg_removed": 362
+ },
+ "hero-high_order-rogue-m": {
+  "id": "hero-high_order-rogue-m",
+  "size": [
+   52,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   19.44,
+   19.44
+  ],
+  "contested": 0.366,
+  "bg_removed": 254
+ },
+ "hero-high_order-mage-m": {
+  "id": "hero-high_order-mage-m",
+  "size": [
+   45,
+   63
+  ],
+  "colors": 33,
+  "grid": [
+   20.3,
+   20.3
+  ],
+  "contested": 0.442,
+  "bg_removed": 275
+ },
+ "hero-high_order-druid-m": {
+  "id": "hero-high_order-druid-m",
+  "size": [
+   45,
+   63
+  ],
+  "colors": 33,
+  "grid": [
+   20.36,
+   20.36
+  ],
+  "contested": 0.413,
+  "bg_removed": 339
+ },
+ "hero-orc-warrior-f": {
+  "id": "hero-orc-warrior-f",
+  "size": [
+   53,
+   61
+  ],
+  "colors": 33,
+  "grid": [
+   19.74,
+   19.74
+  ],
+  "contested": 0.352,
+  "bg_removed": 220
+ },
+ "hero-orc-hunter-f": {
+  "id": "hero-orc-hunter-f",
+  "size": [
+   54,
+   61
+  ],
+  "colors": 33,
+  "grid": [
+   20.13,
+   20.13
+  ],
+  "contested": 0.459,
+  "bg_removed": 338
+ },
+ "hero-orc-rogue-f": {
+  "id": "hero-orc-rogue-f",
+  "size": [
+   46,
+   61
+  ],
+  "colors": 33,
+  "grid": [
+   20.97,
+   20.97
+  ],
+  "contested": 0.344,
+  "bg_removed": 248
+ },
+ "hero-orc-shaman-f": {
+  "id": "hero-orc-shaman-f",
+  "size": [
+   47,
+   60
+  ],
+  "colors": 33,
+  "grid": [
+   22.48,
+   22.48
+  ],
+  "contested": 0.494,
+  "bg_removed": 262
+ },
+ "hero-orc-mage-f": {
+  "id": "hero-orc-mage-f",
+  "size": [
+   47,
+   60
+  ],
+  "colors": 33,
+  "grid": [
+   21.22,
+   21.22
+  ],
+  "contested": 0.421,
+  "bg_removed": 286
+ },
+ "hero-orc-warlock-f": {
+  "id": "hero-orc-warlock-f",
+  "size": [
+   46,
+   61
+  ],
+  "colors": 33,
+  "grid": [
+   21.84,
+   21.84
+  ],
+  "contested": 0.479,
+  "bg_removed": 369
+ },
+ "hero-undead-warrior-f": {
+  "id": "hero-undead-warrior-f",
+  "size": [
+   45,
+   56
+  ],
+  "colors": 33,
+  "grid": [
+   21.44,
+   21.44
+  ],
+  "contested": 0.346,
+  "bg_removed": 223
+ },
+ "hero-undead-paladin-f": {
+  "id": "hero-undead-paladin-f",
+  "size": [
+   41,
+   56
+  ],
+  "colors": 33,
+  "grid": [
+   23.83,
+   23.83
+  ],
+  "contested": 0.424,
+  "bg_removed": 199
+ },
+ "hero-undead-rogue-f": {
+  "id": "hero-undead-rogue-f",
+  "size": [
+   48,
+   56
+  ],
+  "colors": 33,
+  "grid": [
+   21.94,
+   21.94
+  ],
+  "contested": 0.309,
+  "bg_removed": 230
+ },
+ "hero-undead-priest-f": {
+  "id": "hero-undead-priest-f",
+  "size": [
+   36,
+   55
+  ],
+  "colors": 33,
+  "grid": [
+   25.45,
+   25.45
+  ],
+  "contested": 0.431,
+  "bg_removed": 231
+ },
+ "hero-undead-mage-f": {
+  "id": "hero-undead-mage-f",
+  "size": [
+   37,
+   56
+  ],
+  "colors": 33,
+  "grid": [
+   23.51,
+   23.51
+  ],
+  "contested": 0.398,
+  "bg_removed": 251
+ },
+ "hero-undead-warlock-f": {
+  "id": "hero-undead-warlock-f",
+  "size": [
+   43,
+   55
+  ],
+  "colors": 33,
+  "grid": [
+   22.65,
+   22.65
+  ],
+  "contested": 0.455,
+  "bg_removed": 338
+ },
+ "hero-tauren-warrior-f": {
+  "id": "hero-tauren-warrior-f",
+  "size": [
+   64,
+   71
+  ],
+  "colors": 33,
+  "grid": [
+   17.72,
+   17.72
+  ],
+  "contested": 0.516,
+  "bg_removed": 248
+ },
+ "hero-tauren-hunter-f": {
+  "id": "hero-tauren-hunter-f",
+  "size": [
+   65,
+   71
+  ],
+  "colors": 33,
+  "grid": [
+   17.64,
+   17.64
+  ],
+  "contested": 0.522,
+  "bg_removed": 463
+ },
+ "hero-tauren-shaman-f": {
+  "id": "hero-tauren-shaman-f",
+  "size": [
+   69,
+   71
+  ],
+  "colors": 33,
+  "grid": [
+   17.51,
+   17.51
+  ],
+  "contested": 0.623,
+  "bg_removed": 361
+ },
+ "hero-tauren-druid-f": {
+  "id": "hero-tauren-druid-f",
+  "size": [
+   56,
+   71
+  ],
+  "colors": 33,
+  "grid": [
+   19.05,
+   19.05
+  ],
+  "contested": 0.576,
+  "bg_removed": 405
+ },
+ "hero-troll-warrior-f": {
+  "id": "hero-troll-warrior-f",
+  "size": [
+   55,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   19.67,
+   19.67
+  ],
+  "contested": 0.369,
+  "bg_removed": 255
+ },
+ "hero-troll-hunter-f": {
+  "id": "hero-troll-hunter-f",
+  "size": [
+   50,
+   63
+  ],
+  "colors": 33,
+  "grid": [
+   20.69,
+   20.69
+  ],
+  "contested": 0.427,
+  "bg_removed": 374
+ },
+ "hero-troll-rogue-f": {
+  "id": "hero-troll-rogue-f",
+  "size": [
+   47,
+   63
+  ],
+  "colors": 33,
+  "grid": [
+   20.94,
+   20.94
+  ],
+  "contested": 0.382,
+  "bg_removed": 285
+ },
+ "hero-troll-priest-f": {
+  "id": "hero-troll-priest-f",
+  "size": [
+   43,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   20.18,
+   20.18
+  ],
+  "contested": 0.35,
+  "bg_removed": 278
+ },
+ "hero-troll-shaman-f": {
+  "id": "hero-troll-shaman-f",
+  "size": [
+   48,
+   63
+  ],
+  "colors": 33,
+  "grid": [
+   20.83,
+   20.83
+  ],
+  "contested": 0.453,
+  "bg_removed": 316
+ },
+ "hero-troll-mage-f": {
+  "id": "hero-troll-mage-f",
+  "size": [
+   47,
+   63
+  ],
+  "colors": 33,
+  "grid": [
+   20.68,
+   20.68
+  ],
+  "contested": 0.376,
+  "bg_removed": 322
+ },
+ "hero-troll-warlock-f": {
+  "id": "hero-troll-warlock-f",
+  "size": [
+   49,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   20.24,
+   20.24
+  ],
+  "contested": 0.484,
+  "bg_removed": 440
+ },
+ "hero-windshaper-warrior-f": {
+  "id": "hero-windshaper-warrior-f",
+  "size": [
+   47,
+   61
+  ],
+  "colors": 33,
+  "grid": [
+   21.51,
+   21.51
+  ],
+  "contested": 0.406,
+  "bg_removed": 265
+ },
+ "hero-windshaper-hunter-m": {
+  "id": "hero-windshaper-hunter-m",
+  "size": [
+   51,
+   62
+  ],
+  "colors": 33,
+  "grid": [
+   20.59,
+   20.59
+  ],
+  "contested": 0.496,
+  "bg_removed": 392
+ },
+ "hero-windshaper-rogue-m": {
+  "id": "hero-windshaper-rogue-m",
+  "size": [
+   51,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   20.05,
+   20.05
+  ],
+  "contested": 0.373,
+  "bg_removed": 298
+ },
+ "hero-windshaper-shaman-m": {
+  "id": "hero-windshaper-shaman-m",
+  "size": [
+   53,
+   64
+  ],
+  "colors": 33,
+  "grid": [
+   20.05,
+   20.05
+  ],
+  "contested": 0.478,
+  "bg_removed": 305
+ },
+ "hero-windshaper-druid-m": {
+  "id": "hero-windshaper-druid-m",
+  "size": [
+   40,
+   63
+  ],
+  "colors": 33,
+  "grid": [
+   22.72,
+   22.72
+  ],
+  "contested": 0.483,
+  "bg_removed": 306
  }
 }

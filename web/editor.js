@@ -2,7 +2,7 @@
 // trees, the character sheet, gear and play style. It folds away while the
 // results are read and opens again from a build card.
 import * as M from './meta.js';
-import { h, art, ability, withTip, tt, flash, fmtNum } from './ui.js';
+import { h, art, ability, withTip, tt, flash, fmtNum, heroImg } from './ui.js';
 import { prepareClass, renderTrees, learnBlock, unlearnBlock, budgetFor, spent } from './talents.js';
 import {
   S, env, bus, classOf, raceOf, presetOf, presetsFor, keepRace, presetTags, isExperimental, baseName, classColor, editingBuild, names, nameOf, slotOf, autoName,
@@ -77,7 +77,7 @@ function afterTalentChange(t, viaTouch) {
 function presetNote(p, b) {
   const extra = [
     isExperimental(p) ? 'A Forever experiment.' : null,
-    p.role === 'healer' ? 'Healers also take the healing tests.' : null,
+    healRotationOf(p.class) ? 'It also takes the healing tests.' : null,
     p.role === 'tank' ? 'Tanks are tested on their solo play.' : null,
     b.edited ? 'You’ve changed its talents.' : null,
   ].filter(Boolean);
@@ -92,6 +92,7 @@ function pickClass(cls) {
   const nb = keepRace(p ? buildFromPreset(p, b.level) : emptyBuild(cls, b.level), b.wantRace || b.race);
   nb.uid = b.uid;
   nb.wantRace = b.wantRace || b.race;
+  nb.gender = b.gender || 'm';
   S.builds[S.builds.indexOf(b)] = nb;
   S.tree = null;
   changed(nb);
@@ -106,6 +107,7 @@ function pickPreset(file) {
     nb = keepRace(buildFromPreset(presetOf(file), b.level), b.wantRace || b.race);
     nb.uid = b.uid;
     nb.wantRace = b.wantRace || b.race;
+    nb.gender = b.gender || 'm';
   }
   S.builds[S.builds.indexOf(b)] = nb;
   S.tree = null;
@@ -157,10 +159,9 @@ export function renderEditor(root, actions) {
   }));
   // the character as they'd stand in a scene, at twice the scenes' size, on
   // a stage of fixed size so a tauren or a gnome doesn't move the page
-  const img = h('img.px', { src: M.heroArt(b.race, b.cls), alt: '' });
+  const img = heroImg(h('img.px', { src: M.heroArt(b.race, b.cls, b.gender), alt: '' }), M.otherHero);
   const size = () => { img.style.width = `calc(${2 * img.naturalWidth} * var(--art))`; img.style.height = `calc(${2 * img.naturalHeight} * var(--art))`; };
-  if (img.complete && img.naturalWidth) size(); else img.addEventListener('load', size, { once: true });
-  img.addEventListener('error', () => img.remove(), { once: true });
+  if (img.complete && img.naturalWidth) size(); else img.addEventListener('load', size);
   // the character on a pedestal
   const stage = h('div.hero-stage', { style: { '--cc': M.CLASS_COLORS[b.cls] } }, h('span.hero-sprite', img));
   const head = h('div.hero', stage,
@@ -190,7 +191,7 @@ export function renderEditor(root, actions) {
         type: 'button', 'aria-pressed': String(r.id === b.race), 'aria-label': open ? r.name : `${r.name} (not available to ${c.name}s)`,
         'aria-disabled': open ? null : 'true', class: open ? '' : 'unavailable',
         onclick: () => { if (open && b.race !== r.id) { b.race = r.id; b.wantRace = r.id; changed(b); } },
-      }, art(M.RACE_ICONS[r.id] || 'rune-stone', r.icon)),
+      }, art(M.RACE_ICONS[r.id] || 'rune-stone', M.raceIcon(r.id, b.gender))),
       () => [tt.title(r.name), tt.line(r.faction === 'alliance' ? 'Alliance' : 'Horde', 'grey'),
         open ? null : tt.line(`${r.name}s can’t be ${c.name}s in Forever.`, 'red'),
         ...r.passives.flatMap((p) => [tt.gap(p, 'gold'), M.RACE_BLURB[p] ? tt.line(M.RACE_BLURB[p]) : null])].filter(Boolean));
@@ -202,6 +203,12 @@ export function renderEditor(root, actions) {
     h('div.picker',
       h('div.picker-icons', { role: 'group', 'aria-label': 'Race' }, alliance, alliance.length && horde.length ? h('span.sep', { 'aria-hidden': 'true' }) : null, horde),
       h('div.picker-note', h('b', `${race?.name || ''}`), h('span', `${race?.faction === 'alliance' ? 'Alliance' : 'Horde'}. ${raceNote}`))));
+  // Gender: the portrait and the hero only (it changes no result)
+  const genderRow = h('div.field-row', h('div.label', 'Gender'),
+    h('div.quick', { role: 'group', 'aria-label': 'Gender' }, [['m', 'Male'], ['f', 'Female']].map(([g, label]) => h('button.chip', {
+      type: 'button', 'aria-pressed': String((b.gender || 'm') === g),
+      onclick: () => { if ((b.gender || 'm') !== g) { b.gender = g; saveLocal(); bus.render(); } },
+    }, label))));
 
   // Level
   const lvlValue = h('output.level-value', String(b.level));
@@ -281,7 +288,7 @@ export function renderEditor(root, actions) {
   const hadNameFocus = document.activeElement === root.querySelector('.name-input');
   root.replaceChildren(top,
     h('div.editor-body',
-      h('div.editor-side', head, h('div.fields', classRow, raceRow, levelRow, presetRow)),
+      h('div.editor-side', head, h('div.fields', classRow, raceRow, genderRow, levelRow, presetRow)),
       h('div.editor-main', inner, panel)),
     foot);
   if (focusedId) root.querySelector(`.talent[data-id="${focusedId}"]`)?.focus({ preventScroll: true });
@@ -368,13 +375,8 @@ function gearPanel(b) {
       h('div.choice-card', ability(M.CLASS_ICONS[b.cls], ['#d9c49a', '#2d2416'], c.icon),
         h('div.grow', rotSel, h('p.note', rDetail ? `In order of priority: ${rDetail.replace(/\.$/, '')}.` : rTitle)))),
     heal ? h('div.section', h('h3', 'Healing tests'),
-      h('label.check-line',
-        h('input.check', { type: 'checkbox', checked: healsGroups(b), onchange: (e) => { b.healer = e.target.checked; saveLocal(); bus.render(); } }),
-        h('span', 'Heal in the healing tests')),
-      h('p.note', healsGroups(b)
-        ? `It heals the group in the dungeon, main tank and raid tests: ${(hDetail || hTitle).replace(/\.$/, '').replace(/^./, (x) => x.toLowerCase())}.`
-        : 'Turn this on to try this build as a healer in the dungeon, main tank and raid tests.')) : null,
-    h('p.note', { style: { marginTop: '18px' } }, 'Played perfectly, with a good player’s reaction time.'),
+      h('p.note', `Every ${c.name.toLowerCase()} also heals the group in the dungeon, main tank and raid tests, with this build’s talents and gear: ${(hDetail || hTitle).replace(/\.$/, '').replace(/^./, (x) => x.toLowerCase())}.`)) : null,
+    h('p.note', { style: { marginTop: '18px' } }, 'Played like a typical player: about half a second to react, and the odd slip. Settings has an expert option.'),
   ];
 }
 
