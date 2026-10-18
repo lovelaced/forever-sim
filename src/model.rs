@@ -27,6 +27,11 @@ pub struct OptDef {
     pub cite: String,
     /// Classes and races it matters to (empty: everyone).
     pub applies: Vec<String>,
+    /// Which part of the Assumptions panel it sits in ("" for the class and
+    /// race numbers).
+    pub group: String,
+    /// For `kind = "choice"`: the names of the values 0, 1, 2...
+    pub choices: Vec<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -71,6 +76,25 @@ pub struct CombatCfg {
     pub normalized_dagger: f64,
     pub normalized_ranged: f64,
     pub block_crit_allowed: bool,
+    /// Movement, in yards and yards per second.
+    pub run_speed: f64,
+    pub npc_run_speed: f64,
+    pub melee_reach: f64,
+    /// How far past a wanted distance before moving again (no jitter).
+    pub move_margin: f64,
+    pub charge_speed: f64,
+    /// A feared unit runs at its speed times this.
+    pub fear_speed: f64,
+    /// How close a player can come before an unaware mob notices.
+    pub aggro_radius: f64,
+    /// Engine steps at one moment before time is nudged on (a stuck loop).
+    pub max_spins: u32,
+    /// Threat needed to pull a mob off whoever it's on: this many times
+    /// theirs from melee range, and from farther away.
+    pub aggro_melee: f64,
+    pub aggro_ranged: f64,
+    /// Threat per point of healing (split across the mobs fighting you).
+    pub heal_threat: f64,
 }
 
 impl CombatCfg {
@@ -118,6 +142,10 @@ pub enum SpellProp {
     CritBonus,
     Threat,
     Gcd,
+    /// How far the spell reaches (yards added, or a multiplier).
+    Range,
+    /// How wide its area is.
+    Radius,
 }
 
 #[derive(Clone, Debug)]
@@ -169,6 +197,44 @@ pub enum EventKind {
     PetDied,
 }
 
+impl EventKind {
+    /// One bit per kind of event (payloads aside): who listens to what.
+    pub fn bit(&self) -> u32 {
+        let k = match self {
+            EventKind::MeleeSwing => 0,
+            EventKind::MeleeLanded => 1,
+            EventKind::MeleeCrit => 2,
+            EventKind::WhiteLanded => 3,
+            EventKind::SpecialLanded => 4,
+            EventKind::RangedLanded => 5,
+            EventKind::SpellLanded => 6,
+            EventKind::SpellCrit => 7,
+            EventKind::Periodic => 8,
+            EventKind::Heal => 9,
+            EventKind::HealCrit => 10,
+            EventKind::DamageDealt => 11,
+            EventKind::Struck => 12,
+            EventKind::StruckMelee => 13,
+            EventKind::StruckCrit => 14,
+            EventKind::Dodge => 15,
+            EventKind::Parry => 16,
+            EventKind::Block => 17,
+            EventKind::AttackDodged => 18,
+            EventKind::AttackParried => 19,
+            EventKind::Kill => 20,
+            EventKind::Cast(_) => 21,
+            EventKind::AnyCast => 22,
+            EventKind::Custom(_) => 23,
+            EventKind::AuraApplied(_) => 24,
+            EventKind::AuraExpired(_) => 25,
+            EventKind::CombatStart => 26,
+            EventKind::Summon => 27,
+            EventKind::PetDied => 28,
+        };
+        1 << k
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Proc {
     pub on: EventKind,
@@ -205,6 +271,9 @@ pub enum TargetSel {
     Ally,
     /// Every live member of your group (yourself included, no pets).
     Party,
+    /// The cast's target, then up to `max - 1` jumps, each to the nearest
+    /// enemy not yet hit within `jump` yards of the last (Chain Lightning).
+    Chain { max: Expr, jump: f64 },
     /// The cast's ally first, then the most hurt others, up to a maximum
     /// (Chain Heal, Wild Growth).
     Allies(Expr),
@@ -302,9 +371,29 @@ pub enum Effect {
     /// holder (Prayer of Mending heals with the priest's power).
     FromSource(Vec<Effect>),
     Dispel { who: TargetSel, mechanics: Vec<Mechanic> },
-    Taunt { duration: Expr },
+    Taunt { who: TargetSel, duration: Expr },
     Threat { amount: Expr },
     Absorb { amount: Expr },
+    /// Rush to the target (Charge, Intercept); the effects land on arrival.
+    Charge(Vec<Effect>),
+    /// Track the target's kind of creature (a hunter's tracking), if its
+    /// Track spell is learned by then: (kind, level learned).
+    Track(Vec<(CreatureType, u32)>),
+    /// Walk back from the target to this many yards (kiting).
+    StepBack(Expr),
+    /// Jump this many yards straight away from the target (Blink).
+    Teleport(Expr),
+    /// Put a trap at your feet: it arms after `arm` seconds, lasts `lasts`,
+    /// and the first enemy within `radius` sets it off (`then`, on that
+    /// enemy, with areas of `area` yards around the trap).
+    Trap { arm: f64, radius: f64, lasts: f64, area: f64, then: Vec<Effect> },
+    /// Every mob forgets your threat (Vanish), each rolling to resist it if
+    /// `resist` (Feign Death, like a spell's hit roll); one left with nobody
+    /// to fight runs back and heals (evades).
+    DropThreat { resist: bool },
+    /// Take up to `count` magic buffs off each holder, the newest first
+    /// (Purge).
+    Purge { who: TargetSel, count: Expr },
 }
 
 #[derive(Clone, Debug)]
@@ -345,6 +434,23 @@ pub enum SpellTarget {
     Tank,
     /// A heal line on the most hurt ally the line's condition accepts.
     Lowest,
+    /// A line on any enemy in the fight (the first, in the pick's order, the
+    /// line accepts), or any but your target; casting it doesn't change
+    /// your target.
+    AnyEnemy(Pick),
+    OtherEnemy(Pick),
+}
+
+/// The order a multi-target line tries enemies in.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Pick {
+    /// Your target first, then the nearest.
+    Current,
+    Nearest,
+    LowestHp,
+    HighestHp,
+    /// Those without the line's own aura from you first (spreading a DoT).
+    Undotted,
 }
 
 /// Which rank of a spell a rotation line casts.
@@ -397,6 +503,21 @@ pub struct SpellDef {
     pub text: String,
     /// The game's icon name (e.g. "ability_warrior_charge"), for the website.
     pub icon: Option<String>,
+    /// Yards to the target it can be cast at (0: no limit, a spell on
+    /// yourself), and the closest (a bow's dead zone, Charge).
+    pub range: f64,
+    pub min_range: f64,
+    /// Moves you (Charge, stepping back): not while rooted or frozen.
+    pub moves: bool,
+    /// Bursts from your totem of this element (Fire Nova), not from you.
+    pub from_totem: Option<u8>,
+    /// Hurts an enemy (damage or a debuff): held back while you're close to
+    /// pulling a tank's mob.
+    pub harm: bool,
+    /// For spells that hit every enemy: only those within this many yards
+    /// (0: all of them), around you, or around the target for a spell that
+    /// reaches farther than its radius (Blizzard).
+    pub radius: f64,
 }
 
 impl SpellDef {
@@ -456,6 +577,39 @@ pub struct AuraDef {
     /// A bookkeeping aura (a proc window, an internal cooldown) that the
     /// player never sees in the game; the fight log leaves it out.
     pub hidden: bool,
+    /// Lasts only while its holder is in combat (Anger Management).
+    pub combat_only: bool,
+    /// The events its procs listen to (`EventKind::bit`).
+    pub listens: u32,
+    /// Movement: a slow (0.5 = half speed; the strongest one counts) or a
+    /// speed boost (0.4 = 40% faster; they add up), worked out when the aura
+    /// lands (a rank's own amount).
+    pub slow: Option<Expr>,
+    pub speed: Option<Expr>,
+    /// Hidden (Stealth, Prowl): mobs don't notice you walking up, and you
+    /// don't swing until you strike.
+    pub stealth: bool,
+    /// Its diminishing-returns group (`DR_GROUPS`), or none.
+    pub dr: Option<u8>,
+    /// An absorb that only takes one school (Fire Ward), and one paid for in
+    /// mana, this much per point (Mana Shield).
+    pub absorb_school: Option<School>,
+    pub mana_per_absorb: f64,
+    /// Its holder can't run away at low health (Curse of Recklessness).
+    pub no_flee: bool,
+    /// Its holder looks away (Distract): hits land from behind.
+    pub distracts: bool,
+    /// Its holder ignores slows and roots (Blessing of Freedom).
+    pub free: bool,
+    /// Doesn't alert an unaware mob or its pack (Sap).
+    pub quiet: bool,
+    /// A totem: casting the aura puts a totem on the ground instead.
+    pub totem: Option<TotemDef>,
+    /// The totem's health when it depends on the rank (Stoneclaw Totem).
+    pub totem_health: Option<Expr>,
+    /// A proc or window the player has to notice before acting on it (the
+    /// "Play like" reaction time).
+    pub react: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -467,6 +621,9 @@ pub struct Action {
     /// The condition reads the rank's numbers (`r.`), so it's checked after
     /// the rank is chosen.
     pub cond_rank: bool,
+    /// Upkeep: the condition watches an aura the spell itself puts up (a
+    /// DoT, a debuff, a short buff), which a typical player reapplies late.
+    pub upkeep: bool,
     pub line: String,
 }
 
@@ -480,12 +637,23 @@ pub struct Rotation {
     /// Run free at the start of every fight (Charge, stealth openers).
     pub opener: Vec<Action>,
     pub actions: Vec<Action>,
+    /// Indexes of the `actions` lines that can go during the global
+    /// cooldown (off-GCD and next-swing moves).
+    pub off_gcd: Vec<u16>,
     pub rest: Vec<Action>,
     /// Out-of-combat resting thresholds (eat / drink below these fractions).
     pub eat_below: f64,
     pub drink_below: f64,
     /// A play style for healing a group (the healing tests).
     pub healer: bool,
+    /// Yards it fights from (-1: worked out for each character, see
+    /// `Sim::find_stand`); `keep_min` backs off from closer (a bow's dead
+    /// zone).
+    pub stand_at: f64,
+    pub keep_min: f64,
+    /// Every distance at which one of its enemy lines comes into or out of
+    /// range, for waking up exactly when moving changes what it can cast.
+    pub ranges: Vec<f64>,
 }
 
 #[derive(Clone, Debug)]
@@ -655,6 +823,29 @@ pub struct EnemyDef {
     pub mods: Vec<StatMod>,
     /// Timed attacks on the party (the healing tests' bosses).
     pub script: Vec<ScriptHit>,
+    /// Movement: yards per second (0: the usual), melee reach, and where a
+    /// caster stands (0: in melee).
+    pub run_speed: f64,
+    pub reach: f64,
+    pub stand_at: f64,
+    /// Running away at low health: below this share of health, with this
+    /// chance (once), for `flee_time` seconds (a range), sometimes coming
+    /// back with a friend (`flee_add`, joining 1.5 sec later).
+    pub flee_below: f64,
+    pub flee_chance: f64,
+    pub flee_time: (f64, f64),
+    pub flee_add_chance: f64,
+    pub flee_add: Option<String>,
+    /// A party member's steady threat on the mobs (the healing tests' tank).
+    pub threat_per_sec: Option<Expr>,
+    /// Attack power (taken out of the weapon, so it hits as hard until
+    /// something lowers it, like Demoralizing Shout), and mana (casters).
+    pub ap: Option<Expr>,
+    pub mana: Option<Expr>,
+    /// A variant's share of its base template's health, armor and damage.
+    pub hp_mult: f64,
+    pub armor_mult: f64,
+    pub dmg_mult: f64,
 }
 
 /// One of a boss's timed attacks: every `every` seconds from `first`.
@@ -704,8 +895,12 @@ pub struct HealingDef {
 
 #[derive(Clone, Debug)]
 pub enum ScenarioKind {
-    Leveling { pull: u32, minutes: f64, enemy: String, travel: f64 },
-    Boss { duration: f64, enemy: String, execute_by_time: bool },
+    /// `mix`: draw each pull's kind of mob from a mix (else always `enemy`),
+    /// hitting `dmg_scale` times as hard.
+    Leveling { pull: u32, minutes: f64, enemy: String, travel: f64, mix: Option<String>, dmg_scale: f64 },
+    /// `tank`: a preset build (e.g. "warrior/protection") that tanks the
+    /// boss at your level.
+    Boss { duration: f64, enemy: String, execute_by_time: bool, tank: Option<String> },
     Duel { max_time: f64, opponent: Option<String> },
     Pressure { attacker: String, attackers: u32, lo: f64, hi: f64, steps: u32, max_time: f64, win_needs_kill: bool },
     Healing(HealingDef),
@@ -745,9 +940,65 @@ pub struct WorldMeta {
     pub patches: Vec<String>,
 }
 
+/// A leveling world's mobs: each pull's kind drawn by weight, and some of
+/// one kind casting.
+#[derive(Clone, Debug)]
+pub struct Mix {
+    /// (enemy template, weight), weights summing to 1.
+    pub kinds: Vec<(String, f64)>,
+    /// (of which kind, share, cast as which template).
+    pub casters: Option<(String, f64, String)>,
+}
+
+/// The four elements a shaman's totems belong to (one of each at a time),
+/// then a hunter's trap (one at a time, and what a trap leaves behind).
+pub const ELEMENTS: &[&str] = &["fire", "earth", "water", "air", "trap"];
+
+/// What reaches whom from a totem on the ground.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TotemReach {
+    /// Works while you're within its radius (Mana Spring, Healing Stream).
+    Owner,
+    /// Works on your target while it's within its radius (Searing Totem).
+    Target,
+    /// Works on everything within its radius (Magma Totem, Earthbind).
+    Area,
+}
+
+/// A totem: its element, health, radius, what it reaches, and whether its
+/// aura is a buff on the party within the radius (Strength of Earth) or
+/// pulses from the totem itself.
+#[derive(Clone, Copy, Debug)]
+pub struct TotemDef {
+    pub element: u8,
+    pub health: f64,
+    pub radius: f64,
+    pub reach: TotemReach,
+    pub buff: bool,
+}
+
+/// Forever's diminishing-returns groups (the spell data's `diminish` bits:
+/// root 1, stun 4, charm 8, incapacitate 16, fear 32, silence 64, Kidney
+/// Shot 128, distract 256, random stuns 512).
+pub const DR_GROUPS: &[&str] = &["root", "stun", "charm", "incap", "fear", "silence", "kidney", "distract", "random_stun"];
+
+/// A buff the boss test's party gives you (data/base/party.toml).
+#[derive(Clone, Debug)]
+pub struct PartyBuff {
+    pub id: String,
+    pub spell: SpellId,
+    /// all | mana | physical | caster | melee
+    pub for_: String,
+    pub option: Option<u16>,
+}
+
 #[derive(Clone, Debug)]
 pub struct World {
     pub meta: WorldMeta,
+    /// Different for every compiled world (copies share it): a key for
+    /// things made from it, like preset builds.
+    pub uid: u64,
+    pub party: Vec<PartyBuff>,
     pub combat: CombatCfg,
     pub opts: Vec<OptDef>,
     pub classes: Vec<ClassDef>,
@@ -761,6 +1012,8 @@ pub struct World {
     pub rank_fields: Vec<String>,
     pub gear: BTreeMap<String, GearKit>,
     pub enemies: BTreeMap<String, EnemyDef>,
+    /// What the leveling tests meet (data/base/enemies.toml `[mixes]`).
+    pub mixes: BTreeMap<String, Mix>,
     /// Party members in the healing tests.
     pub allies: BTreeMap<String, EnemyDef>,
     pub scenarios: BTreeMap<String, ScenarioDef>,

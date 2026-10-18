@@ -30,7 +30,7 @@ name = "Frozen"
 mechanic = "freeze"
 debuff = true
 per_source = false
-break_on_damage = 0.25   # no distance in the sim: a frozen enemy cannot reach you until it breaks
+break_on_damage = 0.25   # damage can break it after a short grace
 
 [common.auras.silence]
 name = "Silenced"
@@ -66,6 +66,31 @@ target = "enemy"
 requires = "ranged.wand"
 text = "Shoots your wand every few seconds until you cast something else. Costs no mana."
 effects = [{ type = "damage", weapon = "ranged", hit = "wand", crit = "opt.wand_spell_crit * (spell_crit - ranged_crit)", crit_bonus = "opt.wand_melee_crit", tag = "Shoot" }]
+
+[common.spells.step_back]
+name = "Step back"
+icon = "ability_rogue_sprint"
+# Walking backwards out of reach while a frozen or rooted enemy can't
+# follow (kiting). Not a spell in the game: a move, so no cost, cooldown or
+# global cooldown.
+off_gcd = true
+level = 1
+target = "self"
+text = "Back away from your target to 12 yards."
+effects = [{ type = "step_back", to = 12 }]
+
+[common.spells.mob_bolt]
+name = "Fireball"
+icon = "spell_fire_flamebolt"
+# A caster mob's bolt: 2 to 3.5 sec to cast by level, hitting for 1.1 times
+# what its melee would deal in that time. Not a player spell.
+school = "fire"
+level = 1
+target = "enemy"
+cast_time = "interp(level, 1,2, 60,3.5)"
+cost = { mana = "5 * level" }
+text = "A caster mob's bolt."
+effects = [{ type = "damage", school = "fire", hit = "spell", amount = "1.1 * ((mh.min + mh.max) / 2 / mh.speed + ap / 14) * interp(level, 1,2, 60,3.5)", tag = "Fireball" }]
 
 [common.spells.healing_potion]
 name = "Healing Potion"

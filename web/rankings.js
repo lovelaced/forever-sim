@@ -4,7 +4,7 @@
 import * as M from './meta.js';
 import { h, art, withTip, tt, flash, fmtMetric, fmtNum, fmtSec } from './ui.js';
 import { S, env, bus, classOf, presetOf, presetTags, isExperimental, baseName, accuracyOf, scenarioMeta, primaryOf, classColor, nameOf, apiBuild, raceOf, baselineBuild } from './state.js';
-import { metricOf, rangeTip } from './results.js';
+import { metricOf, rangeTip, playLikePicker } from './results.js';
 
 // The ranking's tests, in the order the switcher shows them: seven for
 // everyone, then three for the healers (the raid at level 60 only).
@@ -123,9 +123,8 @@ export async function runRankings() {
   bus.render();
 }
 
-// One build against every other, both ways round: whoever opens a duel
-// strikes first, so each matchup runs with each side challenging and the two
-// are averaged (as the scorecard's duel row does).
+// One build against every other, each pair once: duels start on the same
+// tick and whoever reacts first strikes first.
 export async function runDuels() {
   if (anyRunning()) { flash('Another simulation is still running. Wait for it or stop it first.'); return; }
   const st = S.duels;
@@ -137,9 +136,8 @@ export async function runDuels() {
   const base = { op: 'start', scenario: 'duel', precision: a.precision, max_reps: a.max_reps, min_reps: 32 };
   if (Object.keys(S.opts).length) base.opts = { ...S.opts };
   const mine = me.api(level);
-  // session 0: everyone challenges me; sessions 1..n: I challenge each of them
-  const sessions = [{ ...base, builds: others.map((p) => presetApi(p, level)), opponent: mine }]
-    .concat(others.map((p) => ({ ...base, builds: [mine], opponent: presetApi(p, level) })));
+  // everyone challenges me, in one session
+  const sessions = [{ ...base, builds: others.map((p) => presetApi(p, level)), opponent: mine }];
   const run = { i: 0, frac: 0, t0: performance.now(), cancelled: false, finished: false, n: sessions.length };
   st.run = run;
   bus.render();
@@ -173,19 +171,21 @@ export async function runDuels() {
   bus.render();
 }
 
-// Each opponent: my win rate when they open, when I open, and the average.
+// Each opponent: my score against them (a win 1, a draw or timeout half),
+// when I react first and when they do. They're the challengers, so my side
+// is the other side of their numbers.
 function duelTable(results, n) {
-  const metric = (res, i, name) => res.variants[i]?.metrics.find((m) => m.name === name)?.mean;
+  const m = (i, name) => results[0].variants[i]?.metrics.find((q) => q.name === name);
   const rows = [];
   for (let i = 0; i < n; i++) {
-    const theyOpen = metric(results[0], i, 'loss'); // they challenge me and lose
-    const iOpen = metric(results[i + 1], 0, 'win');
-    if (theyOpen == null || iOpen == null) continue;
-    const n1 = results[0].reps, n2 = results[i + 1].reps;
-    const mean = (theyOpen + iOpen) / 2;
-    const se = Math.sqrt(theyOpen * (1 - theyOpen) / n1 + iOpen * (1 - iOpen) / n2) / 2;
-    const duration = ((metric(results[0], i, 'duration') || 0) + (metric(results[i + 1], 0, 'duration') || 0)) / 2;
-    rows.push({ i, mean, lo: Math.max(0, mean - 1.96 * se), hi: Math.min(1, mean + 1.96 * se), iOpen, theyOpen, duration });
+    const s = m(i, 'score') || m(i, 'win');
+    if (!s) continue;
+    const f = m(i, 'first')?.mean ?? 0.5;
+    const sf = m(i, 'score_first')?.mean, ss = m(i, 'score_second')?.mean;
+    // their score when they reacted first is mine when they did
+    const iFirst = ss != null && f < 1 ? 1 - ss / (1 - f) : null;
+    const theyFirst = sf != null && f > 0 ? 1 - sf / f : null;
+    rows.push({ i, mean: 1 - s.mean, lo: 1 - (s.hi ?? s.mean), hi: 1 - (s.lo ?? s.mean), iFirst, theyFirst, duration: m(i, 'duration')?.mean || 0 });
   }
   return { rows };
 }
@@ -355,8 +355,8 @@ export function renderDuels(root) {
         .map((p) => h('option', { value: p.file, selected: p.file === st.build }, `${baseName(p.name)}${isExperimental(p) ? ' (experimental)' : ''}`))))));
   const out = [
     banner('banner-arena', 'One build against every other', 'fr-iron'),
-    h('p.lede', `Your build against each of the other ${others.length}, both ways round. About ten seconds on a fast laptop, minutes on a phone.`),
-    controls(st, { go: runDuels, goLabel: `Duel ${others.length} builds`, running, stopLabel: 'Stop', extra: picker, frame: 'fr-iron', noLevel: me?.own }),
+    h('p.lede', `Your build against each of the other ${others.length}. You start 5 to 10 yards apart, and whoever reacts first strikes first. A few seconds on a fast laptop, a minute or two on a phone.`),
+    controls(st, { go: runDuels, goLabel: `Duel ${others.length} builds`, running, stopLabel: 'Stop', extra: h('div', picker, playLikePicker()), frame: 'fr-iron', noLevel: me?.own }),
   ];
   if (me?.own) out.push(h('p.hint', `Everyone fights at your build’s level, ${me.level}.`));
   if (running) out.push(progressBlock(st.run, `Duel ${Math.min(st.run.i + 1, st.run.n)} of ${st.run.n}`));
@@ -384,9 +384,9 @@ function duelBoard(st, r) {
     h('div.rank-head',
       h('h3', `${name} (${classOf(me.cls)?.name}), level ${r.level}`),
       h('p.summary-line', `Beats ${wins} of ${rows.length} builds, loses to ${losses}${even ? `, and ${even} ${even === 1 ? 'is' : 'are'} too close to call` : ''}. `,
-        best ? `Best matchup: ${baseName(best.p.name)} ${classOf(best.p.class)?.name} (wins ${pct(best.mean)}). ` : '',
-        worst ? `Hardest: ${baseName(worst.p.name)} ${classOf(worst.p.class)?.name} (wins ${pct(worst.mean)}).` : ''),
-      h('p.hint', `${accuracyOf(r.acc).title} accuracy, ${fmtSec(r.ms / 1000)}. No movement yet, so builds that kite do worse here.`),
+        best ? `Best matchup: ${baseName(best.p.name)} ${classOf(best.p.class)?.name} (scores ${pct(best.mean)}). ` : '',
+        worst ? `Hardest: ${baseName(worst.p.name)} ${classOf(worst.p.class)?.name} (scores ${pct(worst.mean)}).` : ''),
+      h('p.hint', `${accuracyOf(r.acc).title} accuracy, ${fmtSec(r.ms / 1000)}.`),
       stale ? h('p.notice', 'The settings above changed since these duels. Press the button to run them again.') : null),
     // each matchup as a forecast: you on the left, them on the right, the
     // bar pushed toward whoever wins more often
@@ -394,13 +394,13 @@ function duelBoard(st, r) {
       face(me.race, me.cls),
       withTip(h('div.tug', { tabindex: '0' },
         h('span.tug-me', { style: { width: `${100 * x.mean}%` } }), h('span.tug-them'), h('s', { style: { left: `${100 * x.lo}%`, width: `${100 * (x.hi - x.lo)}%` } }),
-        h('span.tug-val', `${pct(x.mean)} won`)), () => [
+        h('span.tug-val', pct(x.mean))), () => [
         tt.title(`${name} against ${baseName(x.p.name)}`),
-        tt.line(`Wins ${pct(x.mean)} of duels (${pct(x.lo)} to ${pct(x.hi)})`, 'gold'),
-        tt.line(`${pct(x.iOpen)} when ${name} opens, ${pct(x.theyOpen)} when ${baseName(x.p.name)} opens`),
+        tt.line(`Scores ${pct(x.mean)} (${pct(x.lo)} to ${pct(x.hi)}): a win counts 1, a draw or a timeout half`, 'gold'),
+        x.iFirst != null && x.theyFirst != null ? tt.line(`${pct(x.iFirst)} when ${name} reacts first, ${pct(x.theyFirst)} when ${baseName(x.p.name)} does`) : null,
         tt.line(`Duels last ${fmtSec(x.duration)} on average`, 'grey')]),
       face(x.p.race, x.p.class),
       h('span.foe-name', h('b', baseName(x.p.name)), h('span', { style: { color: classColor(x.p.class) } }, classOf(x.p.class)?.name), tagsOf(x.p)),
       compareButton(x.p, r.level)))),
-    h('p.hint.bar-hint', 'The left side of each bar is your share of duels won.'));
+    h('p.hint.bar-hint', 'The left side of each bar is your score: a win counts 1, a draw or a timeout half.'));
 }

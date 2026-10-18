@@ -19,43 +19,23 @@
 [warrior.talent_gore_drinker]
 "value.1" = "Modelled: each of the 3 hits heals 0.5/1% of max health, in the Gore Drinker heal formula, which also reads max health, so the check can't evaluate it."
 
-[warrior.talent_booming_voice]
-"value.0" = "Effect 0 of spell 12321 is the shouts' radius (+10% per rank). The sim has no positioning (shouts reach every ally and enemy), so the radius changes nothing. Effect 1, the -5% Rage cost per rank, is modelled and matches."
 
-[warrior.talent_lingering_rage]
-"value.0" = "Not modelled: Rage decay starts 2 sec later per rank after combat, but the sim does not decay Rage between pulls, so there is nothing to delay. Waits for real Rage handling between pulls."
 
 [warrior.talent_dual_wield_specialization]
 "value.1" = "Open question: the talent tree still lists +10% off-hand Rage per rank for effect 1, but Blizzard's beta notes (Oct 1) say it was removed, and effect 1 of spell 23584 is an unexplained dummy (5), not a Rage effect. The notes win by default: opt.warrior_dws_offhand_rage = 0 (0.1 gives the talent tree's value)."
 "value.2" = "Open question: the talent tree still lists +2% off-hand hit per rank for effect 2, but Blizzard's beta notes (Oct 1) say it was removed and spell 23584 has no effect 2 at all. Not modelled; the notes win."
 
-[warrior.charge]
-range = "Usable at any distance and arrives instantly; the game needs 8-25 yards and you run in. Waits for the movement engine."
-rage = "Charge's Rage is kept for the fight, but Rage left over from the previous pull is not decayed first (only cut to what Tactical Mastery keeps when the opener switches stance). Waits for real Rage handling between pulls."
-
-[warrior.intercept]
-range = "Usable at any distance and arrives instantly; the game needs 8-25 yards. Its 3 sec stun and damage are modelled. Waits for the movement engine."
-
-[warrior.hamstring]
-effect = "The 40/45/50% movement slow is applied (enemies count as slowed) but changes nothing, and Improved Hamstring's 5 sec root does nothing. Waits for the movement engine."
-
-[warrior.piercing_howl]
-effect = "The 50% movement slow is applied to every enemy in the fight (the game: within 10 yards) but changes nothing. Waits for the movement engine."
-
-[warrior.bloodthirst]
-effect = "The 10% movement speed for 10 sec is not modelled. Waits for the movement engine."
-
 [warrior.spearing_strike]
 effect = "Deals 120% weapon damage to Giants and Dragonkin as the tooltip says; mounted targets and the dismount are not modelled (no mounts in the sim)."
 
 [warrior.cleave]
-effect = "Hits the first 2 enemies in the fight, which is your target in every current scenario. Choosing the second target waits for multi-target choice in the engine."
+effect = "Hits your target and one more enemy in the fight, whatever its distance (the game: one within reach of the swing)."
 
 [warrior.whirlwind]
-effect = "Hits the first 4 enemies in the fight; the game hits up to 4 within 8 yards. Waits for multi-target choice and positioning."
+effect = "Hits up to 4 enemies within 8 yards, your target first, as in the game."
 
 [warrior.thunder_clap]
-effect = "Hits the first 4 enemies in the fight; the game hits up to 4 within 8 yards. The 20% attack-speed slow is modelled on each enemy it hits."
+effect = "Hits up to 4 enemies within 8 yards, your target first, as in the game. The 20% attack-speed slow is modelled on each enemy it hits."
 
 [warrior.demoralizing_shout]
 effect = "Reaches every enemy in the fight (the game: 10 yards). Its attack power reduction changes nothing yet because enemies in the sim deal fixed damage."
@@ -67,10 +47,8 @@ effect = "The game gives Overpower charges (a separate power, spells 1282733 and
 effect = "Extra threat is a multiplier on damage (opt.warrior_heroic_strike_threat); the game's threat bonus is not in its spell data. Revenge, Thunder Clap and Shield Slam work the same way with their own options. Threat only matters once mobs pick targets by threat."
 
 [warrior.sweeping_strikes]
-effect = "Each of the next 5 melee hits that land (within 20 sec) is repeated on a second enemy for the damage it dealt (the first target's armor, no second roll), as in the original game; a hit with no second enemy alive keeps the charge. The copy goes to the next enemy in the fight; choosing which waits for positioning."
+effect = "Each of the next 5 melee hits that land (within 20 sec) is repeated on a second enemy for the damage it dealt (the first target's armor, no second roll), as in the original game; a hit with no second enemy alive keeps the charge. The copy goes to the next enemy in the fight, whatever its distance."
 
-[warrior.lingering_rage]
-effect = "Not modelled: the sim does not decay Rage between pulls, so delaying the decay changes nothing. Waits for real Rage handling between pulls. Since build 70425 its aura (1323965) pauses Rage decay (Rage regeneration -100%) instead of stopping health regeneration, which the sim never modelled either."
 
 [warrior.slam]
 effect = "No spell pushback since build 70425 (Blizzard's notes, Oct 15). The engine has no per-spell pushback flag, so a class passive gives the warrior 100% pushback resistance; Slam is the warrior's only spell with a cast time (a racial with one, such as War Stomp, would also be spared)."
@@ -79,4 +57,4 @@ effect = "No spell pushback since build 70425 (Blizzard's notes, Oct 15). The en
 range = "Buffs the warrior only. The game's shout reaches the party (build 70338) or the raid (70425, Oct 15 notes). Waits for party members."
 
 [warrior.berserker_rage]
-effect = "With Improved Berserker Rage it also removes roots and slows (50/100%, fixed in build 70425), which change nothing in the sim. Extra Rage from damage taken during it is not modelled."
+effect = "With Improved Berserker Rage it also removes roots and slows (50/100%, fixed in build 70425). Extra Rage from damage taken during it is not modelled."

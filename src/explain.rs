@@ -163,12 +163,17 @@ impl Explain<'_> {
             VarRef::PetActive(None) => "your pet is out".into(),
             VarRef::PetActive(Some(p)) => format!("your {} is out", self.w.pets.get(*p as usize).map_or("pet".into(), |d| d.name.clone())),
             VarRef::InCombat => "you're in combat".into(),
+            VarRef::UnitInCombat(who) => format!("{} is in combat", Self::subject(*who)),
+            VarRef::TotemActive(e) => format!("your {} is down", totem_word(*e)),
+            VarRef::TotemInRange(e) => format!("your {} reaches", totem_word(*e)),
+            VarRef::Fleeing(who) => format!("{} is running away", Self::subject(*who)),
+            VarRef::Moving(Who::Me) => "you're moving".into(),
             VarRef::Behind => "you're behind the target".into(),
             VarRef::DualWield => "you wield two weapons".into(),
             VarRef::TwoHand => "you wield a two-handed weapon".into(),
             VarRef::HasShield => "you carry a shield".into(),
             VarRef::Creature(Who::Target, c) => format!("the target is {}", creature(*c)),
-            VarRef::Talent(t) => format!("you have {}", self.talent(*t)),
+            VarRef::Talent(_, t) => format!("you have {}", self.talent(*t)),
             VarRef::WeaponFamily(h, wt) => format!("you wield {} in your {}", weapon(*wt), hand(*h)),
             VarRef::Race(r) => format!("you're {}", self.w.races.get(*r as usize).map_or("of that race".into(), |x| article(&x.name))),
             VarRef::Class(c) => format!("you're {}", self.w.classes.get(*c as usize).map_or("of that class".into(), |x| article(&x.name))),
@@ -208,9 +213,14 @@ impl Explain<'_> {
             VarRef::PetActive(None) => "your pet isn't out".into(),
             VarRef::PetActive(Some(p)) => format!("your {} isn't out", self.w.pets.get(*p as usize).map_or("pet".into(), |d| d.name.clone())),
             VarRef::WeaponFamily(h, wt) => format!("you don't wield {} in your {}", weapon(*wt), hand(*h)),
+            VarRef::UnitInCombat(who) => format!("{} hasn't noticed anyone yet", Self::subject(*who)),
+            VarRef::TotemActive(e) => format!("you have no {} down", totem_word(*e)),
+            VarRef::TotemInRange(e) => format!("your {} is out of reach", totem_word(*e)),
+            VarRef::Fleeing(who) => format!("{} isn't running away", Self::subject(*who)),
+            VarRef::Moving(Who::Me) => "you're standing still".into(),
             VarRef::Behind => "you're not behind the target".into(),
             VarRef::InCombat => "you're out of combat".into(),
-            VarRef::Talent(t) => format!("you don't have {}", self.talent(*t)),
+            VarRef::Talent(_, t) => format!("you don't have {}", self.talent(*t)),
             _ => return None,
         })
     }
@@ -251,6 +261,12 @@ impl Explain<'_> {
                 return Some(format!("{} when {}, otherwise {}", self.cmp(op, a, y)?, self.inner(c)?, self.cmp(op, a, z)?));
             }
         }
+        // `target.hp < <the hit's damage>`: the hit would finish it
+        if let (Node::V(VarRef::Res(Who::Target, Res::Hp)), "<" | "<=") = (a, op) {
+            if cmp_parts(op, a, b).is_none() {
+                return Some("it would finish the target".into());
+            }
+        }
         let (op, x, c) = cmp_parts(op, a, b)?;
         let Node::V(v) = x else { return None };
         let rel = |more: &str, less: &str| -> &'static str {
@@ -271,6 +287,7 @@ impl Explain<'_> {
             VarRef::Res(Who::Me, Res::Energy) => format!("you have {} {} Energy", rel("more", "less"), num(c)),
             VarRef::Res(who, r) => format!("{} {} is {} {}", Self::whose(*who), r.name(), rel("above", "below"), num(c)),
             VarRef::ResMax(Who::Target, Res::Hp) => format!("the target's maximum health is {} {}", rel("above", "below"), num(c)),
+            VarRef::Weapon(h, WField::SwingRemains) => format!("your next {} swing is {} {} sec away", hand(*h), rel("more", "less"), num(c)),
             VarRef::Combo => match op {
                 ">=" => format!("you have {} or more combo points", num(c)),
                 _ => format!("you have {} {} combo points", rel("more", "fewer"), num(c)),
@@ -306,12 +323,38 @@ impl Explain<'_> {
                 ("<", n) if n <= 2.0 => "only one enemy is fighting you".into(),
                 _ => format!("{} {} enemies are fighting you", rel("more", "fewer"), num(c)),
             },
-            VarRef::Talent(t) => match (op, c) {
+            VarRef::EnemiesWithin(yd) => match (op, c) {
+                (">=", n) => format!("{} or more enemies are within {} yards", num(n), yd),
+                _ => format!("{} {} enemies are within {} yards", rel("more", "fewer"), num(c), yd),
+            },
+            VarRef::EnemiesActive => match (op, c) {
+                (">=", n) => format!("{} or more enemies are fighting you, not counting any you've crowd-controlled", num(n)),
+                _ => format!("{} {} enemies are fighting you, not counting any you've crowd-controlled", rel("more", "fewer"), num(c)),
+            },
+            VarRef::CcNear => match (op, c) {
+                ("==", n) | ("<=", n) if n == 0.0 => "no crowd-controlled enemy is close by".into(),
+                ("<", n) if n <= 1.0 => "no crowd-controlled enemy is close by".into(),
+                _ => format!("{} {} crowd-controlled enemies are close by", rel("more", "fewer"), num(c)),
+            },
+            VarRef::Talent(_, t) => match (op, c) {
                 (">", z) | (">=", z) if z <= 1.0 && (op == ">" || z == 1.0) => format!("you have {}", self.talent(*t)),
                 ("==", z) | ("<=", z) if z == 0.0 => format!("you don't have {}", self.talent(*t)),
                 _ => format!("you have {} {} points in {}", rel("more", "fewer"), num(c), self.talent(*t)),
             },
-            VarRef::Level(Who::Me) => format!("you're level {} {}", rel("above", "below"), num(c)),
+            VarRef::Dist(who) => {
+                let whom = if *who == Who::Me { "the target" } else { Self::subject(*who) };
+                match op {
+                    "<" | "<=" => format!("{whom} is within {} yards", num(c)),
+                    _ => format!("{whom} is more than {} yards away", num(c)),
+                }
+            }
+            VarRef::Level(Who::Me) => match op {
+                ">=" => format!("you're level {} or higher", num(c)),
+                "<=" => format!("you're level {} or lower", num(c)),
+                ">" => format!("you're above level {}", num(c)),
+                "<" => format!("you're below level {}", num(c)),
+                _ => format!("you're level {}", num(c)),
+            },
             // "3 or more in your group are below 75% health"
             VarRef::Hurt { group, pct: p } => {
                 let who = if *group { "in your group" } else { "allies" };
@@ -405,5 +448,13 @@ mod tests {
         for s in &said {
             assert!(!(s.contains("&&") && s.contains(" is ")), "{s}");
         }
+    }
+}
+
+/// "fire totem", or "trap" for a hunter's.
+fn totem_word(e: u8) -> String {
+    match crate::model::ELEMENTS.get(e as usize).copied() {
+        Some("trap") | None => "trap".into(),
+        Some(x) => format!("{x} totem"),
     }
 }

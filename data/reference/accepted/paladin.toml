@@ -11,7 +11,6 @@ unit = "Per-target auras instead of a ground area: the first 4 enemies get both 
 effect = "The game also has a helper spell (1280353, a 0.6 sec aura, \"Taking increased damage from Consecration\", with the same 0.042 coefficient, 0.095 before 70425) whose job the data doesn't show beyond its name. Not modelled; waits for ground units and hit-order handling."
 
 [paladin.hammer_of_the_righteous]
-range = "Hits the first 4 enemies in the fight (the game: your target and up to 3 nearby). Choosing nearby targets waits for positioning and multi-target choice."
 effect = "Shares cooldown category 2404 with Holy Strike, as in the game's data. The tooltip says Crusader Strike, which Forever paladins don't have."
 
 [paladin.holy_shock_heal]
@@ -102,9 +101,6 @@ requires = "The game's tree links Holy Shock to Divine Precision on the same row
 [paladin.talent_sanctified_judgement]
 "value.1" = "Modelled: 20/40/60% of the judged seal's mana cost back, as `0.2 * t.sanctified_judgement * r.seal_mana` in each judgement, which the audit can't evaluate because it reads the seal's cost. Effect 0 (the 33/66/100% chance) is modelled and matches."
 
-[paladin.talent_pursuit_of_justice]
-"value.0" = "Not modelled: 8/15% movement speed. The sim has no movement."
-"value.1" = "Not modelled: 8/15% mounted speed. The sim has no movement."
 
 [paladin.talent_eye_for_an_eye]
 "value.0" = "Modelled: 5/10% of a critical hit's damage sent back, as `min(event.amount * 0.05 * rank, 0.5 * max_hp)`, which the audit can't evaluate because it reads the hit's damage."

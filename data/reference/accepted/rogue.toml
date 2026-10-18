@@ -26,10 +26,10 @@ match = "Internal: Deadly Poison I-V on the off hand (enchant procs 2823/2824/11
 targets = "The game repeats each melee attack on a second nearby enemy. The sim repeats each melee hit that lands for the damage it dealt (the first target's armor, no second roll), on the next enemy in the fight; poisons are not repeated. Choosing which enemy waits for positioning."
 
 [rogue.ambush]
-positioning = "The game requires Stealth and being behind the target. The sim drops the facing check for Ambush, since a stealthed rogue chooses where to open (it is how the daggers rotation opens while levelling, where the scenario's `behind` is off). Waits for positioning support."
+positioning = "The game requires Stealth and being behind the target. The sim drops the facing check for Ambush, since a stealthed rogue chooses where to open: a mob that hasn't noticed you counts as facing away anyway, but a duel opponent faces you from the start, which would rule Ambush out there."
 
 [rogue.garrote]
-positioning = "Keeps the game's rule (behind the target unless you have Dirty Deeds), checked against the scenario's `behind` flag, so without Dirty Deeds it isn't used while levelling. Unlike Ambush; both wait for positioning support."
+positioning = "Keeps the game's rule (behind the target unless you have Dirty Deeds). A mob that hasn't noticed you counts as facing away, so it opens from Stealth while levelling; a duel opponent faces you. Unlike Ambush."
 
 [rogue.kidney_shot]
 damage_taken = "Improved Kidney Shot raises only the rogue's damage on the stunned target; the sim raises all damage it takes. Same result in every scenario that uses Kidney Shot (against players, where the rogue is the only attacker); a per-attacker bonus waits for engine support."
@@ -62,11 +62,7 @@ damage_taken = "Improved Kidney Shot raises only the rogue's damage on the stunn
 [rogue.talent_improved_kidney_shot]
 "value.0" = "Modelled: +5/10% damage taken while stunned by Kidney Shot. Kidney Shot gives the target one stack of the Improved Kidney Shot debuff per rank and each stack adds 5% (`1 + 0.05 * stacks`), so the audit sees the stack counts (1/2) rather than the percentages."
 
-[rogue.talent_improved_sprint]
-"value.0" = "Not modelled: Sprint has a 50/100% chance to remove movement-impairing effects. The sim has no Sprint and no movement."
 
-[rogue.talent_camouflage]
-"value.0" = "Not modelled: Stealth slows you 3-15% less. The sim has no movement. Effect 1, Stealth's cooldown 2-6 sec shorter, is modelled and matches."
 
 [rogue.talent_master_of_deception]
 "value.0" = "Not modelled: harder to detect in Stealth (as if 1/2/3 levels higher; the game's 5/10/15). The sim has no stealth detection."
@@ -78,7 +74,6 @@ damage_taken = "Improved Kidney Shot raises only the rogue's damage on the stunn
 "value.0" = "Not modelled: Sap and Blind cost 25/50% less Energy. The sim has neither ability."
 
 [rogue.talent_improved_distract]
-"value.0" = "Not modelled: Distract's radius 3/5 yards larger. The sim has no Distract and no positioning."
 "value.1" = "Not modelled: distracted enemies detect stealth as if 1/2 levels lower (the game's -5/-10). The sim has no Distract and no stealth detection."
 
 [rogue.talent_heightened_senses]
@@ -88,3 +83,6 @@ damage_taken = "Improved Kidney Shot raises only the rogue's damage on the stunn
 
 [rogue.talent_quietus]
 "value.0" = "Modelled: Sinister Strike, Ghostly Strike and Hemorrhage deal 2/4/6/8/10% more below 35% health, as `target.hp_pct < 0.35 ? 1 + 0.02 * rank : 1`, which the audit can't evaluate because it reads the target's health."
+
+[rogue.talent_camouflage]
+"value.0" = "Modelled: Stealth slows you 3% less a rank, written as `0.3 - 0.03 * t.camouflage` in the stealth aura's slow, which the check can't see from the talent. Effect 1, Stealth's cooldown 2-6 sec shorter, is modelled and matches."

@@ -206,7 +206,7 @@ impl Env for AuditEnv<'_> {
         match v {
             VarRef::Rank(i) => self.rank.value(*i, self.level).unwrap_or(f64::NAN),
             VarRef::Opt(i) => self.opts.get(*i as usize).copied().unwrap_or(f64::NAN),
-            VarRef::Talent(_) => 0.0,
+            VarRef::Talent(..) => 0.0,
             VarRef::Level(_) => self.level as f64,
             VarRef::BaseMana(_) => self.base[6],
             VarRef::BaseHp(_) => self.base[5],
@@ -226,7 +226,7 @@ struct TalentEnv<'a> {
 impl Env for TalentEnv<'_> {
     fn var(&self, v: &VarRef) -> f64 {
         match v {
-            VarRef::Talent(i) => {
+            VarRef::Talent(_, i) => {
                 if *i == self.talent {
                     self.rank
                 } else {
@@ -434,9 +434,24 @@ impl<'a> Audit<'a> {
                 self.compare(cid, sp, lv, gid, &format!("{what}.coef"), ev(c, env), Some(num(gfx, "coef").unwrap_or(0.0)), 0.005);
             }
         }
+        // how far it reaches: the game's range (and the closest), and an
+        // area's radius (an area around you has no range of its own)
+        let grad = g.get("effects").and_then(|x| x.as_array()).map_or(0.0, |a| a.iter().filter_map(|e| num(e, "radius")).fold(0.0f64, f64::max));
+        let grange = g.get("range").and_then(|x| x.as_array()).map(|a| (a.first().and_then(|v| v.as_f64()).unwrap_or(0.0), a.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0)));
+        if sp.radius > 0.0 || grad > 0.0 {
+            self.compare(cid, sp, lv, gid, "radius", Some(sp.radius), Some(grad), 0.01);
+        }
+        match grange {
+            Some((lo, hi)) if hi > 0.0 => {
+                self.compare(cid, sp, lv, gid, "range", Some(sp.range), Some(hi), 0.01);
+                self.compare(cid, sp, lv, gid, "min_range", Some(sp.min_range), Some(lo), 0.01);
+            }
+            _ if sp.radius > 0.0 && sp.range <= sp.radius + 1e-9 => {}
+            _ => self.compare(cid, sp, lv, gid, "range", Some(sp.range), Some(0.0), 0.01),
+        }
         // how many enemies an area or chain effect reaches (0 in the game = no cap)
-        if let Some(d) = dmg.iter().find(|d| matches!(d.targets, TargetSel::Enemies(_))) {
-            if let TargetSel::Enemies(max) = &d.targets {
+        if let Some(d) = dmg.iter().find(|d| matches!(d.targets, TargetSel::Enemies(_) | TargetSel::Chain { .. })) {
+            if let TargetSel::Enemies(max) | TargetSel::Chain { max, .. } = &d.targets {
                 let chain = effects_of(g, &["school_damage", "weapon_damage", "normalized_weapon_damage", "weapon_percent_damage"])
                     .iter()
                     .filter_map(|fx| num(fx, "chain"))

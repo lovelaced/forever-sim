@@ -130,7 +130,7 @@ tree = "Affliction"
 points = 15
 ranks = 1
 requires = "amplify_curse"
-text = "Movement slow (not simulated)."
+text = "Learns Curse of Exhaustion: slows the target 30% for 12 sec."
 [talents.siphon_life]
 icon = "spell_shadow_requiem"
 tree = "Affliction"
@@ -167,7 +167,7 @@ icon = "spell_shadow_lifedrain"
 tree = "Demonology"
 points = 0
 ranks = 2
-text = "Health Funnel (not simulated)."
+text = "Health Funnel heals your pet more for less of your health (the talent's own numbers are not simulated)."
 [talents.improved_imp]
 icon = "spell_shadow_summonimp"
 tree = "Demonology"
@@ -318,7 +318,7 @@ icon = "spell_shadow_corpseexplode"
 tree = "Destruction"
 points = 0
 ranks = 2
-text = "Range (not simulated)."
+text = "Destruction spells reach 10% farther per point."
 [talents.improved_shadow_bolt]
 icon = "spell_shadow_shadowbolt"
 tree = "Destruction"
@@ -349,7 +349,8 @@ icon = "spell_fire_fire"
 tree = "Destruction"
 points = 5
 ranks = 5
-text = "Immolate's initial damage +50% (Conflagrate's daze is not simulated)."
+text = "Immolate's initial damage +50%, and Conflagrate has a 20% chance per point to daze (50% slower for 5 sec)."
+procs = [{ on = "spell_landed", if = "spell.conflagrate", chance = "0.2 * rank", effects = [{ type = "aura", aura = "aftermath_daze", target = "target" }] }]
 [talents.molten_skin]
 icon = "ability_mage_moltenarmor"
 tree = "Destruction"
@@ -500,7 +501,11 @@ mods = [
   { stat = "shadow_dmg_done", mul = "1 + 0.02 * t.master_demonologist" },
 ]
 [pets.succubus.rotation]
-actions = [{ cast = "lash_of_pain" }]
+# charms the add on a double pull, then lashes your target
+actions = [
+  { cast = "seduction", target = "other_enemy", pick = "nearest", if = "enemies >= 2 && !target.incapacitated && !target.feared && !target.stunned" },
+  { cast = "lash_of_pain" },
+]
 
 [pets.felhunter]
 name = "Felhunter"
@@ -519,13 +524,26 @@ mods = [
   { stat = "spell_dmg_taken", mul = "1 - 0.02 * t.master_demonologist" },
 ]
 
+[pets.felhunter.rotation]
+# cuts a caster's spell short
+actions = [{ cast = "spell_lock", if = "target.casting" }]
+
 # ------------------------------------------------------------------ auras
+[auras.aftermath_daze]
+name = "Aftermath"
+debuff = true
+per_source = false
+mechanic = "slow"
+duration = 5
+slow = 0.5
 [auras.demon_skin]
 name = "Demon Skin"
+dispel = "magic"
 group = "demon_armor"
 mods = [{ stat = "armor", add = "r.armor * (1 + 0.15 * t.demonic_aegis)" }, { stat = "hp5", add = "r.hp5 * (1 + 0.15 * t.demonic_aegis)" }]
 [auras.demon_armor]
 name = "Demon Armor"
+dispel = "magic"
 group = "demon_armor"
 text = "Its Shadow resistance (3 to 15) is not simulated."
 mods = [{ stat = "armor", add = "r.armor * (1 + 0.15 * t.demonic_aegis)" }, { stat = "hp5", add = "r.hp5 * (1 + 0.15 * t.demonic_aegis)" }]
@@ -551,6 +569,7 @@ effects = [
 ]
 [auras.amplify_curse]
 name = "Amplify Curse"
+dispel = "magic"
 duration = 30
 [auras.amplified_agony]
 name = "Amplified Bane of Agony"
@@ -579,6 +598,7 @@ effects = [
 ]
 [auras.shadow_trance]
 name = "Shadow Trance"
+react = true
 duration = 10
 consume_on_cast = true
 spell_mods = [{ spells = ["shadow_bolt"], prop = "cast_time", mul = 0 }]
@@ -732,6 +752,7 @@ effects = [
 
 [spells.demonic_sacrifice]
 name = "Demonic Sacrifice"
+range = 100
 icon = "spell_shadow_psychicscream"
 talent = "demonic_sacrifice"
 target = "self"
@@ -750,6 +771,7 @@ effects = [
 
 [spells.soul_link]
 name = "Soul Link"
+range = 100
 icon = "spell_shadow_gathershadows"
 talent = "soul_link"
 target = "self"
@@ -862,6 +884,7 @@ effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, o
 
 [spells.drain_life]
 name = "Drain Life"
+range = 20
 icon = "spell_shadow_lifedrain02"
 school = "shadow"
 ranks = [
@@ -902,6 +925,7 @@ effects = [
 
 [spells.life_tap]
 name = "Life Tap"
+radius = 50000
 icon = "spell_shadow_burningspirit"
 target = "self"
 text = "base grows by 1 a level up to the next rank."
@@ -1009,6 +1033,7 @@ effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef 
 
 [spells.hellfire]
 name = "Hellfire"
+radius = 10
 icon = "spell_fire_incinerate"
 school = "fire"
 text = "per = burn every sec on enemies and on you. Forever lets the burn on enemies crit (Hellfire Effect lost Classic's cannot-crit flag); yours cannot."
@@ -1027,6 +1052,8 @@ effects = [
 
 [spells.rain_of_fire]
 name = "Rain of Fire"
+range = 30
+radius = 8
 icon = "spell_shadow_rainoffire"
 school = "fire"
 text = "tick = damage every 2 sec (4 ticks). Forever's ticks are their own spells (1282380 and up) and can crit."
@@ -1061,6 +1088,8 @@ effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", tag = "
 # cost nothing here (see data/reference/accepted/warlock.toml).
 [spells.blood_pact]
 name = "Blood Pact"
+range = 20
+radius = 30
 icon = "spell_shadow_bloodboil"
 target = "self"
 off_gcd = true
@@ -1091,10 +1120,11 @@ ranks = [
 effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = "r.coef", mult = "1 + 0.1 * t.improved_imp" }]
 [spells.torment]
 name = "Torment"
+range = 5
 icon = "spell_shadow_gathershadows"
 level = 10
 cooldown = 5
-text = "threat grows by 3 a level up to the next rank. The taunt stands in for threat-based tanking (see data/reference/accepted/warlock.toml)."
+text = "Adds threat (growing by 3 a level up to the next rank), so the mob stays on your Voidwalker."
 ranks = [
   { level = 10, id = 3716, threat = 70, threat_per_level = 3, max_level = 15 },
   { level = 20, id = 7809, threat = 115, threat_per_level = 3, max_level = 25 },
@@ -1103,9 +1133,10 @@ ranks = [
   { level = 50, id = 11774, threat = 450, threat_per_level = 3, max_level = 55 },
   { level = 60, id = 11775, threat = 600, threat_per_level = 3, max_level = 65 },
 ]
-effects = [{ type = "taunt", duration = 3 }, { type = "threat", amount = "r.threat * (1 + 0.1 * t.improved_voidwalker)" }]
+effects = [{ type = "threat", amount = "r.threat * (1 + 0.1 * t.improved_voidwalker)" }]
 [spells.lash_of_pain]
 name = "Lash of Pain"
+range = 5
 icon = "spell_shadow_curse"
 school = "shadow"
 level = 20
@@ -1120,6 +1151,160 @@ ranks = [
 ]
 effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coef = "r.coef", mult = "1 + 0.1 * t.improved_sayaad" }]
 
+# ------------------------------------------------------------------ crowd control and escapes
+[spells.fear]
+name = "Fear"
+range = 20
+icon = "spell_shadow_possession"
+school = "shadow"
+cast_time = 1.5
+cost = { mana = "0.15 * base_mana" }
+text = "The target runs in fear for 10, 15 or 20 sec by rank. Damage past 15% of its health breaks it."
+ranks = [{ level = 8, id = 5782, dur = 10 }, { level = 32, id = 6213, dur = 15 }, { level = 56, id = 6215, dur = 20 }]
+effects = [{ type = "aura", aura = "fear", target = "target", duration = "r.dur" }]
+[spells.howl_of_terror]
+name = "Howl of Terror"
+radius = 10
+icon = "spell_shadow_deathscream"
+school = "shadow"
+cast_time = 2
+cooldown = 40
+text = "Up to 5 enemies within 10 yards run in fear for 10 or 15 sec by rank."
+ranks = [{ level = 40, id = 5484, dur = 10, mana = 150 }, { level = 54, id = 17928, dur = 15, mana = 200 }]
+cost = { mana = "r.mana" }
+effects = [{ type = "aura", aura = "fear", target = "enemies", max_targets = 5, duration = "r.dur" }]
+[spells.seduction]
+name = "Seduction"
+range = 30
+icon = "spell_shadow_mindsteal"
+school = "shadow"
+level = 26
+cast_time = 1.5
+text = "Your Succubus charms the target for 15 sec. Any damage breaks it."
+ranks = [{ level = 26, id = 6358 }]
+effects = [{ type = "aura", aura = "seduction", target = "target", duration = 15 }]
+[spells.banish]
+name = "Banish"
+range = 30
+icon = "spell_shadow_cripple"
+school = "shadow"
+cast_time = 1.5
+requires = "target.demon || target.elemental"
+text = "Banishes a demon or elemental for 20 or 30 sec by rank: it can't act, and nothing can hurt it."
+ranks = [{ level = 28, id = 710, dur = 20, mana = 100 }, { level = 48, id = 18647, dur = 30, mana = 200 }]
+cost = { mana = "r.mana" }
+effects = [{ type = "aura", aura = "banish", target = "target", duration = "r.dur" }]
+[spells.curse_of_exhaustion]
+name = "Curse of Exhaustion"
+range = 30
+icon = "spell_shadow_grimward"
+school = "shadow"
+talent = "curse_of_exhaustion"
+cost = { mana = "0.08 * base_mana" }
+text = "Slows the target 30% for 12 sec."
+ranks = [{ level = 30, id = 18223 }]
+effects = [{ type = "aura", aura = "curse_of_exhaustion", target = "target", duration = 12 }]
+[spells.curse_of_recklessness]
+name = "Curse of Recklessness"
+range = 30
+icon = "spell_shadow_unholystrength"
+school = "shadow"
+requires = "!target.aura.curse_of_recklessness.up"
+text = "Lowers the target's armor by 175, 285, 395 or 505 by rank for 2 min, and it won't run away."
+ranks = [
+  { level = 14, id = 704, armor = 175, mana = 35 },
+  { level = 28, id = 7658, armor = 285, mana = 60 },
+  { level = 42, id = 7659, armor = 395, mana = 90 },
+  { level = 56, id = 11717, armor = 505, mana = 115 },
+]
+cost = { mana = "r.mana" }
+effects = [{ type = "aura", aura = "curse_of_recklessness", target = "target", duration = 120 }]
+[spells.health_funnel]
+name = "Health Funnel"
+range = 20
+icon = "spell_shadow_lifedrain"
+school = "shadow"
+target = "self"
+requires = "pet.active"
+text = "Channels your health into your pet for 10 sec: it heals every second while you lose some."
+ranks = [
+  { level = 12, id = 755, cost = 11, heal = 12, drain = 5.45 },
+  { level = 20, id = 3698, cost = 15, heal = 24, drain = 10.49 },
+  { level = 28, id = 3699, cost = 24, heal = 43, drain = 17 },
+  { level = 36, id = 3700, cost = 39, heal = 64, drain = 25.4 },
+  { level = 44, id = 11693, cost = 45, heal = 89, drain = 35 },
+  { level = 52, id = 11694, cost = 62, heal = 119, drain = 47 },
+  { level = 60, id = 11695, cost = 79, heal = 153, drain = 61.2 },
+]
+cost = { hp = "r.cost" }
+effects = []
+[spells.health_funnel.channel]
+duration = 10
+interval = 1
+effects = [
+  { type = "heal", target = "pet", amount = "r.heal", tag = "Health Funnel" },
+  { type = "resource", res = "hp", amount = "-r.drain" },
+]
+[spells.shadow_ward]
+name = "Shadow Ward"
+icon = "spell_shadow_antishadow"
+school = "shadow"
+target = "self"
+cooldown = 30
+text = "Absorbs 290, 470, 675 or 920 shadow damage by rank for 30 sec."
+ranks = [
+  { level = 32, id = 6229, absorb = 290, mana = 135 },
+  { level = 42, id = 11739, absorb = 470, mana = 195 },
+  { level = 52, id = 11740, absorb = 675, mana = 255 },
+  { level = 60, id = 28610, absorb = 920, mana = 320 },
+]
+cost = { mana = "r.mana" }
+effects = [{ type = "aura", aura = "shadow_ward", duration = 30 }]
+[spells.spell_lock]
+name = "Spell Lock"
+range = 30
+icon = "spell_shadow_mindrot"
+school = "shadow"
+cooldown = 30
+text = "Your Felhunter interrupts the target's cast, locking it out of that school for 6 or 8 sec by rank, and silences it for 3 sec."
+ranks = [{ level = 36, id = 19244, lock = 6 }, { level = 52, id = 19647, lock = 8 }]
+effects = [{ type = "interrupt", target = "target", lockout = "r.lock" }, { type = "aura", aura = "spell_lock", target = "target", duration = 3 }]
+
+[auras.seduction]
+name = "Seduction"
+debuff = true
+per_source = false
+mechanic = "incap"
+dr = "fear"
+break_on_damage = true
+[auras.banish]
+name = "Banished"
+debuff = true
+per_source = false
+mechanic = "stun"
+dr = "incap"
+mods = [{ stat = "dmg_taken", mul = 0 }]
+[auras.curse_of_exhaustion]
+name = "Curse of Exhaustion"
+debuff = true
+mechanic = "slow"
+slow = 0.3
+[auras.curse_of_recklessness]
+name = "Curse of Recklessness"
+debuff = true
+no_flee = true
+mods = [{ stat = "armor", add = "-r.armor" }]
+[auras.shadow_ward]
+name = "Shadow Ward"
+dispel = "magic"
+absorb = "r.absorb"
+absorb_school = "shadow"
+[auras.spell_lock]
+name = "Spell Lock"
+debuff = true
+per_source = false
+mechanic = "silence"
+
 # ------------------------------------------------------------------ rotations
 [rotations.affliction_drain]
 desc = "Affliction levelling with the Voidwalker tanking: Corruption, Bane of Agony, Siphon Life, Wrack, Nightfall Shadow Bolts, Drain Life when hurt, Life Tap"
@@ -1131,16 +1316,25 @@ actions = [
   { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "death_coil", if = "hp_pct < 0.4" },
   { cast = "life_tap", if = "mana_pct < 0.25 && hp_pct > 0.6" },
+  { cast = "howl_of_terror", if = "enemies_within_10 >= 2 && hp_pct < 0.4" },   # panic: everyone near runs
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "corruption" },
+  { cast = "corruption", target = "other_enemy", pick = "undotted", if = "enemies >= 2 && target.hp_pct > 0.3 && !target.feared && !target.incapacitated && !target.stunned" },   # spread it
   { cast = "amplify_curse", if = "!target.aura.bane_of_agony.up && (target.hp_pct > 0.3 || target.boss)" },
   { cast = "bane_of_agony", if = "target.hp_pct > 0.3 || target.boss" },
+  { cast = "bane_of_agony", target = "other_enemy", pick = "undotted", if = "enemies >= 2 && target.hp_pct > 0.5 && !target.feared && !target.incapacitated && !target.stunned" },
+  { cast = "banish", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && (target.demon || target.elemental) && !target.feared && !target.incapacitated && !target.stunned" },   # hold the add
+  { cast = "fear", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && !target.boss && !target.feared && !target.incapacitated && !target.stunned" },
   { cast = "siphon_life" },
   { cast = "wrack", if = "target.aura.corruption.up" },
   { cast = "shadow_bolt", if = "aura.shadow_trance.up" },
   { cast = "drain_life", if = "hp_pct < 0.7" },
   { cast = "drain_soul", if = "target.hp_pct < 0.25 && !target.boss" },
+  { cast = "fear", if = "target.is_player && !target.feared && hp_pct < 0.8" },   # duels: fear, let the DoTs work
+  { cast = "curse_of_exhaustion", if = "target.fleeing && !target.slowed" },
+  { cast = "curse_of_recklessness", if = "target.humanoid && !target.is_player && !target.boss && target.hp_pct < 0.25 && target.hp_pct > 0.15 && !target.fleeing && enemies < 2" },   # it won't run
+  { cast = "rain_of_fire", if = "enemies_active >= 3 && cc_near == 0" },
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && mana_pct < 0.9" },   # leveling: dots up, then wand until it dies (not at full mana: Warcraft Tavern's Forever guide)
   { cast = "shadow_bolt", if = "t.nightfall == 0 || mana_pct > 0.5" },
   { cast = "drain_life" },
@@ -1160,22 +1354,31 @@ drink_below = 0.35
 [rotations.pact]
 desc = "Demonic Pact: sacrifice the Voidwalker for mana regeneration, then fight with a Felhunter (Imp below 30); Soul Link; Affliction DoTs and Drain Life"
 auto_melee = false
-precombat = ["demon_armor", "demon_skin", "summon_voidwalker", "demonic_sacrifice", "summon_felhunter", { cast = "summon_imp", if = "!pet.active" }, "soul_link"]
+precombat = ["demon_armor", "demon_skin", { cast = "summon_voidwalker", if = "t.demonic_pact > 0 && !aura.sacrifice_voidwalker.up" }, { cast = "demonic_sacrifice", if = "t.demonic_pact > 0 && pet.voidwalker.active && !aura.sacrifice_voidwalker.up" }, "summon_felhunter", { cast = "summon_imp", if = "!pet.active" }, "soul_link"]
 opener = []
 actions = [
   { cast = "healthstone", if = "hp_pct < 0.3" },
   { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "death_coil", if = "hp_pct < 0.4" },
   { cast = "life_tap", if = "mana_pct < 0.25 && hp_pct > 0.6" },
+  { cast = "howl_of_terror", if = "enemies_within_10 >= 2 && hp_pct < 0.4" },   # panic: everyone near runs
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "corruption" },
+  { cast = "corruption", target = "other_enemy", pick = "undotted", if = "enemies >= 2 && target.hp_pct > 0.3 && !target.feared && !target.incapacitated && !target.stunned" },   # spread it
   { cast = "amplify_curse", if = "!target.aura.bane_of_agony.up && (target.hp_pct > 0.3 || target.boss)" },
   { cast = "bane_of_agony", if = "target.hp_pct > 0.3 || target.boss" },
+  { cast = "bane_of_agony", target = "other_enemy", pick = "undotted", if = "enemies >= 2 && target.hp_pct > 0.5 && !target.feared && !target.incapacitated && !target.stunned" },
+  { cast = "banish", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && (target.demon || target.elemental) && !target.feared && !target.incapacitated && !target.stunned" },   # hold the add
+  { cast = "fear", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && !target.boss && !target.feared && !target.incapacitated && !target.stunned" },
   { cast = "siphon_life" },
   { cast = "immolate", if = "target.hp_pct > 0.4 && !known.siphon_life" },
   { cast = "shadow_bolt", if = "aura.shadow_trance.up" },
   { cast = "drain_life", if = "(hp_pct < 0.75) && !(!target.is_player && target.hp < 0.5 * hp && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
+  { cast = "fear", if = "target.is_player && !target.feared && hp_pct < 0.8" },   # duels: fear, let the DoTs work
+  { cast = "curse_of_exhaustion", if = "target.fleeing && !target.slowed" },
+  { cast = "curse_of_recklessness", if = "target.humanoid && !target.is_player && !target.boss && target.hp_pct < 0.25 && target.hp_pct > 0.15 && !target.fleeing && enemies < 2" },   # it won't run
+  { cast = "rain_of_fire", if = "enemies_active >= 3 && cc_near == 0" },
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && mana_pct < 0.9" },   # leveling: dots up, then wand until it dies (not at full mana: Warcraft Tavern's Forever guide)
   { cast = "searing_pain", if = "t.demonic_brand > 0 && !pet.aura.demonic_brand.up" },
   { cast = "shadow_bolt" },
@@ -1217,13 +1420,20 @@ actions = [
   { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "death_coil", if = "hp_pct < 0.4" },
   { cast = "life_tap", if = "mana_pct < 0.2 && hp_pct > 0.5" },
+  { cast = "howl_of_terror", if = "enemies_within_10 >= 2 && hp_pct < 0.4" },   # panic: everyone near runs
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "eureka" },
   { cast = "shadowburn", if = "target.hp_pct < 0.25" },
   { cast = "immolate", if = "target.hp_pct > 0.25 || target.boss" },
+  { cast = "banish", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && (target.demon || target.elemental) && !target.feared && !target.incapacitated && !target.stunned" },   # hold the add
+  { cast = "fear", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && !target.boss && !target.feared && !target.incapacitated && !target.stunned" },
   { cast = "conflagrate" },
   { cast = "corruption", if = "target.boss" },
+  { cast = "fear", if = "target.is_player && !target.feared && hp_pct < 0.8" },   # duels: fear, let the DoTs work
+  { cast = "curse_of_exhaustion", if = "target.fleeing && !target.slowed" },
+  { cast = "curse_of_recklessness", if = "target.humanoid && !target.is_player && !target.boss && target.hp_pct < 0.25 && target.hp_pct > 0.15 && !target.fleeing && enemies < 2" },   # it won't run
+  { cast = "rain_of_fire", if = "enemies_active >= 3 && cc_near == 0" },
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (target.hp_pct < 0.2 || mana_pct < 0.4)" },   # leveling: wand to finish and save mana
   { cast = "incinerate", if = "target.aura.immolate.up" },
   { cast = "shadow_bolt" },
@@ -1261,7 +1471,7 @@ drink_below = 0.35
 # not modelled. Gnomes use Eureka! on cooldown.
 desc = "Demonology with the Succubus: Searing Pain brands, Corruption, Bane of Agony, Immolate, Searing Pain filler, Soul Link; with Demonic Pact the Imp is sacrificed for Burning Shadow and Shadow Bolt fills; Soul Fire with Decimation"
 auto_melee = false
-precombat = ["demon_armor", "demon_skin", { cast = "summon_imp", if = "t.demonic_pact > 0" }, { cast = "demonic_sacrifice", if = "t.demonic_pact > 0 && pet.imp.active" }, "summon_succubus", { cast = "summon_voidwalker", if = "!known.summon_succubus" }, { cast = "summon_imp", if = "!pet.active" }, "soul_link"]
+precombat = ["demon_armor", "demon_skin", { cast = "summon_imp", if = "t.demonic_pact > 0 && !aura.sacrifice_imp.up" }, { cast = "demonic_sacrifice", if = "t.demonic_pact > 0 && pet.imp.active && !aura.sacrifice_imp.up" }, "summon_succubus", { cast = "summon_voidwalker", if = "!known.summon_succubus" }, { cast = "summon_imp", if = "!pet.active" }, "soul_link"]
 opener = []
 actions = [
   { cast = "healthstone", if = "hp_pct < 0.3" },
@@ -1269,14 +1479,23 @@ actions = [
   { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "death_coil", if = "hp_pct < 0.4" },
   { cast = "life_tap", if = "mana_pct < 0.25 && hp_pct > 0.6" },
+  { cast = "howl_of_terror", if = "enemies_within_10 >= 2 && hp_pct < 0.4" },   # panic: everyone near runs
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "eureka" },
   { cast = "searing_pain", if = "t.demonic_brand > 0 && pet.active && !pet.imp.active && !pet.aura.demonic_brand.up" },
   { cast = "corruption" },
+  { cast = "corruption", target = "other_enemy", pick = "undotted", if = "enemies >= 2 && target.hp_pct > 0.3 && !target.feared && !target.incapacitated && !target.stunned" },   # spread it
   { cast = "bane_of_agony", if = "target.hp_pct > 0.3 || target.boss" },
+  { cast = "bane_of_agony", target = "other_enemy", pick = "undotted", if = "enemies >= 2 && target.hp_pct > 0.5 && !target.feared && !target.incapacitated && !target.stunned" },
+  { cast = "banish", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && (target.demon || target.elemental) && !target.feared && !target.incapacitated && !target.stunned" },   # hold the add
+  { cast = "fear", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && !target.boss && !target.feared && !target.incapacitated && !target.stunned" },
   { cast = "immolate", if = "target.hp_pct > 0.4 || target.boss" },
   { cast = "soul_fire", if = "aura.decimation.up" },
+  { cast = "fear", if = "target.is_player && !target.feared && hp_pct < 0.8" },   # duels: fear, let the DoTs work
+  { cast = "curse_of_exhaustion", if = "target.fleeing && !target.slowed" },
+  { cast = "curse_of_recklessness", if = "target.humanoid && !target.is_player && !target.boss && target.hp_pct < 0.25 && target.hp_pct > 0.15 && !target.fleeing && enemies < 2" },   # it won't run
+  { cast = "rain_of_fire", if = "enemies_active >= 3 && cc_near == 0" },
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (target.hp_pct < 0.2 || mana_pct < 0.4)" },   # leveling: wand to finish (Warcraft Tavern: below about 20%)
   { cast = "drain_life", if = "hp_pct < 0.5 && !target.boss" },
   { cast = "searing_pain", if = "!aura.sacrifice_imp.up" },

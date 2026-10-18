@@ -86,7 +86,8 @@ icon = "inv_ability_mage_radiantspark"
 tree = "Arcane"
 points = 10
 ranks = 2
-text = "Range (not simulated)."
+text = "Arcane Missiles, Arcane Blast, Polymorph and Counterspell reach 3/6 yards farther."
+spell_mods = [{ spells = ["arcane_missiles", "arcane_blast", "polymorph", "counterspell"], prop = "range", add = "3 * rank" }]
 [talents.arcane_impact]
 icon = "spell_nature_wispsplode"
 tree = "Arcane"
@@ -197,7 +198,8 @@ icon = "spell_fire_flare"
 tree = "Fire"
 points = 5
 ranks = 2
-text = "Range (not simulated)."
+text = "Fire spells reach 3/6 yards farther."
+spell_mods = [{ spells = ["fire_blast", "fireball", "flamestrike", "frostfire_bolt", "pyroblast", "scorch"], prop = "range", add = "3 * rank" }]
 [talents.impact]
 icon = "spell_fire_meteorstorm"
 tree = "Fire"
@@ -241,7 +243,7 @@ icon = "spell_fire_firearmor"
 tree = "Fire"
 points = 15
 ranks = 2
-text = "Fire Ward reflect +10/20% (Fire Ward is not simulated)."
+text = "Fire Ward reflect +10/20% (the reflection is not simulated)."
 [talents.heating_up]
 icon = "spell_fire_firebolt"
 tree = "Fire"
@@ -289,7 +291,7 @@ icon = "spell_frost_frostward"
 tree = "Frost"
 points = 0
 ranks = 2
-text = "Frost and Ice Armor give 15/30% more armor; Frost Ward reflect +10/20% (Frost Ward is not simulated)."
+text = "Frost and Ice Armor give 15/30% more armor; Frost Ward reflect +10/20% (the reflection is not simulated)."
 [talents.improved_frostbolt]
 icon = "spell_frost_frostbolt02"
 tree = "Frost"
@@ -317,7 +319,7 @@ icon = "spell_frost_wisp"
 tree = "Frost"
 points = 5
 ranks = 3
-text = "Chill effects last 11/22/33% longer and slow movement 3/7/10% more (the longer chill applies to Frost and Ice Armor's attack-speed chill here; movement slows are not simulated)."
+text = "Chill effects last 11/22/33% longer and slow movement 3/7/10% more."
 [talents.improved_frost_nova]
 icon = "spell_frost_freezingbreath"
 tree = "Frost"
@@ -361,19 +363,20 @@ icon = "spell_frost_icestorm"
 tree = "Frost"
 points = 10
 ranks = 3
-text = "Blizzard chills (15/25/40% slow for 1.5 sec), which can set off Frostbite and Fingers of Frost; the slow itself is not simulated."
+text = "Blizzard chills (15/25/40% slow for 1.5 sec), which can set off Frostbite and Fingers of Frost."
 [talents.arctic_reach]
 icon = "spell_shadow_darkritual"
 tree = "Frost"
 points = 15
 ranks = 2
-text = "Range (not simulated)."
+text = "Frostbolt and Blizzard reach 10/20% farther; Frost Nova and Cone of Cold cover 10/20% more ground."
+spell_mods = [{ spells = ["frostbolt", "blizzard"], prop = "range", mul = "1 + 0.1 * rank" }, { spells = ["frost_nova", "cone_of_cold"], prop = "radius", mul = "1 + 0.1 * rank" }]
 [talents.ice_block]
 icon = "spell_frost_frost"
 tree = "Frost"
 points = 15
 ranks = 1
-text = "Ice Block (not simulated)."
+text = "Learn Ice Block: 10 sec of immunity, 5 min cooldown."
 [talents.shatter]
 icon = "spell_frost_frostshock"
 tree = "Frost"
@@ -395,7 +398,7 @@ icon = "spell_frost_wizardmark"
 tree = "Frost"
 points = 20
 ranks = 1
-text = "Resets Frost cooldowns (not simulated)."
+text = "Learn Cold Snap: finishes the cooldowns of your Frost spells, 10 min cooldown."
 [talents.fingers_of_frost]
 icon = "ability_mage_wintersgrasp"
 tree = "Frost"
@@ -425,12 +428,14 @@ text = "Ice Barrier absorb shield, 30 sec cooldown."
 # ------------------------------------------------------------------ auras
 [auras.frost_armor]
 name = "Frost Armor"
+dispel = "magic"
 group = "mage_armor"
 text = "Melee attackers are Chilled (spell 6136)."
 mods = [{ stat = "armor", add = "r.armor * (1 + 0.15 * t.frost_warding)" }]
 procs = [{ on = "struck_melee", effects = [{ type = "aura", aura = "chilled", target = "target" }, { type = "emit", event = "mage_chill" }] }]
 [auras.ice_armor]
 name = "Ice Armor"
+dispel = "magic"
 group = "mage_armor"
 text = "Melee attackers are Chilled (spell 7321). Frost resistance is not simulated."
 mods = [{ stat = "armor", add = "r.armor * (1 + 0.15 * t.frost_warding)" }]
@@ -441,19 +446,59 @@ debuff = true
 per_source = false
 mechanic = "slow"
 duration = "5 * (1 + 0.11 * t.permafrost)"
-text = "Frost and Ice Armor's chill: 25% longer between melee attacks (the 30% movement slow is not simulated)."
+text = "Frost and Ice Armor's chill: 25% longer between melee attacks, and 30% slower movement."
+slow = "0.3 + (t.permafrost == 3 ? 0.1 : (t.permafrost == 2 ? 0.07 : 0.03 * t.permafrost))"
 mods = [{ stat = "melee_haste", mul = 0.8 }]
+[auras.frostbolt_chill]
+name = "Frostbolt"
+debuff = true
+per_source = false
+mechanic = "slow"
+duration = "r.chill * (1 + 0.11 * t.permafrost)"
+slow = "0.4 + (t.permafrost == 3 ? 0.1 : (t.permafrost == 2 ? 0.07 : 0.03 * t.permafrost))"
+[auras.frostfire_bolt_chill]
+name = "Frostfire Bolt"
+debuff = true
+per_source = false
+mechanic = "slow"
+duration = "9 * (1 + 0.11 * t.permafrost)"
+slow = "0.4 + (t.permafrost == 3 ? 0.1 : (t.permafrost == 2 ? 0.07 : 0.03 * t.permafrost))"
+[auras.cone_of_cold_chill]
+name = "Cone of Cold"
+debuff = true
+per_source = false
+mechanic = "slow"
+# the top rank (Oct 15 notes; 70425 data, spell 10161): 10% more for 3 sec longer
+duration = "r.chill * (1 + 0.11 * t.permafrost)"
+slow = "r.slow / 100 + (t.permafrost == 3 ? 0.1 : (t.permafrost == 2 ? 0.07 : 0.03 * t.permafrost))"
+[auras.frost_blast_chill]
+name = "Frost Blast"
+debuff = true
+per_source = false
+mechanic = "slow"
+duration = "9 * (1 + 0.11 * t.permafrost)"
+slow = "0.4 + (t.permafrost == 3 ? 0.1 : (t.permafrost == 2 ? 0.07 : 0.03 * t.permafrost))"
+[auras.blast_wave_daze]
+name = "Blast Wave"
+debuff = true
+per_source = false
+mechanic = "slow"
+duration = 6
+slow = 0.5
 [auras.arcane_intellect]
 name = "Arcane Intellect"
+dispel = "magic"
 mods = [{ stat = "int", add = "r.int" }]
 [auras.clearcasting]
 name = "Clearcasting"
+react = true
 duration = 15
 consume_on_cast = true
 text = "Used up by the next damage spell cast, not by the one whose hit gave it."
 spell_mods = [{ spells = ["fireball", "frostbolt", "fire_blast", "arcane_missiles", "arcane_explosion", "scorch", "pyroblast", "cone_of_cold", "ice_lance", "arcane_blast", "frostfire_bolt", "flamestrike", "blizzard", "frost_nova", "blast_wave"], prop = "cost", mul = 0 }]
 [auras.missile_barrage]
 name = "Missile Barrage"
+react = true
 duration = 15
 consume_on_cast = true
 spell_mods = [{ spells = ["arcane_missiles"], prop = "cost", mul = 0 }]
@@ -522,6 +567,7 @@ max_stacks = 10
 spell_mods = [{ school = "fire", prop = "crit", add = "10 * stacks" }]
 [auras.fingers_of_frost]
 name = "Fingers of Frost"
+react = true
 duration = 15
 charges = "t.fingers_of_frost"
 consume_on_cast = true
@@ -538,8 +584,54 @@ refresh = "replace"
 duration = 15
 max_stacks = 5
 text = "Ice Lance and Frostbolt crit +2% per stack; up to 1 stack per Winter's Chill rank."
+[auras.polymorph]
+name = "Polymorph"
+debuff = true
+mechanic = "incap"
+break_on_damage = true
+on_remove = [{ type = "remove_aura", aura = "polymorph_out" }]
+# a polymorphed mob heals while it waits (assumption poly_regen)
+tick = { interval = 3, effects = [{ type = "resource", res = "hp", target = "target", set = true, amount = "min(target.max_hp, target.hp + opt.poly_regen * target.max_hp)" }] }
+[auras.polymorph_out]
+# on the mage while one of its sheep is out (its area spells hold off)
+name = "Sheep out"
+hidden = true
+[auras.mana_shield]
+name = "Mana Shield"
+dispel = "magic"
+duration = 60
+absorb = "r.absorb"
+# the spell data's amplitude: 2 mana a point of damage
+mana_per_absorb = 2
+[auras.fire_ward]
+name = "Fire Ward"
+dispel = "magic"
+duration = 30
+absorb = "r.absorb"
+absorb_school = "fire"
+[auras.frost_ward]
+name = "Frost Ward"
+dispel = "magic"
+duration = 30
+absorb = "r.absorb"
+absorb_school = "frost"
+[auras.ice_block]
+name = "Ice Block"
+duration = 10
+# encased: no damage, no crowd control, and no acting
+mechanic = "stun"
+dr = "none"
+mods = [{ stat = "dmg_taken", mul = 0 }, { stat = "immune_stun", add = 1 }, { stat = "immune_fear", add = 1 }, { stat = "immune_incap", add = 1 }, { stat = "immune_root", add = 1 }, { stat = "immune_silence", add = 1 }]
+[auras.blizzard_chill]
+name = "Blizzard"
+debuff = true
+per_source = false
+mechanic = "slow"
+duration = 1.5
+slow = "(t.improved_blizzard == 1 ? 0.15 : (t.improved_blizzard == 2 ? 0.25 : 0.4)) + (t.permafrost == 3 ? 0.1 : (t.permafrost == 2 ? 0.07 : 0.03 * t.permafrost))"
 [auras.ice_barrier]
 name = "Ice Barrier"
+dispel = "magic"
 duration = 60
 absorb = "r.absorb"
 [auras.evocation]
@@ -577,6 +669,7 @@ effects = [{ type = "aura", aura = "ice_armor" }]
 
 [spells.arcane_intellect]
 name = "Arcane Intellect"
+range = 30
 icon = "spell_holy_magicalsentry"
 target = "self"
 requires = "!aura.arcane_intellect.up"
@@ -591,6 +684,7 @@ effects = [{ type = "aura", aura = "arcane_intellect" }]
 
 [spells.fireball]
 name = "Fireball"
+range = 35
 icon = "spell_fire_flamebolt"
 school = "fire"
 ranks = [
@@ -619,23 +713,24 @@ name = "Frostbolt"
 icon = "spell_frost_frostbolt02"
 school = "frost"
 ranks = [
-  { level = 4, id = 116, lo = 18, lo_per_level = 0.189, hi = 20, hi_per_level = 0.211, mana = 25, cast = 1.5, max_level = 8, coef = 0.407 },
-  { level = 8, id = 205, lo = 27, lo_per_level = 0.282, hi = 31, hi_per_level = 0.318, mana = 35, cast = 1.8, max_level = 12, coef = 0.489 },
-  { level = 14, id = 837, lo = 43, lo_per_level = 0.472, hi = 49, hi_per_level = 0.528, mana = 50, cast = 2.2, max_level = 18, coef = 0.597 },
-  { level = 20, id = 7322, lo = 66, lo_per_level = 0.759, hi = 74, hi_per_level = 0.841, mana = 65, cast = 2.6, max_level = 24, coef = 0.706 },
-  { level = 26, id = 8406, lo = 99, lo_per_level = 1.241, hi = 109, hi_per_level = 1.359, mana = 100, cast = 3, max_level = 30, coef = 0.814 },
-  { level = 32, id = 8407, lo = 128, lo_per_level = 1.625, hi = 140, hi_per_level = 1.775, mana = 130, cast = 3, max_level = 36, coef = 0.814 },
-  { level = 38, id = 8408, lo = 173, lo_per_level = 1.916, hi = 189, hi_per_level = 2.084, mana = 160, cast = 3, max_level = 42, coef = 0.814 },
-  { level = 44, id = 10179, lo = 234, lo_per_level = 2.209, hi = 254, hi_per_level = 2.391, mana = 195, cast = 3, max_level = 48, coef = 0.814 },
-  { level = 50, id = 10180, lo = 295, lo_per_level = 2.494, hi = 321, hi_per_level = 2.706, mana = 225, cast = 3, max_level = 54, coef = 0.814 },
-  { level = 56, id = 10181, lo = 371, lo_per_level = 2.79, hi = 401, hi_per_level = 3.01, mana = 260, cast = 3, max_level = 60, coef = 0.814 },
-  { level = 60, id = 25304, lo = 457, lo_per_level = 3.08, hi = 493, hi_per_level = 3.32, mana = 290, cast = 3, max_level = 64, coef = 0.814 },
+  { level = 4, id = 116, lo = 18, lo_per_level = 0.189, hi = 20, hi_per_level = 0.211, mana = 25, cast = 1.5, max_level = 8, coef = 0.407 , chill = 5 },
+  { level = 8, id = 205, lo = 27, lo_per_level = 0.282, hi = 31, hi_per_level = 0.318, mana = 35, cast = 1.8, max_level = 12, coef = 0.489 , chill = 6 },
+  { level = 14, id = 837, lo = 43, lo_per_level = 0.472, hi = 49, hi_per_level = 0.528, mana = 50, cast = 2.2, max_level = 18, coef = 0.597 , chill = 6 },
+  { level = 20, id = 7322, lo = 66, lo_per_level = 0.759, hi = 74, hi_per_level = 0.841, mana = 65, cast = 2.6, max_level = 24, coef = 0.706 , chill = 7 },
+  { level = 26, id = 8406, lo = 99, lo_per_level = 1.241, hi = 109, hi_per_level = 1.359, mana = 100, cast = 3, max_level = 30, coef = 0.814 , chill = 7 },
+  { level = 32, id = 8407, lo = 128, lo_per_level = 1.625, hi = 140, hi_per_level = 1.775, mana = 130, cast = 3, max_level = 36, coef = 0.814 , chill = 8 },
+  { level = 38, id = 8408, lo = 173, lo_per_level = 1.916, hi = 189, hi_per_level = 2.084, mana = 160, cast = 3, max_level = 42, coef = 0.814 , chill = 8 },
+  { level = 44, id = 10179, lo = 234, lo_per_level = 2.209, hi = 254, hi_per_level = 2.391, mana = 195, cast = 3, max_level = 48, coef = 0.814 , chill = 9 },
+  { level = 50, id = 10180, lo = 295, lo_per_level = 2.494, hi = 321, hi_per_level = 2.706, mana = 225, cast = 3, max_level = 54, coef = 0.814 , chill = 9 },
+  { level = 56, id = 10181, lo = 371, lo_per_level = 2.79, hi = 401, hi_per_level = 3.01, mana = 260, cast = 3, max_level = 60, coef = 0.814 , chill = 9 },
+  { level = 60, id = 25304, lo = 457, lo_per_level = 3.08, hi = 493, hi_per_level = 3.32, mana = 290, cast = 3, max_level = 64, coef = 0.814 , chill = 9 },
 ]
-text = "Its slow is a Chill effect (movement is not simulated)."
-effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "emit", event = "mage_chill" }], on_crit = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }] }]
+text = "Slows the target 40% (a Chill effect)."
+effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "aura", aura = "frostbolt_chill", target = "target" }, { type = "emit", event = "mage_chill" }], on_crit = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }] }]
 
 [spells.frostfire_bolt]
 name = "Frostfire Bolt"
+range = 35
 icon = "ability_mage_frostfirebolt"
 school = "fire"
 text = "Frostfire: counts as Fire here; talents that name Frostfire Bolt or list it in the game data (Ice Shards, Piercing Ice, Frost Channeling) apply too. Its slow is a Chill effect; the burn ticks every 3 sec for 9 sec."
@@ -644,7 +739,7 @@ ranks = [
   { level = 50, id = 1237312, lo = 168, lo_per_level = 1.57, hi = 196, hi_per_level = 1.83, tick = 13, mana = 285, cast = 3, max_level = 58, coef = 0.814 },
   { level = 60, id = 1237313, lo = 270, lo_per_level = 1.939, hi = 314, hi_per_level = 2.261, tick = 19, mana = 370, cast = 3, max_level = 68, coef = 0.814 },
 ]
-effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = "r.coef", mult = "1 + 0.02 * t.piercing_ice", on_hit = [{ type = "aura", aura = "frostfire_bolt_burn", target = "target" }, { type = "emit", event = "mage_chill" }], on_crit = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }] }]
+effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = "r.coef", mult = "1 + 0.02 * t.piercing_ice", on_hit = [{ type = "aura", aura = "frostfire_bolt_burn", target = "target" }, { type = "aura", aura = "frostfire_bolt_chill", target = "target" }, { type = "emit", event = "mage_chill" }], on_crit = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }] }]
 [auras.frostfire_bolt_burn]
 name = "Frostfire Bolt"
 debuff = true
@@ -653,6 +748,7 @@ tick = { interval = 3, effects = [{ type = "damage", school = "fire", periodic =
 
 [spells.fire_blast]
 name = "Fire Blast"
+range = 20
 icon = "spell_fire_fireball"
 school = "fire"
 cooldown = 8
@@ -685,6 +781,7 @@ effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef 
 
 [spells.pyroblast]
 name = "Pyroblast"
+range = 35
 icon = "spell_fire_fireball02"
 talent = "pyroblast"
 school = "fire"
@@ -729,6 +826,7 @@ channel = { duration = "r.dur * (aura.missile_barrage.up > 0 ? 0.5 : 1)", interv
 
 [spells.arcane_explosion]
 name = "Arcane Explosion"
+radius = 10
 icon = "spell_nature_wispsplode"
 school = "arcane"
 ranks = [
@@ -759,6 +857,7 @@ effects = [{ type = "damage", school = "arcane", min = "r.lo", max = "r.hi", coe
 
 [spells.frost_nova]
 name = "Frost Nova"
+radius = 10
 icon = "spell_frost_frostnova"
 school = "frost"
 cooldown = 25
@@ -768,26 +867,29 @@ ranks = [
   { level = 40, id = 6131, lo = 50, lo_per_level = 0.473, hi = 56, hi_per_level = 0.527, mana = 115, max_level = 45, coef = 0.029 },
   { level = 54, id = 10230, lo = 69, lo_per_level = 0.473, hi = 77, hi_per_level = 0.527, mana = 145, max_level = 59, coef = 0.029 },
 ]
-text = "Frozen enemies cannot reach you (no distance in the sim), so Frost Nova works as an 8 sec freeze broken by damage after a short grace."
+text = "Freezes enemies within 10 yards in place for 8 sec: they can't move, but still swing at whoever is in reach. Damage can break it after a short grace."
 effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = "r.coef", target = "enemies", on_hit = [{ type = "aura", aura = "frozen", target = "target", duration = 8 }], on_crit = [{ type = "if", cond = "!aura.master_of_elements.up", then = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }, { type = "aura", aura = "master_of_elements" }] }] }]
 
 [spells.cone_of_cold]
 name = "Cone of Cold"
+radius = 10
 icon = "spell_frost_glacier"
 school = "frost"
 cooldown = 10
 ranks = [
-  { level = 26, id = 120, lo = 92, lo_per_level = 0.761, hi = 102, hi_per_level = 0.839, mana = 210, max_level = 31, coef = 0.129 },
-  { level = 34, id = 8492, lo = 137, lo_per_level = 0.954, hi = 151, hi_per_level = 1.046, mana = 290, max_level = 39, coef = 0.129 },
-  { level = 42, id = 10159, lo = 194, lo_per_level = 1.144, hi = 214, hi_per_level = 1.256, mana = 380, max_level = 47, coef = 0.129 },
-  { level = 50, id = 10160, lo = 254, lo_per_level = 1.239, hi = 280, hi_per_level = 1.361, mana = 465, max_level = 55, coef = 0.129 },
-  { level = 58, id = 10161, lo = 325, lo_per_level = 1.436, hi = 355, hi_per_level = 1.564, mana = 555, max_level = 63, coef = 0.129 },
+  { level = 26, id = 120, lo = 92, lo_per_level = 0.761, hi = 102, hi_per_level = 0.839, mana = 210, max_level = 31, coef = 0.129, slow = 40, chill = 6 },
+  { level = 34, id = 8492, lo = 137, lo_per_level = 0.954, hi = 151, hi_per_level = 1.046, mana = 290, max_level = 39, coef = 0.129, slow = 40, chill = 6 },
+  { level = 42, id = 10159, lo = 194, lo_per_level = 1.144, hi = 214, hi_per_level = 1.256, mana = 380, max_level = 47, coef = 0.129, slow = 40, chill = 6 },
+  { level = 50, id = 10160, lo = 254, lo_per_level = 1.239, hi = 280, hi_per_level = 1.361, mana = 465, max_level = 55, coef = 0.129, slow = 40, chill = 6 },
+  { level = 58, id = 10161, lo = 325, lo_per_level = 1.436, hi = 355, hi_per_level = 1.564, mana = 555, max_level = 63, coef = 0.129, slow = 50, chill = 9 },
 ]
-text = "Its slow is a Chill effect (movement is not simulated)."
-effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = "r.coef", target = "enemies", on_hit = [{ type = "emit", event = "mage_chill" }], on_crit = [{ type = "if", cond = "!aura.master_of_elements.up", then = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }, { type = "aura", aura = "master_of_elements" }] }] }]
+text = "Its slow is a Chill effect."
+effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = "r.coef", target = "enemies", on_hit = [{ type = "aura", aura = "cone_of_cold_chill", target = "target" }, { type = "emit", event = "mage_chill" }], on_crit = [{ type = "if", cond = "!aura.master_of_elements.up", then = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }, { type = "aura", aura = "master_of_elements" }] }] }]
 
 [spells.blizzard]
 name = "Blizzard"
+range = 30
+radius = 8
 icon = "spell_frost_icestorm"
 school = "frost"
 ranks = [
@@ -798,8 +900,8 @@ ranks = [
   { level = 52, id = 10186, tick = 114, tick_per_level = 0.3, mana = 1160, max_level = 57 },
   { level = 60, id = 10187, tick = 146, tick_per_level = 0.4, mana = 1400, max_level = 65 },
 ]
-text = "Eight ticks, one a second (the tick spells, e.g. 1279976, carry the damage and its 0.042 coefficient). Hits every enemy for the whole channel (no ground area in the sim)."
-channel = { duration = 8, interval = 1, effects = [{ type = "damage", school = "frost", target = "enemies", amount = "r.tick", coef = 0.042, hit = "auto", can_crit = false, tag = "Blizzard", on_hit = [{ type = "if", cond = "t.improved_blizzard > 0", then = [{ type = "emit", event = "mage_chill" }] }] }] }
+text = "Eight ticks, one a second, on enemies within 8 yards of the target (the tick spells, e.g. 1279976, carry the damage and its 0.042 coefficient)."
+channel = { duration = 8, interval = 1, effects = [{ type = "damage", school = "frost", target = "enemies", amount = "r.tick", coef = 0.042, hit = "auto", can_crit = false, tag = "Blizzard", on_hit = [{ type = "if", cond = "t.improved_blizzard > 0", then = [{ type = "aura", aura = "blizzard_chill", target = "target" }, { type = "emit", event = "mage_chill" }] }] }] }
 
 [spells.ice_lance]
 name = "Ice Lance"
@@ -872,6 +974,7 @@ effects = [{ type = "aura", aura = "combustion" }]
 
 [spells.blast_wave]
 name = "Blast Wave"
+radius = 10
 icon = "spell_holy_excorcism_02"
 talent = "blast_wave"
 school = "fire"
@@ -879,11 +982,13 @@ cooldown = 45
 ranks = [
   { level = 30, id = 11113, lo = 148, lo_per_level = 0.906, hi = 178, hi_per_level = 1.094, mana = 215, max_level = 36, coef = 0.129 },
 ]
-text = "Only rank 1 is in the game data. Its slow is not simulated."
-effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = "r.coef", target = "enemies", on_crit = [{ type = "if", cond = "!aura.master_of_elements.up", then = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }, { type = "aura", aura = "master_of_elements" }] }] }]
+text = "Only rank 1 is in the game data. Dazes what it hits: 50% slower for 6 sec."
+effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = "r.coef", target = "enemies", on_hit = [{ type = "aura", aura = "blast_wave_daze", target = "target" }], on_crit = [{ type = "if", cond = "!aura.master_of_elements.up", then = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }, { type = "aura", aura = "master_of_elements" }] }] }]
 
 [spells.flamestrike]
 name = "Flamestrike"
+range = 30
+radius = 5
 icon = "spell_fire_selfdestruct"
 school = "fire"
 cast_time = 3
@@ -903,8 +1008,123 @@ debuff = true
 duration = 8
 tick = { interval = 2, effects = [{ type = "damage", school = "fire", periodic = true, tag = "Flamestrike (burn)", amount = "r.tick", coef = 0.032 }] }
 
+[spells.polymorph]
+name = "Polymorph"
+range = 30
+icon = "spell_nature_polymorph"
+school = "arcane"
+target = "enemy"
+cast_time = 1.5
+cost = { mana = "r.mana" }
+requires = "(target.humanoid || target.beast) && !target.boss"
+ranks = [
+  { level = 8, id = 118, mana = 60, dur = 20 },
+  { level = 20, id = 12824, mana = 90, dur = 30 },
+  { level = 40, id = 12825, mana = 120, dur = 40 },
+  { level = 60, id = 12826, mana = 150, dur = 50 },
+]
+text = "Turns a humanoid or beast into a sheep: it can't act until any damage breaks it, and it heals while it waits."
+effects = [{ type = "aura", aura = "polymorph", target = "target", duration = "r.dur" }, { type = "aura", aura = "polymorph_out", duration = "r.dur" }]
+
+[spells.blink]
+name = "Blink"
+radius = 20
+icon = "spell_arcane_blink"
+school = "arcane"
+target = "self"
+cooldown = 15
+cost = { mana = "0.35 * base_mana" }
+usable_while = ["stun"]
+ranks = [{ level = 20, id = 1953 }]
+text = "Teleports you 20 yards away from your target, out of stuns and roots."
+effects = [{ type = "dispel", mechanics = ["stun", "root", "freeze"] }, { type = "teleport", yards = 20 }]
+
+[spells.mana_shield]
+name = "Mana Shield"
+icon = "spell_shadow_detectlesserinvisibility"
+school = "arcane"
+target = "self"
+cost = { mana = "r.mana" }
+ranks = [
+  { level = 20, id = 1463, mana = 40, absorb = 120 },
+  { level = 28, id = 8494, mana = 60, absorb = 210 },
+  { level = 36, id = 8495, mana = 80, absorb = 300 },
+  { level = 44, id = 10191, mana = 100, absorb = 390 },
+  { level = 52, id = 10192, mana = 120, absorb = 480 },
+  { level = 60, id = 10193, mana = 140, absorb = 570 },
+]
+text = "Absorbs damage, paying 2 mana for each point it takes."
+effects = [{ type = "aura", aura = "mana_shield" }]
+
+[spells.fire_ward]
+name = "Fire Ward"
+icon = "spell_fire_firearmor"
+school = "fire"
+target = "self"
+cooldown = 30
+cd_group = "ward"
+cost = { mana = "r.mana" }
+ranks = [
+  { level = 20, id = 543, mana = 85, absorb = 162 },
+  { level = 30, id = 8457, mana = 135, absorb = 285 },
+  { level = 40, id = 8458, mana = 195, absorb = 463 },
+  { level = 50, id = 10223, mana = 255, absorb = 668 },
+  { level = 60, id = 10225, mana = 320, absorb = 913 },
+]
+text = "Absorbs Fire damage for 30 sec (shares a cooldown with Frost Ward)."
+effects = [{ type = "aura", aura = "fire_ward" }]
+
+[spells.frost_ward]
+name = "Frost Ward"
+icon = "spell_frost_frostward"
+school = "frost"
+target = "self"
+cooldown = 30
+cd_group = "ward"
+cost = { mana = "r.mana" }
+ranks = [
+  { level = 22, id = 6143, mana = 85, absorb = 162 },
+  { level = 32, id = 8461, mana = 135, absorb = 284 },
+  { level = 42, id = 8462, mana = 195, absorb = 463 },
+  { level = 52, id = 10177, mana = 255, absorb = 668 },
+  { level = 60, id = 28609, mana = 320, absorb = 913 },
+]
+text = "Absorbs Frost damage for 30 sec (shares a cooldown with Fire Ward)."
+effects = [{ type = "aura", aura = "frost_ward" }]
+
+[spells.ice_block]
+name = "Ice Block"
+icon = "spell_frost_frost"
+school = "frost"
+talent = "ice_block"
+target = "self"
+cooldown = 300
+cost = { mana = 15 }
+# the talent spell, listed at level 4 in the spell data
+ranks = [{ level = 4, id = 11958 }]
+text = "Encased in ice for 10 sec: immune to damage and crowd control, but you can't act."
+effects = [{ type = "aura", aura = "ice_block" }]
+
+[spells.cold_snap]
+name = "Cold Snap"
+icon = "spell_frost_wizardmark"
+talent = "cold_snap"
+target = "self"
+off_gcd = true
+cooldown = 600
+ranks = [{ level = 1, id = 12472 }]
+text = "Finishes the cooldowns of your Frost spells."
+effects = [
+  { type = "cooldown", spell = "frost_nova", op = "reset" },
+  { type = "cooldown", spell = "cone_of_cold", op = "reset" },
+  { type = "cooldown", spell = "ice_barrier", op = "reset" },
+  { type = "cooldown", spell = "ice_block", op = "reset" },
+  { type = "cooldown", spell = "frost_ward", op = "reset" },
+]
+
 [spells.counterspell]
 name = "Counterspell"
+range = 30
 icon = "spell_frost_iceshock"
 school = "arcane"
 level = 24
@@ -923,15 +1143,23 @@ opener = []
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
+  { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
+  { cast = "cold_snap", if = "cd.ice_barrier.remains > 10 && cd.frost_nova.remains > 10 && (target.is_player || enemies_active >= 2)" },
   { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "presence_of_mind" },
+  { cast = "polymorph", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.incapacitated && hp_pct < 0.7" },   # sheep the add when it gets rough
   { cast = "arcane_power" },
-  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15" },
-  { cast = "cone_of_cold", if = "enemies >= 2" },
+  { cast = "frost_nova", if = "target.fleeing && !aura.polymorph_out.up" },   # stop a runner
+  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15 && !aura.polymorph_out.up && target.dist < 8" },   # once it's on you
+  { cast = "cone_of_cold", if = "enemies >= 2 && !aura.polymorph_out.up" },
+  { cast = "blizzard", if = "enemies_active >= 3 && !aura.polymorph_out.up" },
+  { cast = "arcane_explosion", if = "enemies_within_10 >= 3 && !aura.polymorph_out.up && mana_pct > 0.3" },
   { cast = "ice_lance", if = "target.frozen || aura.fingers_of_frost.up" },
   { cast = "fire_blast", if = "target.hp_pct < 0.15" },
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (target.hp_pct < 0.3 || mana_pct < 0.3)" },   # leveling: a few casts, then wand to finish
@@ -958,6 +1186,10 @@ opener = []
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
+  { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
+  { cast = "mana_shield", if = "!aura.mana_shield.up && !aura.ice_barrier.up && enemies_within_5 >= 1 && hp_pct < 0.5 && mana_pct > 0.3" },
   { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
@@ -965,8 +1197,12 @@ actions = [
   { cast = "berserking" },
   { cast = "combustion" },
   { cast = "presence_of_mind" },
-  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15" },
-  { cast = "blast_wave", if = "enemies >= 2" },
+  { cast = "polymorph", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.incapacitated" },   # sheep the add
+  { cast = "frost_nova", if = "target.fleeing && !aura.polymorph_out.up" },   # stop a runner
+  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15 && !aura.polymorph_out.up && target.dist < 8" },   # once it's on you
+  { cast = "blast_wave", if = "enemies_active >= 2 && !aura.polymorph_out.up" },
+  { cast = "flamestrike", if = "enemies_active >= 3 && !aura.polymorph_out.up" },
+  { cast = "arcane_explosion", if = "enemies_within_10 >= 3 && !aura.polymorph_out.up && mana_pct > 0.3" },
   { cast = "pyroblast", if = "aura.heating_up.stacks >= 3" },
   { cast = "scorch", if = "known.scorch && t.improved_scorch > 0 && target.max_hp > 20000 && (target.aura.fire_vulnerability.stacks < 5 || target.aura.fire_vulnerability.remains < 4)" },
   { cast = "fire_blast" },
@@ -992,6 +1228,10 @@ precombat = ["ice_armor", "frost_armor", "arcane_intellect"]
 opener = []
 actions = [
   { cast = "counterspell" },
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
+  { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
+  { cast = "mana_shield", if = "!aura.mana_shield.up && !aura.ice_barrier.up && enemies_within_5 >= 1 && hp_pct < 0.5 && mana_pct > 0.3" },
   { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
@@ -999,7 +1239,10 @@ actions = [
   { cast = "berserking" },
   { cast = "arcane_power" },
   { cast = "presence_of_mind" },
-  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15" },
+  { cast = "polymorph", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.incapacitated" },   # sheep the add
+  { cast = "arcane_explosion", if = "enemies_within_10 >= 3 && !aura.polymorph_out.up && mana_pct > 0.3" },
+  { cast = "frost_nova", if = "target.fleeing && !aura.polymorph_out.up" },   # stop a runner
+  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15 && !aura.polymorph_out.up && target.dist < 8" },   # once it's on you
   { cast = "arcane_missiles", if = "aura.missile_barrage.up" },
   { cast = "arcane_blast", if = "aura.arcane_blast.stacks < 3 && mana_pct > 0.25" },
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (target.hp_pct < 0.3 || mana_pct < 0.3)" },   # leveling: a few casts, then wand to finish
@@ -1025,17 +1268,20 @@ opener = []
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
+  { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
   { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "arcane_power" },
-  { cast = "frost_nova", if = "!target.frozen && !target.boss" },
+  { cast = "frost_nova", if = "!target.frozen && !target.boss && !aura.polymorph_out.up && target.dist < 8" },   # once it's on you
   { cast = "ice_lance", if = "target.frozen || aura.fingers_of_frost.up" },
   { cast = "fire_blast" },
-  { cast = "cone_of_cold" },
-  { cast = "arcane_explosion", if = "mana_pct > 0.3" },
+  { cast = "cone_of_cold", if = "!aura.polymorph_out.up" },
+  { cast = "arcane_explosion", if = "mana_pct > 0.3 && !aura.polymorph_out.up" },
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },

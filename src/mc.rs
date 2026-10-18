@@ -52,7 +52,12 @@ pub struct McResult {
 
 /// Metrics reported as proportions (Wilson interval) rather than means.
 pub fn is_proportion(k: &str) -> bool {
-    matches!(k, "win" | "loss" | "timeout" | "died" | "win_at_reference")
+    matches!(k, "win" | "loss" | "draw" | "timeout" | "first" | "died" | "win_at_reference")
+}
+/// Duel scores (a win 1, a draw or timeout half): converged on an absolute
+/// half-width, like a win rate.
+pub fn is_score(k: &str) -> bool {
+    matches!(k, "score" | "score_first" | "score_second")
 }
 /// Metrics summarised by their median (distribution-free interval).
 pub fn is_median(k: &str) -> bool {
@@ -84,6 +89,9 @@ pub fn precision_of(vals: &[Values], k: &str, conf: f64) -> f64 {
     }
     let mut w = Welford::new();
     col.iter().for_each(|&x| w.push(x));
+    if is_score(k) {
+        return w.half_width(conf);
+    }
     if w.mean.abs() < 1e-12 {
         return if w.sd() < 1e-12 { 0.0 } else { f64::INFINITY };
     }

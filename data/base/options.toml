@@ -12,6 +12,240 @@
 # and `unit` are how the website shows it; `applies` lists the classes and
 # races it matters to (leave it out for everyone).
 
+# How you play: reactions and mistakes. The engine reads these itself (not
+# through formulas); mobs, pets and buffing up never wait or slip.
+
+[options.play_like]
+default = 0
+kind = "choice"
+choices = ["Typical", "Expert"]
+group = "play"
+label = "Play like"
+help = "A typical player takes about half a second to react to a proc, an interrupt chance or a new target, and makes the odd mistake (the settings below). An expert reacts in about 0.2 seconds and makes none."
+desc = "0 = typical player, 1 = expert"
+source = "choice"
+
+[options.react_typical]
+default = 0.5
+unit = "sec"
+group = "play"
+label = "Typical reaction time"
+help = "Each reaction varies by up to 30% either way."
+desc = "Seconds a typical player takes to react"
+source = "estimate"
+cite = "Simple visual reaction times are around 0.25 sec; spotting a proc in a busy fight and pressing the right key takes longer"
+
+[options.react_expert]
+default = 0.2
+unit = "sec"
+group = "play"
+label = "Expert reaction time"
+desc = "Seconds an expert takes to react"
+source = "estimate"
+cite = "Near the floor of human visual reaction times"
+
+[options.react_spread]
+default = 0.3
+kind = "pct"
+group = "play"
+label = "How much reactions vary"
+desc = "Each reaction is drawn within this share either side of the average"
+source = "estimate"
+
+[options.slip_typical]
+default = 0.05
+kind = "pct"
+group = "play"
+label = "Typical: chance to press the wrong ability"
+help = "Now and then a typical player presses the next ability down the list instead of the best one."
+desc = "Share of a typical player's choices that take the next usable ability instead of the best"
+source = "estimate"
+
+[options.miss_proc_typical]
+default = 0.10
+kind = "pct"
+group = "play"
+label = "Typical: procs missed"
+help = "A share of proc windows (Overpower, Riposte, Clearcasting, Nightfall) a typical player never notices."
+desc = "Share of proc windows a typical player misses"
+source = "estimate"
+
+[options.late_cd_typical]
+default = 1.0
+unit = "sec"
+group = "play"
+label = "Typical: cooldowns used late"
+help = "Moves with a cooldown of a minute or more, offensive or defensive, go out about this long after they're first usable and wanted."
+desc = "Seconds a typical player is late with long cooldowns"
+source = "estimate"
+
+[options.lapse_typical]
+default = 1.0
+unit = "sec"
+group = "play"
+label = "Typical: upkeep reapplied late"
+help = "DoTs, debuffs and short buffs fall off for about this long before a typical player puts them back."
+desc = "Seconds a typical player's upkeep stays down before it's reapplied"
+source = "estimate"
+
+[options.threat_margin]
+default = 0.9
+kind = "pct"
+group = "play"
+label = "Hold back near the tank's threat"
+help = "In a group, you stop using damaging abilities once your threat reaches this share of whoever the boss is on (auto attacks go on). 0 never holds back."
+desc = "Share of the boss's target's threat at which you hold your damage"
+source = "choice"
+
+[options.tank_lead]
+default = 2
+unit = "sec"
+group = "play"
+label = "Head start you give the tank"
+help = "In the boss test you wait this long after the tank pulls before you attack."
+desc = "Seconds you let the tank build threat before attacking"
+source = "choice"
+
+[options.opp_play_like]
+default = 0
+kind = "choice"
+choices = ["Same as you", "Typical", "Expert"]
+group = "play"
+label = "Your duel opponent plays like"
+desc = "0 = the same as you, 1 = typical, 2 = expert"
+source = "choice"
+
+# Your party in the boss test (data/base/party.toml): one toggle per buff.
+
+[options.party_battle_shout]
+default = 1
+kind = "toggle"
+group = "party"
+label = "Battle Shout"
+desc = "1 = the boss test's party gives you Battle Shout"
+source = "choice"
+
+[options.party_mark_of_the_wild]
+default = 1
+kind = "toggle"
+group = "party"
+label = "Mark of the Wild"
+desc = "1 = the boss test's party gives you Mark of the Wild"
+source = "choice"
+
+[options.party_fortitude]
+default = 1
+kind = "toggle"
+group = "party"
+label = "Power Word: Fortitude"
+desc = "1 = the boss test's party gives you Power Word: Fortitude"
+source = "choice"
+
+[options.party_arcane_intellect]
+default = 1
+kind = "toggle"
+group = "party"
+label = "Arcane Intellect"
+desc = "1 = the boss test's party gives you Arcane Intellect"
+source = "choice"
+
+[options.party_blessing_of_might]
+default = 1
+kind = "toggle"
+group = "party"
+label = "Blessing of Might (for weapon users)"
+desc = "1 = the boss test's party gives you Blessing of Might"
+source = "choice"
+
+[options.party_blessing_of_wisdom]
+default = 1
+kind = "toggle"
+group = "party"
+label = "Blessing of Wisdom (for casters)"
+desc = "1 = the boss test's party gives you Blessing of Wisdom"
+source = "choice"
+
+[options.party_blessing_of_kings]
+default = 1
+kind = "toggle"
+group = "party"
+label = "Greater Blessing of Kings (level 60)"
+desc = "1 = the boss test's party gives you Greater Blessing of Kings"
+source = "choice"
+
+[options.party_trueshot_aura]
+default = 1
+kind = "toggle"
+group = "party"
+label = "Trueshot Aura (for weapon users)"
+desc = "1 = the boss test's party gives you Trueshot Aura"
+source = "choice"
+
+[options.party_strength_of_earth]
+default = 1
+kind = "toggle"
+group = "party"
+label = "Strength of Earth Totem (for weapon users)"
+desc = "1 = the boss test's party gives you Strength of Earth Totem"
+source = "choice"
+
+[options.party_grace_of_air]
+default = 1
+kind = "toggle"
+group = "party"
+label = "Grace of Air Totem (for weapon users)"
+desc = "1 = the boss test's party gives you Grace of Air Totem"
+source = "choice"
+
+[options.party_windfury]
+default = 1
+kind = "toggle"
+group = "party"
+label = "Windfury Totem (melee)"
+desc = "1 = the boss test's party gives you Windfury Totem"
+source = "choice"
+
+[options.poly_regen]
+default = 0.1
+kind = "pct"
+group = "world"
+label = "Health a polymorphed or sapped mob gets back every 3 seconds"
+help = "Crowd-controlled mobs heal while they wait, so keeping one out of the fight isn't free."
+desc = "Share of maximum health an incapacitated mob regains every 3 sec"
+source = "estimate"
+cite = "Polymorphed targets visibly regenerate quickly in the original game; the exact rate isn't published"
+
+# The leveling world.
+
+[options.mobs_flee]
+default = 1
+kind = "toggle"
+group = "world"
+label = "Humanoids run away at low health"
+help = "About half of them run at 15% health for 6 to 10 seconds, sometimes coming back with a friend."
+desc = "1 = humanoid mobs can flee at low health"
+source = "classic"
+cite = "The original game's humanoid mobs flee at about 15% health"
+
+[options.flee_speed]
+default = 0.75
+kind = "pct"
+group = "world"
+label = "How fast a fleeing mob runs"
+help = "As a share of its usual speed. Snares slow it further."
+desc = "A fleeing mob's speed, as a share of its normal speed"
+source = "estimate"
+
+[options.totem_carry]
+default = 0.3
+kind = "pct"
+group = "world"
+label = "How often your totems are still up for the next fight"
+help = "Leveling: the next mob is often close enough to fight beside the totems you just put down. Otherwise you put them down again."
+desc = "Share of leveling pulls fought beside the last pull's totems"
+source = "estimate"
+applies = ["shaman"]
+
 [options.gore_refresh_rearms]
 default = 1
 kind = "toggle"
@@ -482,7 +716,7 @@ label = "Bane of Agony starts weak and builds up"
 help = "In the original game Curse of Agony’s first 4 ticks dealt half, the last 4 one and a half times the listed amount, for the same total. The game’s spell data lists one amount per tick and can’t show this either way."
 desc = "1 = Bane of Agony ticks 1-4 deal 50%, 5-8 100%, 9-12 150%"
 source = "classic"
-cite = "Classic server behaviour for Curse of Agony; Forever spell data (980 to 11713) lists a flat amount per tick"
+cite = "Classic server behavior for Curse of Agony; Forever spell data (980 to 11713) lists a flat amount per tick"
 applies = ["warlock"]
 
 [options.warlock_healthstone_cooldown]
@@ -593,6 +827,16 @@ desc = "Share of spell power added to Ice Lance (before its 4x against frozen ta
 source = "game"
 cite = "Ice Lance spells 1312002, 400640 and 1240044 to 1240047 (build 70338) have no coefficient; Frostbolt and Frostfire Bolt in the same data have 0.814"
 applies = ["mage"]
+
+[options.rage_decay]
+default = 1.25
+unit = "Rage/s"
+label = "Rage lost per second out of combat"
+help = "Rage starts draining as soon as a fight ends (later with Lingering Rage)."
+desc = "Rage decay per second out of combat"
+source = "classic"
+cite = "The original game drains about 1.25 Rage per second out of combat; Forever hasn’t published its rate"
+applies = ["warrior", "druid"]
 
 [options.rage_taken_mult]
 default = 1.0

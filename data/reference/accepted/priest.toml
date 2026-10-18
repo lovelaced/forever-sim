@@ -19,9 +19,6 @@ level = "The spell row keeps the original game's level 30 (its old 20-point tier
 talent = "A parked duplicate. The trait tables hold two Holy Specialization nodes on the same spell (14889): node 110855 in the Holy tree's first row (x 6220, y 2130, with the tree's tier groups) and the original node 105865 moved off the grid (y 21300, outside every tier group, listing an effect 1 the spell no longer has). The visible tree has one Holy Specialization, which `holy_specialization` models (5 ranks, points 0, 1-5% Holy crit); the audit pairs it with the first node of that name, leaving the parked one."
 
 
-[priest.talent_silent_resolve]
-"value.0" = "Spell threat -10/20/30% (Holy and Shadow since build 70425) is not simulated: the priest fights alone in every scenario, so threat never changes who an enemy attacks. Effects 1-3 (stun, fear and silence durations) are modelled."
-
 [priest.talent_improved_power_word_shield]
 "value.0" = "Modelled in the Power Word: Shield aura's absorb, (rank absorb + 0.1 healing power) * (1 + 0.07/0.14/0.2); the audit can't evaluate a formula that needs the spell rank and healing power."
 
@@ -41,9 +38,6 @@ talent = "A parked duplicate. The trait tables hold two Holy Specialization node
 [priest.talent_blessed_recovery]
 "value.0" = "The heal is 8/17/25% of the damage taken (event.amount * interp(rank, ...)); the audit can't evaluate a formula that needs the hit."
 
-[priest.talent_holy_reach]
-"value.0" = "Not simulated: no range or positioning."
-"value.1" = "Not simulated: no range or positioning (Holy Nova's radius)."
 
 [priest.talent_litany_of_light]
 "value.0" = "Not simulated: returning 5/10% of a heal's base cost when it follows a different heal needs a healer rotation on allies."
@@ -55,8 +49,6 @@ talent = "A parked duplicate. The trait tables hold two Holy Specialization node
 [priest.talent_improved_shadow_word_pain]
 "value.0" = "Modelled as the Shadow Word: Pain aura's duration, 18 sec plus 3 per point (21/24); the audit sees the total, not the 3/6 sec."
 
-[priest.talent_shadow_reach]
-"value.0" = "Not simulated: no range or positioning."
 
 [priest.talent_improved_mind_flay]
 "value.0" = "Each Mind Flay tick deals 10/20% more than the one before (build 70425): modelled in Mind Flay's channel as pow(1 + 0.1 * rank, ticks so far), or 1 + 0.1 * rank * ticks so far with priest_mind_flay_compound = 0; the audit can't evaluate a formula that needs the tick count."

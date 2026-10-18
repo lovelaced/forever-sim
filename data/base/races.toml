@@ -34,7 +34,7 @@ stats = { str = 2, agi = -4, sta = 3, int = -1, spi = -2 }
 source = "forever-70338"
 passives = [
   { name = "Mace Specialization", if = "mh.mace", mods = [{ stat = "crit", add = 1 }] },
-  { name = "Big Game Hunter", mods = [{ stat = "dmg_done", mul = "target.beast ? 1.05 : 1" }] },
+  { name = "Big Game Hunter", mods = [{ stat = "dmg_vs_beast", mul = 1.05 }] },
 ]
 [races.dwarf.spells.stoneform]
 name = "Stoneform"
@@ -98,7 +98,7 @@ stats = { str = -3, agi = 4, sta = -1, int = 1, spi = 0 }   # assumption: no pub
 source = "forever-70338 (stat offsets assumed)"
 passives = [
   { name = "Wind Blessed", mods = [{ stat = "haste", mul = 1.01 }] },
-  { name = "Elemental Insight", mods = [{ stat = "dmg_done", mul = "target.elemental ? 1.05 : 1" }] },
+  { name = "Elemental Insight", mods = [{ stat = "dmg_vs_elemental", mul = 1.05 }] },
 ]
 
 [races.orc]
@@ -190,7 +190,8 @@ icon = "ability_warstomp"
 cast_time = 0.5                   # spell 20549: 0.5 sec cast, off the global cooldown
 off_gcd = true
 cooldown = 120
-target = "enemy"
+target = "self"
+radius = 8                        # enemies within 8 yards of you
 effects = [{ type = "aura", aura = "stun", target = "enemies", max_targets = 5, duration = 2 }]
 
 [races.troll]
@@ -202,7 +203,7 @@ stats = { str = 1, agi = 2, sta = 1, int = -4, spi = 0 }
 source = "forever-70338"
 passives = [
   { name = "Regeneration", mods = [{ stat = "combat_hp_regen", add = 0.10 }] },
-  { name = "Beast Slaying", mods = [{ stat = "dmg_done", mul = "target.beast ? 1.05 : 1" }] },
+  { name = "Beast Slaying", mods = [{ stat = "dmg_vs_beast", mul = 1.05 }] },
 ]
 [races.troll.spells.berserking]
 name = "Berserking"

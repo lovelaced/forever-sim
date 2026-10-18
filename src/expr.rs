@@ -485,7 +485,7 @@ mod tests {
         fn var(&self, v: &VarRef) -> f64 {
             match v {
                 VarRef::Res(Who::Me, Res::Rage) => 40.0,
-                VarRef::Talent(0) => 5.0,
+                VarRef::Talent(_, 0) => 5.0,
                 _ => 0.0,
             }
         }
@@ -493,7 +493,7 @@ mod tests {
     fn res(s: &str) -> Result<VarRef, String> {
         match s {
             "rage" => Ok(VarRef::Res(Who::Me, Res::Rage)),
-            "t.cruelty" => Ok(VarRef::Talent(0)),
+            "t.cruelty" => Ok(VarRef::Talent(0, 0)),
             "hp" => Ok(VarRef::Res(Who::Me, Res::Hp)),
             _ => Err(format!("unknown name '{s}'")),
         }

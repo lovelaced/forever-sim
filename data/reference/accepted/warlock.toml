@@ -8,7 +8,17 @@ cooldown = "The 2-minute cooldown belongs to the Healthstone item, which the spe
 "cost.mana" = "Demon mana is not modelled: demons have no mana regeneration in the engine, so a cost would empty the Imp within a minute and leave it idle. Like hunter pet focus (README, Limits), demon abilities run on a fixed cadence for now."
 
 [warlock.torment]
-"cost.mana" = "Demon mana is not modelled (see firebolt). Torment also taunts for 3 sec in the sim, which the game's spell doesn't: enemies only re-pick a target when theirs dies, so the taunt stands in for threat-based Voidwalker tanking until the engine has it."
+"cost.mana" = "Demon mana is not modelled (see firebolt)."
+
+[warlock.hellfire]
+radius = "Hellfire's 10 yard radius is on the burn it triggers each second (spell 5857), not on the channel the spell table lists."
+
+[warlock.seduction]
+"cost.mana" = "Demon mana is not modelled (see firebolt)."
+
+[warlock.spell_lock]
+"cost.mana" = "Demon mana is not modelled (see firebolt)."
+"duration.spell_lock" = "The spell's 6 or 8 sec is the school lockout, which the interrupt applies; the 3 sec silence is its own spell (24259), the aura here."
 
 [warlock.lash_of_pain]
 "cost.mana" = "Demon mana is not modelled (see firebolt)."
@@ -67,14 +77,11 @@ cooldown = "The 2-minute cooldown belongs to the Healthstone item, which the spe
 "value.0" = "Spell damage +33/67/100% of your level for you and your demon: modeled as level * 0.33/0.67/1, which the audit can't evaluate without a level."
 
 [warlock.talent_destructive_reach]
-"value.0" = "Range +10%/20%: the simulator has no distance, so spell range does nothing."
-"value.1" = "The trait data still lists effect 1 (10%/20%), but build 70425 removed it from spell 17917 (it was one spell's area radius). Range and radius do nothing here: no positioning."
+"value.1" = "The trait data still lists effect 1 (10%/20%), but build 70425 removed it from spell 17917 (it was one spell's area radius). The removed radius isn't simulated."
 
-[warlock.talent_grim_reach]
-"value.0" = "Affliction spell range +10%/20%: the simulator has no distance, so spell range does nothing."
 
 [warlock.talent_aftermath]
-"value.0" = "Conflagrate's chance to Daze the target (20% a rank; a 50% slow for 5 sec): slows do nothing here (no movement). Effect 1, Immolate's initial damage +10% a rank, is modeled and matches."
+"value.0" = "Conflagrate's chance to Daze the target (20% a rank; a 50% slow for 5 sec): `chance = \"0.2 * rank\"` on the talent's proc, which the check can't read as the effect's value. Effect 1, Immolate's initial damage +10% a rank, is modeled and matches."
 
 [warlock.talent_shadow_and_flame]
 "value.0" = "A dummy at 4% a rank (20 at 5/5) that none of the tooltip's numbers use: those are 2% a rank for the Shadow and Fire bonuses (effects 2 and 3) and 20% a rank for keeping Immolate and refunding a Soul Shard (effect 1). Soul Shards aren't simulated and nothing else in the talent matches it."

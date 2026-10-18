@@ -248,12 +248,25 @@ function openAssumptions() {
   $('assumptions').showModal();
 }
 
+// The Assumptions panel's sections (options.toml `group`), in order.
+const OPT_GROUPS = [
+  ['play', 'How you play'],
+  ['party', 'Your party in the boss test'],
+  ['world', 'The leveling world'],
+  ['', 'Game numbers'],
+];
+
 function renderAssumptions() {
   const list = relevantOptions();
-  const fmtDefault = (o, ui) => ui.kind === 'toggle' ? (o.default ? 'on' : 'off') : ui.kind === 'pct' ? `${+(o.default * 100).toFixed(4)}%` : `${o.default}${ui.unit && ui.unit !== '%' ? ` ${ui.unit}` : ui.unit || ''}`;
+  const fmtDefault = (o, ui) => ui.kind === 'toggle' ? (o.default ? 'on' : 'off') : ui.kind === 'choice' ? (o.choices[o.default] || o.default) : ui.kind === 'pct' ? `${+(o.default * 100).toFixed(4)}%` : `${o.default}${ui.unit && ui.unit !== '%' ? ` ${ui.unit}` : ui.unit || ''}`;
+  const section = ([g, title]) => {
+    const opts = list.filter((o) => (o.group || '') === g);
+    return opts.length ? [h('h3.opt-group', title), h('div.opt-list', opts.map(row))] : [];
+  };
   $('assumptions-body').replaceChildren(
-    h('p.note', 'Numbers the game doesn’t publish, for your builds. Change one to see how much it matters.'),
-    h('div.opt-list', list.map((o) => {
+    h('p.note', 'How you play, who you play with, and numbers the game doesn’t publish. Change one to see how much it matters.'),
+    ...OPT_GROUPS.flatMap(section));
+  function row(o) {
       const ui = o;
       const v = o.name in S.opts ? S.opts[o.name] : o.default;
       const isChanged = o.name in S.opts;
@@ -261,6 +274,9 @@ function renderAssumptions() {
       let input;
       if (ui.kind === 'toggle') {
         input = h('input.check', { id, type: 'checkbox', checked: v >= 0.5, onchange: (e) => setOpt(o, e.target.checked ? 1 : 0) });
+      } else if (ui.kind === 'choice') {
+        input = h('div.opt-seg', { id, role: 'group', 'aria-label': ui.label },
+          o.choices.map((c, i) => h('button', { type: 'button', 'aria-pressed': String(Math.round(v) === i), onclick: () => setOpt(o, i) }, c)));
       } else {
         const shown = ui.kind === 'pct' ? +(v * 100).toFixed(4) : v;
         input = h('span.numwrap',
@@ -275,7 +291,7 @@ function renderAssumptions() {
           h('span.opt-source', { class: `src-${o.source}` }, SOURCE[o.source] || '', o.cite ? `: ${o.cite}` : '')),
         input,
         isChanged ? h('button.linkish.reset', { type: 'button', onclick: () => { delete S.opts[o.name]; S.builds.forEach((b) => refreshLater(b)); renderAssumptions(); render(); } }, `Back to the default (${fmtDefault(o, ui)})`) : null);
-    })));
+  }
 }
 
 // ------------------------------------------------------------------ sharing

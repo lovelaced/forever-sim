@@ -4,8 +4,8 @@
 # 1.60.1.70338 (data/reference/spellbook.json; `fsim audit shaman` checks every
 # rank, and data/reference/accepted/shaman.toml lists the deliberate
 # differences). Every rank carries the game's spell `id`.
-# Totems are modelled as buffs on the shaman (no placement, range or health)
-# until the engine has totem units. Base stats Classic 1.12.
+# Totems are units on the ground (5 health, Stoneclaw more): one per element,
+# put down where you stand. Base stats Classic 1.12.
 name = "Shaman"
 icon = "classicon_shaman"
 resources = ["mana"]
@@ -129,7 +129,8 @@ icon = "spell_nature_stormreach"
 tree = "Elemental Combat"
 points = 20
 ranks = 2
-text = "+3/6 yd range for Lightning Bolt, Chain Lightning, Fire Nova and Lava Burst, +8/15 yd for Flame Shock (not simulated: no range yet)."
+text = "+3/6 yd range for Lightning Bolt, Chain Lightning, Fire Nova and Lava Burst."
+spell_mods = [{ spells = ["lightning_bolt", "chain_lightning", "fire_nova", "lava_burst"], prop = "range", add = "3 * rank" }]
 [talents.lightning_overload]
 icon = "spell_nature_lightningoverload"
 tree = "Elemental Combat"
@@ -148,7 +149,7 @@ icon = "spell_nature_stranglevines"
 tree = "Elemental Combat"
 points = 20
 ranks = 1
-text = "Earthbind Totem roots nearby enemies for 5 sec when cast (not simulated: roots do nothing yet)."
+text = "Earthbind Totem roots nearby enemies for 5 sec when cast."
 [talents.elemental_fury]
 icon = "spell_fire_volcano"
 tree = "Elemental Combat"
@@ -170,7 +171,8 @@ icon = "spell_nature_stoneclawtotem"
 tree = "Enhancement"
 points = 0
 ranks = 2
-text = "Stoneclaw Totem health +25/50% and Earthbind Totem radius +10/20% (not simulated: totems have no health or radius yet)."
+text = "Stoneclaw Totem health +25/50% and Earthbind Totem radius +10/20%."
+spell_mods = [{ spells = ["earthbind_totem"], prop = "radius", mul = "1 + 0.1 * rank" }]
 [talents.thundering_strikes]
 icon = "ability_thunderbolt"
 tree = "Enhancement"
@@ -193,7 +195,7 @@ ranks = 2
 # trait data: Stoneskin and Windwall +10/20%, Grounding Totem cooldown -1/2 sec.
 # The audit's value.0 row (10/20) passes only because the cooldown's -1/-2 looks
 # like it at a tenth; the Stoneskin and Windwall part is not simulated.
-text = "Stoneskin and Windwall Totems 10/20% stronger (not simulated: those totems have no effect here yet), Grounding Totem cooldown 1/2 sec shorter."
+text = "Stoneskin and Windwall Totems 10/20% stronger (not simulated: Stoneskin's per-hit reduction isn't modelled, and Windwall isn't in the game's spell list here), Grounding Totem cooldown 1/2 sec shorter."
 spell_mods = [{ spells = ["grounding_totem"], prop = "cooldown", add = "-rank" }]
 [talents.mental_dexterity]
 icon = "spell_nature_mentalquickness"
@@ -208,7 +210,8 @@ icon = "spell_nature_spiritwolf"
 tree = "Enhancement"
 points = 5
 ranks = 2
-text = "Ghost Wolf casts 1/3 sec faster and works indoors (not simulated: no Ghost Wolf or movement yet)."
+text = "Ghost Wolf casts 1/3 sec faster (instant at 2/2)."
+spell_mods = [{ spells = ["ghost_wolf"], prop = "cast_time", add = "rank == 2 ? -3 : -1" }]
 [talents.improved_lightning_shield]
 icon = "spell_nature_lightningshield"
 tree = "Enhancement"
@@ -344,8 +347,9 @@ icon = "spell_nature_reincarnation"
 tree = "Restoration"
 points = 5
 ranks = 2
-text = "Maximum health +2/4%; Reincarnation's cooldown 10/20 min shorter and +10/20% health and mana on revival (Reincarnation is not simulated)."
+text = "Maximum health +2/4%; Reincarnation's cooldown 10/20 min shorter, and it brings you back with 10/20% more health and mana."
 mods = [{ stat = "max_hp_mult", mul = "1 + 0.02 * rank" }]
+spell_mods = [{ spells = ["reincarnation"], prop = "cooldown", add = "-600 * rank" }]
 [talents.ancestral_healing]
 icon = "spell_nature_undyingstrength"
 tree = "Restoration"
@@ -422,6 +426,13 @@ text = "Riptide: instant heal plus a heal over time."
 # ------------------------------------------------------------------ auras
 # Weapon imbues. Forever's imbue spells last 1800 sec (30 min); the sim keeps
 # them up for the whole session.
+[auras.frost_shock]
+name = "Frost Shock"
+debuff = true
+per_source = false
+mechanic = "slow"
+duration = 8
+slow = 0.5
 [auras.rockbiter_weapon]
 name = "Rockbiter Weapon"
 group = "imbue_mh"
@@ -442,6 +453,7 @@ group = "imbue_mh"
 procs = [{ on = "melee_landed", if = "event.mh && !event.extra", chance = "opt.windfury_chance", icd = 1.5, effects = [{ type = "extra_attack", hand = "mh", count = 2, ap_bonus = "r.ap * (1 + (t.elemental_weapons == 1 ? 0.13 : t.elemental_weapons == 2 ? 0.27 : t.elemental_weapons == 3 ? 0.4 : 0))" }] }]
 [auras.lightning_shield]
 name = "Lightning Shield"
+dispel = "magic"
 group = "elemental_shield"
 duration = 600
 charges = 3
@@ -449,6 +461,7 @@ charges = 3
 procs = [{ on = "struck_melee", icd = 3.5, effects = [{ type = "cast", spell = "lightning_shield_orb", target = "target" }, { type = "consume" }] }]
 [auras.water_shield]
 name = "Water Shield"
+dispel = "magic"
 group = "elemental_shield"
 duration = 600
 charges = 3
@@ -462,22 +475,29 @@ name = "Water Shield (globe cooldown)"
 hidden = true
 duration = "opt.water_shield_icd"
 
-# Totems: one per element (group), as buffs on the shaman. Durations, costs
-# and values are the game's.
+# Totems: units on the ground, one per element; a new one replaces the old.
+# A pulsing totem works from where it stands (Searing Totem on your target
+# within 20 yd, Magma Totem on everything within 8, the water totems while
+# you're within 30); a buff totem gives its buff to the party within 30 yd
+# (the Flametongue Totem buff's radius in the game's data) for as long as it
+# stands. Durations, costs and values are the game's.
 [auras.searing_totem]
 name = "Searing Totem"
 group = "fire_totem"
 duration = "r.dur"
+totem = { element = "fire", radius = 20, reach = "target" }
 tick = { interval = "opt.shaman_searing_interval", effects = [{ type = "cast", spell = "searing_totem_attack", target = "my_target" }] }
 [auras.magma_totem]
 name = "Magma Totem"
 group = "fire_totem"
 duration = 20
+totem = { element = "fire", radius = 8, reach = "area" }
 tick = { interval = "opt.shaman_magma_interval", effects = [{ type = "cast", spell = "magma_totem_pulse", target = "my_target" }] }
 [auras.flametongue_totem]
 name = "Flametongue Totem"
 group = "fire_totem"
 duration = 300
+totem = { element = "fire", radius = 30, buff = true }
 # Forever: a party buff, not a weapon enchant. Damage per hit = the proc
 # spell's value x weapon speed / 100, like Flametongue Weapon; no spell power
 # coefficient (Flametongue Attack 16368 lists none).
@@ -486,58 +506,82 @@ procs = [{ on = "melee_landed", if = "event.mh && (opt.shaman_totem_imbue_stack 
 name = "Strength of Earth Totem"
 group = "earth_totem"
 duration = 300
+totem = { element = "earth", radius = 30, buff = true }
 mods = [{ stat = "str", add = "r.str" }]
 [auras.stoneskin_totem]
 name = "Stoneskin Totem"
 group = "earth_totem"
 duration = 300
+totem = { element = "earth", radius = 30, buff = true }
 text = "Reduces each melee hit you take by the rank's amount (not simulated: the engine has no flat per-hit reduction yet)."
 [auras.earthbind_totem]
 name = "Earthbind Totem"
 group = "earth_totem"
 duration = 45
-text = "Slows nearby enemies (not simulated: no movement yet)."
+totem = { element = "earth", radius = 10, reach = "area" }
+# Earthbind (3600) every 3 sec: 50% slower for 5 sec within 10 yd; Earthbound
+# roots them for 5 sec when it goes down
+on_apply = [{ type = "if", cond = "t.earthbound > 0", then = [{ type = "aura", aura = "root", target = "enemies", duration = 5 }] }]
+tick = { interval = 3, effects = [{ type = "aura", aura = "earthbind", target = "enemies" }] }
+[auras.earthbind]
+name = "Earthbind"
+debuff = true
+per_source = false
+mechanic = "slow"
+duration = 5
+slow = 0.5
 [auras.stoneclaw_totem]
 name = "Stoneclaw Totem"
 group = "earth_totem"
 duration = 15
-text = "Taunts nearby enemies and absorbs their attacks (not simulated: totems have no health yet)."
+totem = { element = "earth", radius = 8, reach = "area", health = "r.hp * (1 + 0.25 * t.earths_grasp)" }
+# taunts enemies within 8 yd to attack it (every 2 sec: an estimate)
+on_apply = [{ type = "taunt", target = "enemies", duration = 2 }]
+tick = { interval = 2, effects = [{ type = "taunt", target = "enemies", duration = 2 }] }
 [auras.tremor_totem]
 name = "Tremor Totem"
 group = "earth_totem"
 duration = 300
-# every 4 sec (Tremor Totem Passive, 8145); charm and sleep are not modelled
-tick = { interval = 4, effects = [{ type = "dispel", mechanics = ["fear"] }] }
+totem = { element = "earth", radius = 30, reach = "owner" }
+# every 4 sec (Tremor Totem Passive, 8145): fear off the party within 30 yd;
+# charm and sleep are not modelled
+tick = { interval = 4, effects = [{ type = "dispel", mechanics = ["fear"], target = "party" }] }
 [auras.grace_of_air_totem]
 name = "Grace of Air Totem"
 group = "air_totem"
 duration = 300
+totem = { element = "air", radius = 30, buff = true }
 mods = [{ stat = "agi", add = "r.agi" }]
 [auras.windfury_totem]
 name = "Windfury Totem"
 group = "air_totem"
 duration = 300
+totem = { element = "air", radius = 30, buff = true }
 # Forever: a party buff. One extra attack with the rank's attack power (8516).
 procs = [{ on = "melee_landed", if = "event.mh && !event.extra && (opt.shaman_totem_imbue_stack > 0 || !aura.windfury_weapon.up)", chance = "opt.shaman_windfury_totem_chance", effects = [{ type = "extra_attack", hand = "mh", count = 1, ap_bonus = "r.ap" }] }]
 [auras.grounding_totem]
 name = "Grounding Totem"
 group = "air_totem"
 duration = 45
-text = "Draws in one harmful spell every 10 sec (not simulated: totems are not units yet)."
+totem = { element = "air", radius = 30, reach = "area" }
+text = "Draws in one harmful spell every 10 sec (not simulated: spells aren't redirected here, so it only takes the air slot)."
 [auras.mana_spring_totem]
 name = "Mana Spring Totem"
 group = "water_totem"
 duration = 300
+totem = { element = "water", radius = 30, reach = "owner" }
 tick = { interval = 2, effects = [{ type = "resource", res = "mana", amount = "r.regen * (1 + 0.05 * t.restorative_totems)" }] }
 [auras.healing_stream_totem]
 name = "Healing Stream Totem"
 group = "water_totem"
 duration = 300
+totem = { element = "water", radius = 30, reach = "owner" }
 tick = { interval = 2, effects = [{ type = "heal", target = "party", amount = "r.heal", coef = 0.022, mult = "1 + 0.1 * t.restorative_totems", periodic = true, tag = "Healing Stream Totem" }] }
 [auras.mana_tide_totem]
 name = "Mana Tide Totem"
 group = "water_totem"
 duration = 13
+totem = { element = "water", radius = 30, reach = "owner" }
 tick = { interval = 3, effects = [{ type = "resource", res = "mana", amount = "r.regen" }] }
 
 [auras.flame_shock]
@@ -575,6 +619,7 @@ duration = 10
 mods = [{ stat = "melee_crit", add = "3 * t.elemental_devastation" }]
 [auras.clearcasting]
 name = "Clearcasting"
+react = true
 duration = 15
 consume_on_cast = true
 spell_mods = [{ spells = ["lightning_bolt", "chain_lightning", "earth_shock", "flame_shock", "frost_shock", "lava_burst", "fire_nova"], prop = "cost", mul = 0 }]
@@ -584,6 +629,7 @@ duration = 25
 mods = [{ stat = "melee_haste", mul = 1.3 }]
 [auras.natures_swiftness]
 name = "Nature's Swiftness"
+dispel = "magic"
 consume_on_cast = true
 spell_mods = [{ spells = ["healing_wave", "lesser_healing_wave", "chain_heal", "lightning_bolt", "chain_lightning"], prop = "cast_time", mul = 0 }]
 [auras.ancestral_fortitude]
@@ -593,6 +639,7 @@ duration = 15
 mods = [{ stat = "armor_mult", mul = "1 + (t.ancestral_healing == 1 ? 0.08 : t.ancestral_healing == 2 ? 0.17 : t.ancestral_healing == 3 ? 0.25 : 0)" }]
 [auras.riptide]
 name = "Riptide"
+dispel = "magic"
 duration = 15
 # 5 ticks of the rank's periodic base, coefficient 0.1 per tick (game data)
 tick = { interval = 3, effects = [{ type = "heal", target = "target", amount = "r.hot / 5", coef = 0.1, periodic = true, tag = "Riptide" }] }
@@ -650,7 +697,7 @@ name = "Lightning Shield"
 icon = "spell_nature_lightningshield"
 school = "nature"
 target = "self"
-requires = "!aura.lightning_shield.up && !aura.water_shield.up"
+requires = "(!aura.lightning_shield.up || aura.lightning_shield.remains < 60) && !aura.water_shield.up"
 ranks = [
   { level = 8, id = 324, mana = 45 },
   { level = 16, id = 325, mana = 80 },
@@ -663,6 +710,7 @@ ranks = [
 effects = [{ type = "aura", aura = "lightning_shield" }]
 [spells.lightning_shield_orb]
 name = "Lightning Shield (orb)"
+range = 100
 icon = "spell_nature_lightning"
 school = "nature"
 off_gcd = true
@@ -682,7 +730,7 @@ name = "Water Shield"
 icon = "ability_shaman_watershield"
 talent = "water_shield"
 target = "self"
-requires = "!aura.water_shield.up"
+requires = "!aura.water_shield.up || aura.water_shield.remains < 60"
 ranks = [{ level = 20, id = 408510 }]
 effects = [{ type = "aura", aura = "water_shield" }]
 
@@ -691,9 +739,11 @@ effects = [{ type = "aura", aura = "water_shield" }]
 name = "Searing Totem"
 icon = "spell_fire_searingtotem"
 school = "fire"
-target = "self"
+# put down within reach of your target (its bolt reaches 20 yd)
+target = "enemy"
+range = 20
 gcd = 1
-requires = "!aura.searing_totem.up"
+requires = "!totem.fire.active || !totem.fire.in_range"
 ranks = [
   { level = 10, id = 3599, dur = 30, mana = 25 },
   { level = 20, id = 6363, dur = 35, mana = 45 },
@@ -702,9 +752,10 @@ ranks = [
   { level = 50, id = 10437, dur = 50, mana = 145 },
   { level = 60, id = 10438, dur = 55, mana = 170 },
 ]
-effects = [{ type = "aura", aura = "searing_totem" }]
+effects = [{ type = "aura", aura = "searing_totem", target = "self" }]
 [spells.searing_totem_attack]
 name = "Searing Totem (attack)"
+range = 20
 icon = "spell_fire_searingtotem"
 school = "fire"
 off_gcd = true
@@ -725,7 +776,7 @@ icon = "spell_fire_selfdestruct"
 school = "fire"
 target = "self"
 gcd = 1
-requires = "!aura.magma_totem.up"
+requires = "!totem.fire.active || totem.fire.remains < 2"
 ranks = [
   { level = 26, id = 8190, mana = 230 },
   { level = 36, id = 10585, mana = 360 },
@@ -735,6 +786,7 @@ ranks = [
 effects = [{ type = "aura", aura = "magma_totem" }]
 [spells.magma_totem_pulse]
 name = "Magma Totem (pulse)"
+radius = 8
 icon = "spell_fire_selfdestruct"
 school = "fire"
 off_gcd = true
@@ -801,7 +853,6 @@ target = "self"
 gcd = 1
 cooldown = 15
 cost = { mana = "0.06 * base_mana" }
-requires = "!aura.earthbind_totem.up"
 ranks = [{ level = 6, id = 2484 }]
 effects = [{ type = "aura", aura = "earthbind_totem" }]
 [spells.stoneclaw_totem]
@@ -810,14 +861,13 @@ icon = "spell_nature_stoneclawtotem"
 target = "self"
 gcd = 1
 cooldown = 30
-requires = "!aura.stoneclaw_totem.up"
 ranks = [
-  { level = 8, id = 5730, mana = 15 },
-  { level = 18, id = 6390, mana = 30 },
-  { level = 28, id = 6391, mana = 55 },
-  { level = 38, id = 6392, mana = 75 },
-  { level = 48, id = 10427, mana = 105 },
-  { level = 58, id = 10428, mana = 140 },
+  { level = 8, id = 5730, mana = 15, hp = 50 },
+  { level = 18, id = 6390, mana = 30, hp = 150 },
+  { level = 28, id = 6391, mana = 55, hp = 220 },
+  { level = 38, id = 6392, mana = 75, hp = 280 },
+  { level = 48, id = 10427, mana = 105, hp = 390 },
+  { level = 58, id = 10428, mana = 140, hp = 480 },
 ]
 effects = [{ type = "aura", aura = "stoneclaw_totem" }]
 [spells.tremor_totem]
@@ -825,7 +875,6 @@ name = "Tremor Totem"
 icon = "spell_nature_tremortotem"
 target = "self"
 gcd = 1
-requires = "!aura.tremor_totem.up"
 ranks = [{ level = 18, id = 8143, mana = 60 }]
 effects = [{ type = "aura", aura = "tremor_totem" }]
 [spells.grace_of_air_totem]
@@ -861,7 +910,6 @@ target = "self"
 gcd = 1
 cooldown = 15
 cost = { mana = "0.06 * base_mana" }
-requires = "!aura.grounding_totem.up"
 ranks = [{ level = 30, id = 8177 }]
 effects = [{ type = "aura", aura = "grounding_totem" }]
 [spells.mana_spring_totem]
@@ -869,7 +917,7 @@ name = "Mana Spring Totem"
 icon = "spell_nature_manaregentotem"
 target = "self"
 gcd = 1
-requires = "!aura.mana_spring_totem.up && !aura.mana_tide_totem.up"
+requires = "!totem.water.active || !totem.water.in_range"
 # regen: mana every 2 sec (5677, 10491, 10493, 10494)
 ranks = [
   { level = 26, id = 5675, regen = 4, mana = 40 },
@@ -884,7 +932,7 @@ name = "Healing Stream Totem"
 icon = "inv_spear_04"
 target = "self"
 gcd = 1
-requires = "!aura.healing_stream_totem.up && !aura.mana_tide_totem.up"
+requires = "!totem.water.active || !totem.water.in_range"
 # heal: health every 2 sec (5672, 6371, 6372, 10460, 10461)
 ranks = [
   { level = 20, id = 5394, heal = 5, mana = 40 },
@@ -910,11 +958,15 @@ ranks = [
 effects = [{ type = "aura", aura = "mana_tide_totem" }]
 [spells.fire_nova]
 name = "Fire Nova"
+range = 30
+radius = 10
+from_totem = "fire"
 icon = "spell_fire_sealoffire"
 school = "fire"
 cooldown = 10
-# Forever: a spell (Fire Nova Totem is gone) that bursts from your active fire totem
-requires = "aura.searing_totem.up || aura.magma_totem.up || aura.flametongue_totem.up"
+# Forever: a spell (Fire Nova Totem is gone) that bursts from your fire
+# totem, hitting every enemy within 10 yd of it
+requires = "totem.fire.active"
 # damage from the burst spells 408423, 408424, 408426, 408427, 408428
 ranks = [
   { level = 12, id = 408341, lo = 46, lo_per_level = 1.015, hi = 54, hi_per_level = 1.185, mana = 95, max_level = 17, coef = 0.214 },
@@ -974,8 +1026,8 @@ ranks = [
   { level = 48, id = 2860, lo = 106, lo_per_level = 0.66, hi = 118, hi_per_level = 0.74, mana = 390, cast = 2, max_level = 53, coef = 0.517 },
   { level = 56, id = 10605, lo = 116, lo_per_level = 0.756, hi = 130, hi_per_level = 0.844, mana = 485, cast = 2, max_level = 61, coef = 0.571 },
 ]
-text = "Primary target only (the jumps are not simulated)."
-effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = "r.coef" }]
+text = "Hits the target, then jumps to up to 2 more enemies within 12 yards of the last, each jump dealing 30% less."
+effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = "r.coef", target = "chain", max_targets = 3, jump = 12, mult = "pow(0.7, hit_index)" }]
 [spells.chain_lightning_overload]
 name = "Chain Lightning (overload)"
 icon = "spell_nature_chainlightning"
@@ -988,8 +1040,8 @@ ranks = [
   { level = 48, id = 408482, lo = 53, lo_per_level = 0.99, hi = 59, hi_per_level = 1.11, max_level = 53, coef = 0.2855 },
   { level = 56, id = 408484, lo = 58, lo_per_level = 1.131, hi = 66, hi_per_level = 1.269, max_level = 61, coef = 0.2855 },
 ]
-text = "Primary target only (the jumps are not simulated)."
-effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Lightning Overload" }]
+text = "Like Chain Lightning: the target, then up to 2 more enemies within 12 yards, each jump dealing 30% less."
+effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Lightning Overload", target = "chain", max_targets = 3, jump = 12, mult = "pow(0.7, hit_index)" }]
 [spells.lava_burst]
 name = "Lava Burst"
 icon = "spell_shaman_lavaburst"
@@ -1004,6 +1056,7 @@ ranks = [
 effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = "r.coef", mult = "target.aura.flame_shock.up ? 1.2 : 1" }]
 [spells.earth_shock]
 name = "Earth Shock"
+range = 20
 icon = "spell_nature_earthshock"
 school = "nature"
 cooldown = 6
@@ -1020,6 +1073,7 @@ ranks = [
 effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "interrupt", lockout = 2 }] }]
 [spells.flame_shock]
 name = "Flame Shock"
+range = 20
 icon = "spell_fire_flameshock"
 school = "fire"
 cooldown = 6
@@ -1036,6 +1090,7 @@ ranks = [
 effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "aura", aura = "flame_shock", target = "target" }] }]
 [spells.frost_shock]
 name = "Frost Shock"
+range = 20
 icon = "spell_frost_frostshock"
 school = "frost"
 cooldown = 6
@@ -1046,7 +1101,7 @@ ranks = [
   { level = 46, id = 10472, lo = 183, lo_per_level = 1.456, hi = 193, hi_per_level = 1.544, mana = 325, max_level = 51, coef = 0.386 },
   { level = 58, id = 10473, lo = 275, lo_per_level = 1.75, hi = 291, hi_per_level = 1.85, mana = 430, max_level = 63, coef = 0.386 },
 ]
-effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = "r.coef" }]
+effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "aura", aura = "frost_shock", target = "target" }] }]
 
 [spells.stormstrike]
 name = "Stormstrike"
@@ -1061,6 +1116,7 @@ effects = [{ type = "damage", weapon = "mh", school = "physical", normalized = t
 
 [spells.healing_wave]
 name = "Healing Wave"
+range = 40
 icon = "spell_nature_magicimmunity"
 school = "nature"
 target = "self"
@@ -1079,6 +1135,7 @@ ranks = [
 effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Healing Wave" }]
 [spells.lesser_healing_wave]
 name = "Lesser Healing Wave"
+range = 40
 icon = "spell_nature_healingwavelesser"
 school = "nature"
 target = "self"
@@ -1093,6 +1150,7 @@ ranks = [
 effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Lesser Healing Wave" }]
 [spells.chain_heal]
 name = "Chain Heal"
+range = 40
 icon = "spell_nature_healingwavegreater"
 school = "nature"
 target = "self"
@@ -1105,6 +1163,7 @@ text = "Heals the target, then jumps to the two most hurt allies, each jump heal
 effects = [{ type = "heal", target = "allies", max_targets = 3, falloff = 0.5, min = "r.lo", max = "r.hi", coef = "r.coef", mult = "ally.aura.riptide.up ? 1.25 : 1", tag = "Chain Heal" }]
 [spells.riptide]
 name = "Riptide"
+range = 40
 icon = "spell_nature_riptide"
 talent = "riptide"
 school = "nature"
@@ -1136,6 +1195,45 @@ target = "self"
 ranks = [{ level = 1, id = 425336 }]
 effects = [{ type = "aura", aura = "rage_of_the_farseer" }]
 
+# ------------------------------------------------------------------ escapes
+[spells.purge]
+name = "Purge"
+range = 30
+icon = "spell_nature_purge"
+school = "nature"
+target = "enemy"
+cost = { mana = "0.1 * base_mana" }
+requires = "target.magic_buffs > 0"
+text = "Takes 1 magic buff off the target (2 from rank 2), the newest first."
+ranks = [{ level = 12, id = 370, n = 1 }, { level = 32, id = 8012, n = 2 }]
+effects = [{ type = "purge", target = "target", count = "r.n" }]
+[spells.ghost_wolf]
+name = "Ghost Wolf"
+icon = "spell_nature_spiritwolf"
+school = "nature"
+target = "self"
+cast_time = 3
+cost = { mana = 100 }
+requires = "!form.ghost_wolf"
+text = "Turns you into a ghost wolf that runs 40% faster."
+ranks = [{ level = 20, id = 2645 }]
+effects = [{ type = "aura", aura = "ghost_wolf" }]
+[spells.reincarnation]
+name = "Reincarnation"
+icon = "spell_nature_reincarnation"
+school = "nature"
+target = "self"
+off_gcd = true
+cooldown = 3600
+text = "Brings you back to life where you fell, with 20% health and mana, once an hour (Improved Reincarnation: more often). Used in the leveling tests instead of the corpse run."
+ranks = [{ level = 30, id = 20608 }]
+effects = []
+
+[auras.ghost_wolf]
+name = "Ghost Wolf"
+form = true
+speed = 0.4
+
 # ------------------------------------------------------------------ rotations
 [rotations.enhancement]
 desc = "Enhancement two-hander: Windfury Weapon, Stormstrike, shocks, instant Lightning Bolt at five Maelstrom stacks, totems; Lesser Healing Wave when hurt"
@@ -1148,17 +1246,21 @@ actions = [
   { cast = "lightning_bolt", if = "aura.maelstrom_weapon.stacks >= 5 && hp_pct >= 0.4" },
   { cast = "lesser_healing_wave", if = "hp_pct < 0.4" },
   { cast = "healing_wave", if = "hp_pct < 0.4 && !known.lesser_healing_wave" },
+  { cast = "earth_shock", if = "target.casting" },   # cut a cast short
+  { cast = "purge", if = "target.is_player && target.magic_buffs > 0" },   # strip a player's shield or buff
+  { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
+  { cast = "frost_shock", if = "target.fleeing && !target.slowed" },   # stop a runner
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "rage_of_the_farseer" },
   { cast = "stormstrike" },
   { cast = "flame_shock", if = "!target.aura.flame_shock.up && target.hp_pct > 0.4" },
   { cast = "earth_shock" },
-  { cast = "searing_totem", if = "target.hp_pct > 0.4 || target.boss" },
+  { cast = "searing_totem", if = "(target.hp_pct > 0.4 || target.boss) && target.dist < 8" },   # in melee, so Fire Nova reaches
   { cast = "fire_nova", if = "enemies >= 2" },
   { cast = "lightning_shield" },
-  { cast = "strength_of_earth_totem", if = "target.boss || target.hp_pct > 0.5" },
-  { cast = "grace_of_air_totem", if = "target.boss || target.hp_pct > 0.5" },
+  { cast = "strength_of_earth_totem", if = "target.boss || (target.hp_pct > 0.5 && mana_pct > 0.4)" },   # not when mana runs low
+  { cast = "grace_of_air_totem", if = "target.boss || (target.hp_pct > 0.5 && mana_pct > 0.4)" },   # not when mana runs low
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
@@ -1183,6 +1285,10 @@ actions = [
   { cast = "healing_wave", if = "hp_pct < 0.3 && aura.natures_swiftness.up" },
   { cast = "lesser_healing_wave", if = "hp_pct < 0.35" },
   { cast = "healing_wave", if = "hp_pct < 0.35 && !known.lesser_healing_wave" },
+  { cast = "earth_shock", if = "target.casting" },   # cut a cast short
+  { cast = "purge", if = "target.is_player && target.magic_buffs > 0" },   # strip a player's shield or buff
+  { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
+  { cast = "frost_shock", if = "target.fleeing && !target.slowed" },   # stop a runner
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "flame_shock", if = "!target.aura.flame_shock.up && (target.hp_pct > 0.35 || target.boss)" },
@@ -1214,17 +1320,21 @@ actions = [
   { cast = "lesser_healing_wave", if = "hp_pct < 0.4" },
   { cast = "healing_wave", if = "hp_pct < 0.4 && !known.lesser_healing_wave" },
   { cast = "lightning_bolt", if = "aura.maelstrom_weapon.stacks >= 5" },
+  { cast = "earth_shock", if = "target.casting" },   # cut a cast short
+  { cast = "purge", if = "target.is_player && target.magic_buffs > 0" },   # strip a player's shield or buff
+  { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
+  { cast = "frost_shock", if = "target.fleeing && !target.slowed" },   # stop a runner
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "rage_of_the_farseer" },
   { cast = "stormstrike" },
   { cast = "flame_shock", if = "!target.aura.flame_shock.up && target.hp_pct > 0.4" },
   { cast = "earth_shock" },
-  { cast = "searing_totem", if = "target.hp_pct > 0.4 || target.boss" },
+  { cast = "searing_totem", if = "(target.hp_pct > 0.4 || target.boss) && target.dist < 8" },   # in melee, so Fire Nova reaches
   { cast = "fire_nova", if = "enemies >= 2" },
   { cast = "water_shield" },
   { cast = "lightning_shield" },
-  { cast = "strength_of_earth_totem", if = "target.boss || target.hp_pct > 0.5" },
+  { cast = "strength_of_earth_totem", if = "target.boss || (target.hp_pct > 0.5 && mana_pct > 0.4)" },   # not when mana runs low
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
@@ -1258,16 +1368,20 @@ actions = [
   { cast = "mana_tide_totem", if = "mana_pct < 0.3" },
   # the pull: one Lightning Bolt at a fresh target (not at an enemy player who has opened on you)
   { cast = "lightning_bolt", if = "target.hp_pct >= 0.99 && !target.is_player" },
+  { cast = "earth_shock", if = "target.casting" },   # cut a cast short
+  { cast = "purge", if = "target.is_player && target.magic_buffs > 0" },   # strip a player's shield or buff
+  { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
+  { cast = "frost_shock", if = "target.fleeing && !target.slowed" },   # stop a runner
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "flame_shock", if = "!target.aura.flame_shock.up && (target.hp_pct > 0.4 || target.boss)" },
   # no Convection or Shamanistic Focus: Earth Shock only with mana to spare
   { cast = "earth_shock", if = "mana_pct > 0.5" },
-  { cast = "searing_totem", if = "target.hp_pct > 0.4 || target.boss" },
+  { cast = "searing_totem", if = "(target.hp_pct > 0.4 || target.boss) && target.dist < 8" },   # in melee, so Fire Nova reaches
   { cast = "fire_nova", if = "enemies >= 2" },
   { cast = "water_shield" },
   { cast = "lightning_shield" },
-  { cast = "strength_of_earth_totem", if = "target.boss || target.hp_pct > 0.5" },
+  { cast = "strength_of_earth_totem", if = "target.boss || (target.hp_pct > 0.5 && mana_pct > 0.4)" },   # not when mana runs low
   { cast = "mana_spring_totem", if = "target.boss || target.hp_pct > 0.5" },
 ]
 rest = [

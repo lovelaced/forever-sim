@@ -1,36 +1,103 @@
 # Enemy templates. Formulas use the enemy's own `level`.
 # dmg is the average hit before mitigation (+-dmg_spread).
 
-[enemies.humanoid]
-name = "Same-level humanoid"
+# The leveling world's mobs: every kind shares the same numbers (health,
+# armor, damage, attack power), so kinds differ only in what they are (the
+# creature type bonuses some races and talents get, what crowd control works
+# on them) and how they fight (humanoids run at low health; some cast).
+
+[enemies.mob]
+name = "Same-level mob"
 creature = "humanoid"
 hp = "interp(level, 1,45, 10,220, 20,600, 30,1050, 40,1650, 50,2600, 60,3800)"
 armor = "interp(level, 1,20, 10,300, 20,700, 30,1100, 40,1650, 50,2400, 60,3300)"
 dmg = "interp(level, 1,4, 10,14, 20,40, 30,70, 40,115, 50,160, 60,210)"
+# part of each hit comes from attack power (an estimate of a mob's): the hit
+# is the same until something lowers it (Demoralizing Shout)
+ap = "interp(level, 1,6, 10,30, 20,60, 30,90, 40,120, 50,150, 60,180)"
 speed = 2.0
 crit = 5.0
 attacks = true
 
-[enemies.humanoid_hard]
-name = "Same-level humanoid hitting 40% harder"
+[enemies.humanoid]
+base = "mob"
+name = "Humanoid"
 creature = "humanoid"
-hp = "interp(level, 1,45, 10,220, 20,600, 30,1050, 40,1650, 50,2600, 60,3800)"
-armor = "interp(level, 1,20, 10,300, 20,700, 30,1100, 40,1650, 50,2400, 60,3300)"
-dmg = "1.4 * interp(level, 1,4, 10,14, 20,40, 30,70, 40,115, 50,160, 60,210)"
-speed = 2.0
-crit = 5.0
+# Humanoids run at low health about half the time (an estimate), for 6 to
+# 10 sec, and now and then come back with a friend.
+flee_below = 0.15
+flee_chance = 0.5
+flee_time = [6, 10]
+flee_add_chance = 0.25
+
+[enemies.humanoid_caster]
+# about one humanoid in six: casts from 30 yards while its mana lasts (about
+# six bolts) or until it's interrupted, then fights in melee
+base = "humanoid"
+name = "Humanoid caster"
+hp_mult = 0.85
+armor_mult = 0.5
+dmg_mult = 0.6
+stand_at = 30
+mana = "6 * 5 * level"
+rotation = { actions = ["mob_bolt"] }
+
+[enemies.beast]
+base = "mob"
+name = "Beast"
+creature = "beast"
+
+[enemies.undead]
+base = "mob"
+name = "Undead"
+creature = "undead"
+
+[enemies.elemental]
+base = "mob"
+name = "Elemental"
+creature = "elemental"
+
+[enemies.demon]
+base = "mob"
+name = "Demon"
+creature = "demon"
+
+[enemies.dragonkin]
+base = "mob"
+name = "Dragonkin"
+creature = "dragonkin"
+
+[enemies.giant]
+base = "mob"
+name = "Giant"
+creature = "giant"
+
+# What the leveling tests meet: each pull is one kind of creature (a camp is
+# one family), drawn by these weights; about one humanoid in six casts. The
+# same mix at every level (an estimate of the open world's).
+[mixes.overworld]
+humanoid = 45
+beast = 33
+undead = 10
+elemental = 5
+demon = 3
+dragonkin = 2
+giant = 2
+casters = { of = "humanoid", share = 0.1667, as = "humanoid_caster" }
 
 [enemies.boss_plus2]
-name = "Dungeon boss (+2 levels, tanked, 5 Sunders on it)"
+name = "Dungeon boss (+2 levels)"
 creature = "humanoid"
 level_offset = 2
 boss = true
-attacks = false
+attacks = true
 hp = "1e12"
-armor = "interp(level, 22,450, 42,900, 62,1500)"
-dmg = "0"
-crit = 0
-parry = 0
+# its own armor; the tank's Sunders take off up to five ranks' worth
+armor = "interp(level, 22,450, 42,900, 62,1500) + 5 * interp(level, 12,90, 24,180, 36,270, 48,360, 60,450)"
+# hits like the dungeon healing test's boss at 1x
+dmg = "0.55 * 2.0 * interp(level, 10,43, 15,56, 20,65, 25,99, 30,129, 35,168, 40,216, 45,259, 50,324, 55,423, 60,648)"
+speed = 2.0
+crit = 5.0
 dodge = "5.4"
 mods = [{ stat = "immune_stun", add = 1 }, { stat = "immune_root", add = 1 }, { stat = "immune_fear", add = 1 }, { stat = "immune_incap", add = 1 }]
 
@@ -127,6 +194,8 @@ dodge = "interp(level, 10,6.2, 20,5.6, 30,6.2, 40,6.5, 50,7.7, 60,8.5)"
 parry = "interp(level, 50,5, 60,10)"
 block = 10
 attacks = false
+# the tank's own threat on the boss, well above what a healer makes
+threat_per_sec = "interp(level, 10,80, 20,180, 30,320, 40,500, 50,750, 60,1000)"
 mods = [{ stat = "defense", add = "interp(level, 20,2, 30,6, 40,10, 50,37.5, 60,45)" }, { stat = "block_value", add = "interp(level, 20,12, 30,21, 40,30, 50,45, 60,60)" }]
 
 [allies.raid_tank]
@@ -137,6 +206,7 @@ dodge = "11"
 parry = "11"
 block = 14
 attacks = false
+threat_per_sec = "2000"
 mods = [{ stat = "defense", add = 80 }, { stat = "block_value", add = 90 }]
 
 [allies.mage]

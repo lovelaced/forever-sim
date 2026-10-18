@@ -5,6 +5,10 @@
 //! under `data/`; this crate is the engine that reads and runs them.
 
 pub mod api;
+/// Data files and preset builds, embedded at build time (see build.rs).
+pub mod embedded {
+    include!(concat!(env!("OUT_DIR"), "/embedded.rs"));
+}
 pub mod audit;
 pub mod build;
 pub mod engine;

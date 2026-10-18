@@ -8,10 +8,21 @@
 # second at 20 (Greater Magic Wand 17.5, Gravestone Scepter 29), 30 at 30
 # (Goblin Igniter 33), 40 at 40 (Blackbone Wand 35, Dreambough Wand 39) and
 # 56 at 60 (Skul's Ghastly Touch); crafted arcane wands early, shadow later.
+# Level 10 is starter-zone quest gear: about 40% of level 20's stats and
+# armor, weapons with about 62% of its damage per second, and a wand of about
+# 11 damage per second for cloth.
 
 [gear.plate_dw]
 # Levels 40 and 60 match the gear of the earlier Python sim.
 desc = "Dual-wield melee in plate (Fury warrior)."
+[[gear.plate_dw.levels]]
+level = 10
+str = 9
+agi = 6
+sta = 9
+armor = 300
+mh = { min = 10, max = 19, speed = 2.6, type = "sword" }
+oh = { min = 8, max = 16, speed = 2.4, type = "sword" }
 [[gear.plate_dw.levels]]
 level = 20
 str = 22
@@ -44,6 +55,13 @@ oh = { min = 57, max = 107, speed = 2.5, type = "sword" }
 [gear.plate_2h]
 desc = "Two-handed melee in plate (Arms warrior, Retribution paladin without Intellect)."
 [[gear.plate_2h.levels]]
+level = 10
+str = 10
+agi = 5
+sta = 9
+armor = 300
+mh = { min = 24, max = 35, speed = 3.5, type = "axe2h" }
+[[gear.plate_2h.levels]]
 level = 20
 str = 24
 agi = 12
@@ -71,6 +89,15 @@ mh = { min = 140, max = 210, speed = 3.6, type = "axe2h" }
 
 [gear.plate_tank]
 desc = "Plate tank: stamina, defense, one-hander and shield."
+[[gear.plate_tank.levels]]
+level = 10
+str = 7
+agi = 4
+sta = 12
+defense = 1
+armor = 360
+mh = { min = 10, max = 19, speed = 2.6, type = "sword" }
+shield = { armor = 180, block_value = 5 }
 [[gear.plate_tank.levels]]
 level = 20
 str = 18
@@ -103,6 +130,16 @@ shield = { armor = 2300, block_value = 60 }
 
 [gear.plate_holy]
 desc = "Plate healer/hybrid with a shield (Holy or Holy/Prot paladin)."
+[[gear.plate_holy.levels]]
+level = 10
+str = 5
+sta = 9
+int = 9
+spi = 4
+heal_power = 8
+armor = 320
+mh = { min = 9, max = 17, speed = 2.6, type = "mace" }
+shield = { armor = 180, block_value = 5 }
 [[gear.plate_holy.levels]]
 level = 20
 str = 12
@@ -140,6 +177,14 @@ shield = { armor = 2300, block_value = 50 }
 [gear.plate_ret]
 desc = "Plate two-hander with Intellect (Retribution paladin)."
 [[gear.plate_ret.levels]]
+level = 10
+str = 9
+agi = 3
+sta = 9
+int = 4
+armor = 300
+mh = { min = 24, max = 35, speed = 3.5, type = "mace2h" }
+[[gear.plate_ret.levels]]
 level = 20
 str = 22
 agi = 8
@@ -172,6 +217,14 @@ mh = { min = 140, max = 210, speed = 3.6, type = "mace2h" }
 [gear.leather_agi]
 desc = "Agility leather, dual wield (rogue)."
 [[gear.leather_agi.levels]]
+level = 10
+str = 4
+agi = 10
+sta = 7
+armor = 120
+mh = { min = 10, max = 19, speed = 2.6, type = "sword" }
+oh = { min = 7, max = 14, speed = 1.8, type = "dagger" }
+[[gear.leather_agi.levels]]
 level = 20
 str = 10
 agi = 26
@@ -203,6 +256,14 @@ oh = { min = 50, max = 94, speed = 1.8, type = "dagger" }
 [gear.leather_feral]
 desc = "Feral druid leather with a two-hander (weapon DPS matters in Forever forms)."
 [[gear.leather_feral.levels]]
+level = 10
+str = 6
+agi = 8
+sta = 7
+int = 3
+armor = 128
+mh = { min = 20, max = 31, speed = 3.0, type = "staff" }
+[[gear.leather_feral.levels]]
 level = 20
 str = 14
 agi = 20
@@ -233,6 +294,15 @@ mh = { min = 130, max = 195, speed = 3.4, type = "staff" }
 
 [gear.leather_caster]
 desc = "Caster leather (Balance or Restoration druid)."
+[[gear.leather_caster.levels]]
+level = 10
+sta = 6
+int = 10
+spi = 6
+sp = 5
+heal_power = 5
+armor = 112
+mh = { min = 19, max = 29, speed = 3.0, type = "staff" }
 [[gear.leather_caster.levels]]
 level = 20
 sta = 16
@@ -268,6 +338,15 @@ mh = { min = 120, max = 180, speed = 3.4, type = "staff" }
 [gear.mail_hunter]
 desc = "Agility mail with a bow and a two-handed polearm (hunter)."
 [[gear.mail_hunter.levels]]
+level = 10
+str = 3
+agi = 10
+sta = 7
+int = 5
+armor = 200
+mh = { min = 24, max = 35, speed = 3.5, type = "polearm" }
+ranged = { min = 9, max = 17, speed = 2.6, type = "bow" }
+[[gear.mail_hunter.levels]]
 level = 20
 str = 8
 agi = 26
@@ -302,6 +381,14 @@ ranged = { min = 70, max = 130, speed = 3.0, type = "bow" }
 [gear.mail_enh]
 desc = "Enhancement shaman mail: two-hander, Strength, Agility and Intellect."
 [[gear.mail_enh.levels]]
+level = 10
+str = 8
+agi = 5
+sta = 8
+int = 6
+armor = 200
+mh = { min = 24, max = 35, speed = 3.5, type = "axe2h" }
+[[gear.mail_enh.levels]]
 level = 20
 str = 20
 agi = 12
@@ -332,6 +419,17 @@ mh = { min = 140, max = 210, speed = 3.6, type = "axe2h" }
 
 [gear.mail_shield]
 desc = "Shaman mail with a one-hander and a shield (Stormwarden, Restoration)."
+[[gear.mail_shield.levels]]
+level = 10
+str = 6
+agi = 4
+sta = 9
+int = 8
+spi = 2
+heal_power = 4
+armor = 240
+mh = { min = 10, max = 19, speed = 2.6, type = "mace" }
+shield = { armor = 180, block_value = 5 }
 [[gear.mail_shield.levels]]
 level = 20
 str = 14
@@ -373,6 +471,15 @@ shield = { armor = 2300, block_value = 50 }
 [gear.mail_caster]
 desc = "Elemental shaman mail."
 [[gear.mail_caster.levels]]
+level = 10
+sta = 7
+int = 10
+spi = 5
+sp = 6
+armor = 180
+mh = { min = 10, max = 19, speed = 2.6, type = "mace" }
+shield = { armor = 180, block_value = 5 }
+[[gear.mail_caster.levels]]
 level = 20
 sta = 18
 int = 26
@@ -406,6 +513,15 @@ shield = { armor = 2300, block_value = 50 }
 
 [gear.cloth_caster]
 desc = "Caster cloth with a staff and a wand (mage, warlock, shadow priest)."
+[[gear.cloth_caster.levels]]
+level = 10
+sta = 6
+int = 11
+spi = 7
+sp = 6
+armor = 48
+mh = { min = 19, max = 29, speed = 3.0, type = "staff" }
+ranged = { min = 13, max = 24, speed = 1.7, type = "wand", school = "arcane" }
 [[gear.cloth_caster.levels]]
 level = 20
 sta = 16
@@ -441,6 +557,15 @@ ranged = { min = 70, max = 131, speed = 1.8, type = "wand", school = "shadow" }
 [gear.cloth_healer]
 desc = "Healer cloth with a wand (Holy or Discipline priest)."
 [[gear.cloth_healer.levels]]
+level = 10
+sta = 7
+int = 10
+spi = 10
+heal_power = 10
+armor = 48
+mh = { min = 19, max = 29, speed = 3.0, type = "staff" }
+ranged = { min = 13, max = 24, speed = 1.7, type = "wand", school = "arcane" }
+[[gear.cloth_healer.levels]]
 level = 20
 sta = 18
 int = 26
@@ -473,6 +598,15 @@ ranged = { min = 70, max = 131, speed = 1.8, type = "wand", school = "shadow" }
 
 [gear.cloth_battlemage]
 desc = "Caster cloth with a sword and a wand (mage battlemage: Coldflame Saber line)."
+[[gear.cloth_battlemage.levels]]
+level = 10
+sta = 7
+int = 12
+spi = 6
+sp = 13
+armor = 52
+mh = { min = 11, max = 20, speed = 2.0, type = "sword" }
+ranged = { min = 13, max = 24, speed = 1.7, type = "wand", school = "arcane" }
 [[gear.cloth_battlemage.levels]]
 level = 21
 sta = 18
@@ -507,6 +641,14 @@ ranged = { min = 70, max = 131, speed = 1.8, type = "wand", school = "shadow" }
 
 [gear.leather_daggers]
 desc = "Agility leather with two daggers (Backstab/Mutilate/Ambush rogue)."
+[[gear.leather_daggers.levels]]
+level = 10
+str = 4
+agi = 10
+sta = 7
+armor = 120
+mh = { min = 9, max = 16, speed = 1.8, type = "dagger" }
+oh = { min = 7, max = 14, speed = 1.8, type = "dagger" }
 [[gear.leather_daggers.levels]]
 level = 20
 str = 10

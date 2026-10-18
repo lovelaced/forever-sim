@@ -328,6 +328,60 @@
    }
   },
   {
+   "id": "face-beast",
+   "group": "faces",
+   "style": "portrait",
+   "prompt": "a snarling grey timber wolf with bared fangs and yellow eyes, ears back.",
+   "fix": {
+    "grid": 43.2
+   }
+  },
+  {
+   "id": "face-undead",
+   "group": "faces",
+   "style": "portrait",
+   "prompt": "a rotting undead ghoul with grey-green skin, sunken glowing eyes and torn rags.",
+   "fix": {
+    "grid": 43.2
+   }
+  },
+  {
+   "id": "face-elemental",
+   "group": "faces",
+   "style": "portrait",
+   "prompt": "a rock elemental made of craggy brown stone with glowing orange cracks for eyes.",
+   "fix": {
+    "grid": 43.2
+   }
+  },
+  {
+   "id": "face-demon",
+   "group": "faces",
+   "style": "portrait",
+   "prompt": "a horned red-skinned demon with glowing green eyes and small fangs.",
+   "fix": {
+    "grid": 43.2
+   }
+  },
+  {
+   "id": "face-dragonkin",
+   "group": "faces",
+   "style": "portrait",
+   "prompt": "a bronze-scaled dragonkin whelp with small horns, a long snout and amber eyes.",
+   "fix": {
+    "grid": 43.2
+   }
+  },
+  {
+   "id": "face-giant",
+   "group": "faces",
+   "style": "portrait",
+   "prompt": "a craggy-faced grey stone giant with a heavy brow and a mossy beard.",
+   "fix": {
+    "grid": 43.2
+   }
+  },
+  {
    "id": "scene-solo_1",
    "group": "scenes",
    "style": "scene",

@@ -32,7 +32,7 @@ passives = [
   # Mace Specialization replaced with Earth Fury: critical strike bonus to
   # damage and healing +2% (70425 data: spell 1259719, auras 163 and 50)
   { name = "Earth Fury", mods = [{ stat = "crit_bonus_melee", add = 0.02 }, { stat = "crit_bonus_spell", add = 0.02 }, { stat = "crit_bonus_heal", add = 0.02 }] },
-  { name = "Big Game Hunter", mods = [{ stat = "dmg_done", mul = "target.beast ? 1.05 : 1" }] },
+  { name = "Big Game Hunter", mods = [{ stat = "dmg_vs_beast", mul = 1.05 }] },
 ]
 
 [races.gnome]
@@ -54,14 +54,14 @@ source = "forever-70425 (stat offsets assumed)"
 passives = [
   # Wind Blessed haste 3% (was 1%) (70425 data: spell 1259710)
   { name = "Wind Blessed", mods = [{ stat = "haste", mul = 1.03 }] },
-  { name = "Elemental Insight", mods = [{ stat = "dmg_done", mul = "target.elemental ? 1.05 : 1" }] },
+  { name = "Elemental Insight", mods = [{ stat = "dmg_vs_elemental", mul = 1.05 }] },
 ]
 
 [races.windshaper]
 source = "forever-70425 (stat offsets assumed)"
 passives = [
   { name = "Wind Blessed", mods = [{ stat = "haste", mul = 1.03 }] },
-  { name = "Elemental Insight", mods = [{ stat = "dmg_done", mul = "target.elemental ? 1.05 : 1" }] },
+  { name = "Elemental Insight", mods = [{ stat = "dmg_vs_elemental", mul = 1.05 }] },
 ]
 
 [races.orc]
@@ -116,7 +116,7 @@ passives = [
   # Regeneration 20% (was 10%), in and out of combat (Oct 15 notes; spell
   # 20555). The sim reads only the in-combat part.
   { name = "Regeneration", mods = [{ stat = "combat_hp_regen", add = 0.20 }] },
-  { name = "Beast Slaying", mods = [{ stat = "dmg_done", mul = "target.beast ? 1.05 : 1" }] },
+  { name = "Beast Slaying", mods = [{ stat = "dmg_vs_beast", mul = 1.05 }] },
 ]
 
 # ======================================================================
@@ -458,6 +458,13 @@ tick = { interval = "opt.hawk_dive_interval", effects = [{ type = "damage", scho
 # the sim, summoning on regular mobs loses kills per hour against not doing
 # it (BM Ranged, solo_1: about 6% at level 30, 2% at level 60).
 actions = [
+  { cast = "wing_clip", if = "target.dist < 6 && target.is_player" },   # slow it, then step out of the dead zone
+  { cast = "feign_death", if = "hp_pct < 0.15 && !target.boss" },   # escape: drop it all
+  { cast = "feign_death", if = "target.boss && threat.pct > 0.85" },   # in a group: shed threat and keep shooting
+  { cast = "disengage", if = "has_aggro && pet.active && !target.is_player && target.dist < 6" },   # hand it back to the pet
+  { cast = "scare_beast", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.feared && hp_pct < 0.5" },   # a beast add runs off when it gets rough
+  { cast = "concussive_shot", if = "target.fleeing || (target.is_player && !target.slowed)" },   # stop a runner, slow a chaser
+  { cast = "volley", if = "enemies_active >= 3 && cc_near == 0" },
   { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
   { cast = "deterrence", if = "hp_pct < 0.35" },
   { cast = "intimidation", target = "enemy", if = "target.is_player" },
@@ -469,7 +476,7 @@ actions = [
   { cast = "serpent_sting", if = "target.hp_pct > 0.3" },
   { cast = "summon_hawk", if = "target.aura.hawk.stacks < 2 && (target.boss || target.is_player)" },
   { cast = "sniper_shot" },
-  { cast = "multi_shot", if = "enemies >= 2 || !known.aimed_shot" },
+  { cast = "multi_shot", if = "(enemies >= 2 && cc_near == 0) || !known.aimed_shot" },
   { cast = "aimed_shot" },
   { cast = "arcane_shot", if = "mana_pct > 0.3" },
   { cast = "aspect_of_the_hawk" },
@@ -483,7 +490,10 @@ actions = [
 # it (BM Ranged, solo_1: about 6% at level 30, 2% at level 60).
 actions = [
   { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
+  { cast = "feign_death", if = "hp_pct < 0.15 && !target.boss" },   # escape: drop it all
   { cast = "deterrence", if = "hp_pct < 0.35" },
+  { cast = "scare_beast", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.feared && hp_pct < 0.5" },   # a beast add runs off when it gets rough
+  { cast = "concussive_shot", if = "target.fleeing" },   # stop a runner
   { cast = "intimidation", target = "enemy", if = "target.is_player" },
   { cast = "bestial_wrath" },
   { cast = "rapid_fire" },
@@ -493,7 +503,7 @@ actions = [
   { cast = "mongoose_bite" },
   { cast = "raptor_strike" },
   { cast = "strider_kick" },
-  { cast = "wing_clip" },
+  { cast = "wing_clip", if = "target.is_player || target.fleeing" },
   { cast = "lacerate", if = "target.hp_pct > 0.3" },
   { cast = "serpent_sting", if = "target.hp_pct > 0.3" },
   { cast = "summon_hawk", if = "target.aura.hawk.stacks < 2 && (target.boss || target.is_player)" },
@@ -575,13 +585,13 @@ __delete = true
 # Oct 15 notes: Wake of Fire reverted to Improved Fire Blast; no bonus after
 # a kill any more, and Fire Blast range +8/15 yd. 70425 data: trait Improved
 # Fire Blast (spell 11078), effect 0 = -1000/-2000 ms cooldown, effect 1 =
-# +8/15 yd range (not simulated).
+# +8/15 yd range.
 icon = "spell_fire_fireball"
 tree = "Fire"
 points = 0
 ranks = 2
-text = "Fire Blast cooldown -1/2 sec (its range +8/15 yd is not simulated)."
-spell_mods = [{ spells = ["fire_blast"], prop = "cooldown", add = "-rank" }]
+text = "Fire Blast cooldown -1/2 sec, and it reaches 8/15 yards farther."
+spell_mods = [{ spells = ["fire_blast"], prop = "cooldown", add = "-rank" }, { spells = ["fire_blast"], prop = "range", add = "rank == 2 ? 15 : 8 * rank" }]
 
 [classes.mage.talents.impact]
 # Fire Power (below) counts the mage's own Impact stun, so the stun is the
@@ -773,8 +783,8 @@ ranks = [
   { level = 36, id = 1326054, lo = 43, lo_per_level = 0.474, hi = 47, hi_per_level = 0.526, mana = 65, cast = 1.5, max_level = 47, coef = 0.343 },
   { level = 48, id = 1326055, lo = 73, lo_per_level = 0.568, hi = 81, hi_per_level = 0.632, mana = 90, cast = 1.5, max_level = 60, coef = 0.343 },
 ]
-text = "Its slow is a Chill effect (movement is not simulated)."
-effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "emit", event = "mage_chill" }], on_crit = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }] }]
+text = "Slows the target 40% for 9 sec (a Chill effect)."
+effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "aura", aura = "frost_blast_chill", target = "target" }, { type = "emit", event = "mage_chill" }], on_crit = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }] }]
 
 [classes.mage.spells.ice_lance]
 # Oct 15 notes and 70425 data (effect 1 of every rank, 300 -> 200): frozen
@@ -787,10 +797,10 @@ effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef
 # stack on the target, used up by this Cone of Cold. With the option
 # mage_winters_chill_notes, the notes' second description instead: +5% and
 # 7% of spell damage per stack. Oct 15 notes: the first 4 targets are slowed
-# 10% more for 3 sec longer (70425 data: rank 10161 effects 2-4); movement is
-# not simulated.
-text = "Its slow is a Chill effect (movement is not simulated). Winter's Chill stacks on a target add to its damage there and are used up."
-effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = "r.coef + (opt.mage_winters_chill_notes > 0 ? 0.07 * target.aura.winters_chill.stacks : 0)", mult = "1 + (opt.mage_winters_chill_notes > 0 ? 0.05 : 0.4) * target.aura.winters_chill.stacks", target = "enemies", on_hit = [{ type = "remove_aura", aura = "winters_chill", target = "target" }, { type = "emit", event = "mage_chill" }], on_crit = [{ type = "if", cond = "!aura.master_of_elements.up", then = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }, { type = "aura", aura = "master_of_elements" }] }] }]
+# 10% more for 3 sec longer (70425 data: rank 10161 effects 2-4), in the
+# chill's rank fields.
+text = "Slows by 40% for 6 sec (50% for 9 sec at the top rank), a Chill effect. Winter's Chill stacks on a target add to its damage there and are used up."
+effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef = "r.coef + (opt.mage_winters_chill_notes > 0 ? 0.07 * target.aura.winters_chill.stacks : 0)", mult = "1 + (opt.mage_winters_chill_notes > 0 ? 0.05 : 0.4) * target.aura.winters_chill.stacks", target = "enemies", on_hit = [{ type = "remove_aura", aura = "winters_chill", target = "target" }, { type = "aura", aura = "cone_of_cold_chill", target = "target" }, { type = "emit", event = "mage_chill" }], on_crit = [{ type = "if", cond = "!aura.master_of_elements.up", then = [{ type = "resource", res = "mana", amount = "0.1 * t.master_of_elements * r.mana" }, { type = "aura", aura = "master_of_elements" }] }] }]
 
 # ======================================================================
 # Assumptions
@@ -817,8 +827,8 @@ applies = ["mage"]
 # 5 on a boss (the tank holds it, so there is time to build them). Frost
 # Blast (1 sec cast with Improved Frostbolt) adds the last stack in the
 # 1.5 sec before Cone of Cold is ready, instead of a 2.5 sec Frostbolt that
-# would delay it. Its slow, its main purpose (it replaces rank 1 Frostbolt),
-# does nothing in the sim. Tested against Cone of Cold at 2-5 stacks and
+# would delay it. Its slow is its main purpose (it replaces rank 1
+# Frostbolt). Tested against Cone of Cold at 2-5 stacks and
 # other Frost Blast rules: best or tied in every scenario.
 # Gnomes use Eureka! on cooldown, like the other racials (other races skip
 # the line, so no existing build changes).
@@ -826,6 +836,10 @@ desc = "Frost: Ice Barrier, Frost Nova into Ice Lance/Frostbolt shatter, Frostbo
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
+  { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
+  { cast = "cold_snap", if = "cd.ice_barrier.remains > 10 && cd.frost_nova.remains > 10 && (target.is_player || enemies_active >= 2)" },
   { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
@@ -833,9 +847,14 @@ actions = [
   { cast = "berserking" },
   { cast = "eureka" },
   { cast = "presence_of_mind" },
+  { cast = "polymorph", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.incapacitated && hp_pct < 0.7" },   # sheep the add when it gets rough
   { cast = "arcane_power" },
-  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15" },
-  { cast = "cone_of_cold", if = "enemies >= 2 || target.aura.winters_chill.stacks >= (target.boss ? 5 : 3)" },
+  { cast = "frost_nova", if = "target.fleeing && !aura.polymorph_out.up" },   # stop a runner
+  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15 && !aura.polymorph_out.up && target.dist < 8" },   # once it's on you
+  { cast = "step_back", if = "(target.frozen || target.rooted) && target.dist < 10" },   # kite: out of reach while it's held
+  { cast = "blizzard", if = "enemies_active >= 3 && !aura.polymorph_out.up" },
+  { cast = "arcane_explosion", if = "enemies_within_10 >= 3 && !aura.polymorph_out.up && mana_pct > 0.3" },
+  { cast = "cone_of_cold", if = "!aura.polymorph_out.up && (enemies >= 2 || target.aura.winters_chill.stacks >= (target.boss ? 5 : 3))" },
   { cast = "ice_lance", if = "target.frozen || aura.fingers_of_frost.up" },
   { cast = "fire_blast", if = "target.hp_pct < 0.15" },
   { cast = "frost_blast", if = "t.winters_chill > 0 && !target.boss && cd.cone_of_cold.remains < 1.5 && target.aura.winters_chill.stacks >= 1" },
@@ -865,6 +884,10 @@ desc = "Fire: Scorch to five stacks on long fights, Fireball (Frostfire Bolt onc
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
+  { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
+  { cast = "mana_shield", if = "!aura.mana_shield.up && !aura.ice_barrier.up && enemies_within_5 >= 1 && hp_pct < 0.5 && mana_pct > 0.3" },
   { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
@@ -873,8 +896,12 @@ actions = [
   { cast = "eureka" },
   { cast = "combustion" },
   { cast = "presence_of_mind" },
-  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15" },
-  { cast = "blast_wave", if = "enemies >= 2" },
+  { cast = "polymorph", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.incapacitated" },   # sheep the add
+  { cast = "frost_nova", if = "target.fleeing && !aura.polymorph_out.up" },   # stop a runner
+  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15 && !aura.polymorph_out.up && target.dist < 8" },   # once it's on you
+  { cast = "blast_wave", if = "enemies_active >= 2 && !aura.polymorph_out.up" },
+  { cast = "flamestrike", if = "enemies_active >= 3 && !aura.polymorph_out.up" },
+  { cast = "arcane_explosion", if = "enemies_within_10 >= 3 && !aura.polymorph_out.up && mana_pct > 0.3" },
   { cast = "pyroblast", if = "aura.presence_of_mind.up || aura.heating_up.stacks >= 3" },
   { cast = "ice_lance", if = "aura.fingers_of_frost.up && !target.frozen && !target.boss" },
   { cast = "scorch", if = "known.scorch && t.improved_scorch > 0 && target.max_hp > 20000 && (target.aura.fire_vulnerability.stacks < 5 || target.aura.fire_vulnerability.remains < 4)" },
@@ -899,6 +926,10 @@ actions = [
 desc = "Arcane: Arcane Blast to two stacks (they last 15 sec), Arcane Wrath on a tanked boss, Arcane Missiles (free with Missile Barrage)"
 actions = [
   { cast = "counterspell" },
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
+  { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
+  { cast = "mana_shield", if = "!aura.mana_shield.up && !aura.ice_barrier.up && enemies_within_5 >= 1 && hp_pct < 0.5 && mana_pct > 0.3" },
   { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
@@ -907,7 +938,10 @@ actions = [
   { cast = "eureka" },
   { cast = "arcane_power" },
   { cast = "presence_of_mind" },
-  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15" },
+  { cast = "polymorph", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.incapacitated" },   # sheep the add
+  { cast = "arcane_explosion", if = "enemies_within_10 >= 3 && !aura.polymorph_out.up && mana_pct > 0.3" },
+  { cast = "frost_nova", if = "target.fleeing && !aura.polymorph_out.up" },   # stop a runner
+  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15 && !aura.polymorph_out.up && target.dist < 8" },   # once it's on you
   { cast = "arcane_missiles", if = "aura.missile_barrage.up" },
   { cast = "arcane_wrath", if = "target.boss || target.stunned" },
   { cast = "arcane_blast", if = "aura.arcane_blast.stacks < 2 && mana_pct > 0.25" },
@@ -929,19 +963,22 @@ desc = "Battlemage: sword in melee plus instants (Frost Nova, Ice Lance on froze
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
+  { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
   { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
   { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "arcane_power" },
-  { cast = "frost_nova", if = "!target.frozen && !target.boss" },
+  { cast = "frost_nova", if = "!target.frozen && !target.boss && !aura.polymorph_out.up && target.dist < 8" },   # once it's on you
   { cast = "ice_lance", if = "target.frozen || aura.fingers_of_frost.up" },
   { cast = "fire_blast" },
-  { cast = "cone_of_cold" },
-  { cast = "arcane_explosion", if = "mana_pct > 0.3 && enemies >= 2" },
+  { cast = "cone_of_cold", if = "!aura.polymorph_out.up" },
+  { cast = "arcane_explosion", if = "mana_pct > 0.3 && enemies >= 2 && !aura.polymorph_out.up" },
   { cast = "frost_blast", if = "t.winters_chill > 0 && !target.is_player" },
-  { cast = "arcane_explosion", if = "mana_pct > 0.3" },
+  { cast = "arcane_explosion", if = "mana_pct > 0.3 && !aura.polymorph_out.up" },
 ]
 
 [options.mage_ice_lance_coef]
@@ -985,7 +1022,8 @@ spell_mods = [
 [classes.priest.talents.silent_resolve]
 # Oct 15 notes: the threat reduction now applies to all spells. 70425 data:
 # spell 14523 effect 0 school mask 2 (Holy) -> 34 (Holy and Shadow).
-text = "Stun, Fear and Silence effects on you are 5% shorter per point (the sim shortens stuns and fears; nothing here silences). Spell threat -10% per point (Holy and Shadow) is not simulated: the priest fights alone, so threat never changes who an enemy attacks."
+text = "Stun, Fear and Silence effects on you are 5% shorter per point (the sim shortens stuns and fears; nothing here silences). Holy and Shadow spells cause 10% less threat per point."
+spell_mods = [{ school = "holy", prop = "threat", mul = "1 - 0.1 * rank" }, { school = "shadow", prop = "threat", mul = "1 - 0.1 * rank" }]
 
 [classes.priest.talents.mental_strength]
 # Oct 15 notes: moved to row 2 (was row 4), Intellect +2/4/6/8/10% (was
@@ -1116,10 +1154,10 @@ cooldown = 30
 # Dark Inspiration's "fully channeled" trigger (spell 1326159): the channel
 # counts its ticks in the mind_flay_ramp aura. A channel cut short (pushback,
 # a dead target) never reaches its third tick.
-text = "One hit roll when cast (a miss ends the channel), then a periodic tick every second for 3 sec that cannot crit, as in the game's periodic aura. With Improved Mind Flay each tick deals more than the one before. The slow is not simulated."
+text = "One hit roll when cast (a miss ends the channel), then a periodic tick every second for 3 sec that cannot crit, as in the game's periodic aura. With Improved Mind Flay each tick deals more than the one before. Slows the target 50% while it lasts."
 effects = [
   { type = "remove_aura", aura = "mind_flay_ramp" },
-  { type = "damage", school = "shadow", amount = 0, can_crit = false, on_miss = [{ type = "interrupt", target = "self" }] },
+  { type = "damage", school = "shadow", amount = 0, can_crit = false, on_hit = [{ type = "aura", aura = "mind_flay", target = "target" }], on_miss = [{ type = "interrupt", target = "self" }] },
 ]
 channel = { duration = 3, interval = 1, effects = [
   { type = "damage", school = "shadow", periodic = true, amount = "r.tick", coef = 0.167, tag = "Mind Flay", mult = "opt.priest_mind_flay_compound > 0 ? pow(1 + 0.1 * t.improved_mind_flay, aura.mind_flay_ramp.stacks) : 1 + 0.1 * t.improved_mind_flay * aura.mind_flay_ramp.stacks" },
@@ -1156,7 +1194,8 @@ icon = "spell_shadow_callofbone"
 tree = "Affliction"
 points = 5
 ranks = 2
-text = "Affliction spell range +10% per point (not simulated: no range or positioning)."
+text = "Affliction spells reach 10% farther per point."
+spell_mods = [{ spells = ["corruption", "bane_of_agony", "curse_of_recklessness", "curse_of_exhaustion", "death_coil", "drain_life", "drain_soul", "fear", "howl_of_terror", "siphon_life"], prop = "range", mul = "1 + 0.1 * rank" }]
 
 [classes.warlock.talents.shadow_mastery]
 # Oct 15 notes: Shadow damage +2/4/6/8/10% (was 1/2/3/4/5%). 70425 trait
@@ -1167,7 +1206,8 @@ mods = [{ stat = "shadow_dmg_done", mul = "1 + 0.02 * rank" }]
 [classes.warlock.talents.destructive_reach]
 # Oct 15 notes: range only. 70425 data: spell 17917 loses effect 1 (one
 # spell's area radius).
-text = "Destruction spell range +10% per point (not simulated: no range or positioning)."
+text = "Destruction spells reach 10% farther per point."
+spell_mods = [{ spells = ["shadow_bolt", "immolate", "searing_pain", "soul_fire", "shadowburn", "conflagrate", "incinerate", "rain_of_fire"], prop = "range", mul = "1 + 0.1 * rank" }]
 
 [classes.warlock.talents.amplify_curse]
 # 70425 data: spell 18288 loses effect 1 (Curse of Exhaustion -20%); the
@@ -1324,8 +1364,9 @@ text = "Fire totems, Flame Shock, Fire Nova and Lava Burst deal 15% more damage;
 [classes.shaman.talents.elemental_reach]
 # Oct 15 notes: now also cuts Totemic Projection's cooldown by 10/20 sec (70425 data: spell 28999
 # effect 3). 70425 data also turns the Flame Shock range effect (effect 2) into a dummy and drops
-# it from the tooltip; the notes don't mention that. None of it is simulated.
-text = "+3/6 yd range for Lightning Bolt, Chain Lightning, Fire Nova and Lava Burst, Totemic Projection cooldown 10/20 sec shorter (not simulated: no range yet, and Totemic Projection is not in the sim)."
+# it from the tooltip; the notes don't mention that. The range is simulated;
+# Totemic Projection isn't.
+text = "+3/6 yd range for Lightning Bolt, Chain Lightning, Fire Nova and Lava Burst, Totemic Projection cooldown 10/20 sec shorter (Totemic Projection is not in the sim)."
 
 [classes.shaman.talents.tidal_focus]
 # Oct 15 notes: swapped with Totemic Focus, now in the 1st row (70425 trait data: 0 points)
@@ -1469,6 +1510,10 @@ actions = [
   { cast = "healing_wave", if = "hp_pct < 0.3 && aura.natures_swiftness.up" },
   { cast = "lesser_healing_wave", if = "hp_pct < 0.35 && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > 0.2)" },
   { cast = "healing_wave", if = "hp_pct < 0.35 && !known.lesser_healing_wave && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > 0.2)" },
+  { cast = "earth_shock", if = "target.casting" },   # cut a cast short
+  { cast = "purge", if = "target.is_player && target.magic_buffs > 0" },   # strip a player's shield or buff
+  { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
+  { cast = "frost_shock", if = "target.fleeing && !target.slowed" },   # stop a runner
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "elemental_mastery" },

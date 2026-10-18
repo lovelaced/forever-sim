@@ -69,7 +69,7 @@ tree = "Assassination"
 points = 5
 ranks = 2
 text = "+4% damage against Humanoids and Giants."
-mods = [{ stat = "dmg_done", mul = "(target.humanoid || target.giant) ? 1 + 0.02 * rank : 1" }]
+mods = [{ stat = "dmg_vs_humanoid", mul = "1 + 0.02 * rank" }, { stat = "dmg_vs_giant", mul = "1 + 0.02 * rank" }]
 # Talent spell 14165 lists 15 (one rank); the client's rank curve gives 15/30/45%, as the tooltip says.
 [talents.improved_slice_and_dice]
 icon = "ability_rogue_slicedice"
@@ -88,7 +88,8 @@ icon = "ability_warrior_riposte"
 tree = "Assassination"
 points = 10
 ranks = 2
-text = "Expose Armor costs 10 less Energy and gives back 2 combo points when used with 5 (Expose Armor is not simulated)."
+text = "Expose Armor costs 10 less Energy and gives back 2 combo points when used with 5 (the combo points aren't simulated)."
+spell_mods = [{ spells = ["expose_armor"], prop = "cost", add = "-5 * rank" }]
 # Talent spell 14128 lists 6 (Classic rank 1); the client's rank curve gives 4% a rank (20% at 5), as the tooltip says.
 [talents.lethality]
 icon = "ability_criticalstrike"
@@ -216,7 +217,7 @@ icon = "ability_rogue_sprint"
 tree = "Combat"
 points = 10
 ranks = 2
-text = "Sprint has a 100% chance to remove movement impairing effects (movement is not simulated)."
+text = "Sprint has a 50% chance per rank to remove movement impairing effects."
 [talents.improved_kick]
 icon = "ability_kick"
 tree = "Combat"
@@ -284,7 +285,7 @@ icon = "ability_stealth"
 tree = "Subtlety"
 points = 0
 ranks = 5
-text = "Stealth cooldown 6 sec shorter and 15% less slowed in Stealth (movement isn’t simulated)."
+text = "Stealth cooldown 6 sec shorter, and Stealth slows you 15% less."
 spell_mods = [{ spells = ["stealth"], prop = "cooldown", add = "-(rank + 1)" }]
 [talents.master_of_deception]
 icon = "spell_shadow_charm"
@@ -311,13 +312,15 @@ icon = "spell_magic_lesserinvisibilty"
 tree = "Subtlety"
 points = 5
 ranks = 2
-text = "Vanish and Blind cooldowns 90 sec shorter (Vanish and Blind are not simulated)."
+text = "Vanish and Blind cooldowns 90 sec shorter."
+spell_mods = [{ spells = ["vanish", "blind"], prop = "cooldown", add = "-45 * rank" }]
 [talents.dirty_tricks]
 icon = "ability_sap"
 tree = "Subtlety"
 points = 5
 ranks = 2
-text = "Sap and Blind cost 50% less Energy (Sap and Blind are not simulated)."
+text = "Sap and Blind cost 50% less Energy."
+spell_mods = [{ spells = ["sap", "blind"], prop = "cost", mul = "1 - 0.25 * rank" }]
 [talents.improved_ambush]
 icon = "ability_rogue_ambush"
 tree = "Subtlety"
@@ -342,7 +345,8 @@ icon = "ability_rogue_distract"
 tree = "Subtlety"
 points = 10
 ranks = 2
-text = "Distract covers 5 more yards and lowers the stealth detection of distracted enemies by 2 levels (Distract is not simulated)."
+text = "Distract covers 3/5 more yards, and lowers the stealth detection of distracted enemies by 2 levels (stealth detection isn't modelled)."
+spell_mods = [{ spells = ["distract"], prop = "radius", add = "rank == 2 ? 5 : 3" }]
 [talents.heightened_senses]
 icon = "ability_ambush"
 tree = "Subtlety"
@@ -413,6 +417,9 @@ procs = [{ on = "parry", effects = [{ type = "aura", aura = "riposte_ready" }] }
 # ------------------------------------------------------------------ auras
 [auras.stealth]
 name = "Stealth"
+# Camouflage: 3% less a rank
+slow = "0.3 - 0.03 * t.camouflage"
+stealth = true
 text = "Removed by the first attack. Re-entered between pulls."
 # any damage you deal or take ends it (stun openers remove it themselves;
 # buffs on yourself, like racials, don't)
@@ -458,6 +465,50 @@ name = "Garrote"
 debuff = true
 duration = 18
 tick = { interval = 3, effects = [{ type = "damage", school = "physical", periodic = true, tag = "Garrote", amount = "r.tick + opt.rogue_garrote_ap * ap / 6" }] }
+[auras.sap]
+name = "Sap"
+debuff = true
+per_source = false
+mechanic = "incap"
+dr = "incap"
+quiet = true
+break_on_damage = true
+[auras.blind]
+name = "Blind"
+debuff = true
+per_source = false
+mechanic = "incap"
+dr = "none"
+break_on_damage = true
+duration = 10
+slow = 0.6
+[auras.sprint]
+name = "Sprint"
+duration = 15
+speed = "r.speed / 100"
+[auras.distracted]
+name = "Distracted"
+debuff = true
+per_source = false
+quiet = true
+distracts = true
+dr = "distract"
+break_on_damage = true
+duration = 10
+[auras.expose_armor]
+name = "Expose Armor"
+debuff = true
+per_source = false
+duration = 30
+max_stacks = 5
+refresh = "replace"
+mods = [{ stat = "armor", add = "-r.armor * stacks" }]
+[auras.kidney_shot]
+name = "Kidney Shot"
+debuff = true
+per_source = false
+mechanic = "stun"
+dr = "kidney"
 [auras.kidney_vulnerability]
 name = "Improved Kidney Shot"
 debuff = true
@@ -511,6 +562,7 @@ name = "Cutthroat"
 duration = 10
 [auras.riposte_ready]
 name = "Riposte window"
+react = true
 hidden = true
 duration = 5
 [auras.thousand_cuts]
@@ -698,6 +750,94 @@ effects = [{ type = "damage", school = "physical", amount = "r.dmg", on_hit = [
   { type = "chance", p = "0.5 * t.improved_kick", then = [{ type = "aura", aura = "silence", target = "target", duration = 2 }] },
 ] }]
 
+[spells.sap]
+name = "Sap"
+range = 5
+icon = "ability_sap"
+cost = { energy = 65 }
+requires = "aura.stealth.up && !target.in_combat && target.humanoid"
+text = "From Stealth, knocks out a humanoid that hasn't noticed you for 25/35/45 sec by rank, without alerting its friends. Any damage wakes it."
+ranks = [{ level = 10, id = 6770, dur = 25 }, { level = 28, id = 2070, dur = 35 }, { level = 48, id = 11297, dur = 45 }]
+effects = [{ type = "aura", aura = "sap", target = "target", duration = "r.dur" }]
+
+[spells.blind]
+name = "Blind"
+range = 10
+icon = "spell_shadow_mindsteal"
+school = "nature"
+cost = { energy = 30 }
+cooldown = 300
+text = "The target wanders blind for 10 sec, 60% slower and unable to act. Any damage ends it."
+ranks = [{ level = 34, id = 2094 }]
+effects = [{ type = "aura", aura = "blind", target = "target" }]
+
+[spells.vanish]
+name = "Vanish"
+icon = "ability_vanish"
+target = "self"
+off_gcd = true
+cooldown = 300
+text = "You drop out of sight: every mob fighting you forgets you, and you're back in Stealth. A mob left with nobody to fight goes home."
+ranks = [{ level = 22, id = 1856 }, { level = 42, id = 1857 }]
+effects = [{ type = "drop_threat" }, { type = "aura", aura = "stealth" }]
+
+[spells.sprint]
+name = "Sprint"
+icon = "ability_rogue_sprint"
+target = "self"
+off_gcd = true
+cooldown = 300
+text = "50/60/70% faster for 15 sec by rank."
+ranks = [{ level = 10, id = 2983, speed = 50 }, { level = 34, id = 8696, speed = 60 }, { level = 58, id = 11305, speed = 70 }]
+effects = [
+  { type = "aura", aura = "sprint" },
+  { type = "chance", p = "0.5 * t.improved_sprint", then = [{ type = "dispel", mechanics = ["root", "slow", "freeze"] }] },
+]
+
+[spells.distract]
+name = "Distract"
+range = 30
+radius = 10
+icon = "ability_rogue_distract"
+target = "enemy"
+cost = { energy = 30 }
+cooldown = 30
+gcd = 1.5
+text = "Enemies within 10 yards of the spot look away for 10 sec, so you can get behind them."
+ranks = [{ level = 22, id = 1725 }]
+effects = [{ type = "aura", aura = "distracted", target = "enemies", duration = 10 }]
+
+[spells.expose_armor]
+name = "Expose Armor"
+range = 5
+icon = "ability_warrior_riposte"
+finisher = true
+cost = { energy = 25 }
+requires = "cp >= 1"
+text = "Finishing move: the target's armor drops by the rank's amount for each combo point, for 30 sec."
+ranks = [{ level = 14, id = 8647, armor = 90 }, { level = 26, id = 8649, armor = 180 }, { level = 36, id = 8650, armor = 270 }, { level = 46, id = 11197, armor = 360 }, { level = 56, id = 11198, armor = 450 }]
+effects = [
+  { type = "aura", aura = "expose_armor", target = "target", stacks = "cp" },
+  { type = "chance", p = "0.2 * cp * t.relentless_strikes", then = [{ type = "resource", res = "energy", amount = 25 }] },
+]
+
+[spells.feint]
+name = "Feint"
+range = 5
+icon = "ability_rogue_feint"
+target = "enemy"
+cost = { energy = 20 }
+cooldown = 10
+text = "Lowers your threat on the target (more with each rank and level), so it stays on your group's tank."
+ranks = [
+  { level = 16, id = 1966, threat = 750, threat_per_level = 5, max_level = 26 },
+  { level = 28, id = 6768, threat = 1200, threat_per_level = 5, max_level = 38 },
+  { level = 40, id = 8637, threat = 1950, threat_per_level = 5, max_level = 50 },
+  { level = 52, id = 11303, threat = 3000, threat_per_level = 5, max_level = 62 },
+  { level = 60, id = 25302, threat = 4000, threat_per_level = 5, max_level = 70 },
+]
+effects = [{ type = "threat", amount = "-r.threat" }]
+
 [spells.eviscerate]
 name = "Eviscerate"
 icon = "ability_rogue_eviscerate"
@@ -722,6 +862,7 @@ effects = [
 
 [spells.slice_and_dice]
 name = "Slice and Dice"
+range = 100
 icon = "ability_rogue_slicedice"
 finisher = true
 cost = { energy = 25 }
@@ -735,6 +876,7 @@ effects = [
 
 [spells.rupture]
 name = "Rupture"
+range = 5
 icon = "ability_rogue_rupture"
 finisher = true
 cost = { energy = 25 }
@@ -755,6 +897,7 @@ effects = [
 
 [spells.kidney_shot]
 name = "Kidney Shot"
+range = 5
 icon = "ability_rogue_kidneyshot"
 finisher = true
 cost = { energy = 25 }
@@ -762,13 +905,14 @@ cooldown = 20
 requires = "cp >= 1"
 ranks = [{ level = 30, id = 408, extra = 0 }, { level = 50, id = 8643, extra = 1 }]
 effects = [
-  { type = "aura", aura = "stun", target = "target", duration = "cp + r.extra" },
+  { type = "aura", aura = "kidney_shot", target = "target", duration = "cp + r.extra" },
   { type = "if", cond = "t.improved_kidney_shot > 0", then = [{ type = "aura", aura = "kidney_vulnerability", target = "target", duration = "cp + r.extra", stacks = "t.improved_kidney_shot" }] },
   { type = "chance", p = "0.2 * cp * t.relentless_strikes", then = [{ type = "resource", res = "energy", amount = 25 }] },
 ]
 
 [spells.venom]
 name = "Venom"
+range = 100
 icon = "inv_sword_31"
 talent = "venom"
 finisher = true
@@ -783,6 +927,7 @@ effects = [
 
 [spells.cheap_shot]
 name = "Cheap Shot"
+range = 5
 icon = "ability_cheapshot"
 cost = { energy = 60 }
 requires = "aura.stealth.up"
@@ -824,6 +969,7 @@ on_hit = [{ type = "combo", amount = 1 }, { type = "chance", p = "interp(t.initi
 
 [spells.garrote]
 name = "Garrote"
+range = 5
 icon = "ability_rogue_garrote"
 cost = { energy = 50 }
 requires = "aura.stealth.up && (behind || t.dirty_deeds > 0)"
@@ -845,6 +991,7 @@ effects = [
 
 [spells.premeditation]
 name = "Premeditation"
+range = 20
 icon = "spell_shadow_possession"
 talent = "premeditation"
 off_gcd = true
@@ -928,19 +1075,24 @@ effects = [{ type = "aura", aura = "deadly_poison_oh" }]
 [rotations.combat_swords]
 desc = "Combat swords: Slice and Dice up, Sinister Strike to 5 points, Eviscerate, Blade Flurry and Adrenaline Rush on cooldown; Evasion when low against two or more or a player, Kidney Shot against players"
 precombat = ["instant_poison_mh", "deadly_poison_oh", { cast = "instant_poison_oh", if = "!known.deadly_poison_oh" }, "stealth"]
-opener = ["premeditation", "cheap_shot"]
+opener = [{ cast = "sap", target = "other_enemy", pick = "nearest", if = "enemies >= 2" }, "premeditation", "cheap_shot"]
 actions = [
   { cast = "will_to_survive" },
   { cast = "evasion", if = "hp_pct < 0.5 && (target.is_player || enemies >= 2)" },
+  { cast = "vanish", if = "hp_pct < 0.15 && !target.is_player" },   # escape
+  { cast = "blind", target = "other_enemy", if = "enemies >= 2 && hp_pct < 0.5" },   # take the add out of the fight
   { cast = "stoneform", if = "hp_pct < 0.5" },
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "elunes_light" },
   { cast = "eureka" },
   { cast = "adrenaline_rush" },
-  { cast = "blade_flurry" },
+  { cast = "blade_flurry", if = "cc_near == 0" },
   { cast = "riposte" },
   { cast = "kick" },
+  { cast = "feint", if = "!has_aggro && threat.pct > 0.8" },   # keep the group's tank on it
+  { cast = "kidney_shot", if = "target.fleeing && !target.stunned" },   # stop a runner
+  { cast = "sprint", if = "target.fleeing && target.dist > 5" },
   { cast = "kidney_shot", if = "target.is_player && cp >= 4 && !target.stunned" },
   { cast = "slice_and_dice", if = "!aura.slice_and_dice.up && cp >= 2 && target.hp_pct > 0.35" },
   { cast = "cold_blood", if = "cp >= 4" },
@@ -957,10 +1109,12 @@ eat_below = 0.55
 [rotations.daggers]
 desc = "Daggers: Ambush/Garrote opener, Mutilate or Backstab (Sinister Strike when not behind), Rupture on long fights, Eviscerate; Evasion when low against two or more or a player"
 precombat = ["instant_poison_mh", "deadly_poison_oh", { cast = "instant_poison_oh", if = "!known.deadly_poison_oh" }, "stealth"]
-opener = ["premeditation", "ambush", "garrote", "cheap_shot"]
+opener = [{ cast = "sap", target = "other_enemy", pick = "nearest", if = "enemies >= 2" }, "premeditation", "ambush", "garrote", "cheap_shot"]
 actions = [
   { cast = "will_to_survive" },
   { cast = "evasion", if = "hp_pct < 0.5 && (target.is_player || enemies >= 2)" },
+  { cast = "vanish", if = "hp_pct < 0.15 && !target.is_player" },   # escape
+  { cast = "blind", target = "other_enemy", if = "enemies >= 2 && hp_pct < 0.5" },   # take the add out of the fight
   { cast = "stoneform", if = "hp_pct < 0.5" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -969,6 +1123,9 @@ actions = [
   { cast = "adrenaline_rush" },
   { cast = "riposte" },
   { cast = "kick" },
+  { cast = "feint", if = "!has_aggro && threat.pct > 0.8" },   # keep the group's tank on it
+  { cast = "kidney_shot", if = "target.fleeing && !target.stunned" },   # stop a runner
+  { cast = "sprint", if = "target.fleeing && target.dist > 5" },
   { cast = "kidney_shot", if = "target.is_player && cp >= 4 && !target.stunned" },
   { cast = "slice_and_dice", if = "!aura.slice_and_dice.up && cp >= 2 && target.hp_pct > 0.35" },
   { cast = "venom", if = "!aura.venom.up && cp >= 3" },
@@ -992,10 +1149,12 @@ eat_below = 0.55
 [rotations.subtlety]
 desc = "Subtlety: Premeditation and Ambush from Stealth (Cheap Shot without a dagger), Ghostly Strike on cooldown, Hemorrhage as the builder (Backstab or Sinister Strike before 30), Slice and Dice, Rupture on long fights, Eviscerate; Evasion when low against two or more or a player"
 precombat = ["instant_poison_mh", "deadly_poison_oh", { cast = "instant_poison_oh", if = "!known.deadly_poison_oh" }, "stealth"]
-opener = ["premeditation", "ambush", "cheap_shot"]
+opener = [{ cast = "sap", target = "other_enemy", pick = "nearest", if = "enemies >= 2" }, "premeditation", "ambush", "cheap_shot"]
 actions = [
   { cast = "will_to_survive" },
   { cast = "evasion", if = "hp_pct < 0.5 && (target.is_player || enemies >= 2)" },
+  { cast = "vanish", if = "hp_pct < 0.15 && !target.is_player" },   # escape
+  { cast = "blind", target = "other_enemy", if = "enemies >= 2 && hp_pct < 0.5" },   # take the add out of the fight
   { cast = "stoneform", if = "hp_pct < 0.5" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -1003,6 +1162,9 @@ actions = [
   { cast = "eureka" },
   { cast = "riposte" },
   { cast = "kick" },
+  { cast = "feint", if = "!has_aggro && threat.pct > 0.8" },   # keep the group's tank on it
+  { cast = "kidney_shot", if = "target.fleeing && !target.stunned" },   # stop a runner
+  { cast = "sprint", if = "target.fleeing && target.dist > 5" },
   { cast = "kidney_shot", if = "target.is_player && cp >= 4 && !target.stunned" },
   { cast = "slice_and_dice", if = "!aura.slice_and_dice.up && cp >= 2 && target.hp_pct > 0.35" },
   { cast = "rupture", if = "cp >= 5 && !target.aura.rupture.up && (target.boss ? target.hp_pct > 0.1 : target.hp_pct > 0.5)" },

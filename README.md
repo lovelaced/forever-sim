@@ -187,11 +187,11 @@ they say).
 
 | id | what it is | primary metric |
 |---|---|---|
-| `solo_1`, `solo_2`, `solo_3` | an hour of same-level humanoids, 1/2/3 per pull, 8 s travel; eat/drink/rest between pulls, death = 2 min corpse run | kills per hour |
-| `solo_2_hard` | double pulls of mobs hitting 40% harder | kills per hour (also deaths per hour) |
-| `boss` | 120 s on a +2 level boss from behind, tank holds threat, boss immune to crowd control | DPS |
+| `solo_1`, `solo_2`, `solo_3` | an hour of same-level mobs, 1/2/3 per pull, from the open world's mix (below); walk up, fight, travel 8 s, rest, buff up, eat and drink; death = 2 min corpse run | kills per hour |
+| `solo_2_hard` | double pulls of the same mix hitting 40% harder | kills per hour (also deaths per hour) |
+| `boss` | 120 s on a +2 level boss that hits back, tanked by the Protection warrior preset at your level, with the rest of the party's buffs | DPS |
 | `pressure`, `pressure_2v1` | a geared rogue-like player opens with a 4 s stun and stuns again at 10 s; PvP diminishing returns apply | breakeven attacker DPS |
-| `duel` | stand-and-trade against another build (`--vs`) | win rate |
+| `duel` | a duel against another build (`--vs`), starting 5 to 10 yards apart | score (a win counts 1, a draw or timeout half) |
 | `heal_dungeon` | 120 s healing a tank and three others against a +2 boss: melee and Mortal Strike on the tank, Fire Nova on everyone, Shadow Bolts on the others; fails if anyone dies | breakeven boss DPS (before armor) |
 | `heal_tank` | 180 s keeping one tank alive against a +3 boss with crushing blows: melee, Mortal Strike and Flame Breath | breakeven boss DPS |
 | `heal_raid` | level 60 only: 150 s, ten players in two groups against Onyxia: melee on the tank, Fireballs on two at random, Eruption on everyone; fails if the tank or you die, or three others do | breakeven boss DPS |
@@ -206,8 +206,54 @@ numbers come from the hardest fight the healer held. Only the healer builds
 (and builds with a `heal_rotation`) take them: `fsim run heal_dungeon
 builds/priest/holy.toml`.
 
-Scenarios, enemies and gear kits are data too (`data/base/scenarios.toml`,
-`enemies.toml`, `gear.toml`); add your own the same way.
+**The leveling world.** Each pull is one kind of creature, drawn from
+`[mixes.overworld]` in `data/base/enemies.toml`: humanoids 45%, beasts 33%,
+undead 10%, elementals 5%, demons 3%, dragonkin 2%, giants 2% (an estimate,
+the same at every level). They share health, armor and damage; about one
+humanoid in six casts from 30 yards until its mana runs out or it's
+interrupted, and humanoids run at 15% health about half the time, sometimes
+coming back with a friend. The pack stands unaware 30 to 35 yards away: you
+walk up (the walk counts as travel), and it notices you at 20 yards, when you
+hit it, or never if you're in Stealth. Pull kinds, distances and the mobs'
+own rolls (whether they flee, for how long) are world draws, so every build
+in a comparison meets the same pulls.
+
+**Movement.** Everyone stands on one line, in yards. Melee closes to 5
+yards, casters stand at the range most of their spells share (30 for most,
+35 for a hunter's bow), and walk closer when a better spell is only out of
+reach. Casting means standing still, as do Auto Shot and wands. Mobs run 8
+yards a second and players 7; slows (the strongest one counts), roots,
+freezes, fear and speed boosts all move people. Charge and Intercept rush in
+and stun on arrival, Frost mages Frost Nova and step back, hunters Wing Clip
+and back out of their 8 yard dead zone. "Behind" means the target is facing
+someone else.
+
+**Totems and traps.** A shaman's totems are units on the ground, one of each
+element, put down where the shaman stands. A pulsing totem works from where
+it stands (Searing Totem on your target within 20 yards, Magma Totem on
+everything within 8, the water totems while you're within 30); a buff totem
+gives its buff to the party within 30 yards for as long as it stands, and
+Stoneclaw Totem taunts what's near it. Fire Nova bursts from your fire totem.
+Between leveling pulls the totems stay behind, except that 30% of the time
+(`totem_carry`, a world draw) the next fight comes to them. A hunter's trap
+goes down at its feet, only out of combat, arms in 2 seconds and goes off on
+the first enemy within 5 yards; ranged hunters lay a Freezing Trap before
+pulling two mobs (Explosive Trap for three).
+
+**Threat.** Mobs turn on whoever passes 110% of their target's threat from
+melee range, 130% from farther away; Taunt matches the top threat. In the
+boss test you give the tank a 2 second head start and hold your damage near
+90% of its threat (assumptions `tank_lead` and `threat_margin`).
+
+**Play like.** By default your character plays like a typical player: about
+half a second to notice a proc, an interrupt chance or a new target, now and
+then the next ability down instead of the best, and long cooldowns and
+upkeep a second late. Switch `play_like` to 1 for an expert. A duel
+opponent plays like you unless `opp_play_like` says otherwise.
+
+Scenarios, enemies, mixes and gear kits are data too
+(`data/base/scenarios.toml`, `enemies.toml`, `gear.toml`); add your own the
+same way.
 
 ## Where the numbers come from
 
@@ -333,8 +379,13 @@ damage modifier on both sides), on_hit/on_crit/on_miss),
 `heal`, `resource` (add or `set`), `combo`, `aura` (stacks, duration, target),
 `remove_aura`, `remove_self`, `consume`, `emit` (custom event), `cooldown`
 (reset/reduce/set), `summon`, `dismiss`, `sacrifice`, `extra_attack`, `cast`,
-`interrupt`, `if`, `chance`, `dispel`, `taunt`, `threat`, `absorb`. Targets:
-`self`, `target`, `pet`, `owner`, `my_target`, `enemies` (+ `max_targets`).
+`interrupt`, `if`, `chance`, `dispel`, `purge` (magic buffs, newest first),
+`taunt`, `threat`, `absorb`, `charge`, `step_back`, `teleport`,
+`drop_threat`, `track`, `trap` (`arm`, `radius`, `lasts`, `area`, `then`).
+An aura with `totem = { element, radius, reach, buff, health }` puts a totem
+on the ground instead. Targets: `self`, `target`, `pet`, `owner`,
+`my_target`, `enemies` (+ `max_targets`), `chain` (+ `max_targets`, `jump`),
+`party`, `allies`.
 
 **Proc events (`on =`):** `melee_swing melee_landed melee_crit white_landed
 special_landed ranged_landed spell_landed spell_crit periodic heal heal_crit
@@ -344,8 +395,8 @@ attack_parried kill cast combat_start summon pet_died`, plus `cast:<spell>`,
 `if`, `chance`, `ppm` and `icd`.
 
 **Spell modifiers** (`spell_mods`, on talents and auras) change `cost
-cast_time cooldown damage heal crit crit_bonus threat gcd` of listed `spells`
-or a whole `school`. An aura with `consume_on_cast = true` is used up by the
+cast_time cooldown damage heal crit crit_bonus threat gcd range radius` of
+listed `spells` or a whole `school`. An aura with `consume_on_cast = true` is used up by the
 spells its modifiers apply to.
 
 **Coefficients.** `coef` multiplies spell power (healing power for heals).
@@ -422,31 +473,36 @@ ones that move results most:
 * `rage_taken_mult`: Rage from damage taken (Blizzard: "20% to 40%").
 * `wand_spell_crit`, `wand_melee_crit`: which crit chance wands use and how
   hard their crits hit.
+* `play_like`, `react_typical`, `slip_typical`, `miss_proc_typical`,
+  `late_cd_typical`, `lapse_typical`: how the simulated player plays.
+* `rage_decay`: Rage lost per second out of combat (1.25, the original
+  game's rate).
+* `mobs_flee`, `flee_speed`, `poly_regen`: how leveling mobs behave.
+* `party_*`: each buff the boss test's party brings.
+* `totem_carry`: how often a shaman's totems are still up for the next
+  leveling fight (30%).
 
 ## Limits
 
-* No positioning: no range, kiting, movement or line of sight. Roots and
-  slows do nothing; Frost Nova and Frostbite freezes stop the target acting
-  until it takes 25% of its health, standing in for kiting.
-* Totems are buffs on the shaman (Healing Stream and Mana Spring reach your
-  group in the healing tests). Chain Lightning hits one target. Ground effects (Consecration, Flamestrike's burn) are per-target
-  auras. Pet focus is not modeled (fixed ability cadence).
+* Movement is along one line: no line of sight, no flanking, no terrain.
+  Pulls never chain into a second pack.
+* Ground effects (Consecration, Flamestrike's burn) are per-target auras.
+  Pet focus is not modeled (fixed ability cadence).
 * Gear kits are generic stat totals, the same for every build of a role, so
   results compare talents and rotations, not items. Cloth kits carry a
   typical wand for the level. The website shows each kit's stats.
 * Wands are played the typical way: started once nothing better is ready,
   never squeezed into a global cooldown, and stopped by any cast.
-* In a `duel` the challenger opens first, which is worth several percentage
-  points of win rate (Mutilate beats Vampire v2 76% of the time as the
-  challenger, 63% as the opponent). The website runs every duel both ways
-  round and averages them; `fsim run duel` reports one direction.
+* Duels start on the same tick; each side's first move waits for its own
+  reaction, and simultaneous moves resolve in an order drawn per duel, so
+  neither side has a built-in head start.
 * Enemy players in `pressure` are scripted (two stuns, no trinkets, no
   defensive cooldowns). Builds with long crowd control or immunities
   (paladins, bears) get very high breakevens there; read it as "this build
   cannot be killed by that attacker", not as an exact number.
 * The healing tests are one healer against scripted damage. Party members
-  don't act, buff, dispel or heal. Nobody moves, so range and line of sight
-  don't matter. A heal can't be stopped mid-cast when its target is topped up
+  don't act, buff, dispel or heal; the tank's threat is a steady stream that
+  keeps the boss off the healer. Everyone stands still, within heal range. A heal can't be stopped mid-cast when its target is topped up
   (one on someone who died fizzles). Prayer of Mending heals its holder once
   instead of jumping.
 * Spell coefficients, Classic base stats and some proc rates are assumptions

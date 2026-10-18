@@ -2,7 +2,7 @@
 //! returns named metrics. The Monte Carlo driver calls these many times.
 
 use crate::build::Build;
-use crate::engine::{Kind, Outcome, Sim, Stop, TraceEv};
+use crate::engine::{Kind, Outcome, Phase, Sim, Stop, TraceEv, ENV_DUEL, ENV_PULL};
 use crate::model::*;
 use crate::vars::*;
 use std::collections::BTreeMap;
@@ -41,8 +41,8 @@ pub fn run_rep(inp: &RepInput) -> (Values, Option<Vec<String>>) {
 /// `inp.log` turns both on.
 pub fn run_rep_traced(inp: &RepInput) -> RepOut {
     match &inp.sc.kind {
-        ScenarioKind::Leveling { pull, minutes, enemy, travel } => leveling(inp, *pull, *minutes, enemy, *travel),
-        ScenarioKind::Boss { duration, enemy, execute_by_time } => boss(inp, *duration, enemy, *execute_by_time),
+        ScenarioKind::Leveling { pull, minutes, enemy, travel, mix, dmg_scale } => leveling(inp, *pull, *minutes, enemy, *travel, mix.as_deref(), *dmg_scale),
+        ScenarioKind::Boss { duration, enemy, execute_by_time, tank } => boss(inp, *duration, enemy, *execute_by_time, tank.as_deref()),
         ScenarioKind::Duel { max_time, .. } => duel(inp, *max_time),
         ScenarioKind::Pressure { attacker, attackers, lo, hi, steps, max_time, win_needs_kill } => {
             pressure(inp, attacker, *attackers, *lo, *hi, *steps, *max_time, *win_needs_kill)
@@ -115,9 +115,11 @@ fn rest(sim: &mut Sim, p: usize, travel: f64) -> (f64, f64, f64) {
     let w = sim.w;
     let start = sim.t;
     sim.tracef(|s| s.tev("rest", p, None, ""));
-    sim.rest_phase = true;
+    sim.phase = Phase::Rest;
     sim.run(Stop::Until(sim.t + travel));
     sim.run(Stop::Rest { actor: p, until: sim.t + 90.0 });
+    // buff up for the next pull, then eat and drink back what that cost
+    sim.prep([p, p]);
     let rot = sim.actors[p].rotation;
     let (eat_below, drink_below) = rot.map_or((0.5, 0.4), |r| (r.eat_below, r.drink_below));
     let x = &sim.actors[p];
@@ -156,62 +158,142 @@ fn rest(sim: &mut Sim, p: usize, travel: f64) -> (f64, f64, f64) {
         x.hp = x.max_hp;
         x.res[Res::Mana as usize] = x.max_res[Res::Mana as usize];
     }
-    sim.rest_phase = false;
+    sim.phase = Phase::Fight;
     (sim.t - start, eats, drinks)
 }
 
-fn leveling(inp: &RepInput, pull: u32, minutes: f64, enemy: &str, travel: f64) -> RepOut {
+fn leveling(inp: &RepInput, pull: u32, minutes: f64, enemy: &str, travel: f64, mix: Option<&str>, dmg_scale: f64) -> RepOut {
     let w = inp.w;
-    let e = &w.enemies[enemy];
+    let mix = mix.and_then(|m| w.mixes.get(m));
+    // per kind of mob: kills, time fighting, deaths
+    let mut by_kind: BTreeMap<&str, (f64, f64, f64)> = BTreeMap::new();
     let mut sim = new_sim(inp);
     let p = sim.spawn_player(inp.build, 0, 1);
     sim.actors[p].behind = inp.sc.behind;
+    sim.prep_totems = false;
     sim.precombat(p);
     let session = minutes * 60.0;
     let (mut kills, mut deaths, mut eats, mut drinks, mut pulls, mut stuck) = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     let (mut combat_t, mut rest_t, mut dead_t) = (0.0, 0.0, 0.0);
     let mut i: u64 = 0;
+    let mut approach_t = 0.0;
+    let mut escapes = 0.0;
     while sim.t < session {
-        let lvl = (inp.build.level as i32 + e.level_offset).max(1) as u32;
+        // the pack stands unaware 30 to 35 yards off, spread over up to 8; it's
+        // one kind of creature, and some of it may cast (the same for every
+        // build: world draws, all made whether they're needed or not)
+        let mut env = sim.env(ENV_PULL, i);
+        let far = env.range(30.0, 35.0);
+        let spreads: Vec<f64> = (0..pull).map(|_| env.range(0.0, 8.0)).collect();
+        let kind_roll = env.f64();
+        let caster_rolls: Vec<f64> = (0..pull).map(|_| env.f64()).collect();
+        // whether the fight after this one comes to where your totems stand
+        let carry_roll = env.f64();
+        let kind: &str = match mix {
+            Some(m) => {
+                let mut acc = 0.0;
+                m.kinds.iter().find(|k| {
+                    acc += k.1;
+                    kind_roll < acc
+                }).unwrap_or(m.kinds.last().unwrap()).0.as_str()
+            }
+            None => enemy,
+        };
+        sim.spawned.clear();
         let mut ids = vec![];
         for j in 0..pull as u64 {
-            ids.push(sim.spawn_enemy(e, lvl, 1, 1000 + i * 16 + j, 1.0));
+            let tmpl = match mix.and_then(|m| m.casters.as_ref()) {
+                Some((of, share, as_)) if of == kind && caster_rolls[j as usize] < *share => as_.as_str(),
+                _ => kind,
+            };
+            let e = &w.enemies[tmpl];
+            let lvl = (inp.build.level as i32 + e.level_offset).max(1) as u32;
+            let id = sim.spawn_enemy(e, lvl, 1, 1000 + i * 16 + j, dmg_scale);
+            let spread = spreads[j as usize];
+            sim.place(id, far + if j == 0 { 0.0 } else { spread });
+            sim.actors[id].aware = false;
+            sim.actors[id].pack = i as u32 + 1;
+            ids.push(id);
+        }
+        sim.place(p, 0.0);
+        for pt in sim.actors[p].pets.clone() {
+            sim.place(pt, 0.0);
         }
         sim.actors[p].target = Some(ids[0]);
-        sim.tracef(|s| TraceEv { stacks: pull as f64, ..s.tev("pull", p, Some(ids[0]), "") });
+        sim.tracef(|s| TraceEv { stacks: pull as f64, ..s.tev("pull", p, Some(ids[0]), kind) });
         sim.enter_combat();
         sim.opener(p);
         let start = sim.t;
         let out = sim.run(Stop::Fight { until: start + 300.0 });
-        combat_t += sim.t - start;
+        // walking up to the pack is travel; the fight starts when it notices
+        let woke = sim.woke_at.unwrap_or(sim.t).clamp(start, sim.t);
+        approach_t += woke - start;
+        combat_t += sim.t - woke;
         pulls += 1.0;
-        let killed = ids.iter().filter(|&&k| !sim.actors[k].alive).count() as f64;
+        // everything that came, fleeing mobs' friends included
+        let all = sim.spawned.clone();
+        let killed = all.iter().filter(|&&k| !sim.actors[k].alive).count() as f64;
         kills += killed;
-        for &k in &ids {
+        let bk = by_kind.entry(kind).or_insert((0.0, 0.0, 0.0));
+        bk.0 += killed;
+        bk.1 += sim.t - woke;
+        if out == Outcome::PlayerDied {
+            bk.2 += 1.0;
+        }
+        for &k in &all {
             sim.actors[k].alive = false;
         }
         sim.leave_combat();
+        let carry = carry_roll < sim.opt_named(p, "totem_carry");
+        sim.leave_totems(p, carry);
         match out {
             Outcome::PlayerDied => {
                 deaths += 1.0;
-                // corpse run and resurrection at half health and mana
-                sim.run(Stop::Until(sim.t + 120.0));
-                dead_t += 120.0;
+                // a shaman's Reincarnation brings it straight back at 20% (no
+                // corpse run) when it's off cooldown; otherwise the corpse run
+                // and resurrection at half health and mana
+                let reinc = w.spell_index.get("shaman.reincarnation").copied().filter(|&s| {
+                    sim.known(p, s).is_some() && sim.actors[p].cd_ready(sim.cd_key(s)) <= sim.t + 1e-9
+                });
+                let (back, wait) = match reinc {
+                    Some(s) => {
+                        let sm = sim.spell_mod_vals(p, Some(s), None);
+                        let cx = crate::engine::Cx::new(p, None, "");
+                        let cd = ((sim.ev(&w.spells[s as usize].cooldown, &cx) + sm.cd_add) * sm.cd_mul).max(0.0);
+                        let key = sim.cd_key(s);
+                        let until = sim.t + cd;
+                        match sim.actors[p].cds.iter_mut().find(|c| c.0 == key) {
+                            Some(c) => c.1 = until,
+                            None => sim.actors[p].cds.push((key, until)),
+                        }
+                        sim.tracef(|s2| s2.tev("cast", p, None, "Reincarnation"));
+                        // Improved Reincarnation: +10/20% health and mana
+                        let x = &sim.actors[p];
+                        let imp = x.class.and_then(|c| w.classes[c].talent_index.get("improved_reincarnation").map(|&i| x.talents.get(i as usize).copied().unwrap_or(0))).unwrap_or(0);
+                        (0.2 + 0.1 * imp as f64, 5.0)
+                    }
+                    None => (0.5, 120.0),
+                };
+                sim.run(Stop::Until(sim.t + wait));
+                dead_t += wait;
+                sim.revive(p);
                 let x = &mut sim.actors[p];
-                x.alive = true;
-                x.hp = 0.5 * x.max_hp;
-                x.res[Res::Mana as usize] = 0.5 * x.max_res[Res::Mana as usize];
+                x.hp = back * x.max_hp;
+                x.res[Res::Mana as usize] = back * x.max_res[Res::Mana as usize];
                 x.auras.clear();
+                x.mechs = 0;
+                x.stealthed = false;
+                x.aura_next = f64::INFINITY;
                 x.form = None;
                 x.cast = None;
                 x.queued = None;
                 x.cp = 0.0;
                 sim.refresh_stats(p);
-                sim.precombat(p);
                 let x = &mut sim.actors[p];
-                x.hp = 0.5 * x.max_hp;
-                x.res[Res::Mana as usize] = 0.5 * x.max_res[Res::Mana as usize];
+                x.hp = back * x.max_hp;
+                x.res[Res::Mana as usize] = back * x.max_res[Res::Mana as usize];
             }
+            Outcome::Escaped => escapes += 1.0,
             Outcome::Timeout => stuck += 1.0,
             _ => {}
         }
@@ -233,6 +315,18 @@ fn leveling(inp: &RepInput, pull: u32, minutes: f64, enemy: &str, travel: f64) -
     put(&mut v, "drinks_per_hour", drinks / hrs);
     put(&mut v, "rest_share", (rest_t - travel * pulls).max(0.0) / sim.t);
     put(&mut v, "combat_share", combat_t / sim.t);
+    put(&mut v, "approach_share", approach_t / sim.t);
+    put(&mut v, "interrupts_per_hour", sim.metrics[p].interrupts / hrs);
+    put(&mut v, "escapes_per_hour", escapes / hrs);
+    // by kind of mob (each kind's share of kills, time per kill, deaths an hour)
+    for (k, (kl, ct, dd)) in &by_kind {
+        put(&mut v, &format!("kills_share:{k}"), kl / kills.max(1.0));
+        if *kl > 0.0 {
+            put(&mut v, &format!("time_per_kill:{k}"), ct / kl);
+        }
+        put(&mut v, &format!("deaths_by:{k}"), dd / hrs);
+    }
+    put(&mut v, "engine_spins", sim.spins as f64);
     put(&mut v, "dead_share", dead_t / sim.t);
     put(&mut v, "time_per_kill", combat_t / kills.max(1.0));
     put(&mut v, "dps_in_combat", m.dmg / combat_t.max(1e-9));
@@ -246,26 +340,114 @@ fn leveling(inp: &RepInput, pull: u32, minutes: f64, enemy: &str, travel: f64) -
     (v, sim.log.take(), sim.trace.take())
 }
 
-fn boss(inp: &RepInput, duration: f64, enemy: &str, by_time: bool) -> RepOut {
+thread_local! {
+    /// Preset builds made for a level, kept per world (the boss test's tank).
+    static PRESETS: std::cell::RefCell<std::collections::HashMap<(u64, String, u32), Option<Build>>> = Default::default();
+}
+
+/// A preset build from builds/ (embedded), at a level.
+fn preset(w: &World, id: &str, level: u32) -> Option<Build> {
+    let key = (w.uid, id.to_string(), level);
+    PRESETS.with(|c| {
+        c.borrow_mut()
+            .entry(key)
+            .or_insert_with(|| {
+                let file = format!("{id}.toml");
+                let (_, text) = crate::embedded::BUILD_FILES.iter().find(|(p, _)| *p == file)?;
+                let t: toml::Table = toml::from_str(text).ok()?;
+                crate::build::build_from_table(w, &t, &file, Some(level)).ok()
+            })
+            .clone()
+    })
+}
+
+/// Put a player (and pets) at the distance it fights from, on the near side
+/// of `foe`.
+fn stand_off(sim: &mut Sim, p: usize, foe: usize) {
+    let (want, _) = sim.stand(p);
+    let x = sim.pos(foe) - want;
+    sim.place(p, x);
+    for pt in sim.actors[p].pets.clone() {
+        let (pw, _) = sim.stand(pt);
+        let px = sim.pos(foe) - pw;
+        sim.place(pt, px);
+    }
+}
+
+fn boss(inp: &RepInput, duration: f64, enemy: &str, by_time: bool, tank_build: Option<&str>) -> RepOut {
     let w = inp.w;
     let e = &w.enemies[enemy];
     let mut sim = new_sim(inp);
     let p = sim.spawn_player(inp.build, 0, 1);
     sim.actors[p].behind = inp.sc.behind;
-    sim.precombat(p);
+    sim.main = Some(p);
+    // a tank of your level holds the boss (it's kept alive: someone heals it)
+    let tank_def = tank_build.and_then(|id| preset(w, id, inp.build.level));
+    let tank = tank_def.as_ref().map(|tb| {
+        let t = sim.spawn_player(tb, 0, 2);
+        sim.actors[t].unkillable = true;
+        t
+    });
+    sim.tank = tank;
+    sim.prep(match tank { Some(t) => [p, t], None => [p, p] });
+    // what the rest of the party brings
+    if tank.is_some() {
+        sim.party_buffs(p);
+    }
+    sim.top_up(p);
+    if let Some(t) = tank {
+        sim.top_up(t);
+    }
     let lvl = (inp.build.level as i32 + e.level_offset).max(1) as u32;
     let b = sim.spawn_enemy(e, lvl, 1, 1000, 1.0);
+    // the boss stands where the tank holds it; you fight from your own distance
+    sim.place(b, 0.0);
+    sim.actors[p].target = Some(b);
+    if let Some(t) = tank {
+        sim.actors[t].target = Some(b);
+        sim.actors[b].target = Some(t);
+        stand_off(&mut sim, t, b);
+        sim.aggro_watch = Some((b, t, 0.0, 0));
+    }
+    stand_off(&mut sim, p, b);
     if by_time {
         sim.actors[b].timed_hp = Some((sim.t, duration));
     }
-    sim.actors[p].target = Some(b);
     sim.enter_combat();
+    if let Some(t) = tank {
+        // the tank pulls: the boss starts on it, and you give it a head start
+        sim.add_threat(b, t, 1.0);
+        sim.actors[b].target = Some(t);
+        sim.opener(t);
+        let lead = w.opt_index("tank_lead").map_or(0.0, |i| inp.opts[i as usize]).max(0.0);
+        if lead > 0.0 {
+            let go = sim.t + lead;
+            let x = &mut sim.actors[p];
+            x.react_until = x.react_until.max(go);
+            for s in x.swing.iter_mut() {
+                if *s < go {
+                    *s = go;
+                }
+            }
+            for pt in sim.actors[p].pets.clone() {
+                for s in sim.actors[pt].swing.iter_mut() {
+                    if *s < go {
+                        *s = go;
+                    }
+                }
+            }
+        }
+    }
     sim.opener(p);
     let start = sim.t;
     sim.run(Stop::Fight { until: start + duration });
     let el = (sim.t - start).max(1e-9);
     let m = &sim.metrics[p];
     let mut v = Values::new();
+    if let Some((_, _, held, pulls)) = sim.aggro_watch {
+        put(&mut v, "held_share", held / el);
+        put(&mut v, "pulled_aggro", pulls as f64);
+    }
     put(&mut v, "dps", m.dmg / el);
     put(&mut v, "hps", m.heal / el);
     put(&mut v, "crit_rate", m.crits / m.hits.max(1.0));
@@ -276,30 +458,93 @@ fn boss(inp: &RepInput, duration: f64, enemy: &str, by_time: bool) -> RepOut {
     (v, sim.log.take(), sim.trace.take())
 }
 
+/// The duel opponent's assumptions: the run's settings without your build's
+/// own overrides, plus the opponent's, and played the way "Your duel
+/// opponent plays like" says.
+fn opponent_opts(inp: &RepInput, opp: &Build) -> Vec<f64> {
+    let w = inp.w;
+    let mut v = inp.opts.to_vec();
+    for &(i, _) in &inp.build.opts {
+        v[i as usize] = inp.sc.opts.iter().find(|o| o.0 == i).map_or(w.opts[i as usize].default, |o| o.1);
+    }
+    for &(i, x) in &opp.opts {
+        v[i as usize] = x;
+    }
+    if let (Some(pick), Some(like)) = (w.opt_index("opp_play_like"), w.opt_index("play_like")) {
+        match inp.opts[pick as usize].round() as i64 {
+            1 => v[like as usize] = 0.0,
+            2 => v[like as usize] = 1.0,
+            _ => {}
+        }
+    }
+    v
+}
+
 fn duel(inp: &RepInput, max_time: f64) -> RepOut {
     let mut sim = new_sim(inp);
     let a = sim.spawn_player(inp.build, 0, 1);
     let opp = inp.opponent.expect("duel needs an opponent (--vs)");
     let b = sim.spawn_player(opp, 1, 2);
+    sim.give_opts(b, opponent_opts(inp, opp));
     sim.actors[a].behind = inp.sc.behind;
-    sim.precombat(a);
-    sim.precombat(b);
+    sim.prep([a, b]);
+    sim.top_up(a);
+    sim.top_up(b);
     sim.actors[a].target = Some(b);
     sim.actors[b].target = Some(a);
+    // 5 to 10 yards apart, and who goes first when both act at the same
+    // moment (world draws, the same for every build)
+    let mut env = sim.env(ENV_DUEL, 0);
+    let gap = env.range(5.0, 10.0);
+    sim.flip = env.f64() < 0.5;
+    sim.place(a, 0.0);
+    sim.place(b, gap);
+    for (o, x) in [(a, 0.0), (b, gap)] {
+        for pt in sim.actors[o].pets.clone() {
+            sim.place(pt, x);
+        }
+    }
+    // both turn hostile on this tick; each moves, and swings, once it has
+    // reacted (its own draw), so who strikes first is reaction time
     sim.enter_combat();
+    let start = sim.t;
+    let mut react = [0.0; 2];
+    for (k, x) in [a, b].into_iter().enumerate() {
+        let r = if sim.reacting(x) { sim.reaction(x) } else { 0.0 };
+        react[k] = r;
+        let y = &mut sim.actors[x];
+        y.react_until = y.react_until.max(start + r);
+        for s in y.swing.iter_mut() {
+            if *s < f64::INFINITY {
+                *s = s.max(start + r);
+            }
+        }
+    }
+    let first = react[0] < react[1] || (react[0] == react[1] && !sim.flip);
     sim.opener(a);
     sim.opener(b);
-    let start = sim.t;
     let out = sim.run(Stop::Fight { until: start + max_time });
     let el = sim.t - start;
     let mut v = Values::new();
-    let win = match out {
-        Outcome::EnemiesDead => 1.0,
-        _ => 0.0,
-    };
-    put(&mut v, "win", win);
-    put(&mut v, "loss", if out == Outcome::PlayerDied { 1.0 } else { 0.0 });
-    put(&mut v, "timeout", if out == Outcome::Timeout { 1.0 } else { 0.0 });
+    // both down at once is a draw
+    let (a_dead, b_dead) = (!sim.actors[a].alive, !sim.actors[b].alive);
+    let (win, loss, draw) = (b_dead && !a_dead, a_dead && !b_dead, a_dead && b_dead);
+    let timeout = !a_dead && !b_dead;
+    let _ = out;
+    if draw {
+        sim.tracef(|s| s.tev("draw", a, Some(b), ""));
+    }
+    let b01 = |x: bool| if x { 1.0 } else { 0.0 };
+    let score = b01(win) + 0.5 * b01(draw || timeout);
+    put(&mut v, "score", score);
+    put(&mut v, "win", b01(win));
+    put(&mut v, "loss", b01(loss));
+    put(&mut v, "draw", b01(draw));
+    put(&mut v, "timeout", b01(timeout));
+    // your score split by who reacted first (the page divides by `first`)
+    put(&mut v, "first", b01(first));
+    put(&mut v, "score_first", if first { score } else { 0.0 });
+    put(&mut v, "score_second", if first { 0.0 } else { score });
     put(&mut v, "duration", el);
     let m = &sim.metrics[a];
     put(&mut v, "dps", m.dmg / el.max(1e-9));
@@ -329,6 +574,8 @@ fn pressure_fight(inp: &RepInput, attacker: &str, n: u32, scale: f64, max_time: 
         let id = sim.spawn_enemy(e, inp.build.level, 1, 500 + j, scale);
         sim.actors[id].stun_sched = e.stuns.iter().map(|(s, d)| (sim.t + s, *d)).collect();
         sim.actors[id].target = Some(p);
+        // an ambush: already in melee
+        sim.place(id, 3.0);
         ids.push(id);
     }
     sim.actors[p].target = Some(ids[0]);
@@ -411,7 +658,25 @@ fn heal_fight(inp: &RepInput, h: &HealingDef, scale: f64, log: bool) -> (bool, V
     let boss = sim.spawn_enemy(e, bl, 1, 1000, scale);
     sim.actors[boss].target = Some(tank);
     sim.actors[p].target = Some(boss);
+    // the tank holds the boss; the rest of the party and you stand back
+    sim.place(boss, 0.0);
+    sim.place(tank, -4.0);
+    for i in 0..sim.actors.len() {
+        if sim.actors[i].kind == Kind::Ally && i != tank {
+            sim.place(i, -15.0);
+        }
+    }
+    sim.place(p, -20.0);
+    for pt in sim.actors[p].pets.clone() {
+        sim.place(pt, -20.0);
+    }
     sim.enter_combat();
+    // the tank pulled and has a few seconds of threat on the boss
+    if let Some(e) = w.allies[&h.tank].threat_per_sec.as_ref() {
+        let cx = crate::engine::Cx::new(tank, None, "");
+        let lead = 5.0 * sim.ev(e, &cx);
+        sim.add_threat(boss, tank, lead);
+    }
     sim.start_script(boss);
     sim.opener(p);
     let start = sim.t;

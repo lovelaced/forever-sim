@@ -229,14 +229,15 @@ function renderDuel(ctx) {
   const out = h('div.detail');
   const cols = ctx.cols.filter((c) => c.cell);
   if (row.one || cols.length < 2) {
-    out.append(h('p.detail-meta', 'To the death, three minutes at most, fought both ways round.'));
+    out.append(h('p.detail-meta', 'To the death, three minutes at most. You start 5 to 10 yards apart, and whoever reacts first strikes first.'));
     out.append(ctx.opponentPicker());
+    out.append(playLikePicker());
     const c = cols[0];
     const w = c && ctx.opponentSig && duelWin(row, c.cell.sig, ctx.opponentSig);
     if (w) out.append(duelLine(c, { name: ctx.opponentName, color: '#9d9d9d', letter: null }, w));
     return out;
   }
-  out.append(h('p.detail-meta', 'Each pair duels to the death, three minutes at most, both ways round.'));
+  out.append(h('p.detail-meta', 'Each pair duels to the death, three minutes at most. They start 5 to 10 yards apart, and whoever reacts first strikes first.'));
   const lines = [];
   for (const c of cols) {
     if (c === ctx.base) continue;
@@ -257,7 +258,19 @@ function renderDuel(ctx) {
 function duelLine(c, other, w) {
   const verdictCls = w.lo > 0.5 ? 'better' : w.hi < 0.5 ? 'worse' : 'tie';
   const head = w.lo > 0.5 ? ` beats ` : w.hi < 0.5 ? ` loses to ` : ` is evenly matched with `;
+  const split = w.first != null && w.second != null ? `${pct(w.first)} when it reacts first, ${pct(w.second)} when the other does. ` : '';
   return h(`div.verdict.${verdictCls}`, { style: { '--slot': c.color } },
-    h('div', who(c), head, who(other), `, winning ${pct(w.mean)} of duels.`),
-    h('div.sub', `${pct(w.first)} when striking first, ${pct(w.second)} when not. About ${fmtNum(w.duration, 0)} seconds a duel.`));
+    h('div', who(c), head, who(other), `, scoring ${pct(w.mean)} (a win counts 1, a draw or a timeout half).`),
+    h('div.sub', `${split}About ${fmtNum(w.duration, 0)} seconds a duel.`));
+}
+
+// How the duel opponent plays (the assumption opp_play_like).
+const PLAY_LIKE = ['Same as you', 'Typical', 'Expert'];
+export function playLikePicker() {
+  const v = Math.round(S.opts.opp_play_like ?? 0);
+  return h('div.field-row.play-like', h('span.label', 'Your opponent plays like'),
+    h('div.quick', { role: 'group', 'aria-label': 'Your opponent plays like' }, PLAY_LIKE.map((t, i) => h('button.chip', {
+      type: 'button', 'aria-pressed': String(v === i),
+      onclick: () => { if (i === 0) delete S.opts.opp_play_like; else S.opts.opp_play_like = i; bus.render(); },
+    }, t))));
 }

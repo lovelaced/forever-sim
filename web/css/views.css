@@ -105,7 +105,7 @@
 }
 @media (max-width: 760px) {
   .view-banner { height: calc(110 * var(--art)); }
-  .view-banner .view-title { font-size: var(--fs-2xl); left: var(--s3); bottom: var(--s3); }
+  .view-banner .view-title { font-size: var(--fs-2xl); left: var(--s3); right: var(--s3); bottom: var(--s3); }
   .big-controls { display: grid; padding: var(--s3); }
   .big-controls .select { min-width: 0; width: 100%; }
   .big-controls .primary.small, .big-controls .run-cancel { width: 100%; margin-left: 0; }
@@ -116,4 +116,8 @@
   .forecast { grid-template-columns: auto minmax(0, 1fr) auto; }
   .forecast .foe-name { grid-column: 1 / -1; padding-left: 36px; }
   .forecast .row-compare { display: none; }
+}
+/* a long title wraps to two lines on a phone: keep both inside the banner */
+@media (max-width: 480px) {
+  .view-banner .view-title { font-size: var(--fs-xl); }
 }

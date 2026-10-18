@@ -54,6 +54,10 @@ pub fn gear_at(kit: &GearKit, level: u32) -> GearStats {
     if a.len() == 1 || level <= a[0].0 {
         return a[0].1.clone();
     }
+    // an anchor's own level gets the anchor as written, not a blend
+    if let Some(x) = a.iter().find(|x| x.0 == level) {
+        return x.1.clone();
+    }
     for w in a.windows(2) {
         if level <= w[1].0 {
             let f = (level - w[0].0) as f64 / (w[1].0 - w[0].0) as f64;

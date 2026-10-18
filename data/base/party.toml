@@ -1,0 +1,51 @@
+# Your party in the boss test: what the other four bring. Each buff lands
+# from a party member of its class at the rank they'd know at your level,
+# after your own buffs (yours win where they're the same buff; different
+# buffs stack). Each one is an assumption you can turn off (party_<name>).
+# `for`: who it goes to — "all", "mana" (anyone with mana), "physical" (a
+# melee or hunter rotation: attack power and agility), "caster" (mana and
+# not physical), "melee" (a melee rotation: Windfury).
+
+[party.battle_shout]
+spell = "warrior.battle_shout"
+for = "all"
+
+[party.mark_of_the_wild]
+spell = "druid.mark_of_the_wild"
+for = "all"
+
+[party.fortitude]
+spell = "priest.fortitude"
+for = "all"
+
+[party.arcane_intellect]
+spell = "mage.arcane_intellect"
+for = "mana"
+
+[party.blessing_of_might]
+spell = "paladin.blessing_of_might"
+for = "physical"
+
+[party.blessing_of_wisdom]
+spell = "paladin.blessing_of_wisdom"
+for = "caster"
+
+[party.blessing_of_kings]
+spell = "paladin.blessing_of_kings"   # Greater Blessing of Kings, from level 60
+for = "all"
+
+[party.trueshot_aura]
+spell = "hunter.trueshot_aura"
+for = "physical"
+
+[party.strength_of_earth]
+spell = "shaman.strength_of_earth_totem"
+for = "physical"
+
+[party.grace_of_air]
+spell = "shaman.grace_of_air_totem"
+for = "physical"
+
+[party.windfury]
+spell = "shaman.windfury_totem"
+for = "melee"

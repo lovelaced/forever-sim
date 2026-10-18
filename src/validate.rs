@@ -15,7 +15,7 @@ fn exo<'e>(e: &'e Option<Expr>, hit: Visit<'_, 'e>) {
     }
 }
 fn sel<'e>(s: &'e TargetSel, hit: Visit<'_, 'e>) {
-    if let TargetSel::Enemies(e) = s {
+    if let TargetSel::Enemies(e) | TargetSel::Chain { max: e, .. } = s {
         ex(e, hit)
     }
 }
@@ -43,7 +43,15 @@ fn effects<'e>(es: &'e [Effect], hit: Visit<'_, 'e>) {
                 ex(amount, hit);
                 sel(who, hit)
             }
-            Effect::Combo(e) | Effect::Taunt { duration: e } | Effect::Threat { amount: e } | Effect::Absorb { amount: e } => ex(e, hit),
+            Effect::Purge { count, who } => {
+                ex(count, hit);
+                sel(who, hit)
+            }
+            Effect::Taunt { duration, who } => {
+                ex(duration, hit);
+                sel(who, hit)
+            }
+            Effect::Combo(e) | Effect::Threat { amount: e } | Effect::Absorb { amount: e } => ex(e, hit),
             Effect::ApplyAura { stacks, duration, who, .. } => {
                 ex(stacks, hit);
                 exo(duration, hit);
@@ -64,7 +72,8 @@ fn effects<'e>(es: &'e [Effect], hit: Visit<'_, 'e>) {
                 ex(p, hit);
                 effects(then, hit)
             }
-            Effect::FromSource(then) => effects(then, hit),
+            Effect::FromSource(then) | Effect::Charge(then) | Effect::Trap { then, .. } => effects(then, hit),
+            Effect::StepBack(e) | Effect::Teleport(e) => ex(e, hit),
             _ => {}
         }
     }
@@ -162,7 +171,7 @@ pub fn class_exprs<'e>(w: &'e World, class: usize, rotations: bool, hit: Visit<'
 pub fn talents_in(e: &Expr) -> Vec<u16> {
     let mut v = Vec::new();
     e.visit_vars(&mut |x| {
-        if let VarRef::Talent(i) = x {
+        if let VarRef::Talent(_, i) = x {
             v.push(*i);
         }
     });

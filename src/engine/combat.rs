@@ -16,7 +16,7 @@ pub enum Roll {
 }
 
 impl<'w> Sim<'w> {
-    fn level_diff(&self, att: usize, def: usize) -> i32 {
+    pub fn level_diff(&self, att: usize, def: usize) -> i32 {
         self.actors[def].level as i32 - self.actors[att].level as i32
     }
 
@@ -53,7 +53,7 @@ impl<'w> Sim<'w> {
             CombatCfg::by_diff(&c.mob_dodge, diff)
         };
         dodge -= exp;
-        let front = !a.behind;
+        let front = !self.behind(att, def);
         let can_parry = !ranged
             && front
             && match d.class {
@@ -205,7 +205,7 @@ impl<'w> Sim<'w> {
         let x = &self.actors[a];
         let Some(wp) = x.weapons[hand as usize] else { return 0.0 };
         // wands take nothing from attack power
-        let ap = if wp.wtype == WeaponType::Wand { 0.0 } else if hand == Hand::Ranged { x.st[Stat::Rap as usize] } else { x.st[Stat::Ap as usize] } + ap_bonus;
+        let ap = (if wp.wtype == WeaponType::Wand { 0.0 } else if hand == Hand::Ranged { x.st[Stat::Rap as usize] } else { x.st[Stat::Ap as usize] } + ap_bonus).max(0.0);
         let ov = x.st[Stat::WeaponSpeedOverride as usize];
         let roll = self.actors[a].rng[0].range(wp.min, wp.max);
         if ov > 0.0 && hand != Hand::Ranged {
@@ -303,7 +303,7 @@ impl<'w> Sim<'w> {
             dmg *= self.actors[a].st[Stat::OffhandMult as usize];
         }
         let x = &self.actors[a];
-        dmg *= x.st[Stat::DmgDone as usize] * x.st[Stat::PhysDmgDone as usize] * x.dmg_scale;
+        dmg *= x.st[Stat::DmgDone as usize] * x.st[Stat::PhysDmgDone as usize] * x.dmg_scale * self.vs_mult(a, tgt);
         if hand == Hand::Ranged {
             dmg *= x.st[Stat::RangedDmgDone as usize];
         }
@@ -346,7 +346,7 @@ impl<'w> Sim<'w> {
     /// melee by the test's damage scale.
     pub fn script_hit(&mut self, a: usize, h: &'w ScriptHit) {
         let team = self.actors[a].team;
-        let mut pool: Vec<usize> = self.actors.iter().filter(|x| x.alive && x.team != team && !x.is_pet()).map(|x| x.id).collect();
+        let mut pool: Vec<usize> = self.live.iter().copied().filter(|&i| { let x = &self.actors[i]; x.alive && x.team != team && !x.is_pet() }).collect();
         let tank = self.actors[a].target.filter(|&t| self.actors[t].alive);
         let targets: Vec<usize> = match h.targets {
             ScriptTargets::Tank => tank.into_iter().collect(),
@@ -487,31 +487,13 @@ impl<'w> Sim<'w> {
 
     /// Run a damage effect against its targets. Returns true if anything landed.
     pub fn do_damage(&mut self, fx: &'w DamageFx, cx: Cx<'w>) -> bool {
-        let targets: Vec<usize> = match &fx.targets {
-            TargetSel::Me => vec![cx.me],
-            TargetSel::Target => cx.tgt.or(self.actors[cx.me].target).into_iter().collect(),
-            TargetSel::Pet => self.who(&cx, Who::Pet).into_iter().collect(),
-            TargetSel::Owner => self.actors[cx.me].owner.into_iter().collect(),
-            TargetSel::MyTarget => self.actors[cx.me].target.filter(|&t| self.actors[t].alive).into_iter().collect(),
-            TargetSel::Enemies(max) => {
-                let n = self.ev(max, &cx) as usize;
-                let team = self.actors[cx.me].team;
-                let mut v: Vec<usize> = self.actors.iter().filter(|x| x.alive && x.team != team).map(|x| x.id).collect();
-                // the primary target first
-                if let Some(t) = cx.tgt.or(self.actors[cx.me].target) {
-                    if let Some(p) = v.iter().position(|&x| x == t) {
-                        v.swap(0, p);
-                    }
-                }
-                v.truncate(n);
-                v
-            }
-            TargetSel::Ally | TargetSel::Party | TargetSel::Allies(_) => self.friendly_sel(&fx.targets, &cx).unwrap_or_default(),
-        };
+        let targets = self.select(&fx.targets, &cx, SelUse::Damage);
         let mut any = false;
-        for t in targets {
+        for (k, t) in targets.into_iter().enumerate() {
             if self.actors[t].alive && self.actors[cx.me].alive {
-                any |= self.damage_one(fx, cx, t);
+                let mut c = cx;
+                c.hit = k.min(255) as u8;
+                any |= self.damage_one(fx, c, t);
             }
         }
         any
@@ -595,7 +577,7 @@ impl<'w> Sim<'w> {
             dmg += coef * self.sp_for(a, school);
         }
         let x = &self.actors[a];
-        let mut mult = self.evo(&fx.mult, &cx, 1.0) * cx.sm.dmg * x.st[Stat::DmgDone as usize] * x.st[school.dmg_stat() as usize];
+        let mut mult = self.evo(&fx.mult, &cx, 1.0) * cx.sm.dmg * x.st[Stat::DmgDone as usize] * x.st[school.dmg_stat() as usize] * self.vs_mult(a, tgt);
         if fx.weapon == Some(Hand::Ranged) {
             mult *= x.st[Stat::RangedDmgDone as usize];
         }
@@ -690,18 +672,32 @@ impl<'w> Sim<'w> {
         if !self.actors[dst].alive || amount <= 0.0 {
             return 0.0;
         }
+        if !self.actors[dst].aware && self.hostile(src, dst) {
+            self.wake(dst, Some(src));
+        }
         let w = self.w;
         let mut rest = amount;
         // absorbs
         let mut k = 0;
         let mut shield: Option<u32> = None;
         while k < self.actors[dst].auras.len() && rest > 0.0 {
+            let def = &w.auras[self.actors[dst].auras[k].def as usize];
+            // a ward takes only its school; Mana Shield pays in mana
+            let fits = def.absorb_school.map_or(true, |s| s == ev.school);
+            let mpa = def.mana_per_absorb;
+            let mana = self.actors[dst].res[Res::Mana as usize];
             let inst = &mut self.actors[dst].auras[k];
-            if inst.absorb > 0.0 {
+            if inst.absorb > 0.0 && fits {
                 shield = Some(inst.def);
-                let used = inst.absorb.min(rest);
+                let mut used = inst.absorb.min(rest);
+                if mpa > 0.0 {
+                    used = used.min(mana / mpa);
+                }
                 inst.absorb -= used;
                 rest -= used;
+                if mpa > 0.0 {
+                    self.actors[dst].res[Res::Mana as usize] -= used * mpa;
+                }
                 self.metrics[dst].absorbed += used;
                 if self.actors[dst].auras[k].absorb <= 1e-6 {
                     self.remove_aura_at(dst, k, false);
@@ -739,6 +735,9 @@ impl<'w> Sim<'w> {
             self.metrics[src].hits += 1.0;
         }
         self.actors[dst].hp -= rest;
+        if self.actors[dst].unkillable && self.actors[dst].hp < 1.0 {
+            self.actors[dst].hp = 1.0;
+        }
         if self.log.is_some() {
             let kind = if ev.crit { " CRIT" } else if ev.periodic { " (tick)" } else { "" };
             self.logf(|s| format!("{} {} -> {} {:.0}{} [{:.0}/{:.0}]", s.actors[src].name, tag, s.actors[dst].name, rest, kind, s.actors[dst].hp.max(0.0), s.actors[dst].max_hp));
@@ -819,6 +818,15 @@ impl<'w> Sim<'w> {
         let kind = v.kind.clone();
         self.metrics[victim].deaths += 1.0;
         let _ = w;
+        // a totem or trap knocked down; a shaman's totems go when it dies
+        if self.actors[victim].totem.is_some() {
+            self.despawn_totem(victim);
+        }
+        for k in 0..self.actors[victim].totems.len() {
+            if let Some(t) = self.actors[victim].totems[k] {
+                self.despawn_totem(t);
+            }
+        }
         if let Some(o) = owner {
             self.actors[o].pets.retain(|&p| p != victim);
             if let Kind::Pet(pd) = kind {
@@ -839,18 +847,7 @@ impl<'w> Sim<'w> {
     }
 
     pub fn do_heal(&mut self, fx: &'w HealFx, cx: Cx<'w>) {
-        let targets: Vec<usize> = match &fx.targets {
-            TargetSel::Me => vec![cx.me],
-            TargetSel::Target => cx.tgt.into_iter().collect(),
-            TargetSel::Pet => self.who(&cx, Who::Pet).into_iter().collect(),
-            TargetSel::Owner => self.actors[cx.me].owner.into_iter().collect(),
-            TargetSel::MyTarget => self.actors[cx.me].target.filter(|&t| self.actors[t].alive).into_iter().collect(),
-            TargetSel::Enemies(_) => {
-                let team = self.actors[cx.me].team;
-                self.actors.iter().filter(|x| x.alive && x.team == team).map(|x| x.id).collect()
-            }
-            TargetSel::Ally | TargetSel::Party | TargetSel::Allies(_) => self.friendly_sel(&fx.targets, &cx).unwrap_or_default(),
-        };
+        let targets = self.select(&fx.targets, &cx, SelUse::Heal);
         let a = cx.me;
         let falloff = fx.falloff.as_ref().map(|f| self.ev(f, &cx));
         for (k, t) in targets.into_iter().enumerate() {
@@ -859,6 +856,7 @@ impl<'w> Sim<'w> {
             }
             let mut c2 = cx;
             c2.tgt = Some(t);
+            c2.hit = k.min(255) as u8;
             let mut rolled = 0.0;
             if let (Some(lo), Some(hi)) = (&fx.min, &fx.max) {
                 let (lo, hi) = (self.ev(lo, &c2), self.ev(hi, &c2));
@@ -946,12 +944,16 @@ impl<'w> Sim<'w> {
                 ..s.tev("heal", src, Some(dst), tag)
             });
         }
-        // healing threat, split across enemies fighting the healer's team
+        // healing threat, split across the mobs already fighting the healer's side
         if eff > 0.0 && self.actors[src].in_combat {
             let team = self.actors[src].team;
-            let foes: Vec<usize> = self.actors.iter().filter(|e| e.alive && e.team != team && e.kind == Kind::Enemy).map(|e| e.id).collect();
+            let actors = &self.actors;
+            let foes: Vec<usize> = self.live.iter().copied().filter(|&i| {
+                let e = &actors[i];
+                e.alive && e.aware && e.team != team && e.kind == Kind::Enemy && e.threat.iter().any(|x| x.1 > 0.0 && actors[x.0 as usize].team == team)
+            }).collect();
             if !foes.is_empty() {
-                let th = 0.5 * eff * self.actors[src].st[Stat::Threat as usize] / foes.len() as f64;
+                let th = self.w.combat.heal_threat * eff * self.actors[src].st[Stat::Threat as usize] / foes.len() as f64;
                 for f in foes {
                     self.add_threat(f, src, th);
                 }

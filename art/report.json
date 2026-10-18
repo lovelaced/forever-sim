@@ -2686,5 +2686,89 @@
   ],
   "contested": 0.374,
   "bg_removed": null
+ },
+ "face-beast": {
+  "id": "face-beast",
+  "size": [
+   29,
+   29
+  ],
+  "colors": 21,
+  "grid": [
+   43.2,
+   43.2
+  ],
+  "contested": 0.638,
+  "bg_removed": 95
+ },
+ "face-undead": {
+  "id": "face-undead",
+  "size": [
+   28,
+   29
+  ],
+  "colors": 21,
+  "grid": [
+   43.2,
+   43.2
+  ],
+  "contested": 0.604,
+  "bg_removed": 125
+ },
+ "face-elemental": {
+  "id": "face-elemental",
+  "size": [
+   28,
+   28
+  ],
+  "colors": 21,
+  "grid": [
+   43.2,
+   43.2
+  ],
+  "contested": 0.583,
+  "bg_removed": 101
+ },
+ "face-demon": {
+  "id": "face-demon",
+  "size": [
+   26,
+   28
+  ],
+  "colors": 21,
+  "grid": [
+   43.2,
+   43.2
+  ],
+  "contested": 0.534,
+  "bg_removed": 86
+ },
+ "face-dragonkin": {
+  "id": "face-dragonkin",
+  "size": [
+   30,
+   29
+  ],
+  "colors": 21,
+  "grid": [
+   43.2,
+   43.2
+  ],
+  "contested": 0.592,
+  "bg_removed": 121
+ },
+ "face-giant": {
+  "id": "face-giant",
+  "size": [
+   29,
+   29
+  ],
+  "colors": 21,
+  "grid": [
+   43.2,
+   43.2
+  ],
+  "contested": 0.619,
+  "bg_removed": 104
  }
 }

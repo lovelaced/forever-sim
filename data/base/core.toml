@@ -44,6 +44,19 @@ normalized_1h = 2.4
 normalized_2h = 3.3
 normalized_dagger = 1.7
 normalized_ranged = 2.8
+# movement (yards, yards per second)
+run_speed = 7.0
+npc_run_speed = 8.0
+melee_reach = 5.0
+move_margin = 1.0          # how far past a wanted distance before walking again
+charge_speed = 24.0
+fear_speed = 1.25          # Psychic Scream's own +25% (spell 8122)
+aggro_radius = 20.0        # an unaware mob notices you this close (stealth: only when hit)
+max_spins = 200
+# threat (the original game's rules; Forever hasn't published its own)
+aggro_melee = 1.1          # to pull a mob: 110% of its target's threat from melee range...
+aggro_ranged = 1.3         # ...130% from farther away
+heal_threat = 0.5          # per point healed, split across the mobs fighting your side
 
 [rest]
 # level, food health, drink mana, seconds to consume one

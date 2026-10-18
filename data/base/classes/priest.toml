@@ -62,8 +62,9 @@ icon = "spell_nature_manaregentotem"
 tree = "Discipline"
 points = 5
 ranks = 3
-text = "Stun, Fear and Silence effects on you are 5% shorter per point (the sim shortens stuns and fears; nothing here silences). Holy spell threat -10% per point is not simulated: the priest fights alone, so threat never changes who an enemy attacks."
+text = "Stun, Fear and Silence effects on you are 5% shorter per point (the sim shortens stuns and fears, not silences). Holy and Shadow spell threat -10% per point."
 mods = [{ stat = "stun_duration", mul = "1 - 0.05 * rank" }, { stat = "fear_duration", mul = "1 - 0.05 * rank" }]
+spell_mods = [{ school = "holy", prop = "threat", mul = "1 - 0.1 * rank" }, { school = "shadow", prop = "threat", mul = "1 - 0.1 * rank" }]
 [talents.holy_precision]
 icon = "spell_holy_divineillumination"
 tree = "Discipline"
@@ -130,7 +131,8 @@ icon = "spell_shadow_manaburn"
 tree = "Discipline"
 points = 15
 ranks = 2
-text = "Mana Burn cast time -1 sec (not simulated: no Mana Burn, and no enemy here uses mana)."
+text = "Mana Burn casts 0.5 sec faster per point."
+spell_mods = [{ spells = ["mana_burn"], prop = "cast_time", add = "-0.5 * rank" }]
 [talents.penance]
 icon = "spell_holy_penance"
 tree = "Discipline"
@@ -222,7 +224,8 @@ icon = "spell_holy_purify"
 tree = "Holy"
 points = 15
 ranks = 2
-text = "Smite and Holy Fire range and Holy Nova radius +20% (not simulated: no range or positioning)."
+text = "Smite and Holy Fire reach 10/20% farther; Holy Nova and Prayer of Healing cover 10/20% more ground."
+spell_mods = [{ spells = ["smite", "holy_fire"], prop = "range", mul = "1 + 0.1 * rank" }, { spells = ["holy_nova", "prayer_of_healing"], prop = "radius", mul = "1 + 0.1 * rank" }]
 [talents.improved_healing]
 icon = "spell_holy_heal02"
 tree = "Holy"
@@ -304,7 +307,8 @@ icon = "spell_shadow_shadowward"
 tree = "Shadow Magic"
 points = 5
 ranks = 3
-text = "Shadow spell threat -10% per point (30% at 3/3; the talent spell's 8 is not used). Not simulated: the priest fights alone, so threat never changes who an enemy attacks."
+text = "Shadow spell threat -10% per point (30% at 3/3; the talent spell's 8 is not used)."
+spell_mods = [{ school = "shadow", prop = "threat", mul = "1 - 0.1 * rank" }]
 [talents.improved_shadow_word_pain]
 icon = "spell_shadow_shadowwordpain"
 tree = "Shadow Magic"
@@ -316,7 +320,8 @@ icon = "spell_shadow_chilltouch"
 tree = "Shadow Magic"
 points = 5
 ranks = 2
-text = "Shadow spell range +20% (not simulated: no range or positioning)."
+text = "Shadow spells reach 10/20% farther."
+spell_mods = [{ spells = ["devouring_plague", "mind_blast", "mind_flay", "shadow_word_death", "shadow_word_pain"], prop = "range", mul = "1 + 0.1 * rank" }]
 [talents.improved_mind_blast]
 icon = "spell_shadow_unholyfrenzy"
 tree = "Shadow Magic"
@@ -350,7 +355,8 @@ icon = "spell_magic_lesserinvisibilty"
 tree = "Shadow Magic"
 points = 15
 ranks = 2
-text = "Fade cooldown -3 sec per point (not simulated: no Fade, and the priest fights alone, so threat never changes who an enemy attacks)."
+text = "Fade's cooldown is 3 sec shorter per point."
+spell_mods = [{ spells = ["fade"], prop = "cooldown", add = "-3 * rank" }]
 [talents.vampiric_embrace]
 icon = "spell_shadow_unsummonbuilding"
 tree = "Shadow Magic"
@@ -369,13 +375,13 @@ icon = "spell_shadow_impphaseshift"
 tree = "Shadow Magic"
 points = 20
 ranks = 1
-text = "Silence: 5 sec silence, 45 sec cooldown, 225 mana (not simulated yet: waits for crowd control and interrupts in the rotations)."
+text = "Learns Silence: 5 sec silence that cuts short a cast, 45 sec cooldown, 225 mana."
 [talents.devouring_contagion]
 icon = "spell_shadow_devouringplague"
 tree = "Shadow Magic"
 points = 20
 ranks = 2
-text = "Devouring Plague costs 25% less per point (50% at 2/2). Spreading it to an enemy within 5 or 10 yards when its target dies is not simulated (needs multi-target choice)."
+text = "Devouring Plague costs 25% less per point (50% at 2/2). Spreading it to an enemy within 5 or 10 yards when its target dies is not simulated."
 spell_mods = [{ spells = ["devouring_plague"], prop = "cost", mul = "1 - 0.25 * rank" }]
 [talents.early_demise]
 icon = "spell_shadow_demonicfortitude"
@@ -400,14 +406,23 @@ requires = "vampiric_embrace"
 text = "Shadowform: +10% Shadow damage, Shadow spells cost 50% less, Mind Blast, Mind Flay, Shadow Word: Pain, Devouring Plague and Shadowguard crit for +100%, -15% physical damage taken; no healing spells."
 
 # ------------------------------------------------------------------ auras
+[auras.mind_flay]
+name = "Mind Flay"
+debuff = true
+per_source = false
+mechanic = "slow"
+duration = 3
+slow = 0.5
 [auras.inner_fire]
 name = "Inner Fire"
+dispel = "magic"
 duration = 600
 charges = "20 + 4 * t.improved_inner_fire"
 mods = [{ stat = "armor", add = "r.armor * (1 + 0.15 * t.improved_inner_fire)" }]
 procs = [{ on = "struck", if = "!event.spell", effects = [{ type = "consume" }] }]
 [auras.fortitude]
 name = "Power Word: Fortitude"
+dispel = "magic"
 mods = [{ stat = "sta", add = "r.sta" }]
 [auras.weakened_soul]
 name = "Weakened Soul"
@@ -416,10 +431,12 @@ per_source = false
 duration = "15 - t.renewed_hope"
 [auras.power_word_shield]
 name = "Power Word: Shield"
+dispel = "magic"
 duration = 30
 absorb = "(r.absorb + 0.1 * heal_power) * (1 + interp(t.improved_power_word_shield, 0,0, 1,0.07, 2,0.14, 3,0.2))"
 [auras.renew]
 name = "Renew"
+dispel = "magic"
 duration = 15
 tick = { interval = 3, effects = [{ type = "heal", target = "target", amount = "r.tick", coef = 0.2, periodic = true, can_crit = true, tag = "Renew" }] }
 [auras.shadow_word_pain]
@@ -442,6 +459,7 @@ tick = { interval = 2, effects = [
 ] }
 [auras.inner_focus]
 name = "Inner Focus"
+dispel = "magic"
 consume_on_cast = true
 spell_mods = [
   { spells = ["smite", "holy_fire", "mind_blast", "mind_flay", "shadow_word_pain", "devouring_plague", "shadow_word_death", "penance", "penance_heal", "holy_nova", "lesser_heal", "heal", "greater_heal", "flash_heal", "binding_heal", "renew", "power_word_shield", "prayer_of_mending", "shadowguard", "inner_fire", "fortitude", "psychic_scream", "shadowform", "vampiric_embrace", "power_infusion", "contingency_plan"], prop = "cost", mul = 0 },
@@ -490,20 +508,24 @@ mods = [{ stat = "shadow_dmg_done", mul = 1.1 }, { stat = "phys_dmg_taken", mul 
 spell_mods = [{ school = "shadow", prop = "cost", mul = 0.5 }, { spells = ["mind_blast", "mind_flay", "shadow_word_pain", "devouring_plague", "shadowguard"], prop = "crit_bonus", add = 1.0 }]
 [auras.shadowguard]
 name = "Shadowguard"
+dispel = "magic"
 duration = 600
 charges = 3
 procs = [{ on = "struck_melee", icd = 3.5, effects = [{ type = "damage", school = "shadow", target = "target", hit = "auto", amount = "r.dmg", coef = 0.267, no_proc = true, tag = "Shadowguard" }, { type = "consume" }] }]
 [auras.prayer_of_mending]
 name = "Prayer of Mending"
+dispel = "magic"
 duration = 30
 charges = 1
 procs = [{ on = "struck", effects = [{ type = "from_source", effects = [{ type = "heal", target = "target", amount = "r.base", coef = 0.429, tag = "Prayer of Mending" }] }, { type = "consume" }] }]
 [auras.dark_sacrifice]
 name = "Dark Sacrifice"
+dispel = "magic"
 duration = 15
 tick = { interval = 3, effects = [{ type = "resource", res = "hp", amount = "-r.tick" }, { type = "resource", res = "mana", amount = "r.tick + spi / 5" }] }
 [auras.contingency_plan]
 name = "Contingency Plan"
+dispel = "magic"
 duration = 30
 procs = [{ on = "struck", if = "hp_pct < 0.35", effects = [{ type = "aura", aura = "contingency_shield" }, { type = "aura", aura = "contingency_heal" }, { type = "remove_self" }] }]
 [auras.contingency_shield]
@@ -529,12 +551,13 @@ tick = { interval = 3, effects = [{ type = "heal", target = "self", amount = "r.
 name = "Inner Fire"
 icon = "spell_holy_innerfire"
 target = "self"
-requires = "!aura.inner_fire.up"
+requires = "!aura.inner_fire.up || aura.inner_fire.remains < 60"
 ranks = [{ level = 12, id = 588, armor = 315, mana = 30 }, { level = 20, id = 7128, armor = 495, mana = 65 }, { level = 30, id = 602, armor = 720, mana = 105 }, { level = 40, id = 1006, armor = 945, mana = 165 }, { level = 50, id = 10951, armor = 1170, mana = 235 }, { level = 60, id = 10952, armor = 1395, mana = 315 }]
 text = "Lasts 10 min or 20 melee and ranged hits taken."
 effects = [{ type = "aura", aura = "inner_fire" }]
 [spells.fortitude]
 name = "Power Word: Fortitude"
+range = 30
 icon = "spell_holy_wordfortitude"
 target = "self"
 requires = "!aura.fortitude.up"
@@ -644,6 +667,7 @@ effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, o
 
 [spells.mind_flay]
 name = "Mind Flay"
+range = 20
 icon = "spell_shadow_siphonmana"
 talent = "mind_flay"
 school = "shadow"
@@ -655,8 +679,8 @@ ranks = [
   { level = 52, id = 17314, tick = 98, mana = 165 },
   { level = 60, id = 18807, tick = 130, mana = 205 },
 ]
-text = "One hit roll when cast (a miss ends the channel), then a periodic tick every second for 3 sec that cannot crit, as in the game's periodic aura. The slow is not simulated."
-effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, on_miss = [{ type = "interrupt", target = "self" }] }]
+text = "One hit roll when cast (a miss ends the channel), then a periodic tick every second for 3 sec that cannot crit, as in the game's periodic aura. Slows the target 50% while it lasts."
+effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, on_hit = [{ type = "aura", aura = "mind_flay", target = "target" }], on_miss = [{ type = "interrupt", target = "self" }] }]
 channel = { duration = 3, interval = 1, effects = [{ type = "damage", school = "shadow", periodic = true, amount = "r.tick", coef = 0.167, tag = "Mind Flay" }] }
 
 [spells.shadow_word_death]
@@ -675,6 +699,7 @@ effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coe
 
 [spells.penance]
 name = "Penance"
+range = 36
 icon = "spell_holy_penance"
 talent = "penance"
 school = "holy"
@@ -692,6 +717,7 @@ channel = { duration = 2, interval = 1, effects = [{ type = "damage", school = "
 
 [spells.penance_heal]
 name = "Penance (heal)"
+range = 36
 icon = "spell_holy_penance"
 talent = "penance"
 school = "holy"
@@ -710,6 +736,7 @@ channel = { duration = 2, interval = 1, effects = [{ type = "heal", target = "al
 
 [spells.holy_nova]
 name = "Holy Nova"
+radius = 10
 icon = "spell_holy_holynova"
 talent = "holy_nova"
 school = "holy"
@@ -729,6 +756,7 @@ effects = [
 
 [spells.power_word_shield]
 name = "Power Word: Shield"
+range = 40
 icon = "spell_holy_powerwordshield"
 cooldown = 4
 target = "self"
@@ -750,6 +778,7 @@ effects = [{ type = "aura", aura = "power_word_shield", target = "ally" }, { typ
 
 [spells.renew]
 name = "Renew"
+range = 40
 icon = "spell_holy_renew"
 school = "holy"
 target = "self"
@@ -772,6 +801,7 @@ effects = [{ type = "aura", aura = "renew", target = "ally" }]
 
 [spells.lesser_heal]
 name = "Lesser Heal"
+range = 40
 icon = "spell_holy_lesserheal"
 school = "holy"
 target = "self"
@@ -785,6 +815,7 @@ effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = 
 
 [spells.heal]
 name = "Heal"
+range = 40
 icon = "spell_holy_heal"
 school = "holy"
 target = "self"
@@ -799,6 +830,7 @@ effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = 
 
 [spells.greater_heal]
 name = "Greater Heal"
+range = 40
 icon = "spell_holy_greaterheal"
 school = "holy"
 target = "self"
@@ -814,6 +846,8 @@ effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = 
 
 [spells.prayer_of_healing]
 name = "Prayer of Healing"
+range = 40
+radius = 40
 icon = "spell_holy_prayerofhealing02"
 school = "holy"
 target = "self"
@@ -831,6 +865,7 @@ effects = [{ type = "heal", target = "party", min = "r.lo", max = "r.hi", coef =
 
 [spells.flash_heal]
 name = "Flash Heal"
+range = 40
 icon = "spell_holy_flashheal"
 school = "holy"
 target = "self"
@@ -849,6 +884,7 @@ effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = 
 
 [spells.binding_heal]
 name = "Binding Heal"
+range = 40
 icon = "spell_holy_blindingheal"
 talent = "binding_heal"
 school = "holy"
@@ -871,6 +907,7 @@ effects = [
 
 [spells.prayer_of_mending]
 name = "Prayer of Mending"
+range = 40
 icon = "spell_holy_prayerofmendingtga"
 talent = "prayer_of_mending"
 school = "holy"
@@ -916,6 +953,7 @@ effects = [{ type = "aura", aura = "dark_sacrifice" }]
 
 [spells.contingency_plan]
 name = "Contingency Plan"
+range = 30
 icon = "ability_priest_soulwarding"
 cooldown = 600
 target = "self"
@@ -941,6 +979,7 @@ ranks = [{ level = 1, id = 14751 }]
 effects = [{ type = "aura", aura = "inner_focus" }]
 [spells.power_infusion]
 name = "Power Infusion"
+range = 30
 icon = "spell_holy_powerinfusion"
 talent = "power_infusion"
 level = 40
@@ -951,6 +990,7 @@ target = "self"
 effects = [{ type = "aura", aura = "power_infusion" }]
 [spells.vampiric_embrace]
 name = "Vampiric Embrace"
+range = 30
 icon = "spell_shadow_unsummonbuilding"
 talent = "vampiric_embrace"
 school = "shadow"
@@ -969,6 +1009,7 @@ cost = { mana = "0.4 * base_mana" }
 effects = [{ type = "aura", aura = "shadowform" }]
 [spells.psychic_scream]
 name = "Psychic Scream"
+radius = 8
 icon = "spell_shadow_psychicscream"
 school = "shadow"
 cooldown = 30
@@ -976,6 +1017,75 @@ requires = "target.is_player || enemies >= 2"
 text = "Frightens 2, 3, 4 or 5 nearby enemies by rank, for 8 sec."
 ranks = [{ level = 14, id = 8122, targets = 2, mana = 100 }, { level = 28, id = 8124, targets = 3, mana = 140 }, { level = 42, id = 10888, targets = 4, mana = 180 }, { level = 56, id = 10890, targets = 5, mana = 210 }]
 effects = [{ type = "aura", aura = "fear", target = "enemies", max_targets = "r.targets", duration = 8 }]
+
+# ------------------------------------------------------------------ crowd control and escapes
+[spells.shackle_undead]
+name = "Shackle Undead"
+range = 30
+icon = "spell_nature_slow"
+school = "holy"
+cast_time = 1.5
+requires = "target.undead"
+text = "Holds an undead enemy for 30, 40 or 50 sec by rank: it can't move, attack or cast."
+ranks = [{ level = 20, id = 9484, dur = 30, mana = 90 }, { level = 40, id = 9485, dur = 40, mana = 120 }, { level = 60, id = 10955, dur = 50, mana = 150 }]
+cost = { mana = "r.mana" }
+effects = [{ type = "aura", aura = "shackle_undead", target = "target", duration = "r.dur" }]
+[spells.fade]
+name = "Fade"
+icon = "spell_magic_lesserinvisibilty"
+school = "shadow"
+target = "self"
+cooldown = 30
+text = "Lowers your threat on your target by 275 to 4100 by rank."
+ranks = [
+  { level = 8, id = 586, threat = 275, mana = 40 },
+  { level = 20, id = 9578, threat = 775, mana = 75 },
+  { level = 30, id = 9579, threat = 1425, mana = 125 },
+  { level = 40, id = 9592, threat = 2200, mana = 175 },
+  { level = 50, id = 10941, threat = 3100, mana = 225 },
+  { level = 60, id = 10942, threat = 4100, mana = 275 },
+]
+cost = { mana = "r.mana" }
+effects = [{ type = "aura", aura = "fade", duration = 10 }, { type = "threat", amount = "-r.threat" }]
+[spells.mana_burn]
+name = "Mana Burn"
+range = 30
+icon = "spell_shadow_manaburn"
+school = "shadow"
+cast_time = 3
+requires = "target.mana > 0"
+text = "Burns up to 197 to 759 of the target's mana by rank (more with your level), dealing half that as damage."
+ranks = [
+  { level = 24, id = 8129, burn = 197, burn_per_level = 1.5, max_level = 29, mana = 95 },
+  { level = 32, id = 8131, burn = 319, burn_per_level = 1.5, max_level = 37, mana = 140 },
+  { level = 40, id = 10874, burn = 455, burn_per_level = 1.5, max_level = 45, mana = 185 },
+  { level = 48, id = 10875, burn = 593, burn_per_level = 1.5, max_level = 53, mana = 225 },
+  { level = 56, id = 10876, burn = 759, burn_per_level = 1.5, max_level = 61, mana = 270 },
+]
+cost = { mana = "r.mana" }
+effects = [
+  { type = "damage", school = "shadow", amount = "0.5 * min(r.burn, target.mana)", can_crit = false, tag = "Mana Burn", on_hit = [{ type = "resource", res = "mana", target = "target", amount = "-r.burn" }] },
+]
+[spells.silence]
+name = "Silence"
+range = 20
+icon = "spell_shadow_impphaseshift"
+school = "shadow"
+talent = "silence"
+cooldown = 45
+cost = { mana = 225 }
+text = "Silences the target for 5 sec, cutting short any spell it's casting."
+ranks = [{ level = 30, id = 15487 }]
+effects = [{ type = "aura", aura = "silence", target = "target", duration = 5 }, { type = "interrupt", target = "target", lockout = 5 }]
+
+[auras.shackle_undead]
+name = "Shackle Undead"
+debuff = true
+mechanic = "incap"
+dr = "incap"
+[auras.fade]
+name = "Fade"
+dispel = "magic"
 
 # ------------------------------------------------------------------ rotations
 # Racials: Desperate Prayer (Dwarf), Contingency Plan (Gnome), Shadowguard
@@ -996,16 +1106,21 @@ actions = [
   { cast = "psychic_scream", if = "hp_pct < 0.4" },
   { cast = "flash_heal", if = "(hp_pct < 0.35) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "vampiric_embrace" },
+  { cast = "fade", if = "!has_aggro && threat.pct > 0.75" },   # in a group: drop threat before pulling the tank's mob
+  { cast = "silence", if = "target.casting" },
+  { cast = "shackle_undead", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && target.undead && !target.boss && !target.incapacitated" },   # hold the undead add
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "elunes_light" },
   { cast = "eureka" },
   { cast = "power_infusion" },
   { cast = "shadow_word_pain", if = "target.hp_pct > 0.2 || target.boss" },
+  { cast = "shadow_word_pain", target = "other_enemy", pick = "undotted", if = "enemies >= 2 && target.hp_pct > 0.4 && !target.feared && !target.incapacitated" },   # spread it
   { cast = "devouring_plague", if = "target.hp_pct > 0.3 || target.boss" },
   { cast = "inner_focus", if = "cd.mind_blast.ready && gcd_remains <= 0" },
   { cast = "mind_blast" },
   { cast = "shadow_word_death", if = "target.hp_pct < 0.2 || hp_pct > 0.6" },
+  { cast = "mana_burn", if = "target.is_player && target.mana_pct > 0.5 && hp_pct > 0.6" },
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (mana_pct < 0.4 || (target.hp_pct < 0.35 && !known.mind_flay))" },   # leveling: Mind Blast and Pain, then wand to finish until Mind Flay; after that only to save mana
   { cast = "mind_flay" },
   { cast = "smite", if = "!known.mind_flay" },
@@ -1039,6 +1154,9 @@ actions = [
   { cast = "renew", if = "hp_pct < 0.7" },
   { cast = "prayer_of_mending", if = "(!target.boss) && !(!target.is_player && enemies < 2 && target.hp < 0.5 * hp && hp_pct > 0.4)" },
   { cast = "psychic_scream", if = "hp_pct < 0.4" },
+  { cast = "fade", if = "!has_aggro && threat.pct > 0.75" },   # in a group: drop threat before pulling the tank's mob
+  { cast = "silence", if = "target.casting" },
+  { cast = "shackle_undead", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && target.undead && !target.boss && !target.incapacitated" },   # hold the undead add
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "elunes_light" },
@@ -1050,8 +1168,9 @@ actions = [
   { cast = "inner_focus", if = "gcd_remains <= 0" },
   { cast = "penance" },
   { cast = "mind_blast" },
+  { cast = "mana_burn", if = "target.is_player && target.mana_pct > 0.5 && hp_pct > 0.6" },
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (target.hp_pct < 0.35 || mana_pct < 0.4)" },   # leveling: wand to finish and save mana
-  { cast = "holy_nova", if = "enemies >= 3" },
+  { cast = "holy_nova", if = "enemies_active >= 3 && cc_near == 0" },
   { cast = "smite" },
   { cast = "shoot", if = "gcd_remains <= 0" },   # out of mana: the wand is free
 ]

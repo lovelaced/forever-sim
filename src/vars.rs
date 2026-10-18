@@ -49,7 +49,11 @@ named_enum!(
         StunDuration = "stun_duration", FearDuration = "fear_duration",
         ImmuneFear = "immune_fear", ImmuneStun = "immune_stun", ImmuneDisarm = "immune_disarm",
         ImmuneIncap = "immune_incap", ImmuneSilence = "immune_silence", ImmuneRoot = "immune_root",
-        CostMult = "cost_mult", CritDmgTaken = "crit_dmg_taken",
+        CostMult = "cost_mult", CritDmgTaken = "crit_dmg_taken", RageDecayDelay = "rage_decay_delay",
+        DmgVsHumanoid = "dmg_vs_humanoid", DmgVsBeast = "dmg_vs_beast", DmgVsUndead = "dmg_vs_undead",
+        DmgVsDemon = "dmg_vs_demon", DmgVsElemental = "dmg_vs_elemental", DmgVsDragonkin = "dmg_vs_dragonkin",
+        DmgVsGiant = "dmg_vs_giant", DmgVsMechanical = "dmg_vs_mechanical", DmgVsTracked = "dmg_vs_tracked",
+        RangedRange = "ranged_range", MoveSpeed = "move_speed",
     }
 );
 
@@ -62,7 +66,9 @@ impl Stat {
             | MaxManaMult | DmgDone | PhysDmgDone | RangedDmgDone | SpellDmgDone | HolyDmgDone | FireDmgDone
             | NatureDmgDone | FrostDmgDone | ShadowDmgDone | ArcaneDmgDone | DmgTaken
             | PhysDmgTaken | SpellDmgTaken | HealDone | HealTaken | Threat | RageGen
-            | EnergyRegen | StunDuration | FearDuration | CostMult | CritDmgTaken | OffhandRage => 1.0,
+            | EnergyRegen | StunDuration | FearDuration | CostMult | CritDmgTaken | OffhandRage
+            | DmgVsHumanoid | DmgVsBeast | DmgVsUndead | DmgVsDemon | DmgVsElemental | DmgVsDragonkin
+            | DmgVsGiant | DmgVsMechanical | DmgVsTracked => 1.0,
             OffhandMult => 0.5,
             _ => 0.0,
         }
@@ -112,6 +118,15 @@ named_enum!(Mechanic {
     Silence = "silence", Disarm = "disarm", Freeze = "freeze", Immune = "immune",
 });
 
+impl Mechanic {
+    pub const fn bit(self) -> u16 {
+        1 << self as u16
+    }
+    /// The mechanics that stop you acting. Frozen and rooted units can't
+    /// move but still swing and cast at whoever is in reach.
+    pub const HARD: u16 = Mechanic::Stun.bit() | Mechanic::Fear.bit() | Mechanic::Incap.bit();
+}
+
 named_enum!(Hand { Mh = "mh", Oh = "oh", Ranged = "ranged" });
 
 named_enum!(WeaponType {
@@ -139,6 +154,22 @@ named_enum!(CreatureType {
     Elemental = "elemental", Dragonkin = "dragonkin", Giant = "giant", Mechanical = "mechanical",
 });
 
+impl CreatureType {
+    /// The stat for damage dealt to this kind of creature.
+    pub fn dmg_vs(self) -> Stat {
+        match self {
+            CreatureType::Humanoid => Stat::DmgVsHumanoid,
+            CreatureType::Beast => Stat::DmgVsBeast,
+            CreatureType::Undead => Stat::DmgVsUndead,
+            CreatureType::Demon => Stat::DmgVsDemon,
+            CreatureType::Elemental => Stat::DmgVsElemental,
+            CreatureType::Dragonkin => Stat::DmgVsDragonkin,
+            CreatureType::Giant => Stat::DmgVsGiant,
+            CreatureType::Mechanical => Stat::DmgVsMechanical,
+        }
+    }
+}
+
 named_enum!(Who { Me = "self", Target = "target", Owner = "owner", Pet = "pet", Ally = "ally", Tank = "tank", Lowest = "lowest" });
 
 // Fields available on the event that triggered a proc.
@@ -148,12 +179,12 @@ named_enum!(EvField {
     Overheal = "overheal", Rage = "rage", Extra = "extra",
 });
 
-named_enum!(WField { Speed = "speed", Dps = "dps", Min = "min", Max = "max", Equipped = "equipped" });
+named_enum!(WField { Speed = "speed", Dps = "dps", Min = "min", Max = "max", Equipped = "equipped", SwingRemains = "swing_remains" });
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum VarRef {
     /// Rank of a talent in the evaluating actor's class (owner's for pets).
-    Talent(u16),
+    Talent(u8, u16),
     /// A named number on the rank of the spell being evaluated.
     Rank(u16),
     /// A user-tunable assumption (`opt.<name>`).
@@ -166,6 +197,34 @@ pub enum VarRef {
     BaseHp(Who),
     Combo,
     Level(Who),
+    /// Yards to the unit (to your target, read on yourself).
+    Dist(Who),
+    /// Walking or running right now.
+    Moving(Who),
+    /// Running away at low health.
+    Fleeing(Who),
+    /// In a fight (a mob that hasn't noticed anyone isn't).
+    UnitInCombat(Who),
+    /// How many buffs a Purge could take off the unit.
+    MagicBuffs(Who),
+    /// Your threat on your target as a share of whoever it's attacking (1
+    /// when it's attacking you).
+    ThreatPct,
+    /// Your target is attacking you.
+    HasAggro,
+    /// Enemies in the fight within this many yards of you.
+    EnemiesWithin(u16),
+    /// Enemies fighting that aren't held by crowd control that damage breaks.
+    EnemiesActive,
+    /// Enemies held by breakable crowd control near you or your target (no
+    /// area damage then).
+    CcNear,
+    /// Which hit of a chain or area this is (0 for the first).
+    HitIndex,
+    /// Your totem of an element: up, seconds left, you within its reach.
+    TotemActive(u8),
+    TotemRemains(u8),
+    TotemInRange(u8),
     Time,
     CombatTime,
     AuraUp(Who, u32),

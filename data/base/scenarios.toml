@@ -3,42 +3,43 @@
 
 [scenarios.solo_1]
 kind = "leveling"
-desc = "Levelling for an hour: single pulls of same-level humanoids, 8 s between pulls"
+desc = "Leveling for an hour: single pulls of same-level mobs (the open world's mix), 8 s between pulls"
 pull = 1
 minutes = 60
-enemy = "humanoid"
+mix = "overworld"
 travel = 8
 
 [scenarios.solo_2]
 kind = "leveling"
-desc = "Levelling for an hour: double pulls"
+desc = "Leveling for an hour: double pulls"
 pull = 2
 minutes = 60
-enemy = "humanoid"
+mix = "overworld"
 travel = 8
 
 [scenarios.solo_2_hard]
 kind = "leveling"
-desc = "Levelling for an hour: double pulls of mobs hitting 40% harder"
+desc = "Leveling for an hour: double pulls of mobs hitting 40% harder"
 pull = 2
 minutes = 60
-enemy = "humanoid_hard"
+mix = "overworld"
+dmg_scale = 1.4
 travel = 8
 
 [scenarios.solo_3]
 kind = "leveling"
-desc = "Levelling for an hour: triple pulls"
+desc = "Leveling for an hour: triple pulls"
 pull = 3
 minutes = 60
-enemy = "humanoid"
+mix = "overworld"
 travel = 8
 
 [scenarios.boss]
 kind = "boss"
-desc = "Dungeon boss for 120 s from behind, tank holds threat, health falls linearly (execute phase in the last 20%)"
+desc = "Dungeon boss for 120 s with a Protection warrior tanking it (you hit from behind while it's on the tank), health falls linearly (execute phase in the last 20%)"
 duration = 120
 enemy = "boss_plus2"
-behind = true
+tank = "warrior/protection"   # a preset build, at your level
 
 [scenarios.pressure]
 kind = "pressure"
@@ -62,7 +63,7 @@ max_time = 180
 
 [scenarios.duel]
 kind = "duel"
-desc = "Duel against another build (--vs), standing and trading, 180 s limit"
+desc = "Duel against another build (--vs): 5 to 10 yards apart, both start on the same tick and each moves once it has reacted. Score: a win 1, a draw or a 180 s timeout half"
 max_time = 180
 
 [scenarios.heal_dungeon]

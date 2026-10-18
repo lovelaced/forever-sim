@@ -43,9 +43,7 @@ use serde_json::{json, Map, Value as J};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::{Arc, Mutex};
 
-mod embedded {
-    include!(concat!(env!("OUT_DIR"), "/embedded.rs"));
-}
+use crate::embedded;
 
 /// Replications for every variant: [variant][replication].
 type Chunk = Vec<Vec<Values>>;
@@ -169,7 +167,13 @@ fn catalog(w: &World) -> J {
                     json!({
                         "spell": sp.id, "name": sp.name, "icon": sp.icon,
                         // a heal line on the tank or the most hurt ally, sized to what's missing
-                        "on": match a.target { SpellTarget::Tank => Some("tank"), SpellTarget::Lowest => Some("lowest"), _ => None },
+                        "on": match a.target {
+                            SpellTarget::Tank => Some("tank"),
+                            SpellTarget::Lowest => Some("lowest"),
+                            SpellTarget::AnyEnemy(_) => Some("any_enemy"),
+                            SpellTarget::OtherEnemy(_) => Some("other_enemy"),
+                            _ => None,
+                        },
                         "fit": a.rank == RankPick::Fit,
                         "when": a.cond.as_ref().and_then(|e| crate::explain::condition(w, ci, e)),
                         // what the spell itself needs (Victory Rush after a kill)
@@ -220,7 +224,7 @@ fn catalog(w: &World) -> J {
         .map(|o| {
             json!({
                 "name": o.name, "default": o.default, "desc": o.desc, "label": o.label, "help": o.help, "kind": o.kind,
-                "unit": o.unit, "source": o.source, "cite": o.cite, "applies": o.applies,
+                "unit": o.unit, "source": o.source, "cite": o.cite, "applies": o.applies, "group": o.group, "choices": o.choices,
             })
         })
         .collect();
@@ -285,7 +289,7 @@ fn aura_icons(w: &World) -> Vec<Option<String>> {
                     walk(then, out);
                     walk(els, out);
                 }
-                Effect::Chance { then, .. } | Effect::FromSource(then) => walk(then, out),
+                Effect::Chance { then, .. } | Effect::FromSource(then) | Effect::Charge(then) | Effect::Trap { then, .. } => walk(then, out),
                 _ => {}
             }
         }
@@ -526,10 +530,12 @@ fn trace(w: &World, v: &J) -> Result<J, String> {
     }
     // what concerns the build: its own (and its pet's) actions, what it puts
     // on others, and what is done to it
-    let me = events.iter().find(|e| e.team == 0 && !e.pet).map(|e| e.who.clone()).unwrap_or_else(|| b.name.clone());
+    // you are the first character spawned (the boss test's tank comes after)
+    let me = events.iter().find(|e| e.team == 0 && !e.pet && e.who_id == 0).or_else(|| events.iter().find(|e| e.team == 0 && !e.pet)).map(|e| e.who.clone()).unwrap_or_else(|| b.name.clone());
     // a pet often holds the mob (a hunter's, a Voidwalker): what's done to it counts too
     let pets: BTreeSet<String> = events.iter().filter(|e| e.team == 0 && e.pet).map(|e| e.who.clone()).collect();
-    events.retain(|e| e.team == 0 || e.kind == "death" || e.target.as_ref().map_or(false, |t| *t == me || pets.contains(t)));
+    // your side's moves are yours and your pets' (not the tank's)
+    events.retain(|e| (e.team == 0 && (e.who_id == 0 || e.pet)) || e.kind == "death" || e.target.as_ref().map_or(false, |t| *t == me || pets.contains(t)));
     dress_trace(w, &b, sc, &mut events);
     Ok(json!({ "me": me, "pets": pets, "leveling": leveling, "events": events }))
 }

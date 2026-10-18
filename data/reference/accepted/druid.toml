@@ -21,14 +21,10 @@ match = "Internal: the heal Swiftmend casts, sized from your highest Rejuvenatio
 # Talents: game values (Forever's trait tables) that the audit can't find
 # among the numbers the talent drives, because the simulator has no use for
 # them or folds them into a formula that needs a level or a stat.
-[druid.talent_natures_reach]
-"value.0" = "Range +10%/20%: the simulator has no distance, so spell range does nothing."
 
 [druid.talent_overgrowth]
-"value.0" = "Entangling Roots can hold 1/2 more targets: roots hold one target here and do nothing without distance."
+"value.0" = "Entangling Roots can hold 1/2 more targets: each cast here roots one target."
 
-[druid.talent_feral_swiftness]
-"value.1" = "Cat Form movement speed +15%/30%: the simulator has no movement."
 
 [druid.talent_feral_instinct]
 "value.0" = "Prowl is harder to detect (as if 1/2/3 levels higher): the simulator has no stealth detection."

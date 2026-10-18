@@ -50,9 +50,9 @@ function planTest(test, acc) {
   if (test !== 'duel') {
     return { test, acc, env: envKey(), roles: roles.map(plain), sessions: [{ req: { ...base, builds: roles.map(api) } }] };
   }
-  // Head to head, both ways round: whoever opens the duel strikes first, so
-  // each build challenges every other one and the two directions are averaged.
-  // A single build fights the opponent picked in the duel's detail instead.
+  // Head to head, each pair once: duels start on the same tick and whoever
+  // reacts first strikes first, so who challenges whom doesn't matter. A
+  // single build fights the opponent picked in the duel's detail instead.
   const sides = roles.map((r) => ({ role: plain(r), api: api(r) }));
   let key = envKey();
   if (roles.length < 2) {
@@ -60,8 +60,8 @@ function planTest(test, acc) {
     sides.push({ role: { sig: S.opponent, uids: [] }, api: opp });
     key = `${key}|${S.opponent}`;
   }
-  const sessions = sides.map((opp) => {
-    const others = sides.filter((x) => x !== opp);
+  const sessions = sides.slice(0, -1).map((opp, k) => {
+    const others = sides.slice(k + 1);
     return { opp: opp.role, challengers: others.map((x) => x.role), req: { ...base, builds: others.map((x) => x.api), opponent: opp.api } };
   });
   return { test, acc, env: key, one: roles.length < 2, roles: roles.map(plain), sessions };
@@ -197,28 +197,35 @@ export function pairOf(res, metric, a, b) {
   return res?.paired?.find((p) => p.metric === metric && p.a === a && p.b === b) || null;
 }
 
-// Head to head: how often the build with signature sx beats the one with sy,
-// both ways round. {mean, lo, hi, first, second, duration}: first = x opening
-// the duel, second = y opening.
+// Head to head: the score of the build with signature sx against the one
+// with sy (a win counts 1, a draw or a timeout half), from whichever of the
+// two fought as the challenger. {mean, lo, hi, first, second, duration}:
+// first = x's score when it reacted first, second = when y did.
 export function duelWin(row, sx, sy) {
   if (!row?.duel) return null;
-  const side = (oppSig, chSig, metric) => {
+  const find = (oppSig, chSig) => {
     const s = row.duel.find((d) => d.opp?.sig === oppSig);
     if (!s || !s.res) return null;
     const i = s.challengers.findIndex((c) => c.sig === chSig);
     const ms = i >= 0 && s.res.variants[i]?.metrics;
-    const m = ms && ms.find((q) => q.name === metric);
-    return m ? { p: m.mean, n: s.res.reps, duration: ms.find((q) => q.name === 'duration')?.mean } : null;
+    if (!ms) return null;
+    const m = (k) => ms.find((q) => q.name === k);
+    const score = m('score') || m('win');
+    if (!score) return null;
+    const f = m('first')?.mean ?? 0.5;
+    const sf = m('score_first')?.mean, ss = m('score_second')?.mean;
+    return {
+      mean: score.mean, lo: score.lo ?? score.mean, hi: score.hi ?? score.mean,
+      first: sf != null && f > 0 ? sf / f : null, second: ss != null && f < 1 ? ss / (1 - f) : null,
+      n: s.res.reps, duration: m('duration')?.mean,
+    };
   };
-  const first = side(sy, sx, 'win'); // x challenges y
-  const second = side(sx, sy, 'loss'); // y challenges x and loses
-  if (!first || !second) return null;
-  const mean = (first.p + second.p) / 2;
-  const se = Math.sqrt(first.p * (1 - first.p) / first.n + second.p * (1 - second.p) / second.n) / 2;
-  return {
-    mean, lo: Math.max(0, mean - 1.96 * se), hi: Math.min(1, mean + 1.96 * se),
-    first: first.p, second: second.p, n: first.n + second.n, duration: (first.duration + second.duration) / 2,
-  };
+  const w = find(sy, sx);
+  if (w) return w;
+  // y challenged x: the other side of the same duels
+  const o = find(sx, sy);
+  if (!o) return null;
+  return { mean: 1 - o.mean, lo: 1 - o.hi, hi: 1 - o.lo, first: o.second == null ? null : 1 - o.second, second: o.first == null ? null : 1 - o.first, n: o.n, duration: o.duration };
 }
 
 // Changes on the fights both runs share, for builds as they are now.

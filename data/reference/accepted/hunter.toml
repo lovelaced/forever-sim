@@ -21,7 +21,7 @@ talent = "Node 110859, the Lightning Reflexes on the Survival tree. The sim's li
 "value.1" = "A dummy value (5/6/7) the tooltip doesn't show. The tooltip gives the pet a fixed 50% of the aspect's dodge, which the sim models in [pets.cat] dodge."
 
 [hunter.talent_pathfinding]
-"value.0" = "Aspect of the Cheetah and Aspect of the Pack speed +3% a rank: movement is not simulated."
+"value.0" = "Aspect of the Cheetah and Aspect of the Pack speed +3% a rank: neither aspect is in the sim."
 
 [hunter.talent_improved_revive_pet]
 "value.2" = "Revive Pet's health bonus, +15% a rank on top of the base 15%: it sits in Revive Pet's health formula (pet.max_hp * (0.15 + 0.15 * rank)), which depends on the pet's health, so the check can't evaluate it."
@@ -32,11 +32,6 @@ talent = "Node 110859, the Lightning Reflexes on the Survival tree. The sim's li
 [hunter.talent_bestial_discipline]
 "value.0" = "Pet focus regeneration +10% a rank. Focus is not simulated: the bonus divides Claw's interval (opt.hunter_pet_claw_interval / (1 + 0.1 * rank)), so it never appears as a number of its own."
 
-[hunter.talent_hawk_eye]
-"value.0" = "Ranged weapon range +2 yards a rank: range is not simulated."
-
-[hunter.talent_improved_concussive_shot]
-"value.0" = "Chance for Concussive Shot to stun (4% a rank): Concussive Shot, a slow for kiting, is not in the sim."
 
 [hunter.talent_improved_stings]
 "value.1" = "Viper Sting cooldown -2 sec a rank: Viper Sting is not simulated."
@@ -49,15 +44,15 @@ talent = "Node 110859, the Lightning Reflexes on the Survival tree. The sim's li
 [hunter.talent_entrapment]
 "value.0" = "Root from traps (1 sec a rank): traps are not simulated."
 
-[hunter.talent_improved_wing_clip]
-"value.0" = "Chance for Wing Clip to immobilize (7/13/20%): roots and movement are not simulated."
-
 [hunter.talent_clever_traps]
 "value.0" = "Trap duration and damage +15% a rank: traps are not simulated."
 "value.1" = "Trap duration and damage +15% a rank: traps are not simulated."
 
 [hunter.talent_survival_tactics]
-"value.0" = "Trap and Feign Death hit chance +5% a rank: neither is simulated."
+"value.0" = "Trap and Feign Death hit chance +5% a rank: traps aren't in the sim yet, and Feign Death's resist roll (the level-based spell hit table) takes no talent bonus yet."
 
 [hunter.talent_improvedserpentsting]
 talent = "Node 105003 (spell 19464). The client keeps it but places it far off the Marksmanship tree (y 39300; the tree ends at 5730), and its points don't count toward the 20 and 25 point rows, the same in 70338 and 70425. Players can't take it, so the sim leaves it out."
+
+[hunter.tracking]
+match = "One line for the seven Track spells (Track Beasts 1494, Track Humanoids 19883, Track Undead 19884, Track Elementals 19880, Track Demons 19878, Track Giants 19882, Track Dragonkin 19879): it tracks the kind of creature about to be pulled, from the level its spell is learned."

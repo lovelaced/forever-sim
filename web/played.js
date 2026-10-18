@@ -212,15 +212,49 @@ export function logPanel(ctx, cols) {
 
 const clock = (t) => (t < 60 ? `${fmtNum(t, 1)}s` : `${Math.floor(t / 60)}:${fmtNum(t % 60, 1).padStart(4, '0')}`);
 
-// enemies: a generic portrait by kind
-function foeFace(name) {
-  const f = /^Boss|^Add/.test(name) ? 'face-boss' : /^Attacker/.test(name) ? 'face-attacker' : 'face-mob';
+// enemies: a generic portrait by role, and for mobs by the pull's kind
+// (one camp is one kind of creature)
+const KIND_FACES = new Set(['beast', 'undead', 'elemental', 'demon', 'dragonkin', 'giant']);
+function foeFace(name, kind) {
+  const f = /^Boss|^Add/.test(name) ? 'face-boss' : /^Attacker/.test(name) ? 'face-attacker' : KIND_FACES.has(kind) ? `face-${kind}` : 'face-mob';
   return h('img.foe.px', { src: `art/${f}.png`, alt: '' });
 }
 
 const amount = (e, cls = '') => h(`span.amt${cls}`, {
   class: [e.crit ? 'crit' : '', e.tick ? 'tick' : '', `sch-${e.school || 'physical'}`].join(' '),
 }, fmtNum(e.amount), e.crit ? h('span.crit-mark', ' crit') : null);
+
+// A pull's kind of mob, one and several.
+const KINDS = {
+  humanoid: ['a humanoid', 'humanoids'], beast: ['a beast', 'beasts'], undead: ['an undead', 'undead'],
+  elemental: ['an elemental', 'elementals'], demon: ['a demon', 'demons'], dragonkin: ['a dragonkin', 'dragonkin'],
+  giant: ['a giant', 'giants'], mechanical: ['a mechanical', 'mechanicals'],
+};
+
+// [yours?, text] for the movement and attention events, or null to leave
+// one out (stopping, a mob that walks back is said by its evade).
+function moveLine(e, me, pets, party) {
+  const who = e.who === me ? 'You' : pets.has(e.who) ? `Your ${e.who.toLowerCase()}` : e.who;
+  const whom = e.target === me ? 'you' : pets.has(e.target) ? `your ${String(e.target).toLowerCase()}` : e.target;
+  const ours = e.who === me || pets.has(e.who) || party.has(e.who);
+  const yd = e.amount ? ` (${fmtNum(e.amount)} yd)` : '';
+  switch (e.kind) {
+    case 'move':
+      if (e.name === 'closes') return [ours, `${who} ${e.who === me ? 'close' : 'closes'} in on ${whom}${yd}`];
+      if (e.name === 'backs') return [ours, `${who} ${e.who === me ? 'back' : 'backs'} off from ${whom}${yd}`];
+      if (e.name === 'charges') return [ours, `${who} ${e.who === me ? 'charge' : 'charges'} ${whom}${yd}`];
+      return null;
+    case 'flee': return [false, `${who} runs away`];
+    case 'joins': return [false, `${who} joins the fight`];
+    case 'notice': return [false, `${who} notices ${whom}`];
+    case 'aggro': return whom ? [false, `${who} turns on ${whom}`] : null;
+    case 'interrupt': return [true, `${who} ${e.who === me ? 'interrupt' : 'interrupts'} ${whom}’s cast`];
+    case 'evade': return [false, `${who} loses track of you and heads home`];
+    case 'resist': return [false, `${who} isn’t fooled`];
+    case 'trap': return [ours, `${whom[0].toUpperCase()}${whom.slice(1)} sets off ${e.who === me ? 'your' : `${who}’s`} ${e.name}`];
+  }
+  return null;
+}
 
 // Turns the event list into rows: a cast and what it did read as one item,
 // auto attacks are quieter, buffs and debuffs come and go as small icons.
@@ -241,10 +275,27 @@ function rows(tr, test, aimed = new Set()) {
     return r;
   };
   const item = (...kids) => h('span.log-item', ...kids);
+  let pullKind = null;
   for (const e of tr.events) {
     end = Math.max(end, e.t - t0);
     const mine = e.team === 0;
-    if (e.kind === 'pull') { out.push({ t: e.t - t0, cls: 'mark', mine: [item(h('b', e.stacks > 1 ? `Pulls ${fmtNum(e.stacks)} mobs` : 'Pulls a mob'))], theirs: [] }); continue; }
+    if (e.kind === 'pull') {
+      pullKind = e.name;
+      const k = KINDS[e.name];
+      const what = e.stacks > 1 ? `${fmtNum(e.stacks)} ${k ? k[1] : 'mobs'}` : k ? k[0] : 'a mob';
+      out.push({ t: e.t - t0, cls: 'mark', mine: [item(h('b', `Pulls ${what}`))], theirs: [] });
+      continue;
+    }
+    // moving about, noticing, running away: short plain lines
+    if (e.kind === 'move' || e.kind === 'flee' || e.kind === 'joins' || e.kind === 'aggro' || e.kind === 'notice' || e.kind === 'interrupt' || e.kind === 'evade' || e.kind === 'resist' || e.kind === 'trap') {
+      const line = moveLine(e, me, pets, party);
+      if (line) {
+        const r = row(e.t);
+        (line[0] ? r.mine : r.theirs).push(item(line[0] ? null : foeFace(e.who, pullKind), h('span.muted', line[1])));
+      }
+      continue;
+    }
+    if (e.kind === 'draw') { out.push({ t: e.t - t0, cls: 'mark', mine: [item(h('b', 'You both fall at once: a draw'))], theirs: [] }); continue; }
     if (e.kind === 'rest') { out.push({ t: e.t - t0, cls: 'mark', mine: [item(h('b', 'Fight over: resting'))], theirs: [] }); continue; }
     if (e.kind === 'eat') { out.push({ t: e.t - t0, cls: 'mark', mine: [item(`${e.name[0].toUpperCase()}${e.name.slice(1)}s for ${fmtSec(e.amount)}`)], theirs: [] }); continue; }
     if (e.kind === 'death') {
@@ -274,20 +325,20 @@ function rows(tr, test, aimed = new Set()) {
         const name = e.name === 'melee' ? `hits ${whom}` : `${e.name} hits ${whom}`;
         if (party.size && !(e.amount < 0.5 && e.absorbed > 0)) {
           const el = h('span', `${e.who} ${name} `, amount(e, '.hurt'), e.absorbed > 0 ? h('span.absorb', ` (${fmtNum(e.absorbed)} absorbed)`) : null);
-          r.theirs.push(item(foeFace(e.who), el));
+          r.theirs.push(item(foeFace(e.who, pullKind), el));
           r.lastHit = { who: e.who, name: e.name, el };
           continue;
         }
         if (e.amount < 0.5 && e.absorbed > 0) {
-          r.theirs.push(item(foeFace(e.who), h('span', `${e.who} ${name}, `), h('span.absorb', `${e.via || 'a shield'} takes ${fmtNum(e.absorbed)}`)));
+          r.theirs.push(item(foeFace(e.who, pullKind), h('span', `${e.who} ${name}, `), h('span.absorb', `${e.via || 'a shield'} takes ${fmtNum(e.absorbed)}`)));
         } else {
-          r.theirs.push(item(foeFace(e.who), h('span', `${e.who} ${name} `), amount(e, '.hurt'),
+          r.theirs.push(item(foeFace(e.who, pullKind), h('span', `${e.who} ${name} `), amount(e, '.hurt'),
             e.absorbed > 0 ? h('span.absorb', ` (${fmtNum(e.absorbed)} absorbed)`) : null));
         }
       } else if ((e.kind === 'miss' || e.kind === 'dodge' || e.kind === 'parry') && onWhom(e.target)) {
         const whom = onWhom(e.target);
         const verb = e.kind === 'miss' ? (whom === 'you' ? 'avoid' : 'avoids') : whom === 'you' ? e.kind : e.kind === 'parry' ? 'parries' : `${e.kind}s`;
-        r.theirs.push(item(foeFace(e.who), h('span.muted', `${whom[0].toUpperCase()}${whom.slice(1)} ${verb} ${e.who}’s attack`)));
+        r.theirs.push(item(foeFace(e.who, pullKind), h('span.muted', `${whom[0].toUpperCase()}${whom.slice(1)} ${verb} ${e.who}’s attack`)));
       }
       continue;
     }

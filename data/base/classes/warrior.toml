@@ -161,7 +161,7 @@ icon = "ability_shockwave"
 tree = "Arms"
 points = 25
 ranks = 3
-text = "Hamstring has a 5% chance per rank to immobilize for 5 sec (movement is not simulated, so the root changes nothing yet)."
+text = "Hamstring has a 5% chance per rank to immobilize for 5 sec."
 [talents.mortal_strike]
 icon = "ability_warrior_savageblow"
 tree = "Arms"
@@ -176,9 +176,9 @@ tree = "Fury"
 points = 0
 ranks = 5
 text = "Shout area +50%, shout Rage cost -25%."
-# Spell 12321: effect 0 is the radius (+10% per rank, no positioning in the
-# sim), effect 1 the Rage cost (-5% per rank).
-spell_mods = [{ spells = ["battle_shout", "demoralizing_shout"], prop = "cost", mul = "1 - 0.05 * rank" }]
+# Spell 12321: effect 0 is the radius (+10% per rank), effect 1 the Rage
+# cost (-5% per rank).
+spell_mods = [{ spells = ["battle_shout", "demoralizing_shout"], prop = "cost", mul = "1 - 0.05 * rank" }, { spells = ["battle_shout", "challenging_shout", "demoralizing_shout", "intimidating_shout"], prop = "radius", mul = "1 + 0.1 * rank" }]
 [talents.cruelty]
 icon = "ability_rogue_eviscerate"
 tree = "Fury"
@@ -191,7 +191,8 @@ icon = "ability_warrior_secondwind"
 tree = "Fury"
 points = 5
 ranks = 5
-text = "Rage starts decaying 2 sec later per rank after combat (not simulated: the sim keeps all Rage between pulls)."
+text = "Rage starts decaying 2 sec later per rank after combat."
+mods = [{ stat = "rage_decay_delay", add = "2 * rank" }]
 [talents.unbridled_wrath]
 icon = "spell_nature_stoneclawtotem"
 tree = "Fury"
@@ -211,7 +212,7 @@ icon = "spell_shadow_deathscream"
 tree = "Fury"
 points = 10
 ranks = 1
-text = "Piercing Howl: 10 Rage, nearby enemies move 50% slower for 6 sec (movement is not simulated)."
+text = "Piercing Howl: 10 Rage, nearby enemies move 50% slower for 6 sec."
 [talents.blood_craze]
 icon = "spell_shadow_summonimp"
 tree = "Fury"
@@ -259,7 +260,7 @@ icon = "spell_nature_ancestralguardian"
 tree = "Fury"
 points = 20
 ranks = 2
-text = "Berserker Rage generates 10 Rage and frees you from movement impairment (the movement part is not simulated)."
+text = "Berserker Rage generates 10 Rage and frees you from movement impairment."
 [talents.death_wish]
 icon = "spell_shadow_deathpact"
 tree = "Fury"
@@ -294,7 +295,7 @@ icon = "spell_nature_bloodlust"
 tree = "Fury"
 points = 30
 ranks = 1
-text = "45% of Attack Power + 30..48, +10% movement speed for 10 sec (movement is not simulated)."
+text = "45% of Attack Power + 30..48, +10% movement speed for 10 sec."
 
 [talents.improved_bloodrage]
 icon = "ability_racial_bloodrage"
@@ -471,26 +472,31 @@ name = "Demoralizing Shout"
 debuff = true
 per_source = false
 duration = 45
-text = "Lowers attack power. Enemies in the sim deal fixed damage, so this changes nothing yet."
+text = "Lowers the attack power of enemies within 10 yards, so they hit softer."
 mods = [{ stat = "ap", add = "-r.ap" }]
 [auras.victory_rush_ready]
 name = "Victory Rush window"
+react = true
 hidden = true
 duration = 20
 [auras.overpower_ready]
 name = "Overpower window"
+react = true
 hidden = true
 duration = 5
 [auras.bloodthrill]
 name = "Bloodthrill"
+react = true
 duration = 6
 text = "Overpower enabled by Bloodthrill."
 [auras.revenge_ready]
 name = "Revenge window"
+react = true
 hidden = true
 duration = 5
 [auras.anger_management]
 name = "Anger Management"
+combat_only = true
 tick = { interval = 3, effects = [{ type = "resource", res = "rage", amount = 1 }] }
 [auras.deep_wounds]
 name = "Deep Wounds"
@@ -574,14 +580,31 @@ debuff = true
 per_source = false
 mechanic = "slow"
 duration = 15
-text = "Movement slowed 40/45/50% by rank (movement is not simulated)."
+slow = "r.slow / 100"
+text = "Movement slowed 40/45/50% by rank."
+[auras.retaliation]
+name = "Retaliation"
+duration = 15
+charges = 30
+procs = [{ on = "struck_melee", effects = [{ type = "damage", weapon = "mh", target = "target", no_proc = true, tag = "Retaliation" }, { type = "consume" }] }]
+[auras.challenging_shout]
+name = "Challenging Shout"
+debuff = true
+per_source = false
+duration = 6
+on_apply = [{ type = "taunt", duration = 6 }]
+[auras.bloodthirst_speed]
+name = "Bloodthirst"
+duration = 10
+speed = 0.1
 [auras.piercing_howl]
 name = "Piercing Howl"
 debuff = true
 per_source = false
 mechanic = "slow"
 duration = 6
-text = "Movement slowed 50% (movement is not simulated)."
+slow = 0.5
+text = "Movement slowed 50%."
 [auras.sweeping_strikes]
 name = "Sweeping Strikes"
 duration = 20
@@ -658,6 +681,8 @@ effects = [{ type = "damage", weapon = "mh", amount = "r.bonus", threat = "opt.w
 
 [spells.cleave]
 name = "Cleave"
+range = 5
+radius = 0
 icon = "ability_warrior_cleave"
 next_swing = true
 cost = { rage = 20 }
@@ -684,6 +709,7 @@ ranks = [
   { level = 60, id = 23894, bonus = 48 },
 ]
 effects = [
+  { type = "aura", aura = "bloodthirst_speed" },
   { type = "damage", school = "physical", amount = "0.45 * ap + r.bonus" },
   { type = "emit", event = "gore_trigger" },
 ]
@@ -704,6 +730,7 @@ effects = [{ type = "damage", weapon = "mh", normalized = true, amount = "r.bonu
 
 [spells.whirlwind]
 name = "Whirlwind"
+radius = 8
 icon = "ability_whirlwind"
 cost = { rage = 25 }
 cooldown = 10
@@ -753,6 +780,7 @@ effects = [
 
 [spells.rend]
 name = "Rend"
+range = 5
 icon = "ability_gouge"
 cost = { rage = 10 }
 requires = "aura.battle_stance.up || aura.defensive_stance.up"
@@ -785,6 +813,7 @@ effects = [{ type = "damage", weapon = "mh", amount = "r.bonus" }]
 
 [spells.thunder_clap]
 name = "Thunder Clap"
+radius = 8
 icon = "spell_nature_thunderclap"
 cost = { rage = 20 }
 cooldown = 6
@@ -834,8 +863,82 @@ ranks = [
 ]
 effects = [{ type = "damage", school = "physical", min = "r.lo + block_value", max = "r.hi + block_value", threat = "opt.warrior_shield_slam_threat" }]
 
+[spells.intimidating_shout]
+name = "Intimidating Shout"
+range = 10
+radius = 8
+icon = "ability_golemthunderclap"
+target = "enemy"
+cost = { rage = 25 }
+cooldown = 180
+text = "Up to five enemies within 8 yards of the target run in fear for 8 sec (damage can break it)."
+ranks = [{ level = 22, id = 5246 }]
+effects = [{ type = "aura", aura = "fear", target = "enemies", max_targets = 5, duration = 8 }]
+
+[spells.retaliation]
+name = "Retaliation"
+icon = "ability_warrior_challange"
+target = "self"
+cooldown = 900
+requires = "aura.battle_stance.up"
+text = "For 15 sec, strikes back at each melee attack you take (up to 30)."
+ranks = [{ level = 20, id = 20230 }]
+effects = [{ type = "aura", aura = "retaliation" }]
+
+[spells.pummel]
+name = "Pummel"
+range = 5
+icon = "inv_gauntlets_04"
+cost = { rage = 10 }
+cooldown = 10
+requires = "aura.berserker_stance.up"
+text = "Interrupts a spell and locks out its school for 4 sec."
+ranks = [{ level = 38, id = 6552, dmg = 20 }, { level = 58, id = 6554, dmg = 50 }]
+effects = [{ type = "damage", school = "physical", min = "r.dmg", max = "r.dmg", on_hit = [{ type = "interrupt", lockout = 4 }] }]
+
+[spells.mocking_blow]
+name = "Mocking Blow"
+range = 5
+icon = "ability_warrior_punishingblow"
+cost = { rage = 10 }
+cooldown = 120
+requires = "aura.battle_stance.up"
+text = "A blow that makes the target attack you for 6 sec."
+ranks = [
+  { level = 16, id = 694, dmg = 22 },
+  { level = 26, id = 7400, dmg = 31 },
+  { level = 36, id = 7402, dmg = 46 },
+  { level = 46, id = 20559, dmg = 71 },
+  { level = 56, id = 20560, dmg = 93 },
+]
+effects = [{ type = "damage", school = "physical", min = "r.dmg", max = "r.dmg", on_hit = [{ type = "taunt", duration = 6 }] }]
+
+[spells.challenging_shout]
+name = "Challenging Shout"
+radius = 10
+icon = "ability_bullrush"
+target = "self"
+cost = { rage = 5 }
+cooldown = 600
+text = "Every enemy within 10 yards attacks you for 6 sec."
+ranks = [{ level = 26, id = 1161 }]
+effects = [{ type = "aura", aura = "challenging_shout", target = "enemies" }]
+
+[spells.taunt]
+name = "Taunt"
+range = 5
+icon = "spell_nature_reincarnation"
+target = "enemy"
+off_gcd = true
+cooldown = 8
+requires = "aura.defensive_stance.up"
+ranks = [{ level = 10, id = 355 }]
+text = "Forces the target to attack you for 3 sec, and raises your threat to the top of its list."
+effects = [{ type = "taunt", duration = 3 }]
+
 [spells.sunder_armor]
 name = "Sunder Armor"
+range = 5
 icon = "ability_warrior_sunder"
 cost = { rage = 15 }
 # armor removed per application (up to 5) and the threat the spell data lists
@@ -891,11 +994,11 @@ name = "Hamstring"
 icon = "ability_shockwave"
 cost = { rage = 10 }
 requires = "aura.battle_stance.up || aura.berserker_stance.up"
-text = "Slows movement 40/45/50% for 15 sec (movement is not simulated)."
+text = "Slows movement 40/45/50% by rank for 15 sec."
 ranks = [
-  { level = 8, id = 1715, dmg = 5 },
-  { level = 32, id = 7372, dmg = 18 },
-  { level = 54, id = 7373, dmg = 45 },
+  { level = 8, id = 1715, dmg = 5, slow = 40 },
+  { level = 32, id = 7372, dmg = 18, slow = 45 },
+  { level = 54, id = 7373, dmg = 45, slow = 50 },
 ]
 effects = [{ type = "damage", school = "physical", min = "r.dmg", max = "r.dmg", on_hit = [
   { type = "aura", aura = "hamstring", target = "target" },
@@ -904,6 +1007,7 @@ effects = [{ type = "damage", school = "physical", min = "r.dmg", max = "r.dmg",
 
 [spells.piercing_howl]
 name = "Piercing Howl"
+radius = 10
 icon = "spell_shadow_deathscream"
 talent = "piercing_howl"
 cost = { rage = 10 }
@@ -934,6 +1038,7 @@ effects = [{ type = "damage", weapon = "mh", normalized = true, weapon_mult = "(
 
 [spells.battle_shout]
 name = "Battle Shout"
+radius = 20
 icon = "ability_warrior_battleshout"
 cost = { rage = 10 }
 target = "self"
@@ -951,9 +1056,10 @@ effects = [{ type = "aura", aura = "battle_shout" }]
 
 [spells.demoralizing_shout]
 name = "Demoralizing Shout"
+radius = 10
 icon = "ability_warrior_warcry"
 cost = { rage = 10 }
-text = "Forever: lasts 45 sec. Not used by the rotations yet (enemies deal fixed damage)."
+text = "Forever: lasts 45 sec. Lowers the attack power of enemies within 10 yards."
 # attack power removed and threat, both growing with the caster's level
 ranks = [
   { level = 14, id = 1160, ap = 49, ap_per_level = 1.4, threat = 11, threat_per_level = 0.8, max_level = 24 },
@@ -1028,33 +1134,38 @@ effects = [{ type = "aura", aura = "last_stand" }, { type = "resource", res = "h
 
 [spells.charge]
 name = "Charge"
+range = 25
+min_range = 8
 icon = "ability_warrior_charge"
 target = "enemy"
 off_gcd = true
 cooldown = 15
 requires = "aura.battle_stance.up || (t.vanguard > 0 && aura.defensive_stance.up)"
-text = "Range (8-25 yards) and the run to the target are not simulated."
+text = "Rushes to an enemy 8 to 25 yards away and stuns it for 1 sec on arrival."
 # Rage gained
 ranks = [{ level = 4, id = 100, gain = 9 }, { level = 26, id = 6178, gain = 12 }, { level = 46, id = 11578, gain = 15 }]
 effects = [
   { type = "resource", res = "rage", amount = "r.gain + 3 * t.improved_charge" },
-  { type = "aura", aura = "stun", target = "target", duration = 1 },
+  { type = "charge", then = [{ type = "aura", aura = "stun", target = "target", duration = 1 }] },
 ]
 
 [spells.intercept]
 name = "Intercept"
+range = 25
+min_range = 8
 icon = "ability_rogue_sprint"
 target = "enemy"
 off_gcd = true
 cost = { rage = 10 }
 cooldown = 30
 requires = "aura.berserker_stance.up"
-text = "Stuns for 3 sec. Range (8-25 yards) and the run to the target are not simulated."
+text = "Rushes to an enemy 8 to 25 yards away, hits it and stuns it for 3 sec."
 ranks = [{ level = 30, id = 20252, dmg = 25 }, { level = 42, id = 20616, dmg = 45 }, { level = 52, id = 20617, dmg = 65 }]
-effects = [{ type = "damage", school = "physical", min = "r.dmg", max = "r.dmg", on_hit = [{ type = "aura", aura = "stun", target = "target", duration = 3 }] }]
+effects = [{ type = "charge", then = [{ type = "damage", school = "physical", min = "r.dmg", max = "r.dmg", on_hit = [{ type = "aura", aura = "stun", target = "target", duration = 3 }] }] }]
 
 [spells.disarm]
 name = "Disarm"
+range = 5
 icon = "ability_warrior_disarm"
 cost = { rage = 20 }
 cooldown = 60
@@ -1064,6 +1175,7 @@ effects = [{ type = "aura", aura = "disarm", target = "target", duration = 10 }]
 
 [spells.concussion_blow]
 name = "Concussion Blow"
+range = 5
 icon = "ability_thunderbolt"
 talent = "concussion_blow"
 cost = { rage = 10 }
@@ -1086,15 +1198,19 @@ opener = [
 actions = [
   { cast = "victory_rush" },
   { cast = "last_stand", if = "hp_pct < 0.25" },
+  { cast = "intimidating_shout", if = "(enemies >= 2 || target.is_player) && hp_pct < 0.4 && cc_near == 0" },   # panic
+  { cast = "pummel", if = "target.casting" },
   { cast = "bloodrage", if = "rage < 40" },
   { cast = "berserker_rage", if = "rage < 80" },
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "death_wish" },
-  { cast = "execute", if = "target.hp_pct < 0.2" },
+  { cast = "hamstring", if = "(target.is_player || target.fleeing) && !target.slowed && rage >= 20" },
+  { cast = "execute", if = "target.hp_pct < 0.2 && (level >= 40 || rage <= 30 || target.hp < 0.8 * (r.base + r.per * (rage - 15)))" },
   { cast = "bloodthirst" },
   { cast = "whirlwind", if = "!known.bloodthirst || cd.bloodthirst.remains > 1.5 || rage >= 55" },
   { cast = "heroic_strike", if = "rage >= 60 && target.hp_pct >= 0.2" },
+  { cast = "demoralizing_shout", if = "enemies >= 2 && !target.aura.demoralizing_shout.up && rage >= 30 && cc_near == 0" },
   { cast = "battle_shout", if = "!aura.battle_shout.up" },
 ]
 rest = [
@@ -1118,6 +1234,9 @@ actions = [
   { cast = "victory_rush" },
   { cast = "last_stand", if = "hp_pct < 0.25" },
   { cast = "stoneform", if = "hp_pct < 0.5" },
+  { cast = "intimidating_shout", if = "(enemies >= 2 || target.is_player) && hp_pct < 0.4 && cc_near == 0" },   # panic
+  { cast = "retaliation", if = "enemies >= 2 && hp_pct < 0.5" },
+  { cast = "pummel", if = "target.casting" },
   { cast = "bloodrage", if = "rage < 40" },
   { cast = "berserker_rage", if = "rage < 80" },
   { cast = "blood_fury" },
@@ -1125,14 +1244,16 @@ actions = [
   { cast = "elunes_light" },
   { cast = "eureka" },
   { cast = "death_wish" },
-  { cast = "execute", if = "target.hp_pct < 0.2" },
+  { cast = "hamstring", if = "(target.is_player || target.fleeing) && !target.slowed && rage >= 20" },
+  { cast = "execute", if = "target.hp_pct < 0.2 && (level >= 40 || rage <= 30 || target.hp < 0.8 * (r.base + r.per * (rage - 15)))" },
   { cast = "bloodthirst" },
   { cast = "whirlwind", if = "!known.bloodthirst || cd.bloodthirst.remains > 1.5 || rage >= 55" },
   { cast = "overpower" },
   { cast = "rend", if = "!target.aura.rend.up && target.hp_pct > 0.5" },
-  { cast = "thunder_clap", if = "enemies >= 2 && !target.aura.thunder_clap.up" },
+  { cast = "thunder_clap", if = "(enemies >= 2 || target.is_player) && !target.aura.thunder_clap.up && cc_near == 0" },
   { cast = "cleave", if = "enemies >= 2 && rage >= 50" },
   { cast = "heroic_strike", if = "enemies < 2 && rage >= (known.whirlwind ? 60 : 40) && target.hp_pct >= 0.2" },
+  { cast = "demoralizing_shout", if = "enemies >= 2 && !target.aura.demoralizing_shout.up && rage >= 30 && cc_near == 0" },
   { cast = "battle_shout", if = "!aura.battle_shout.up" },
 ]
 rest = [
@@ -1149,6 +1270,8 @@ actions = [
   { cast = "victory_rush" },
   { cast = "last_stand", if = "hp_pct < 0.25" },
   { cast = "stoneform", if = "hp_pct < 0.5" },
+  { cast = "intimidating_shout", if = "(enemies >= 2 || target.is_player) && hp_pct < 0.4 && cc_near == 0" },   # panic
+  { cast = "retaliation", if = "enemies >= 2 && hp_pct < 0.5" },
   { cast = "bloodrage", if = "rage < 40" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -1156,15 +1279,17 @@ actions = [
   { cast = "eureka" },
   { cast = "death_wish" },
   { cast = "sweeping_strikes", if = "enemies >= 2" },
-  { cast = "execute", if = "target.hp_pct < 0.2" },
+  { cast = "hamstring", if = "(target.is_player || target.fleeing) && !target.slowed && rage >= 20" },
+  { cast = "execute", if = "target.hp_pct < 0.2 && (level >= 40 || rage <= 30 || target.hp < 0.8 * (r.base + r.per * (rage - 15)))" },
   { cast = "mortal_strike" },
   { cast = "overpower" },
   { cast = "rend", if = "!target.aura.rend.up && (target.boss ? target.hp_pct > 0.2 : target.hp_pct > 0.5)" },
-  { cast = "thunder_clap", if = "enemies >= 2 && !target.aura.thunder_clap.up && (!known.sweeping_strikes || !cd.sweeping_strikes.ready)" },
-  { cast = "slam", if = "rage >= 30" },
+  { cast = "thunder_clap", if = "(enemies >= 2 || target.is_player) && !target.aura.thunder_clap.up && (!known.sweeping_strikes || !cd.sweeping_strikes.ready) && cc_near == 0" },
+  { cast = "slam", if = "rage >= 30 && mh.swing_remains >= 1.4" },
   { cast = "spearing_strike", if = "enemies < 2 && rage >= 45" },
   { cast = "cleave", if = "enemies >= 2 && rage >= 40" },
   { cast = "heroic_strike", if = "enemies < 2 && rage >= 60 && target.hp_pct >= 0.2" },
+  { cast = "demoralizing_shout", if = "enemies >= 2 && !target.aura.demoralizing_shout.up && rage >= 30 && cc_near == 0" },
   { cast = "battle_shout", if = "!aura.battle_shout.up" },
 ]
 rest = [
@@ -1175,8 +1300,9 @@ rest = [
 [rotations.prot_shield]
 desc = "Protection with a shield in Defensive Stance: Shield Slam > Revenge > Sunder (two on trash, five on players) > Heroic Strike; Thunder Clap on players and on two or more, Cleave on two or more"
 precombat = ["defensive_stance", "battle_shout"]
-# In the boss scenario someone else tanks and has already put 5 Sunders on
-# the boss, so the rotation neither blocks nor sunders there.
+# In the boss test a Protection warrior tanks the boss (is_tank): it blocks,
+# Sunders it to five and taunts it back. Your own Protection warrior there
+# is not the tank, so it does neither.
 # Charge needs Battle Stance unless the build has Vanguard
 opener = [
   { cast = "battle_stance", if = "t.vanguard == 0" },
@@ -1191,14 +1317,17 @@ actions = [
   { cast = "bloodrage", if = "rage < 30" },
   { cast = "elunes_light" },
   { cast = "eureka" },
-  { cast = "shield_block", if = "rage >= 25 && !target.boss" },
+  { cast = "taunt", if = "is_tank && !has_aggro" },
+  { cast = "shield_bash", if = "target.casting" },
+  { cast = "shield_block", if = "rage >= 25 && (!target.boss || is_tank)" },
   { cast = "concussion_blow", if = "target.is_player" },
   { cast = "disarm", if = "target.is_player" },
-  { cast = "execute", if = "target.hp_pct < 0.2" },
+  { cast = "execute", if = "target.hp_pct < 0.2 && (level >= 40 || rage <= 30 || target.hp < 0.8 * (r.base + r.per * (rage - 15)))" },
   { cast = "shield_slam" },
   { cast = "revenge" },
-  { cast = "thunder_clap", if = "(enemies >= 2 || target.is_player) && !target.aura.thunder_clap.up" },
-  { cast = "sunder_armor", if = "!target.boss && target.aura.sunder_armor.stacks < (target.is_player ? 5 : 2)" },
+  { cast = "thunder_clap", if = "(enemies >= 2 || target.is_player) && !target.aura.thunder_clap.up && cc_near == 0" },
+  { cast = "demoralizing_shout", if = "!target.aura.demoralizing_shout.up && (enemies >= 2 || is_tank)" },
+  { cast = "sunder_armor", if = "(!target.boss || is_tank) && target.aura.sunder_armor.stacks < (target.is_player || target.boss ? 5 : 2)" },
   { cast = "cleave", if = "enemies >= 2 && rage >= 45" },
   { cast = "heroic_strike", if = "enemies < 2 && rage >= 45" },
   { cast = "battle_shout", if = "!aura.battle_shout.up" },

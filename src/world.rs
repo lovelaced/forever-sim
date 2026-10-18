@@ -360,10 +360,26 @@ impl Reg {
                 let i = w.classes[c].talent_index.get(t).ok_or_else(|| {
                     format!("'{name}': no talent '{t}' in class {}", w.classes[c].id)
                 })?;
-                return Ok(VarRef::Talent(*i));
+                return Ok(VarRef::Talent(c as u8, *i));
             }
             if let Some(r) = rest.strip_prefix("r.") {
                 return Ok(VarRef::Rank(Self::intern(&mut self.w.rank_fields, r)));
+            }
+            if let Some(yd) = rest.strip_prefix("enemies_within_").and_then(|x| x.parse::<u16>().ok()) {
+                return Ok(VarRef::EnemiesWithin(yd));
+            }
+            if let Some(x) = rest.strip_prefix("totem.") {
+                let (el, field) = x.split_once('.').ok_or_else(|| format!("'{name}': totem.<element>.<active|remains|in_range>"))?;
+                let e = ELEMENTS.iter().position(|y| *y == el).ok_or_else(|| format!("'{name}': unknown element '{el}'"))? as u8;
+                return match field {
+                    "active" => Ok(VarRef::TotemActive(e)),
+                    "remains" => Ok(VarRef::TotemRemains(e)),
+                    "in_range" => Ok(VarRef::TotemInRange(e)),
+                    o => Err(format!("'{name}': unknown totem field '{o}'")),
+                };
+            }
+            if rest == "threat.pct" {
+                return Ok(VarRef::ThreatPct);
             }
             if let Some(o) = rest.strip_prefix("opt.") {
                 return self
@@ -427,7 +443,7 @@ impl Reg {
             }
             match rest {
                 "rank" => {
-                    return ctx.rank_alias.map(VarRef::Talent).ok_or_else(|| format!("'rank' is only available inside a talent"))
+                    return ctx.rank_alias.zip(ctx.class).map(|(i, c)| VarRef::Talent(c as u8, i)).ok_or_else(|| format!("'rank' is only available inside a talent"))
                 }
                 "stacks" => return Ok(VarRef::Stacks),
                 "cp" | "combo" => return Ok(VarRef::Combo),
@@ -435,6 +451,9 @@ impl Reg {
                 "combat_time" => return Ok(VarRef::CombatTime),
                 "behind" => return Ok(VarRef::Behind),
                 "enemies" => return Ok(VarRef::Enemies),
+                "enemies_active" => return Ok(VarRef::EnemiesActive),
+                "cc_near" => return Ok(VarRef::CcNear),
+                "hit_index" => return Ok(VarRef::HitIndex),
                 "in_combat" => return Ok(VarRef::InCombat),
                 "gcd_remains" => return Ok(VarRef::GcdRemains),
                 "dual_wield" => return Ok(VarRef::DualWield),
@@ -468,6 +487,12 @@ impl Reg {
         }
         match rest {
             "level" => return Ok(VarRef::Level(who)),
+            "dist" => return Ok(VarRef::Dist(who)),
+            "moving" => return Ok(VarRef::Moving(who)),
+            "fleeing" => return Ok(VarRef::Fleeing(who)),
+            "in_combat" if who != Who::Me => return Ok(VarRef::UnitInCombat(who)),
+            "magic_buffs" => return Ok(VarRef::MagicBuffs(who)),
+            "has_aggro" => return Ok(VarRef::HasAggro),
             "alive" => return Ok(VarRef::Alive(who)),
             "casting" => return Ok(VarRef::Casting(who)),
             "wanding" => return Ok(VarRef::Wanding(who)),
@@ -550,6 +575,7 @@ impl Reg {
             "enemies" | "all_enemies" => {
                 TargetSel::Enemies(self.exd(t, "max_targets", "100", ctx, path)?)
             }
+            "chain" => TargetSel::Chain { max: self.exd(t, "max_targets", "3", ctx, path)?, jump: f(t, "jump", 12.0) },
             other => return Err(format!("{path}.{key}: unknown target '{other}'")),
         })
     }
@@ -720,7 +746,29 @@ impl Reg {
                 }
                 Effect::Dispel { who: self.target_sel(t, "target", "self", ctx, path)?, mechanics: mechs }
             }
-            "taunt" => Effect::Taunt { duration: self.exd(t, "duration", "3", ctx, path)? },
+            "taunt" => Effect::Taunt { who: self.target_sel(t, "target", "target", ctx, path)?, duration: self.exd(t, "duration", "3", ctx, path)? },
+            "charge" => Effect::Charge(self.effects(t.get("then"), ctx, &format!("{path}.then"))?),
+            "step_back" => Effect::StepBack(self.exd(t, "to", "12", ctx, path)?),
+            "teleport" => Effect::Teleport(self.exd(t, "yards", "20", ctx, path)?),
+            "drop_threat" => Effect::DropThreat { resist: bl(t, "resist", false) },
+            "purge" => Effect::Purge { who: self.target_sel(t, "target", "target", ctx, path)?, count: self.exd(t, "count", "1", ctx, path)? },
+            "trap" => Effect::Trap {
+                arm: f(t, "arm", 2.0),
+                radius: f(t, "radius", 5.0),
+                lasts: f(t, "lasts", 60.0),
+                area: f(t, "area", 10.0),
+                then: self.effects(t.get("then"), ctx, &format!("{path}.then"))?,
+            },
+            "track" => {
+                let mut v = vec![];
+                if let Some(lt) = sub(t, "levels") {
+                    for (k, l) in lt {
+                        let c = CreatureType::from_name(k).ok_or_else(|| format!("{path}.levels: unknown creature '{k}'"))?;
+                        v.push((c, src_of(l).and_then(|x| x.parse::<f64>().ok()).unwrap_or(1.0) as u32));
+                    }
+                }
+                Effect::Track(v)
+            }
             "threat" => Effect::Threat { amount: self.exd(t, "amount", "0", ctx, path)? },
             "absorb" => Effect::Absorb { amount: self.exd(t, "amount", "0", ctx, path)? },
             other => return Err(format!("{path}: unknown effect type '{other}'")),
@@ -778,6 +826,8 @@ impl Reg {
                 Some("crit_bonus") => SpellProp::CritBonus,
                 Some("threat") => SpellProp::Threat,
                 Some("gcd") => SpellProp::Gcd,
+                Some("range") => SpellProp::Range,
+                Some("radius") => SpellProp::Radius,
                 x => return Err(format!("{p}.prop: unknown {x:?}")),
             };
             let (op, key) = if t.contains_key("mul") { (ModOp::Mul, "mul") } else { (ModOp::Add, "add") };
@@ -915,6 +965,17 @@ impl Reg {
                         Some("pet") => SpellTarget::Pet,
                         Some("tank") => SpellTarget::Tank,
                         Some("lowest") => SpellTarget::Lowest,
+                        Some(x @ ("any_enemy" | "other_enemy")) => {
+                            let pick = match e.as_table().and_then(|t| t.get("pick")).and_then(|v| v.as_str()).unwrap_or("current") {
+                                "current" => Pick::Current,
+                                "nearest" => Pick::Nearest,
+                                "lowest_hp" => Pick::LowestHp,
+                                "highest_hp" => Pick::HighestHp,
+                                "undotted" => Pick::Undotted,
+                                o => return Err(format!("{p}.pick: unknown '{o}' (current, nearest, lowest_hp, highest_hp, undotted)")),
+                            };
+                            if x == "any_enemy" { SpellTarget::AnyEnemy(pick) } else { SpellTarget::OtherEnemy(pick) }
+                        }
                         Some(x) => return Err(format!("{p}.target: unknown '{x}'")),
                     };
                     if matches!(tgt, SpellTarget::Tank | SpellTarget::Lowest) && self.w.spells[spell as usize].target != SpellTarget::Me {
@@ -928,7 +989,17 @@ impl Reg {
                     if let Some(c) = &cond {
                         c.visit_vars(&mut |v| cond_rank |= matches!(v, VarRef::Rank(_)));
                     }
-                    acts.push(Action { spell, cond, target: tgt, rank, cond_rank, line });
+                    let mut upkeep = false;
+                    if let Some(c) = &cond {
+                        let mut mine = vec![];
+                        applied_auras(&self.w.spells[spell as usize].effects, &mut mine);
+                        c.visit_vars(&mut |v| {
+                            if let VarRef::AuraUp(_, x) | VarRef::AuraRemains(_, x) | VarRef::AuraStacks(_, x) = v {
+                                upkeep |= mine.contains(x);
+                            }
+                        });
+                    }
+                    acts.push(Action { spell, cond, target: tgt, rank, cond_rank, upkeep, line });
                 }
             }
             lists.push(acts);
@@ -937,7 +1008,29 @@ impl Reg {
         let actions = lists.pop().unwrap();
         let opener = lists.pop().unwrap();
         let precombat = lists.pop().unwrap();
+        // where it fights from, and the distances where its lines come in range
+        let mut ranges = vec![];
+        for act in actions.iter().chain(opener.iter()) {
+            if act.target != SpellTarget::Enemy {
+                continue;
+            }
+            let sp = &self.w.spells[act.spell as usize];
+            for r in [sp.range, sp.min_range] {
+                if r > 0.0 && !ranges.iter().any(|&x: &f64| (x - r).abs() < 1e-9) {
+                    ranges.push(r);
+                }
+            }
+        }
+        ranges.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let off_gcd = actions.iter().enumerate().filter(|(_, a)| {
+            let sp = &self.w.spells[a.spell as usize];
+            sp.off_gcd || sp.next_swing
+        }).map(|(k, _)| k as u16).collect();
         Ok(Rotation {
+            off_gcd,
+            stand_at: f(t, "stand_at", -1.0),
+            keep_min: f(t, "keep_min", 0.0),
+            ranges,
             id: id.to_string(),
             desc: s(t, "desc").unwrap_or_default(),
             auto_melee: bl(t, "auto_melee", true),
@@ -950,6 +1043,23 @@ impl Reg {
             drink_below: f(t, "drink_below", 0.4),
             healer: bl(t, "healer", false),
         })
+    }
+}
+
+/// The auras a list of effects puts up, however deep.
+pub fn applied_auras(effs: &[Effect], out: &mut Vec<AuraId>) {
+    for e in effs {
+        match e {
+            Effect::ApplyAura { aura, .. } => out.push(*aura),
+            Effect::If { then, els, .. } => {
+                applied_auras(then, out);
+                applied_auras(els, out);
+            }
+            Effect::Chance { then, .. } => applied_auras(then, out),
+            Effect::FromSource(v) | Effect::Charge(v) | Effect::Trap { then: v, .. } => applied_auras(v, out),
+            Effect::Damage(fx) => applied_auras(&fx.on_hit, out),
+            _ => {}
+        }
     }
 }
 
@@ -1054,12 +1164,12 @@ pub fn parse_gear_stats(t: &Table, path: &str) -> R<GearStats> {
 const SPELL_KEYS: &[&str] = &[
     "name", "school", "talent", "level", "race", "ranks", "cost", "cast_time", "channel", "gcd", "off_gcd",
     "cooldown", "cd_group", "requires", "forms", "next_swing", "auto_repeat", "target", "effects", "finisher", "usable_while",
-    "source", "text", "icon",
+    "source", "text", "icon", "range", "min_range", "radius", "from_totem",
 ];
 const AURA_KEYS: &[&str] = &[
     "name", "duration", "max_stacks", "charges", "per_source", "debuff", "mechanic", "break_on_damage", "tick",
     "mods", "spell_mods", "procs", "on_apply", "on_refresh", "on_expire", "on_remove", "absorb", "group", "form",
-    "consume_on_cast", "refresh", "dispel", "text", "source", "icon", "hidden",
+    "consume_on_cast", "refresh", "dispel", "text", "source", "icon", "hidden", "combat_only", "react", "slow", "speed", "stealth", "dr", "absorb_school", "mana_per_absorb", "no_flee", "distracts", "free", "quiet", "totem",
 ];
 
 fn check_keys(t: &Table, allowed: &[&str], path: &str) -> R<()> {
@@ -1115,6 +1225,17 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         normalized_dagger: f(c, "normalized_dagger", 1.7),
         normalized_ranged: f(c, "normalized_ranged", 2.8),
         block_crit_allowed: bl(c, "block_crit_allowed", false),
+        run_speed: f(c, "run_speed", 7.0),
+        npc_run_speed: f(c, "npc_run_speed", 8.0),
+        melee_reach: f(c, "melee_reach", 5.0),
+        move_margin: f(c, "move_margin", 1.0),
+        charge_speed: f(c, "charge_speed", 24.0),
+        fear_speed: f(c, "fear_speed", 1.25),
+        aggro_radius: f(c, "aggro_radius", 20.0),
+        max_spins: f(c, "max_spins", 200.0) as u32,
+        aggro_melee: f(c, "aggro_melee", 1.1),
+        aggro_ranged: f(c, "aggro_ranged", 1.3),
+        heal_threat: f(c, "heal_threat", 0.5),
     };
 
     let mut opts = Vec::new();
@@ -1122,11 +1243,15 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         for (k, v) in o {
             let mut o = OptDef {
                 name: k.clone(), default: 0.0, desc: String::new(), label: String::new(), help: String::new(), kind: "num".into(),
-                unit: String::new(), source: "estimate".into(), cite: String::new(), applies: vec![],
+                unit: String::new(), source: "estimate".into(), cite: String::new(), applies: vec![], group: String::new(), choices: vec![],
             };
             match v {
                 Value::Table(t) => {
-                    check_keys(t, &["default", "desc", "label", "help", "kind", "unit", "source", "cite", "applies"], &format!("options.{k}"))?;
+                    check_keys(t, &["default", "desc", "label", "help", "kind", "unit", "source", "cite", "applies", "group", "choices"], &format!("options.{k}"))?;
+                    o.group = s(t, "group").unwrap_or_default();
+                    if let Some(a) = t.get("choices").and_then(|x| x.as_array()) {
+                        o.choices = a.iter().filter_map(|x| x.as_str().map(String::from)).collect();
+                    }
                     o.default = f(t, "default", 0.0);
                     o.desc = s(t, "desc").unwrap_or_default();
                     o.label = s(t, "label").unwrap_or_else(|| o.desc.clone());
@@ -1135,8 +1260,11 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
                     o.unit = s(t, "unit").unwrap_or_default();
                     o.source = s(t, "source").unwrap_or_else(|| "estimate".into());
                     o.cite = s(t, "cite").unwrap_or_default();
-                    if !["toggle", "pct", "num"].contains(&o.kind.as_str()) {
-                        return Err(format!("options.{k}.kind: use toggle, pct or num"));
+                    if !["toggle", "pct", "num", "choice"].contains(&o.kind.as_str()) {
+                        return Err(format!("options.{k}.kind: use toggle, pct, num or choice"));
+                    }
+                    if (o.kind == "choice") != !o.choices.is_empty() {
+                        return Err(format!("options.{k}: a choice needs `choices`, and only a choice has them"));
                     }
                     if !["game", "community", "classic", "estimate", "choice"].contains(&o.source.as_str()) {
                         return Err(format!("options.{k}.source: use game, community, classic, estimate or choice"));
@@ -1167,7 +1295,11 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         RestCfg { table }
     };
 
+    static WORLDS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
     let world = World {
+        uid: WORLDS.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+        party: vec![],
+        mixes: BTreeMap::new(),
         meta,
         combat,
         opts,
@@ -1379,6 +1511,21 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
             text: s(at, "text").unwrap_or_default(),
             icon: s(at, "icon"),
             hidden: bl(at, "hidden", false),
+            combat_only: bl(at, "combat_only", false),
+            listens: 0,
+            react: bl(at, "react", false),
+            slow: None,
+            speed: None,
+            stealth: bl(at, "stealth", false),
+            dr: None,
+            absorb_school: None,
+            mana_per_absorb: f(at, "mana_per_absorb", 0.0),
+            no_flee: bl(at, "no_flee", false),
+            distracts: bl(at, "distracts", false),
+            free: bl(at, "free", false),
+            quiet: bl(at, "quiet", false),
+            totem: None,
+            totem_health: None,
         });
     }
     for (class, race, st, id) in &spell_src {
@@ -1448,6 +1595,15 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
             source: s(st, "source").unwrap_or_default(),
             text: s(st, "text").unwrap_or_default(),
             icon: s(st, "icon"),
+            range: -1.0,
+            min_range: f(st, "min_range", 0.0),
+            moves: false,
+            from_totem: match s(st, "from_totem") {
+                Some(x) => Some(ELEMENTS.iter().position(|e| *e == x).ok_or_else(|| format!("{path}.from_totem: unknown element '{x}'"))? as u8),
+                None => None,
+            },
+            harm: false,
+            radius: f(st, "radius", 0.0),
         });
     }
 
@@ -1461,6 +1617,8 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         check_keys(at, AURA_KEYS, &path)?;
         let duration = reg.exd(at, "duration", "0", ctx, &path)?;
         let charges = reg.ex(at, "charges", ctx, &path)?;
+        let slow = reg.ex(at, "slow", ctx, &path)?;
+        let speed = reg.ex(at, "speed", ctx, &path)?;
         let mechanic = match s(at, "mechanic") {
             Some(m) => Some(Mechanic::from_name(&m).ok_or_else(|| format!("{path}.mechanic: unknown '{m}'"))?),
             None => None,
@@ -1485,7 +1643,12 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         let on_expire = reg.effects(at.get("on_expire"), ctx, &format!("{path}.on_expire"))?;
         let on_remove = reg.effects(at.get("on_remove"), ctx, &format!("{path}.on_remove"))?;
         let absorb = reg.ex(at, "absorb", ctx, &path)?;
+        let totem_health = match sub(at, "totem") {
+            Some(tt) if matches!(tt.get("health"), Some(Value::String(_))) => reg.ex(tt, "health", ctx, &format!("{path}.totem"))?,
+            _ => None,
+        };
         let a = &mut reg.w.auras[ai];
+        a.totem_health = totem_health;
         a.duration = duration;
         a.charges = charges;
         a.mechanic = mechanic;
@@ -1499,6 +1662,40 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         a.on_expire = on_expire;
         a.on_remove = on_remove;
         a.absorb = absorb;
+        a.slow = slow;
+        a.speed = speed;
+        // diminishing returns: the group named, else the mechanic's own
+        a.dr = match s(at, "dr").as_deref() {
+            Some("none") => None,
+            Some(g) => Some(DR_GROUPS.iter().position(|x| *x == g).ok_or_else(|| format!("{path}.dr: unknown group '{g}' ({})", DR_GROUPS.join(", ")))? as u8),
+            None => match a.mechanic {
+                Some(Mechanic::Root | Mechanic::Freeze) => Some(0),
+                Some(Mechanic::Stun) => Some(1),
+                Some(Mechanic::Incap) => Some(3),
+                Some(Mechanic::Fear) => Some(4),
+                Some(Mechanic::Silence) => Some(5),
+                _ => None,
+            },
+        };
+        a.totem = match sub(at, "totem") {
+            Some(tt) => {
+                let el = s(tt, "element").ok_or_else(|| format!("{path}.totem: needs an `element`"))?;
+                let element = ELEMENTS.iter().position(|x| *x == el).ok_or_else(|| format!("{path}.totem.element: unknown '{el}'"))? as u8;
+                let reach = match s(tt, "reach").as_deref().unwrap_or("area") {
+                    "owner" => TotemReach::Owner,
+                    "target" => TotemReach::Target,
+                    "area" => TotemReach::Area,
+                    o => return Err(format!("{path}.totem.reach: unknown '{o}' (owner, target, area)")),
+                };
+                Some(TotemDef { element, health: if matches!(tt.get("health"), Some(Value::String(_))) { 5.0 } else { f(tt, "health", 5.0) }, radius: f(tt, "radius", 30.0), reach, buff: bl(tt, "buff", false) })
+            }
+            None => None,
+        };
+        a.absorb_school = match s(at, "absorb_school") {
+            Some(x) => Some(School::from_name(&x).ok_or_else(|| format!("{path}.absorb_school: unknown '{x}'"))?),
+            None => None,
+        };
+        a.listens = a.procs.iter().fold(0, |m, p| m | p.on.bit());
     }
     for (si, (class, _race, st, id)) in spell_src.iter().enumerate() {
         let ctx = Ctx { class: *class, rank_alias: None };
@@ -1554,7 +1751,31 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
             Some(x) => return Err(format!("{path}.target: unknown '{x}'")),
         };
         let is_attack = effects.iter().any(|e| matches!(e, Effect::Damage(d) if d.weapon.is_some()));
+        // how far it reaches, unless the data says: melee for weapon
+        // strikes, 35 (8 at the closest) for bows and guns, 30 for wands and
+        // spells, 40 for help on a friend, nothing for spells on yourself
+        let first_hit = effects.iter().chain(channel.iter().flat_map(|c| c.effects.iter())).find_map(|e| match e {
+            Effect::Damage(d) if !matches!(d.targets, TargetSel::Me | TargetSel::Ally | TargetSel::Party | TargetSel::Allies(_)) => Some(d.hit),
+            _ => None,
+        });
+        let (range, min_range) = match target {
+            SpellTarget::Me | SpellTarget::Pet => (0.0, 0.0),
+            SpellTarget::Friendly | SpellTarget::Tank | SpellTarget::Lowest => (40.0, 0.0),
+            SpellTarget::Enemy | SpellTarget::AnyEnemy(_) | SpellTarget::OtherEnemy(_) => match first_hit {
+                Some(HitKind::White | HitKind::Special) => (reg.w.combat.melee_reach, 0.0),
+                Some(HitKind::RangedWhite | HitKind::RangedSpecial) => (35.0, 8.0),
+                _ => (30.0, 0.0),
+            },
+        };
+        // an area around you reaches as far as its radius
+        let radius = f(st, "radius", 0.0);
+        let range = if radius > 0.0 && !st.contains_key("range") { radius } else { f(st, "range", range) };
+        let min_range = if st.contains_key("min_range") { f(st, "min_range", 0.0) } else { min_range };
         let sp = &mut reg.w.spells[si];
+        sp.range = range;
+        sp.min_range = min_range;
+        sp.moves = effects.iter().any(|e| matches!(e, Effect::Charge(_) | Effect::StepBack(_)));
+        sp.harm = has_dmg;
         sp.cost = cost;
         sp.cast_time = cast_time;
         sp.cooldown = cooldown;
@@ -1669,9 +1890,25 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
     }
 
     for (kind, list) in [("enemies", false), ("allies", true)] {
-        for (eid, ev) in sub(root, kind).unwrap_or(&empty) {
+        let all = sub(root, kind).unwrap_or(&empty);
+        for (eid, ev) in all {
             let p = format!("{kind}.{eid}");
-            let et = tbl(ev, &p)?;
+            // `base = "other"`: start from another template, then this one's keys
+            let mut chain = vec![tbl(ev, &p)?];
+            while let Some(b) = s(chain.last().unwrap(), "base") {
+                if chain.len() > 8 {
+                    return Err(format!("{p}: `base` goes round in a circle"));
+                }
+                chain.push(all.get(&b).and_then(|v| v.as_table()).ok_or_else(|| format!("{p}.base: unknown '{b}'"))?);
+            }
+            let mut merged = Table::new();
+            for t in chain.iter().rev() {
+                for (k, v) in t.iter() {
+                    merged.insert(k.clone(), v.clone());
+                }
+            }
+            merged.remove("base");
+            let et = &merged;
             let e = enemy_def(&mut reg, eid, et, &p)?;
             if list {
                 reg.w.allies.insert(eid.clone(), e);
@@ -1679,6 +1916,38 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
                 reg.w.enemies.insert(eid.clone(), e);
             }
         }
+    }
+
+    for (mid, mv) in sub(root, "mixes").unwrap_or(&empty) {
+        let p = format!("mixes.{mid}");
+        let mt = tbl(mv, &p)?;
+        let mut kinds = vec![];
+        let mut casters = None;
+        for (k, v) in mt {
+            if k == "casters" {
+                let ct = tbl(v, &format!("{p}.casters"))?;
+                let of = s(ct, "of").ok_or_else(|| format!("{p}.casters: needs `of`"))?;
+                let as_ = s(ct, "as").ok_or_else(|| format!("{p}.casters: needs `as`"))?;
+                if !reg.w.enemies.contains_key(&as_) {
+                    return Err(format!("{p}.casters.as: unknown enemy '{as_}'"));
+                }
+                casters = Some((of, f(ct, "share", 0.0), as_));
+                continue;
+            }
+            if !reg.w.enemies.contains_key(k) {
+                return Err(format!("{p}: unknown enemy '{k}'"));
+            }
+            let w = src_of(v).and_then(|x| x.parse::<f64>().ok()).ok_or_else(|| format!("{p}.{k}: expected a weight"))?;
+            kinds.push((k.clone(), w));
+        }
+        let sum: f64 = kinds.iter().map(|k| k.1).sum();
+        if sum <= 0.0 {
+            return Err(format!("{p}: no weights"));
+        }
+        for k in &mut kinds {
+            k.1 /= sum;
+        }
+        reg.w.mixes.insert(mid.clone(), Mix { kinds, casters });
     }
 
     for (sid, sv) in sub(root, "scenarios").unwrap_or(&empty) {
@@ -1690,11 +1959,14 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
                 minutes: f(st, "minutes", 60.0),
                 enemy: s(st, "enemy").unwrap_or("humanoid".into()),
                 travel: f(st, "travel", 8.0),
+                mix: s(st, "mix"),
+                dmg_scale: f(st, "dmg_scale", 1.0),
             },
             Some("boss") => ScenarioKind::Boss {
                 duration: f(st, "duration", 120.0),
                 enemy: s(st, "enemy").unwrap_or("boss".into()),
                 execute_by_time: bl(st, "execute_by_time", true),
+                tank: s(st, "tank"),
             },
             Some("duel") => ScenarioKind::Duel { max_time: f(st, "max_time", 180.0), opponent: s(st, "opponent") },
             Some("pressure") => ScenarioKind::Pressure {
@@ -1730,7 +2002,7 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         let primary_default = match &kind {
             ScenarioKind::Leveling { .. } => "kills_per_hour",
             ScenarioKind::Boss { .. } => "dps",
-            ScenarioKind::Duel { .. } => "win",
+            ScenarioKind::Duel { .. } => "score",
             ScenarioKind::Pressure { .. } => "breakeven",
             ScenarioKind::Healing(_) => "heal_breakeven",
         };
@@ -1750,6 +2022,12 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
     // sanity: every enemy referenced by a scenario exists
     for sc in reg.w.scenarios.values() {
         let e = match &sc.kind {
+            ScenarioKind::Leveling { mix: Some(m), .. } => {
+                if !reg.w.mixes.contains_key(m) {
+                    return Err(format!("scenarios.{}: unknown mix '{m}'", sc.id));
+                }
+                None
+            }
             ScenarioKind::Leveling { enemy, .. } | ScenarioKind::Boss { enemy, .. } => Some(enemy),
             ScenarioKind::Pressure { attacker, .. } => Some(attacker),
             ScenarioKind::Healing(h) => {
@@ -1766,6 +2044,22 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
             if !reg.w.enemies.contains_key(e) {
                 return Err(format!("scenarios.{}: unknown enemy '{e}'", sc.id));
             }
+        }
+    }
+    // the boss test's party buffs
+    if let Some(pt) = sub(root, "party") {
+        for (id, v) in pt {
+            let p = format!("party.{id}");
+            let t = tbl(v, &p)?;
+            check_keys(t, &["spell", "for"], &p)?;
+            let sid = s(t, "spell").ok_or_else(|| format!("{p}: needs a `spell`"))?;
+            let spell = *reg.w.spell_index.get(&sid).ok_or_else(|| format!("{p}.spell: unknown spell '{sid}'"))?;
+            let for_ = s(t, "for").unwrap_or_else(|| "all".into());
+            if !["all", "mana", "physical", "caster", "melee"].contains(&for_.as_str()) {
+                return Err(format!("{p}.for: use all, mana, physical, caster or melee"));
+            }
+            let option = reg.w.opt_index(&format!("party_{id}"));
+            reg.w.party.push(PartyBuff { id: id.clone(), spell, for_, option });
         }
     }
     Ok(reg.w)
@@ -1842,5 +2136,22 @@ fn enemy_def(reg: &mut Reg, eid: &str, et: &Table, p: &str) -> R<EnemyDef> {
         stuns,
         mods: reg.stat_mods(et.get("mods"), ctx, &format!("{p}.mods"))?,
         script,
+        run_speed: f(et, "run_speed", 0.0),
+        reach: f(et, "reach", 0.0),
+        stand_at: f(et, "stand_at", 0.0),
+        flee_below: f(et, "flee_below", 0.0),
+        flee_chance: f(et, "flee_chance", 0.0),
+        flee_time: {
+            let v = num_list(et.get("flee_time"));
+            (v.first().copied().unwrap_or(6.0), v.get(1).copied().unwrap_or(10.0))
+        },
+        flee_add_chance: f(et, "flee_add_chance", 0.0),
+        flee_add: s(et, "flee_add"),
+        threat_per_sec: reg.ex(et, "threat_per_sec", ctx, p)?,
+        ap: reg.ex(et, "ap", ctx, p)?,
+        mana: reg.ex(et, "mana", ctx, p)?,
+        hp_mult: f(et, "hp_mult", 1.0),
+        armor_mult: f(et, "armor_mult", 1.0),
+        dmg_mult: f(et, "dmg_mult", 1.0),
     })
 }

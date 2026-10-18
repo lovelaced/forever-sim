@@ -2,8 +2,8 @@
 # spell data (build 1.60.1.70425). Keys are the fields `fsim audit` reports;
 # `range`, `unit` and `effect` entries are notes on behavior the audit can't
 # check, kept here so every simplification is written down in one place.
-# "Totem engine" means real totem units (placement, range, health, pulses
-# from the totem) that are planned next.
+# Totems are units on the ground: one per element, 5 health (Stoneclaw
+# more), pulses and buffs measured from where the totem stands.
 
 [shaman.stormstrike]
 level = "Forever moved Stormstrike to a 15-point Enhancement talent (usable from level 25); the spell row keeps Classic's level 40. The talent teaches it, so the sim learns it with the talent."
@@ -14,59 +14,53 @@ cast = "The totem casts its bolt back to back, so the bolt's 2.2 s cast is the t
 [shaman.lightning_bolt_overload]
 cast = "Lightning Overload casts the copy instantly. The game lists a 3 s cast only on rank 8's copy (408474), which no one casts directly."
 
-[shaman.chain_lightning]
-targets = "Hits the primary target only; the game jumps to up to 3 more targets at 70% each. Waits for multi-target choice in the engine."
 
-[shaman.chain_lightning_overload]
-targets = "Hits the primary target only, like Chain Lightning. Waits for multi-target choice in the engine."
 
-[shaman.chain_heal]
-targets = "Heals the shaman only; the game jumps to up to 3 more targets at 50% each. Waits for party members."
 
 [shaman.fire_nova]
-range = "Hits every enemy in the fight while any fire totem is up. The game bursts from your active fire totem with a 10 yd radius and puts the threat on you. Waits for the totem engine, positioning and threat."
+radius = "Bursts from your fire totem and hits every enemy within 10 yd of it (the burst spells 408423 and up list r=10); the castable spell row has no radius of its own."
 
 [shaman.searing_totem]
-unit = "A buff on the shaman: no placement, 20 yd range or health, and the totem can't be killed. Waits for the totem engine."
+range = "The summon has no range: 20 yd is how far the totem's bolt reaches (searing_totem_attack), so you put it down within 20 yd of your target."
 
 [shaman.magma_totem]
-unit = "A buff on the shaman whose pulse hits every enemy in the fight (the game: within 8 yd of the totem). The pulse period is not in the spell data (opt.shaman_magma_interval). Waits for the totem engine."
+unit = "The pulse hits every enemy within 8 yd of the totem. The pulse period is not in the spell data (opt.shaman_magma_interval)."
 
 [shaman.flametongue_totem]
-range = "A raid buff in Forever (players only) since 70425; here it reaches the shaman only and is always in range (the game: 30 yd). Its buff is exclusive with Windfury Totem's, a `requires` on both spells. Waits for the totem engine and party members."
+range = "A raid buff in Forever (players only) since 70425: the party within 30 yd of the totem gets it. Its buff is exclusive with Windfury Totem's, a `requires` on both spells."
 
 [shaman.strength_of_earth_totem]
-range = "A 30 yd raid aura in the game since 70425; here it buffs the shaman only and is always in range. Waits for the totem engine and party members."
+range = "A 30 yd raid aura since 70425: the party within 30 yd of the totem gets it."
 
 [shaman.stoneskin_totem]
 effect = "Cast, cost and duration only: the flat per-hit melee damage reduction (and Guardian Totems' bonus to it) waits for engine support."
 
 [shaman.earthbind_totem]
-effect = "Cast, cost, cooldown and duration only: the slow, and Earthbound's root, wait for movement."
+effect = "Earthbind (3600) every 3 s on enemies within 10 yd of the totem: 50% slower for 5 s. The pulse period isn't in the spell data (Classic's 3 s)."
 
 [shaman.stoneclaw_totem]
-effect = "Cast, cost, cooldown and duration only: the taunt and the totem's health wait for the totem engine and threat."
+effect = "The totem has the summon's health (50 to 480 by rank; the extra 3 a level isn't added) and taunts enemies within 8 yd every 2 s (an estimate: the period isn't in the spell data). Its threat effect (5729 and up) is modelled as a taunt."
 
 [shaman.tremor_totem]
-range = "Removes fear from the shaman every 4 s; charm and sleep removal and the 30 yd party range wait for the totem engine."
+range = "Removes fear from the party every 4 s while you're within 30 yd of the totem; charm and sleep removal aren't modelled."
 
 [shaman.grace_of_air_totem]
-range = "A 30 yd raid aura in the game since 70425; here it buffs the shaman only. One air totem at a time is kept by the air totem group (and a `requires` against Windfury Totem). Waits for the totem engine and party members."
+range = "A 30 yd raid aura since 70425: the party within 30 yd of the totem gets it. One air totem at a time (and a `requires` against Windfury Totem)."
 
 [shaman.windfury_totem]
-range = "A raid buff in Forever (players only) since 70425; here it reaches the shaman only and is always in range. Its buff is exclusive with Flametongue Totem's, a `requires` on both spells. Its proc chance is not in the spell data (opt.shaman_windfury_totem_chance). Waits for the totem engine and party members."
+range = "A raid buff in Forever (players only) since 70425: the party within 30 yd of the totem gets it. Its buff is exclusive with Flametongue Totem's, a `requires` on both spells. Its proc chance is not in the spell data (opt.shaman_windfury_totem_chance)."
 
 [shaman.grounding_totem]
-effect = "Cast, cost, cooldown and duration only: drawing in one harmful spell every 10 s waits for the totem engine."
+effect = "It takes the air slot, but drawing in one harmful spell every 10 s isn't simulated (spells aren't redirected)."
 
 [shaman.mana_spring_totem]
-range = "A 30 yd party aura in the game; here it restores the shaman's mana only. Waits for the totem engine and party members."
+range = "Restores your mana while you're within 30 yd of the totem (the game: the party within its radius; party members in the healing tests don't use mana)."
 
 [shaman.healing_stream_totem]
-range = "A 30 yd party aura in the game; here it heals the shaman only. Waits for the totem engine and party members."
+range = "Heals your party while you're within 30 yd of the totem (the game measures each member's distance to it)."
 
 [shaman.mana_tide_totem]
-range = "A 30 yd party aura in the game; here it restores the shaman's mana only. Waits for the totem engine and party members."
+range = "Restores your mana while you're within 30 yd of the totem (the game: the party within its radius)."
 
 [shaman.rockbiter_weapon]
 duration = "Forever's imbues last 1800 s (30 min); the sim keeps them up for the whole session and skips the recast every 30 min."
@@ -82,9 +76,8 @@ duration = "Forever's imbues last 1800 s (30 min); the sim keeps them up for the
 # imbue's rank or the aura's stacks. Each one says where the number is.
 
 [shaman.talent_elemental_reach]
-"value.0" = "Range for Lightning Bolt, Chain Lightning, Fire Nova and Lava Burst (+3/6 yd). Not simulated: the engine has no range or positioning."
 "value.1" = "Range for Flame Shock (+8/15 yd); in 70425 a dummy effect, and the tooltip no longer mentions it. Not simulated: the engine has no range or positioning."
-"value.2" = "Totemic Projection cooldown -10/20 sec (new in 70425). Not simulated: Totemic Projection, which moves your totems, is not in the sim (totems have no position)."
+"value.2" = "Totemic Projection cooldown -10/20 sec (new in 70425). Not simulated: Totemic Projection, which moves your totems, is not in the sim."
 
 [shaman.talent_call_of_flame]
 "value.2" = "Flame Shock duration +3/6/9 sec (new in 70425): written as `12 + 3 * t.call_of_flame` in the flame_shock aura's duration, so the check sees the whole duration (15/18/21 sec), not the bonus."
@@ -93,15 +86,9 @@ duration = "Forever's imbues last 1800 s (30 min); the sim keeps them up for the
 "value.2" = "Magma Totem duration +10/20 sec (new in 70425): written as `20 + 10 * t.trial_by_fire` in the magma_totem aura's duration, so the check sees the whole duration (30/40 sec), not the bonus."
 
 [shaman.talent_earths_grasp]
-"value.0" = "Stoneclaw Totem +25/50% (its health). Not simulated: totems have no health until the totem engine."
-"value.1" = "Earthbind Totem (and Earthbound) radius +10/20%. Not simulated: the engine has no radius or movement."
+"value.0" = "Stoneclaw Totem +25/50% health: `r.hp * (1 + 0.25 * t.earths_grasp)` in the stoneclaw_totem aura's totem health, which the check can't evaluate."
 
-[shaman.talent_improved_ghost_wolf]
-"value.0" = "Ghost Wolf cast time -1/3 sec. Not simulated: Ghost Wolf is not in the simulator (no movement)."
 
-[shaman.talent_improved_reincarnation]
-"value.0" = "Reincarnation cooldown -10/20 min. Not simulated: Reincarnation is not in the simulator (a death is a corpse run)."
-"value.2" = "Reincarnation's health and mana on revival +10/20%. Not simulated: Reincarnation is not in the simulator."
 
 [shaman.talent_mental_dexterity]
 "value.0" = "Attack power +33/67/100% of Intellect: written exactly as `(rank == 1 ? 0.33 : rank == 2 ? 0.67 : 1) * int`; the check can't evaluate formulas that read Intellect."
@@ -120,3 +107,6 @@ duration = "Forever's imbues last 1800 s (30 min); the sim keeps them up for the
 
 [shaman.talent_restorative_totems]
 "value.0" = "Mana Spring Totem +5/10/15/20/25%: `r.regen * (1 + 0.05 * t.restorative_totems)` in the mana_spring_totem aura's tick, a multiplier on the rank's mana per tick (r.regen), which the check can't evaluate. The Healing Stream part (value.1, 10/20/30/40/50%) is checked."
+
+[shaman.talent_improved_reincarnation]
+"value.2" = "Modelled: Reincarnation brings you back with 20% health and mana plus 10% a rank, worked out where the leveling test revives you (src/scenario.rs), which the check can't see."

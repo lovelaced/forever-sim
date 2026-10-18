@@ -126,7 +126,7 @@ let tipAnchor = null;
 
 export function showTip(anchor, content, { pinned = false } = {}) {
   const el = tipEl();
-  el.replaceChildren(...[content].flat());
+  el.replaceChildren(...[content].flat().filter((x) => x != null && x !== false));
   el.classList.toggle('pinned', pinned);
   el.hidden = false;
   tipAnchor = anchor;
