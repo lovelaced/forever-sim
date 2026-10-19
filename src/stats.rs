@@ -119,14 +119,95 @@ pub fn wilson(successes: f64, n: f64, conf: f64) -> (f64, f64) {
     ((centre - half).max(0.0), (centre + half).min(1.0))
 }
 
-/// Median with a distribution-free confidence interval from order
-/// statistics (normal approximation to the binomial ranks).
-pub fn median_ci(values: &[f64], conf: f64) -> (f64, f64, f64) {
-    if values.is_empty() {
+/// A range for a mean that lives between 0 and 1 (a score, a win rate)
+/// that never leaves 0..1: Wilson's interval on an effective number of
+/// fights. Each replication averages `per_rep` fights (9 opponents in the
+/// open world, 1 in a duel); the spread of the replications says how many
+/// independent fights they're worth: n / φ, with φ = s² / (p̂(1 − p̂)) kept
+/// between 1/per_rep and 1. 400 wins in 400 duels gives 99.0% to 100%.
+pub fn bounded_ci(mean: f64, var: f64, n: f64, per_rep: f64, conf: f64) -> (f64, f64) {
+    if n <= 0.0 {
+        return (0.0, 1.0);
+    }
+    let p = mean.clamp(0.0, 1.0);
+    let pq = p * (1.0 - p);
+    let floor = 1.0 / per_rep.max(1.0);
+    let phi = if pq > 1e-12 && var.is_finite() { (var / pq).clamp(floor, 1.0) } else { floor };
+    let n_eff = n / phi;
+    let (lo, hi) = wilson(p * n_eff, n_eff, conf);
+    // all wins (or none) reaches the end of the scale exactly
+    (if p <= 0.0 { 0.0 } else { lo }, if p >= 1.0 { 1.0 } else { hi })
+}
+
+/// The values without NaNs (which can't be ranked), sorted.
+fn sorted(values: &[f64]) -> Vec<f64> {
+    let mut v: Vec<f64> = values.iter().copied().filter(|x| !x.is_nan()).collect();
+    v.sort_by(f64::total_cmp);
+    v
+}
+
+/// The median of `v`, reordering it in place (no NaNs).
+fn median_mut(v: &mut [f64]) -> f64 {
+    let n = v.len();
+    let m = n / 2;
+    let (left, mid, _) = v.select_nth_unstable_by(m, f64::total_cmp);
+    let hi = *mid;
+    if n % 2 == 1 {
+        hi
+    } else {
+        0.5 * (left.iter().copied().fold(f64::NEG_INFINITY, f64::max) + hi)
+    }
+}
+
+/// Bootstrap resamples behind a paired median comparison.
+pub const BOOT_B: usize = 999;
+
+/// The difference of medians, med(b) − med(a), over replications run on
+/// the same dice, with a paired bootstrap interval: BOOT_B resamples of
+/// whole replications (the same draw for a and b), the 2.5% and 97.5%
+/// order statistics of the resampled differences. The resamples come only
+/// from `seed`, so swapping a and b negates the answer exactly. Pairs with
+/// a NaN are left out.
+pub fn paired_median_boot(a: &[f64], b: &[f64], conf: f64, seed: u64) -> (f64, f64, f64) {
+    let n = a.len().min(b.len());
+    let pairs: Vec<(f64, f64)> = (0..n).filter(|&i| !a[i].is_nan() && !b[i].is_nan()).map(|i| (a[i], b[i])).collect();
+    let n = pairs.len();
+    if n == 0 {
         return (f64::NAN, f64::NAN, f64::NAN);
     }
-    let mut v: Vec<f64> = values.to_vec();
-    v.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let mut sa: Vec<f64> = pairs.iter().map(|p| p.0).collect();
+    let mut sb: Vec<f64> = pairs.iter().map(|p| p.1).collect();
+    let diff = median_mut(&mut sb) - median_mut(&mut sa);
+    let mut rng = crate::rng::Rng::new(seed);
+    let mut ds = Vec::with_capacity(BOOT_B);
+    for _ in 0..BOOT_B {
+        for j in 0..n {
+            let k = ((rng.f64() * n as f64) as usize).min(n - 1);
+            sa[j] = pairs[k].0;
+            sb[j] = pairs[k].1;
+        }
+        ds.push(median_mut(&mut sb) - median_mut(&mut sa));
+    }
+    ds.sort_by(f64::total_cmp);
+    let k = (((1.0 - conf) / 2.0 * (BOOT_B + 1) as f64).round() as usize).clamp(1, BOOT_B / 2);
+    (diff, ds[k - 1], ds[BOOT_B - k])
+}
+
+/// A median's range is never narrower than the grid its values come from:
+/// at least one cell (a share `rel_cell` of `scale`) either side.
+pub fn grid_floor(mid: f64, lo: f64, hi: f64, scale: f64, rel_cell: f64) -> (f64, f64) {
+    let cell = rel_cell * scale.abs();
+    (lo.min(mid - cell), hi.max(mid + cell))
+}
+
+/// Median with a distribution-free confidence interval from order
+/// statistics (normal approximation to the binomial ranks). NaNs are left
+/// out.
+pub fn median_ci(values: &[f64], conf: f64) -> (f64, f64, f64) {
+    let v = sorted(values);
+    if v.is_empty() {
+        return (f64::NAN, f64::NAN, f64::NAN);
+    }
     let n = v.len();
     let med = if n % 2 == 1 { v[n / 2] } else { 0.5 * (v[n / 2 - 1] + v[n / 2]) };
     let z = norm_inv(1.0 - (1.0 - conf) / 2.0);
@@ -137,11 +218,10 @@ pub fn median_ci(values: &[f64], conf: f64) -> (f64, f64, f64) {
 }
 
 pub fn quantile(values: &[f64], q: f64) -> f64 {
-    if values.is_empty() {
+    let v = sorted(values);
+    if v.is_empty() {
         return f64::NAN;
     }
-    let mut v: Vec<f64> = values.to_vec();
-    v.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let pos = q.clamp(0.0, 1.0) * (v.len() - 1) as f64;
     let i = pos.floor() as usize;
     let f = pos - i as f64;
@@ -253,6 +333,71 @@ mod tests {
         // 50/100 at 95%: (0.4038, 0.5962)
         let (lo, hi) = wilson(50.0, 100.0, 0.95);
         assert!((lo - 0.4038).abs() < 1e-3 && (hi - 0.5962).abs() < 1e-3);
+    }
+
+    /// Bounded ranges stay inside 0..1, cover the truth about 95% of the
+    /// time for replications of 9 fights each, and 400 wins in 400 duels
+    /// read 99.0% to 100%.
+    #[test]
+    fn bounded_ranges() {
+        let (lo, hi) = bounded_ci(1.0, 0.0, 400.0, 1.0, 0.95);
+        assert!((lo - 0.9905).abs() < 1e-3 && hi == 1.0, "{lo} {hi}");
+        let mut rng = Rng::new(7);
+        let (trials, n, per) = (2000, 60, 9);
+        for p in [0.05, 0.5, 0.93] {
+            let mut hit = 0;
+            for _ in 0..trials {
+                let mut w = Welford::new();
+                for _ in 0..n {
+                    let wins = (0..per).filter(|_| rng.chance(p)).count();
+                    w.push(wins as f64 / per as f64);
+                }
+                let (lo, hi) = bounded_ci(w.mean, w.var(), n as f64, per as f64, 0.95);
+                assert!((0.0..=1.0).contains(&lo) && (0.0..=1.0).contains(&hi) && lo <= hi);
+                if lo <= p && p <= hi {
+                    hit += 1;
+                }
+            }
+            let c = hit as f64 / trials as f64;
+            assert!((0.92..0.98).contains(&c), "p {p}: coverage {c}");
+        }
+    }
+
+    /// The paired median bootstrap: a real interval on grid-snapped data
+    /// where most pairs tie (not "0 (0 to 0)"), about 95% coverage, and
+    /// swapping the two sides negates it exactly.
+    #[test]
+    fn paired_median_bootstrap() {
+        let mut rng = Rng::new(11);
+        let grid = |x: f64| (x * 20.0).round() / 20.0;
+        let (trials, n) = (300, 200);
+        let mut hit = 0;
+        for t in 0..trials {
+            let mut a = Vec::with_capacity(n);
+            let mut b = Vec::with_capacity(n);
+            for _ in 0..n {
+                let base = 1.0 + rng.f64();
+                a.push(grid(base));
+                // 93% of pairs tie; the rest move up a step
+                b.push(grid(base + if rng.chance(0.07) { 0.05 } else { 0.0 }));
+            }
+            let (d, lo, hi) = paired_median_boot(&a, &b, 0.95, 1000 + t);
+            let (d2, lo2, hi2) = paired_median_boot(&b, &a, 0.95, 1000 + t);
+            assert_eq!((d2, lo2, hi2), (-d, -hi, -lo), "swapping negates exactly");
+            assert!(lo <= d && d <= hi);
+            // the true difference of medians is tiny but not zero: count
+            // intervals that hold [0, one step]
+            if lo <= 0.05 && hi >= 0.0 {
+                hit += 1;
+            }
+        }
+        assert!(hit as f64 / trials as f64 > 0.9);
+        // NaNs don't panic
+        let (d, _, _) = paired_median_boot(&[1.0, f64::NAN, 2.0], &[1.5, 3.0, f64::NAN], 0.95, 1);
+        assert_eq!(d, 0.5);
+        let (m, _, _) = median_ci(&[f64::NAN, 1.0, 3.0], 0.95);
+        assert_eq!(m, 2.0);
+        assert!(quantile(&[f64::NAN, 1.0], 0.5) == 1.0);
     }
 
     #[test]

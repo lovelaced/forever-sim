@@ -207,7 +207,7 @@ fn print_summary(sums: &[mc::MetricSummary], primary: &str, all: bool) {
         let star = if s.name == primary { "*" } else { " " };
         let centre = if s.kind == "median" { s.median } else { s.mean };
         let kind = match s.kind {
-            "proportion" => "rate",
+            "proportion" | "bounded" => "rate",
             "median" => "median",
             _ => "",
         };
@@ -253,6 +253,9 @@ fn main() {
                 let m = modelled_talents(&w, ci);
                 let n = m.iter().filter(|&&x| x).count();
                 println!("  {:<8} {:>2}/{:<2} talents modeled, {} rotations: {}", c.id, n, c.talents.len(), c.rotations.len(), c.rotations.keys().cloned().collect::<Vec<_>>().join(", "));
+            }
+            for wn in forever_sim::validate::rotation_warnings(&w) {
+                println!("  warning: {wn}");
             }
             let mut bad = false;
             for p in builds {
@@ -423,7 +426,8 @@ fn main() {
                 let v = vec![Variant { world: 0, name: b.name.clone(), build: b, opponent: opp, opts }];
                 let cfg = McCfg { seed: a.seed, min_reps: a.min_reps, max_reps: a.max_reps, batch: a.batch, precision: a.precision, conf: a.conf, threads: a.threads };
                 let res = mc::run(&[&w], &sc.id, &v, &cfg);
-                let sums = mc::summarise(&res.values[0], a.conf);
+                let kind = |k: &str| forever_sim::scenario::metric_kind(&w, sc, &v[0].opts, k);
+                let sums = mc::summarise_with(&res.values[0], a.conf, &kind);
                 if let Some(s) = sums.iter().find(|s| s.name == sc.primary) {
                     let c = if s.kind == "median" { s.median } else { s.mean };
                     println!("{lvl:>5}  {split:<12} {:>10}  [{:>9}, {:>9}]  {}", fmt_num(c), fmt_num(s.lo), fmt_num(s.hi), res.reps);
@@ -530,7 +534,8 @@ fn run_and_report(worlds: &[&World], header: &str, sc: &ScenarioDef, variants: V
     let secs = t0.elapsed().as_secs_f64();
     println!("{header}");
     println!("scenario {} — {}", sc.id, sc.desc);
-    let prec: Vec<String> = res.values.iter().map(|v| format!("{:.2}%", 100.0 * mc::precision_of(v, &sc.primary, a.conf))).collect();
+    let kind_for = |vi: usize, k: &str| forever_sim::scenario::metric_kind(worlds[variants[vi].world], sc, &variants[vi].opts, k);
+    let prec: Vec<String> = res.values.iter().enumerate().map(|(vi, v)| format!("{:.2}%", 100.0 * mc::precision_with(v, &sc.primary, a.conf, kind_for(vi, &sc.primary)))).collect();
     println!(
         "{} replications per build ({}; {} CI half-width on {}: {}), seed {}, {:.1}s\n",
         res.reps,
@@ -556,7 +561,7 @@ fn run_and_report(worlds: &[&World], header: &str, sc: &ScenarioDef, variants: V
         for wn in &v.build.warnings {
             println!("   warning: {wn}");
         }
-        let sums = mc::summarise(&res.values[vi], a.conf);
+        let sums = mc::summarise_with(&res.values[vi], a.conf, &|k| kind_for(vi, k));
         print_summary(&sums, &sc.primary, a.all);
         println!();
         json.insert(v.name.clone(), serde_json::to_value(&sums).unwrap());
@@ -564,11 +569,12 @@ fn run_and_report(worlds: &[&World], header: &str, sc: &ScenarioDef, variants: V
     if variants.len() > 1 {
         let names: Vec<String> = variants.iter().map(|v| v.name.clone()).collect();
         let mut metrics: Vec<String> = vec![sc.primary.clone()];
-        let first = mc::summarise(&res.values[0], a.conf);
+        let first = mc::summarise_with(&res.values[0], a.conf, &|k| kind_for(0, k));
         for s in first.iter().filter(|s| !s.name.contains(':') && s.name != sc.primary) {
             metrics.push(s.name.clone());
         }
-        let cmp = mc::compare(&names, &res, &metrics, a.conf);
+        let pairs: Vec<(usize, usize)> = (1..res.values.len()).map(|v| (0, v)).collect();
+        let cmp = mc::compare_pairs(&names, &res, &metrics, &pairs, a.conf, &|k| kind_for(0, k));
         println!("Paired differences vs {} (same seeds per replication):", names[0]);
         for c in &cmp {
             if c.metric != sc.primary && !a.all {

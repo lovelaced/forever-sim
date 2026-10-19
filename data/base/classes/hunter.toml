@@ -318,7 +318,7 @@ icon = "spell_nature_stranglevines"
 tree = "Survival"
 points = 5
 ranks = 5
-text = "Frost, Immolation and Explosive Trap can root what they catch (not simulated: the chance in Forever's data is unclear)."
+text = "Frost, Immolation and Explosive Trap root what they catch for 5 sec (1 sec a point). Forever's data lists no chance, so the sim roots every time."
 [talents.savage_strikes]
 icon = "ability_racial_bloodrage"
 tree = "Survival"
@@ -547,21 +547,33 @@ duration = 4
 slow = 0.5
 [auras.freezing_trap]
 name = "Freezing Trap"
+hold = true
 debuff = true
+dispel = "magic"
 per_source = false
 mechanic = "incap"
 dr = "incap"
 break_on_damage = true
 duration = 10
+# Entrapment's root (1 sec a point) when a fire or frost trap goes off
+[auras.entrapment]
+name = "Entrapment"
+icon = "spell_nature_stranglevines"
+debuff = true
+dispel = "magic"
+mechanic = "root"
+per_source = false
 [auras.immolation_trap]
 name = "Immolation Trap"
 debuff = true
+dispel = "magic"
 duration = 15
 # 5 ticks of the rank's periodic damage; Clever Traps +15/30%
 tick = { interval = 3, effects = [{ type = "damage", school = "fire", periodic = true, tag = "Immolation Trap", amount = "r.total / 5 * (1 + 0.15 * t.clever_traps)" }] }
 [auras.explosive_trap]
 name = "Explosive Trap"
 debuff = true
+dispel = "magic"
 duration = 20
 # 10 ticks of the rank's periodic damage; Clever Traps +15/30%
 tick = { interval = 2, effects = [{ type = "damage", school = "fire", periodic = true, tag = "Explosive Trap", amount = "r.total / 10 * (1 + 0.15 * t.clever_traps)" }] }
@@ -575,6 +587,7 @@ tick = { interval = 1, effects = [{ type = "aura", aura = "frost_trap", target =
 [auras.frost_trap]
 name = "Frost Trap"
 debuff = true
+dispel = "magic"
 per_source = false
 mechanic = "slow"
 duration = 2
@@ -671,6 +684,7 @@ effects = [{ type = "summon", pet = "cat" }]
 
 [spells.revive_pet]
 name = "Revive Pet"
+school = "nature"
 radius = 3
 icon = "ability_hunter_beastsoothe"
 target = "self"
@@ -687,6 +701,7 @@ effects = [
 
 [spells.aspect_of_the_hawk]
 name = "Aspect of the Hawk"
+school = "nature"
 icon = "spell_nature_ravenform"
 target = "self"
 requires = "!aura.aspect_of_the_hawk.up"
@@ -703,6 +718,7 @@ effects = [{ type = "aura", aura = "aspect_of_the_hawk" }]
 
 [spells.aspect_of_the_beast]
 name = "Aspect of the Beast"
+school = "nature"
 icon = "ability_mount_pinktiger"
 target = "self"
 requires = "!aura.aspect_of_the_beast.up"
@@ -717,6 +733,7 @@ effects = [{ type = "aura", aura = "aspect_of_the_beast" }]
 
 [spells.aspect_of_the_monkey]
 name = "Aspect of the Monkey"
+school = "nature"
 range = 100
 icon = "ability_hunter_aspectofthemonkey"
 target = "self"
@@ -727,6 +744,8 @@ effects = [{ type = "aura", aura = "aspect_of_the_monkey" }]
 
 [spells.hunters_mark]
 name = "Hunter's Mark"
+school = "arcane"
+dispel = "magic"
 range = 100
 icon = "ability_hunter_snipershot"
 off_gcd = false
@@ -737,6 +756,7 @@ effects = [{ type = "aura", aura = "hunters_mark", target = "target" }, { type =
 
 [spells.trueshot_aura]
 name = "Trueshot Aura"
+school = "arcane"
 radius = 45
 icon = "ability_trueshot"
 talent = "trueshot_aura"
@@ -755,6 +775,7 @@ effects = [{ type = "aura", aura = "trueshot_aura" }]
 name = "Serpent Sting"
 icon = "ability_hunter_quickshot"
 school = "nature"
+dispel = "poison"
 requires = "!target.aura.serpent_sting.up"
 ranks = [
   { level = 4, id = 1978, total = 10, mana = 15 },
@@ -942,6 +963,7 @@ effects = [{ type = "damage", weapon = "ranged", weapon_mult = 0.5, on_hit = [{ 
 
 [spells.rapid_fire]
 name = "Rapid Fire"
+school = "arcane"
 icon = "ability_hunter_runningshot"
 off_gcd = true
 cooldown = 300
@@ -965,6 +987,7 @@ effects = [{ type = "aura", aura = "bestial_wrath", target = "pet" }]
 
 [spells.intimidation]
 name = "Intimidation"
+school = "nature"
 range = 100
 icon = "ability_devour"
 talent = "intimidation"
@@ -987,6 +1010,7 @@ effects = [{ type = "aura", aura = "deterrence" }]
 
 [spells.mend_pet]
 name = "Mend Pet"
+school = "nature"
 range = 20
 icon = "ability_hunter_mendpet"
 target = "pet"
@@ -1035,6 +1059,7 @@ effects = [{ type = "track", levels = { beast = 1, humanoid = 10, undead = 18, e
 
 [spells.concussive_shot]
 name = "Concussive Shot"
+dispel = "magic"
 range = 35
 min_range = 8
 icon = "spell_frost_stun"
@@ -1078,6 +1103,7 @@ effects = [{ type = "threat", amount = "-r.threat" }]
 
 [spells.scare_beast]
 name = "Scare Beast"
+dispel = "magic"
 range = 10
 icon = "ability_druid_cower"
 school = "nature"
@@ -1115,6 +1141,7 @@ channel = { duration = 6, interval = 1, effects = [{ type = "damage", school = "
 
 [spells.growl]
 name = "Growl"
+target = "enemy"
 range = 5
 icon = "ability_physical_taunt"
 cooldown = 5
@@ -1163,7 +1190,7 @@ cd_group = "frost_traps"
 cost = { mana = "r.mana" }
 ranks = [{ level = 28, id = 13809, mana = 60 }]
 text = "A trap that leaves a patch of ice where it goes off: enemies on it move 60% slower for 30 sec."
-effects = [{ type = "trap", arm = 2, radius = 5, lasts = 60, then = [{ type = "aura", aura = "frost_trap_ice", target = "self" }] }]
+effects = [{ type = "trap", arm = 2, radius = 5, lasts = 60, then = [{ type = "aura", aura = "frost_trap_ice", target = "self" }, { type = "if", cond = "t.entrapment > 0", then = [{ type = "aura", aura = "entrapment", target = "target", duration = "t.entrapment" }] }] }]
 [spells.immolation_trap]
 requires = "!in_combat"
 name = "Immolation Trap"
@@ -1182,7 +1209,7 @@ ranks = [
   { level = 56, id = 14305, mana = 245, total = 690 },
 ]
 text = "A trap that burns the first enemy to step on it over 15 sec."
-effects = [{ type = "trap", arm = 2, radius = 5, lasts = 60, then = [{ type = "aura", aura = "immolation_trap", target = "target" }] }]
+effects = [{ type = "trap", arm = 2, radius = 5, lasts = 60, then = [{ type = "aura", aura = "immolation_trap", target = "target" }, { type = "if", cond = "t.entrapment > 0", then = [{ type = "aura", aura = "entrapment", target = "target", duration = "t.entrapment" }] }] }]
 [spells.explosive_trap]
 requires = "!in_combat"
 name = "Explosive Trap"
@@ -1200,11 +1227,11 @@ ranks = [
   { level = 54, id = 14317, mana = 520, lo = 201, lo_per_level = 1.2, hi = 257, hi_per_level = 1.2, max_level = 60, total = 330 },
 ]
 text = "A trap that blasts every enemy within 10 yd when it goes off, then burns them over 20 sec."
-effects = [{ type = "trap", arm = 2, radius = 5, lasts = 60, area = 10, then = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", target = "enemies", hit = "spell", tag = "Explosive Trap", mult = "1 + 0.15 * t.clever_traps", on_hit = [{ type = "aura", aura = "explosive_trap", target = "target" }] }] }]
+effects = [{ type = "trap", arm = 2, radius = 5, lasts = 60, area = 10, then = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", target = "enemies", hit = "spell", tag = "Explosive Trap", mult = "1 + 0.15 * t.clever_traps", on_hit = [{ type = "aura", aura = "explosive_trap", target = "target" }, { type = "if", cond = "t.entrapment > 0", then = [{ type = "aura", aura = "entrapment", target = "target", duration = "t.entrapment" }] }] }] }]
 
 # ------------------------------------------------------------------ rotations
 [rotations.ranged_pet]
-desc = "Ranged with a cat tanking: Hunter's Mark, Serpent Sting, Aimed/Arcane/Hawk on cooldown, Mend Pet when it is low"
+desc = "Ranged with a cat tanking: Hunter's Mark, Serpent Sting, Aimed Shot and hawks on cooldown, Arcane Shot on bosses and players, Mend Pet when it is low"
 auto_melee = true    # swings when something gets into melee
 stand_at = 35        # bow range
 auto_ranged = true
@@ -1212,49 +1239,50 @@ keep_min = 8   # out of the dead zone where Auto Shot and the shots can't fire
 precombat = ["aspect_of_the_hawk", "trueshot_aura", "call_pet"]
 opener = [{ cast = "explosive_trap", if = "enemies >= 3" }, { cast = "freezing_trap", if = "enemies >= 2 && (enemies < 3 || !known.explosive_trap)" }, { cast = "tracking", if = "t.improved_tracking > 0" }, "hunters_mark"]
 actions = [
-  { cast = "wing_clip", if = "target.dist < 6 && target.is_player" },   # slow it, then step out of the dead zone
-  { cast = "feign_death", if = "hp_pct < 0.15 && !target.boss" },   # escape: drop it all
+  { cast = "wing_clip", if = "target.dist < 6 && (target.is_player || (has_aggro && hp_pct < 0.8))" },   # a player, or a mob on you once it hurts: slow it, then step out of the dead zone
+  { cast = "feign_death", if = "hp_pct < 0.3 && !target.boss" },   # escape: drop it all before the last few blows
   { cast = "feign_death", if = "target.boss && threat.pct > 0.85" },   # in a group: shed threat and keep shooting
-  { cast = "disengage", if = "has_aggro && pet.active && !target.is_player && target.dist < 6" },   # hand it back to the pet
+  { cast = "disengage", if = "has_aggro && pet.active && !target.is_player && target.dist < 6 && hp_pct < 0.8" },   # hand it back to the pet once it hurts (Growl often does it first)
   { cast = "scare_beast", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.feared && hp_pct < 0.5" },   # a beast add runs off when it gets rough
   { cast = "concussive_shot", if = "target.fleeing || (target.is_player && !target.slowed)" },   # stop a runner, slow a chaser
   { cast = "volley", if = "enemies_active >= 3 && cc_near == 0" },
   { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
-  { cast = "deterrence", if = "hp_pct < 0.35" },
+  { cast = "deterrence", if = "hp_pct < 0.5 && enemies_within_8 >= 1", emergency = true },   # dodge and parry: only against blows, and before the last one
   { cast = "intimidation", target = "enemy", if = "target.is_player" },
   { cast = "bestial_wrath" },
   { cast = "rapid_fire" },
   { cast = "blood_fury" },
   { cast = "berserking" },
-  { cast = "scatter_shot", if = "target.is_player" },
+  { cast = "scatter_shot", if = "target.is_player && target.dist < 15 && !target.casting" },   # a peel on someone already close, never walking up for it
   { cast = "serpent_sting", if = "target.hp_pct > 0.3" },
   { cast = "summon_hawk", if = "aura.hawk.stacks < 2" },
-  { cast = "sniper_shot" },
-  { cast = "multi_shot", if = "(enemies >= 2 && cc_near == 0) || !known.aimed_shot" },
-  { cast = "aimed_shot" },
-  { cast = "arcane_shot", if = "mana_pct > 0.3" },
+  { cast = "sniper_shot", if = "!(has_aggro && target.moving)" },
+  { cast = "multi_shot", if = "(enemies_active >= 2 || !known.aimed_shot) && enemies_active == enemies" },   # never while one is trapped or scared: it hits them all
+  { cast = "aimed_shot", if = "!(has_aggro && target.moving)" },   # not while it runs at you: the cast would end in the dead zone
+  { cast = "arcane_shot", if = "mana_pct > 0.3 && !target.trash" },   # not worth its mana on trash: the pet and Auto Shot do that work
   { cast = "aspect_of_the_hawk" },
 ]
 rest = [
   { cast = "revive_pet" },
   { cast = "call_pet", if = "!pet.active" },
+  { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.7 && !pet.aura.mend_pet.up" },   # pets keep their wounds between pulls
   { cast = "trueshot_aura" },
   { cast = "cannibalize", if = "hp_pct < 0.75" },
   { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
 ]
-eat_below = 0.55
-drink_below = 0.4
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.55"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.4"
 
 [rotations.survival_melee]
-desc = "Survival melee with a cat: Raptor Strike, Mongoose Bite, Counterattack, Strider Kick, Lacerate and Serpent Sting"
+desc = "Survival melee with a cat: Raptor Strike, Mongoose Bite, Counterattack, Strider Kick, Lacerate and Serpent Sting, and shots when it can't reach"
 auto_melee = true
-auto_ranged = false
+auto_ranged = true   # shoots when it is frozen or can't reach
 precombat = ["aspect_of_the_monkey", "call_pet"]
 opener = [{ cast = "tracking", if = "t.improved_tracking > 0" }, "hunters_mark"]
 actions = [
   { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
-  { cast = "feign_death", if = "hp_pct < 0.15 && !target.boss" },   # escape: drop it all
-  { cast = "deterrence", if = "hp_pct < 0.35" },
+  { cast = "feign_death", if = "hp_pct < 0.3 && !target.boss" },   # escape: drop it all before the last few blows
+  { cast = "deterrence", if = "hp_pct < 0.5 && enemies_within_8 >= 1", emergency = true },   # dodge and parry: only against blows, and before the last one
   { cast = "scare_beast", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.feared && hp_pct < 0.5" },   # a beast add runs off when it gets rough
   { cast = "concussive_shot", if = "target.fleeing" },   # stop a runner
   { cast = "intimidation", target = "enemy", if = "target.is_player" },
@@ -1270,16 +1298,19 @@ actions = [
   { cast = "lacerate", if = "target.hp_pct > 0.3" },
   { cast = "serpent_sting", if = "target.hp_pct > 0.3" },
   { cast = "summon_hawk", if = "aura.hawk.stacks < 2" },
+  { cast = "aimed_shot", if = "(rooted || frozen) && target.dist > 8" },   # stuck out of reach: shoot instead
+  { cast = "arcane_shot", if = "target.dist > 8 && mana_pct > 0.3" },
   { cast = "aspect_of_the_monkey" },
 ]
 rest = [
   { cast = "revive_pet" },
   { cast = "call_pet", if = "!pet.active" },
+  { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.7 && !pet.aura.mend_pet.up" },   # pets keep their wounds between pulls
   { cast = "cannibalize", if = "hp_pct < 0.75" },
   { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
 ]
-eat_below = 0.55
-drink_below = 0.4
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.55"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.4"
 
 # The three standard specs (builds/hunter/beast_mastery.toml, marksmanship.toml,
 # survival.toml). ranged_pet and survival_melee above stay as they are for the
@@ -1289,7 +1320,7 @@ drink_below = 0.4
 # never is after level 20). The guides: "Multi-Shot replaces Aimed Shot on
 # groups" (wow.gg), Aimed Shot single target (Method, wowtbc.gg).
 [rotations.beast_mastery]
-desc = "Beast Mastery with a cat tanking: Hunter's Mark, Serpent Sting, Bestial Wrath and Rapid Fire on cooldown, two hawks on bosses and players, Aimed Shot (Multi-Shot on two or more), Arcane Shot with spare mana"
+desc = "Beast Mastery with a cat tanking: Hunter's Mark, Serpent Sting, Bestial Wrath and Rapid Fire on cooldown, two hawks on bosses and players, Aimed Shot (Multi-Shot on two or more), Arcane Shot with spare mana on bosses and players"
 auto_melee = true    # swings when something gets into melee
 stand_at = 35        # bow range
 auto_ranged = true
@@ -1297,15 +1328,15 @@ keep_min = 8   # out of the dead zone where Auto Shot and the shots can't fire
 precombat = ["aspect_of_the_hawk", "trueshot_aura", "call_pet"]
 opener = [{ cast = "explosive_trap", if = "enemies >= 3" }, { cast = "freezing_trap", if = "enemies >= 2 && (enemies < 3 || !known.explosive_trap)" }, { cast = "tracking", if = "t.improved_tracking > 0" }, "hunters_mark"]
 actions = [
-  { cast = "wing_clip", if = "target.dist < 6 && target.is_player" },   # slow it, then step out of the dead zone
-  { cast = "feign_death", if = "hp_pct < 0.15 && !target.boss" },   # escape: drop it all
+  { cast = "wing_clip", if = "target.dist < 6 && (target.is_player || (has_aggro && hp_pct < 0.8))" },   # a player, or a mob on you once it hurts: slow it, then step out of the dead zone
+  { cast = "feign_death", if = "hp_pct < 0.3 && !target.boss" },   # escape: drop it all before the last few blows
   { cast = "feign_death", if = "target.boss && threat.pct > 0.85" },   # in a group: shed threat and keep shooting
-  { cast = "disengage", if = "has_aggro && pet.active && !target.is_player && target.dist < 6" },   # hand it back to the pet
+  { cast = "disengage", if = "has_aggro && pet.active && !target.is_player && target.dist < 6 && hp_pct < 0.8" },   # hand it back to the pet once it hurts (Growl often does it first)
   { cast = "scare_beast", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.feared && hp_pct < 0.5" },   # a beast add runs off when it gets rough
   { cast = "concussive_shot", if = "target.fleeing || (target.is_player && !target.slowed)" },   # stop a runner, slow a chaser
   { cast = "volley", if = "enemies_active >= 3 && cc_near == 0" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
   { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
   { cast = "intimidation", target = "enemy", if = "target.is_player" },
   { cast = "bestial_wrath" },
@@ -1314,24 +1345,25 @@ actions = [
   { cast = "berserking" },
   { cast = "serpent_sting", if = "target.hp_pct > 0.3 || target.boss" },
   { cast = "summon_hawk", if = "target.aura.hawk.stacks < 2 && (target.boss || target.is_player)" },
-  { cast = "multi_shot", if = "enemies >= 2 && cc_near == 0" },
-  { cast = "aimed_shot" },
-  { cast = "multi_shot" },
-  { cast = "arcane_shot", if = "mana_pct > 0.3" },
+  { cast = "multi_shot", if = "enemies_active >= 2 && enemies_active == enemies" },   # packs, never while one is trapped or scared: it hits them all
+  { cast = "aimed_shot", if = "!(has_aggro && target.moving)" },   # not while it runs at you: the cast would end in the dead zone
+  { cast = "multi_shot", if = "enemies_active == enemies" },
+  { cast = "arcane_shot", if = "mana_pct > 0.3 && !target.trash" },   # not worth its mana on trash: the pet and Auto Shot do that work
   { cast = "aspect_of_the_hawk" },
 ]
 rest = [
   { cast = "revive_pet" },
   { cast = "call_pet", if = "!pet.active" },
+  { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.7 && !pet.aura.mend_pet.up" },   # pets keep their wounds between pulls
   { cast = "trueshot_aura" },
   { cast = "cannibalize", if = "hp_pct < 0.75" },
   { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
 ]
-eat_below = 0.55
-drink_below = 0.4
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.55"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.4"
 
 [rotations.marksmanship]
-desc = "Marksmanship with a cat tanking: Hunter's Mark, Trueshot Aura, Serpent Sting, Rapid Fire, Sniper Shot, Aimed Shot (Multi-Shot on two or more), Arcane Shot with spare mana, Scatter Shot on players"
+desc = "Marksmanship with a cat tanking: Hunter's Mark, Trueshot Aura, Serpent Sting, Rapid Fire, Sniper Shot, Aimed Shot (Multi-Shot on two or more), Arcane Shot with spare mana on bosses and players, Scatter Shot to peel a player who gets close"
 auto_melee = true    # swings when something gets into melee
 stand_at = 35        # bow range
 auto_ranged = true
@@ -1339,71 +1371,82 @@ keep_min = 8   # out of the dead zone where Auto Shot and the shots can't fire
 precombat = ["aspect_of_the_hawk", "trueshot_aura", "call_pet"]
 opener = [{ cast = "explosive_trap", if = "enemies >= 3" }, { cast = "freezing_trap", if = "enemies >= 2 && (enemies < 3 || !known.explosive_trap)" }, { cast = "tracking", if = "t.improved_tracking > 0" }, "hunters_mark"]
 actions = [
-  { cast = "wing_clip", if = "target.dist < 6 && target.is_player" },   # slow it, then step out of the dead zone
-  { cast = "feign_death", if = "hp_pct < 0.15 && !target.boss" },   # escape: drop it all
+  { cast = "wing_clip", if = "target.dist < 6 && (target.is_player || (has_aggro && hp_pct < 0.8))" },   # a player, or a mob on you once it hurts: slow it, then step out of the dead zone
+  { cast = "feign_death", if = "hp_pct < 0.3 && !target.boss" },   # escape: drop it all before the last few blows
   { cast = "feign_death", if = "target.boss && threat.pct > 0.85" },   # in a group: shed threat and keep shooting
-  { cast = "disengage", if = "has_aggro && pet.active && !target.is_player && target.dist < 6" },   # hand it back to the pet
+  { cast = "disengage", if = "has_aggro && pet.active && !target.is_player && target.dist < 6 && hp_pct < 0.8" },   # hand it back to the pet once it hurts (Growl often does it first)
   { cast = "scare_beast", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.feared && hp_pct < 0.5" },   # a beast add runs off when it gets rough
   { cast = "concussive_shot", if = "target.fleeing || (target.is_player && !target.slowed)" },   # stop a runner, slow a chaser
   { cast = "volley", if = "enemies_active >= 3 && cc_near == 0" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
   { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
-  { cast = "scatter_shot", if = "target.is_player" },
+  { cast = "scatter_shot", if = "target.is_player && target.dist < 15 && !target.casting" },   # a peel on someone already close, never walking up for it
   { cast = "rapid_fire" },
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "elunes_light" },
   { cast = "serpent_sting", if = "target.hp_pct > 0.3 || target.boss" },
-  { cast = "sniper_shot" },
-  { cast = "multi_shot", if = "enemies >= 2 && cc_near == 0" },
-  { cast = "aimed_shot" },
-  { cast = "multi_shot" },
-  { cast = "arcane_shot", if = "mana_pct > 0.3" },
+  { cast = "sniper_shot", if = "!(has_aggro && target.moving)" },
+  { cast = "multi_shot", if = "enemies_active >= 2 && enemies_active == enemies" },   # packs, never while one is trapped or scared: it hits them all
+  { cast = "aimed_shot", if = "!(has_aggro && target.moving)" },   # not while it runs at you: the cast would end in the dead zone
+  { cast = "multi_shot", if = "enemies_active == enemies" },
+  { cast = "arcane_shot", if = "mana_pct > 0.3 && !target.trash" },   # not worth its mana on trash: the pet and Auto Shot do that work
   { cast = "aspect_of_the_hawk" },
 ]
 rest = [
   { cast = "revive_pet" },
   { cast = "call_pet", if = "!pet.active" },
+  { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.7 && !pet.aura.mend_pet.up" },   # pets keep their wounds between pulls
   { cast = "trueshot_aura" },
   { cast = "cannibalize", if = "hp_pct < 0.75" },
   { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
 ]
-eat_below = 0.55
-drink_below = 0.4
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.55"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.4"
 
-# Survival in melee as the guides play it: Aspect of the Beast (melee Attack
-# Power in Forever, learned at 30; Aspect of the Monkey before that), Hunter's
-# Mark for Expose Prey, Serpent Sting to open, then Raptor Strike, Strider
-# Kick, Mongoose Bite and Counterattack as they come up (wowtbc.gg, wow.gg,
-# classicwowforever.com). No traps: they go down out of combat, at your feet,
-# and a melee hunter walks away from them to the mob.
+# Survival with a bow first and its melee talents for whatever gets close.
+# The guides play Forever's Survival in melee from 30 (wowtbc.gg, wow.gg,
+# classicwowforever.com), but the sim can't switch where a rotation stands by
+# target, and in melee it walks into casters and Frost Novas (open-world
+# scores near 0 against mages, priests and paladins). So it shoots from range
+# like the other specs, traps the add on doubles, and Wing Clips anything that
+# reaches it before stepping back out; Mongoose Bite, Counterattack, Raptor
+# Strike and Strider Kick go whenever something is in melee anyway. The melee
+# play is the Survival Melee experiment (rotation survival_melee).
 [rotations.survival]
-desc = "Survival in melee with a cat: Aspect of the Beast (Monkey before 30), Hunter's Mark, Serpent Sting, Mongoose Bite, Counterattack, Raptor Strike and Strider Kick on cooldown, Lacerate on longer fights, War Stomp on players and double pulls"
+desc = "Survival with a cat: in melee against monsters and bosses (Aspect of the Beast, Hunter's Mark, Serpent Sting, Mongoose Bite, Counterattack, Raptor Strike and Strider Kick on cooldown, Lacerate on longer fights); against players it keeps a hunter's range, with Concussive Shot, Aimed and Arcane Shot, and Wing Clip and a step back when they close"
 auto_melee = true
-auto_ranged = false
+auto_ranged = true
+# Forever's Survival fights monsters in melee; a player gets shot from range,
+# out of the bow's dead zone, so a mage can't kite it into Frost Nova
+stand_at = "target.is_player ? 35 : 0"
+keep_min = "target.is_player ? 8 : 0"
 precombat = ["call_pet", "aspect_of_the_beast", { cast = "aspect_of_the_monkey", if = "!known.aspect_of_the_beast" }]
 opener = [{ cast = "tracking", if = "t.improved_tracking > 0" }, "hunters_mark"]
 actions = [
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
+  { cast = "wing_clip", if = "target.is_player && target.dist < 6" },   # a player on you: slow them, then step back out to shoot
   { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
   { cast = "feign_death", if = "hp_pct < 0.15 && !target.boss" },   # escape: drop it all
-  { cast = "deterrence", if = "hp_pct < 0.35" },
+  { cast = "deterrence", if = "hp_pct < 0.35", emergency = true },
   { cast = "scare_beast", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.feared && hp_pct < 0.5" },   # a beast add runs off when it gets rough
-  { cast = "concussive_shot", if = "target.fleeing" },   # stop a runner
-  { cast = "war_stomp", if = "target.is_player || enemies >= 2" },
+  { cast = "concussive_shot", if = "target.fleeing || (target.is_player && !target.slowed)" },   # stop a runner, slow a chaser
+  { cast = "war_stomp", if = "target.dist < 8 && (target.is_player || enemies >= 2)" },
   { cast = "intimidation", target = "enemy", if = "target.is_player" },
   { cast = "rapid_fire" },
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "elunes_light" },
-  { cast = "serpent_sting", if = "target.hp_pct > 0.5 || target.boss" },
+  { cast = "serpent_sting", if = "target.hp_pct > 0.5 || target.boss || target.is_player" },
   { cast = "mongoose_bite" },
   { cast = "counterattack" },
   { cast = "raptor_strike" },
   { cast = "strider_kick" },
-  { cast = "wing_clip", if = "target.is_player || target.fleeing" },
+  { cast = "wing_clip", if = "target.fleeing" },
+  { cast = "aimed_shot", if = "target.is_player && !target.moving" },   # at range, not while they run at you
+  { cast = "arcane_shot", if = "target.is_player && mana_pct > 0.3" },
   { cast = "lacerate", if = "target.hp_pct > 0.3 || target.boss" },
   { cast = "aspect_of_the_beast" },
   { cast = "aspect_of_the_monkey", if = "!known.aspect_of_the_beast" },
@@ -1411,8 +1454,9 @@ actions = [
 rest = [
   { cast = "revive_pet" },
   { cast = "call_pet", if = "!pet.active" },
+  { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.7 && !pet.aura.mend_pet.up" },   # pets keep their wounds between pulls
   { cast = "cannibalize", if = "hp_pct < 0.75" },
   { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
 ]
-eat_below = 0.55
-drink_below = 0.4
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.55"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.4"

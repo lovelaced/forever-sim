@@ -98,10 +98,13 @@ icon = "spell_holy_purifyingpower"
 tree = "Holy"
 points = 10
 ranks = 2
-text = "Exorcism cooldown -33% (the Cleanse and Purify discount is not simulated)."
+text = "Exorcism cooldown -33%, and Cleanse and Purify cost 20% less."
 # Game (429144): Exorcism and Holy Wrath cooldown -17/-33%, Cleanse and Purify
 # cost -10/-20%.
-spell_mods = [{ spells = ["exorcism"], prop = "cooldown", mul = "rank == 1 ? 0.83 : 0.67" }]
+spell_mods = [
+  { spells = ["exorcism"], prop = "cooldown", mul = "rank == 1 ? 0.83 : 0.67" },
+  { spells = ["cleanse", "purify"], prop = "cost", mul = "1 - 0.1 * rank" },
+]
 [talents.infusion_of_light]
 icon = "ability_paladin_infusionoflight"
 tree = "Holy"
@@ -197,7 +200,8 @@ icon = "spell_holy_sealofprotection"
 tree = "Protection"
 points = 5
 ranks = 2
-text = "Blessing of Protection cooldown -2 min and Blessing of Freedom +6 sec (neither blessing is simulated)."
+text = "Blessing of Protection cooldown -2 min and Blessing of Freedom +6 sec."
+spell_mods = [{ spells = ["blessing_of_protection"], prop = "cooldown", add = "-60 * rank" }]
 [talents.anticipation]
 icon = "spell_magic_lesserinvisibilty"
 tree = "Protection"
@@ -575,6 +579,7 @@ mods = [{ stat = "immune_silence", add = 1 }]
 [auras.vindication]
 name = "Vindication"
 debuff = true
+dispel = "magic"
 duration = 30
 max_stacks = 3
 refresh = "replace"
@@ -592,11 +597,20 @@ mods = [{ stat = "phys_dmg_taken", mul = 0 }, { stat = "phys_dmg_done", mul = 0 
 [auras.blessing_of_freedom]
 name = "Blessing of Freedom"
 dispel = "magic"
-duration = 10
+duration = "10 + 3 * t.guardians_favor"
 free = true
+[auras.repentance]
+name = "Repentance"
+icon = "spell_holy_prayerofhealing"
+debuff = true
+per_source = false
+mechanic = "incap"
+break_on_damage = true
+hold = true
 [auras.forbearance]
 name = "Forbearance"
 debuff = true
+dispel = "none"
 per_source = false
 duration = 60
 # Game (498, 5573): immune to all damage, but you cannot attack (stood in for
@@ -618,6 +632,7 @@ absorb = "max_hp"
 # ------------------------------------------------------------------ spells
 [spells.devotion_aura]
 name = "Devotion Aura"
+school = "holy"
 radius = 30
 icon = "spell_holy_devotionaura"
 target = "self"
@@ -637,6 +652,7 @@ effects = [{ type = "aura", aura = "devotion_aura" }]
 # had 7/12/18/24/30.
 [spells.retribution_aura]
 name = "Retribution Aura"
+school = "holy"
 radius = 30
 icon = "spell_holy_auraoflight"
 target = "self"
@@ -651,6 +667,7 @@ ranks = [
 effects = [{ type = "aura", aura = "retribution_aura" }]
 [spells.blessing_of_might]
 name = "Blessing of Might"
+school = "holy"
 range = 30
 icon = "spell_holy_fistofjustice"
 target = "self"
@@ -667,6 +684,7 @@ ranks = [
 effects = [{ type = "aura", aura = "blessing_of_might" }]
 [spells.blessing_of_wisdom]
 name = "Blessing of Wisdom"
+school = "holy"
 range = 30
 icon = "spell_holy_sealofwisdom"
 target = "self"
@@ -682,6 +700,7 @@ ranks = [
 effects = [{ type = "aura", aura = "blessing_of_wisdom" }]
 [spells.blessing_of_kings]
 name = "Greater Blessing of Kings"
+school = "holy"
 radius = 100
 icon = "spell_magic_greaterblessingofkings"
 target = "self"
@@ -691,6 +710,7 @@ ranks = [{ level = 60, id = 25898 }]
 effects = [{ type = "aura", aura = "blessing_of_kings" }]
 [spells.righteous_fury]
 name = "Righteous Fury"
+school = "holy"
 icon = "spell_holy_sealoffury"
 target = "self"
 requires = "!aura.righteous_fury.up || aura.righteous_fury.remains < 60"
@@ -837,6 +857,7 @@ effects = [
 # `jheal`: the heal spell (20267, 20341, 20342, 20343).
 [spells.judgement_of_light_cast]
 name = "Judgement of Light"
+dispel = "magic"
 range = 100
 icon = "spell_holy_healingaura"
 school = "holy"
@@ -854,6 +875,7 @@ effects = [
 # `jmana`: from the tooltip (the game's mana spell, 1826, is a script).
 [spells.judgement_of_wisdom]
 name = "Judgement of Wisdom"
+dispel = "magic"
 range = 100
 icon = "spell_holy_righteousnessaura"
 school = "holy"
@@ -971,6 +993,7 @@ effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef 
 
 [spells.hammer_of_justice]
 name = "Hammer of Justice"
+dispel = "magic"
 range = 10
 icon = "spell_holy_sealofmight"
 school = "holy"
@@ -1055,7 +1078,8 @@ ranks = [
   { level = 50, id = 1311590, lo = 473, lo_per_level = 1.458, hi = 501, hi_per_level = 1.542, max_level = 59, coef = 0.143, mana = 1000 },
   { level = 60, id = 1311595, lo = 684, lo_per_level = 1.749, hi = 724, hi_per_level = 1.851, max_level = 69, coef = 0.143, mana = 1340 },
 ]
-effects = [{ type = "heal", target = "ally", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Light's Vigil", on_crit = [{ type = "chance", p = "0.2 * t.illumination", then = [{ type = "resource", res = "mana", amount = "0.5 * r.mana" }] }] }]
+# the game heals the paladin's party within 40 yd (spell 1310912 and its ranks)
+effects = [{ type = "heal", target = "party", min = "r.lo", max = "r.hi", coef = "r.coef", tag = "Light's Vigil", on_crit = [{ type = "chance", p = "0.2 * t.illumination", then = [{ type = "resource", res = "mana", amount = "0.5 * r.mana" }] }] }]
 
 [spells.holy_light]
 name = "Holy Light"
@@ -1141,7 +1165,7 @@ effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef 
 name = "Turn Undead"
 range = 20
 icon = "spell_holy_turnundead"
-school = "holy"
+school = "nature"
 target = "enemy"
 cooldown = 30
 requires = "target.undead"
@@ -1182,6 +1206,28 @@ text = "Frees you from roots and slows and keeps them off for 10 sec."
 ranks = [{ level = 18, id = 1044 }]
 effects = [{ type = "dispel", mechanics = ["root", "slow", "freeze"] }, { type = "aura", aura = "blessing_of_freedom" }]
 
+[spells.purify]
+name = "Purify"
+range = 30
+icon = "spell_holy_purify"
+school = "holy"
+target = "self"
+cost = { mana = "0.08 * base_mana" }
+text = "Takes 1 poison and 1 disease off a friendly target."
+ranks = [{ level = 8, id = 1152 }]
+effects = [{ type = "cleanse", target = "ally", types = ["poison"] }, { type = "cleanse", target = "ally", types = ["disease"] }]
+
+[spells.cleanse]
+name = "Cleanse"
+range = 30
+icon = "spell_holy_renew"
+school = "holy"
+target = "self"
+cost = { mana = "0.08 * base_mana" }
+text = "Takes 1 poison, 1 disease and 1 magic effect off a friendly target."
+ranks = [{ level = 42, id = 4987 }]
+effects = [{ type = "cleanse", target = "ally", types = ["poison"] }, { type = "cleanse", target = "ally", types = ["disease"] }, { type = "cleanse", target = "ally", types = ["magic"] }]
+
 [spells.divine_shield]
 name = "Divine Shield"
 icon = "spell_holy_divineintervention"
@@ -1196,6 +1242,7 @@ effects = [{ type = "aura", aura = "divine_shield" }, { type = "aura", aura = "f
 # no invulnerability mechanic and the tooltip names none.
 [spells.templars_bulwark]
 name = "Templar's Bulwark"
+school = "holy"
 icon = "ability_paladin_shieldofthetemplar"
 talent = "templars_bulwark"
 off_gcd = true
@@ -1216,6 +1263,7 @@ ranks = [{ level = 40, id = 20925, dmg = 110, mana = 150 }, { level = 50, id = 2
 effects = [{ type = "aura", aura = "holy_shield" }]
 [spells.divine_favor]
 name = "Divine Favor"
+school = "holy"
 icon = "spell_holy_heal"
 talent = "divine_favor"
 off_gcd = true
@@ -1236,6 +1284,7 @@ ranks = [{ level = 1, id = 1310994 }]
 effects = [{ type = "cooldown", spell = "judgement", op = "reset" }, { type = "aura", aura = "swift_judgement" }]
 [spells.repentance]
 name = "Repentance"
+dispel = "magic"
 range = 20
 icon = "spell_holy_prayerofhealing"
 talent = "repentance"
@@ -1244,9 +1293,10 @@ cooldown = 60
 cost = { mana = 60 }
 requires = "target.humanoid"
 ranks = [{ level = 20, id = 20066 }]
-effects = [{ type = "aura", aura = "incap", target = "target", duration = 6 }]
+effects = [{ type = "aura", aura = "repentance", target = "target", duration = 6 }]
 [spells.voice_of_truth]
 name = "Voice of Truth"
+school = "holy"
 radius = 30
 icon = "inv_misc_horn_03"
 talent = "voice_of_truth"
@@ -1260,36 +1310,43 @@ effects = [{ type = "aura", aura = "voice_of_truth" }]
 # Racials: Will to Survive (Human) breaks a stun, Stoneform (Dwarf) below half
 # health, Cannibalize (Undead) between pulls; other races skip those lines.
 [rotations.retribution]
-desc = "Retribution two-hander: Seal of Command (Righteousness before it), Judgement, Holy Strike, Consecration, Hammer of Wrath; Flash of Light when hurt"
+desc = "Retribution two-hander: Seal of Command (Righteousness before it), Judgement, Holy Strike and Hammer of Wrath, with Consecration for packs. Flash of Light when hurt; against players it stuns before it judges, and heals behind Repentance or Divine Shield"
 precombat = ["devotion_aura", "blessing_of_might", "seal_of_command", { cast = "seal_of_righteousness", if = "!known.seal_of_command" }]
 opener = []
+# One on one, Repentance is a breather: at half health it takes the enemy out
+# for a Holy Light, and the bubble at 40% does the same for longer.
 actions = [
   { cast = "will_to_survive" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "stoneform", if = "hp_pct < 0.5" },
-  { cast = "divine_shield", if = "hp_pct < 0.15" },
-  { cast = "blessing_of_protection", if = "hp_pct < 0.15 && !aura.divine_shield.up" },   # escape
-  { cast = "lay_on_hands", if = "hp_pct < 0.15" },
-  { cast = "hammer_of_justice", if = "(target.is_player || target.casting || (target.fleeing && target.humanoid)) && !target.stunned" },
-  { cast = "repentance", target = "other_enemy", if = "enemies >= 2 && !target.incapacitated" },   # take the add out of the fight
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "stoneform", if = "hp_pct < 0.5", emergency = true },
+  { cast = "divine_shield", if = "hp_pct < (target.is_player ? 0.4 : 0.15)", emergency = true },
+  { cast = "blessing_of_protection", if = "hp_pct < 0.15 && !aura.divine_shield.up", emergency = true },   # escape
+  { cast = "lay_on_hands", if = "hp_pct < 0.15 && !aura.divine_shield.up", emergency = true },   # it drains your mana: not inside the bubble
+  { cast = "holy_light", rank = "fit", if = "aura.divine_shield.up && hp_pct < 0.7" },   # heal up behind the bubble
+  { cast = "hammer_of_justice", if = "(target.is_player || target.casting || (target.fleeing && target.humanoid)) && !target.stunned && !target.my_cc" },
+  { cast = "repentance", target = "other_enemy", if = "enemies >= 2 && !target.incapacitated && !target.aura.consecration.up" },   # take the add out of the fight (Consecration would break it)
   { cast = "turn_undead", target = "other_enemy", if = "enemies >= 2 && !target.feared" },
   { cast = "blessing_of_freedom", if = "(rooted || frozen || slowed) && target.dist > 5" },
-  { cast = "repentance", if = "hp_pct < 0.4 && target.is_player" },
-  { cast = "hammer_of_justice", if = "hp_pct < 0.4 && target.dist < 6 && !target.stunned && !target.boss" },   # stun it, then heal in peace
+  { cast = "cleanse", if = "(rooted || frozen || slowed) && target.dist > 5 && debuffs.magic + debuffs.poison > 0" },   # Freedom is on cooldown
+  { cast = "purify", if = "(rooted || frozen || slowed) && target.dist > 5 && debuffs.poison > 0 && !known.cleanse" },
+  { cast = "repentance", if = "hp_pct < 0.5 && target.is_player && !target.stunned && !aura.divine_shield.up && !target.aura.consecration.up" },
+  { cast = "hammer_of_justice", if = "hp_pct < 0.4 && target.dist < 6 && !target.stunned && !target.my_cc && !target.boss" },   # stun it, then heal in peace
   { cast = "flash_of_light", if = "hp_pct < 0.4 && !target.is_player" },
-  { cast = "holy_light", if = "hp_pct < 0.4 && target.stunned" },
+  { cast = "holy_light", rank = "fit", if = "hp_pct < 0.6 && (target.stunned || target.my_cc)" },
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "judgement", if = "target.stunned || !known.seal_of_command" },
   { cast = "seal_of_command", if = "!aura.seal_of_command.up" },
   { cast = "seal_of_righteousness", if = "!known.seal_of_command && !aura.seal_of_righteousness.up" },
-  { cast = "judgement", if = "cd.holy_strike.remains > 1" },
+  { cast = "judgement", if = "cd.holy_strike.remains > 1 && !(target.is_player && cd.hammer_of_justice.ready)" },   # a player gets the hammer first: Command judges a stunned target twice as hard
   { cast = "hammer_of_wrath" },
   { cast = "holy_strike" },
   { cast = "exorcism" },
   { cast = "holy_wrath", if = "enemies_within_20 >= 2 && cc_near == 0" },
   { cast = "hammer_of_the_righteous", if = "enemies >= 2 && cc_near == 0" },
-  { cast = "consecration", if = "cc_near == 0 && (mana_pct > 0.5 || enemies >= 2)" },
+  { cast = "consecration", if = "cc_near == 0 && (enemies_within_8 >= 2 || (target.boss || target.is_player) && mana_pct > 0.5)" },   # a single mob isn't worth its mana
+  { cast = "cleanse", if = "target.is_player && debuffs.magic + debuffs.poison + debuffs.disease > 0 && mana_pct > 0.3" },   # a free global cooldown takes a DoT off
+  { cast = "purify", if = "target.is_player && debuffs.poison + debuffs.disease > 0 && mana_pct > 0.3 && !known.cleanse" },
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
@@ -1298,36 +1355,45 @@ rest = [
   { cast = "devotion_aura" },
   { cast = "blessing_of_might" },
 ]
-eat_below = 0.5
-drink_below = 0.35
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.35"
 
 [rotations.protection]
-desc = "Protection with a shield: Righteous Fury, Seal of Fury, Holy Shield, Judgement, Holy Strike, Hammer of the Righteous, Consecration"
-precombat = ["devotion_aura", "blessing_of_kings", { cast = "blessing_of_wisdom", if = "!known.blessing_of_kings" }, "righteous_fury", "seal_of_fury"]
+desc = "Protection with a shield: Righteous Fury, Seal of Fury, Holy Shield, Judgement, Holy Strike, Hammer of the Righteous, Consecration for packs. In a party behind the tank it drops Righteous Fury and judges Righteousness instead of Fury"
+# In the boss test the warrior tanks: no Righteous Fury, and Seal of
+# Righteousness, since Judgement of Fury taunts the boss off the tank.
+precombat = ["devotion_aura", "blessing_of_kings", { cast = "blessing_of_wisdom", if = "!known.blessing_of_kings" }, { cast = "righteous_fury", if = "!fight.boss" }, { cast = "seal_of_fury", if = "!fight.boss" }, { cast = "seal_of_righteousness", if = "fight.boss" }]
 opener = []
 actions = [
   { cast = "will_to_survive" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "stoneform", if = "hp_pct < 0.5" },
-  { cast = "templars_bulwark", if = "hp_pct < 0.3" },
-  { cast = "divine_shield", if = "hp_pct < 0.12" },
-  { cast = "blessing_of_protection", if = "hp_pct < 0.15 && !aura.divine_shield.up" },   # escape
-  { cast = "lay_on_hands", if = "hp_pct < 0.15" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "stoneform", if = "hp_pct < 0.5", emergency = true },
+  { cast = "templars_bulwark", if = "hp_pct < 0.3", emergency = true },
+  { cast = "divine_shield", if = "hp_pct < (target.is_player ? 0.4 : 0.15)", emergency = true },
+  { cast = "blessing_of_protection", if = "hp_pct < 0.15 && !aura.divine_shield.up", emergency = true },   # escape
+  { cast = "lay_on_hands", if = "hp_pct < 0.15 && !aura.divine_shield.up", emergency = true },   # it drains your mana: not inside the bubble
+  { cast = "holy_light", rank = "fit", if = "aura.divine_shield.up && hp_pct < 0.7" },   # heal up behind the bubble
   { cast = "hammer_of_justice", if = "(target.is_player || target.casting || (target.fleeing && target.humanoid)) && !target.stunned" },
   { cast = "blessing_of_freedom", if = "(rooted || frozen || slowed) && target.dist > 5" },
+  { cast = "cleanse", if = "(rooted || frozen || slowed) && target.dist > 5 && debuffs.magic + debuffs.poison > 0" },   # Freedom is on cooldown
+  { cast = "purify", if = "(rooted || frozen || slowed) && target.dist > 5 && debuffs.poison > 0 && !known.cleanse" },
   { cast = "flash_of_light", if = "hp_pct < 0.35 && !target.is_player" },
+  { cast = "holy_light", rank = "fit", if = "hp_pct < 0.5 && target.is_player && target.stunned" },   # a stunned player can't stop the heal
   { cast = "blood_fury" },
   { cast = "berserking" },
-  { cast = "holy_shield", if = "!aura.holy_shield.up" },
-  { cast = "seal_of_fury", if = "!aura.seal_of_fury.up" },
-  { cast = "judgement" },
+  { cast = "holy_shield", if = "!aura.holy_shield.up && has_aggro" },   # blocks need something hitting you
+  { cast = "seal_of_fury", if = "!aura.seal_of_fury.up && !fight.boss" },
+  { cast = "seal_of_righteousness", if = "!aura.seal_of_righteousness.up && fight.boss" },
+  { cast = "judgement", if = "!(target.is_player && cd.hammer_of_justice.ready)" },   # a player gets the hammer first
   { cast = "swift_judgement" },
   { cast = "holy_strike" },
   { cast = "hammer_of_the_righteous", if = "cc_near == 0" },
-  { cast = "hammer_of_wrath" },
+  { cast = "hammer_of_wrath", if = "!target.trash || target.fleeing || mana_pct > 0.5" },   # pricey for an ordinary mob that's nearly dead anyway
   { cast = "exorcism" },
   { cast = "holy_wrath", if = "enemies_within_20 >= 2 && cc_near == 0" },
-  { cast = "consecration", if = "mana_pct > 0.3 && cc_near == 0" },
+  { cast = "consecration", if = "cc_near == 0 && (enemies_within_8 >= 2 || (target.boss || target.is_player) && mana_pct > 0.5)" },   # a single mob isn't worth its mana
+  { cast = "cleanse", if = "target.is_player && debuffs.magic + debuffs.poison + debuffs.disease > 0 && mana_pct > 0.3" },   # a free global cooldown takes a DoT off
+  { cast = "purify", if = "target.is_player && debuffs.poison + debuffs.disease > 0 && mana_pct > 0.3 && !known.cleanse" },
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
@@ -1336,29 +1402,32 @@ rest = [
   { cast = "devotion_aura" },
   { cast = "righteous_fury" },
 ]
-eat_below = 0.5
-drink_below = 0.35
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.35"
 
 [rotations.holy_shock]
-desc = "Holy/Shockadin: Seal of Righteousness, Judgement, Holy Strike, Holy Shock damage, Consecration; heals itself with Holy Shock and Flash of Light"
+desc = "Holy/Shockadin: Seal of Righteousness, Judgement, Holy Strike, Holy Shock damage, Consecration for packs; heals itself with Holy Shock and Flash of Light, and with Holy Light behind Divine Shield"
 precombat = ["devotion_aura", "blessing_of_wisdom", "seal_of_righteousness"]
 opener = []
 actions = [
   { cast = "will_to_survive" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
-  { cast = "stoneform", if = "hp_pct < 0.5" },
-  { cast = "divine_shield", if = "hp_pct < 0.15" },
-  { cast = "blessing_of_protection", if = "hp_pct < 0.15 && !aura.divine_shield.up" },   # escape
-  { cast = "lay_on_hands", if = "hp_pct < 0.15" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
+  { cast = "stoneform", if = "hp_pct < 0.5", emergency = true },
+  { cast = "divine_shield", if = "hp_pct < (target.is_player ? 0.4 : 0.15)", emergency = true },
+  { cast = "blessing_of_protection", if = "hp_pct < 0.15 && !aura.divine_shield.up", emergency = true },   # escape
+  { cast = "lay_on_hands", if = "hp_pct < 0.15 && !aura.divine_shield.up", emergency = true },   # it drains your mana: not inside the bubble
+  { cast = "holy_light", rank = "fit", if = "aura.divine_shield.up && hp_pct < 0.7" },   # heal up behind the bubble
   { cast = "divine_favor", if = "hp_pct < 0.5" },
   { cast = "hammer_of_justice", if = "hp_pct < 0.4 && target.dist < 6 && !target.stunned && !target.boss" },   # stun it, then heal in peace
   { cast = "holy_shock_heal", if = "(hp_pct < 0.5) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "flash_of_light", if = "(hp_pct < 0.45) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "hammer_of_justice", if = "(target.is_player || target.casting || (target.fleeing && target.humanoid)) && !target.stunned" },
-  { cast = "repentance", target = "other_enemy", if = "enemies >= 2 && !target.incapacitated" },   # take the add out of the fight
+  { cast = "repentance", target = "other_enemy", if = "enemies >= 2 && !target.incapacitated && !target.aura.consecration.up" },   # take the add out of the fight (Consecration would break it)
   { cast = "turn_undead", target = "other_enemy", if = "enemies >= 2 && !target.feared" },
   { cast = "blessing_of_freedom", if = "(rooted || frozen || slowed) && target.dist > 5" },
+  { cast = "cleanse", if = "(rooted || frozen || slowed) && target.dist > 5 && debuffs.magic + debuffs.poison > 0" },   # Freedom is on cooldown
+  { cast = "purify", if = "(rooted || frozen || slowed) && target.dist > 5 && debuffs.poison > 0 && !known.cleanse" },
   { cast = "holy_light", if = "hp_pct < 0.5 && target.stunned" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -1371,7 +1440,9 @@ actions = [
   { cast = "lights_vigil" },
   { cast = "exorcism" },
   { cast = "holy_wrath", if = "enemies_within_20 >= 2 && cc_near == 0" },
-  { cast = "consecration", if = "cc_near == 0 && (mana_pct > 0.6 || enemies >= 2)" },
+  { cast = "consecration", if = "cc_near == 0 && (enemies_within_8 >= 2 || (target.boss || target.is_player) && mana_pct > 0.5)" },   # a single mob isn't worth its mana
+  { cast = "cleanse", if = "target.is_player && debuffs.magic + debuffs.poison + debuffs.disease > 0 && mana_pct > 0.3" },   # a free global cooldown takes a DoT off
+  { cast = "purify", if = "target.is_player && debuffs.poison + debuffs.disease > 0 && mana_pct > 0.3 && !known.cleanse" },
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
@@ -1380,25 +1451,34 @@ rest = [
   { cast = "devotion_aura" },
   { cast = "blessing_of_wisdom" },
 ]
-eat_below = 0.4
-drink_below = 0.35
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.4"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.35"
 
 # Healing a group (the healing tests): heals on whoever is most hurt, sized
-# to what they're missing; nothing while everyone is topped up.
+# to what they're missing; nothing while everyone is topped up. Flash of Light
+# gives the most healing for the mana, so it does the steady work; Holy Shock
+# (less than half as much per point of mana) is kept for someone in danger.
+# Light's Vigil is left out: here it heals one target at a steep mana cost,
+# where the game heals the whole party (see the accepted audit note).
 [rotations.heal]
-desc = "Group healing: Holy Shock and Flash of Light on whoever is most hurt, Holy Light sized to big gaps, Divine Favor and Lay on Hands in emergencies"
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+desc = "Group healing: Flash of Light sized to whoever is most hurt, Holy Light for big gaps (with Divine Favor while the mana lasts), Holy Shock and Lay on Hands to save someone"
 healer = true
 auto_melee = false
 precombat = ["devotion_aura", "blessing_of_wisdom"]
 opener = []
 actions = [
-  { cast = "mana_potion", if = "opt.potions && mana_pct < 0.3" },
-  { cast = "lay_on_hands", target = "lowest", if = "ally.hp_pct < 0.15" },
-  { cast = "divine_favor", if = "lowest.hp_pct < 0.5" },
-  { cast = "holy_shock_heal", target = "lowest", if = "ally.hp_pct < 0.6" },
-  { cast = "lights_vigil_heal", target = "lowest", if = "ally.hp_pct < 0.7" },
-  { cast = "holy_light", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.55" },
-  { cast = "flash_of_light", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.85" },
+  { cast = "mana_potion", if = "potions && mana_pct < 0.3" },
+  { cast = "lay_on_hands", target = "lowest", if = "ally.hp_pct < 0.15 && (mana_pct < 0.3 || !cd.holy_shock.ready)" },   # it drains all your mana: the last resort
+  { cast = "holy_shock_heal", target = "lowest", if = "ally.hp_pct < 0.35" },   # instant, for whoever is in danger
+  { cast = "divine_favor", if = "lowest.hp_pct < 0.5 && mana_pct > 0.2" },   # a sure crit on the big Holy Light below
+  { cast = "holy_light", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.5" },   # big gaps
+  # Light's Vigil heals the whole party: Holy Shock first (it needs Holy Shock cooling down)
+  { cast = "holy_shock_heal", target = "lowest", if = "known.lights_vigil && party.hurt_80 >= 3 && mana_pct > 0.4 && cd.lights_vigil_heal.ready" },
+  { cast = "lights_vigil_heal", target = "lowest", if = "party.hurt_80 >= 3 && mana_pct > 0.4" },
+  { cast = "cleanse", target = "lowest", if = "ally.debuffs.magic + ally.debuffs.poison + ally.debuffs.disease > 0 && mana_pct > 0.5" },   # a DoT off the group while mana allows
+  { cast = "purify", target = "lowest", if = "ally.debuffs.poison + ally.debuffs.disease > 0 && !known.cleanse && mana_pct > 0.5" },
+  { cast = "flash_of_light", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.85" },   # small gaps
   { cast = "holy_light", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.85 && !known.flash_of_light" },
 ]
 rest = []

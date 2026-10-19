@@ -40,7 +40,7 @@ talent = "A parked duplicate. The trait tables hold two Holy Specialization node
 
 
 [priest.talent_litany_of_light]
-"value.0" = "Not simulated: returning 5/10% of a heal's base cost when it follows a different heal needs a healer rotation on allies."
+"value.0" = "Modelled: 5/10% of the mana a heal cost comes back when it follows a different heal (a proc on casting, with a hidden aura that remembers the last heal), which the audit can't read from the talent."
 
 [priest.talent_spiritual_guidance]
 "value.0" = "Spell damage from 1/3/5/6/8% of Spirit (interp(rank, ...) * spi); the audit can't evaluate a formula that needs Spirit."

@@ -381,6 +381,30 @@ impl<'a> Audit<'a> {
             let note = if ok { String::new() } else { format!("icon {sim_icon:?}, the game has {game_icon:?} (tools/spell_icons.py sets it)") };
             self.push(cid, sp, lv, gid, "icon", None, None, if ok { Status::Ok } else { Status::Mismatch }, note);
         }
+        // the school (it decides what Silence and an interrupt's lockout stop)
+        if let (true, Some(mask)) = (first, g.get("school").and_then(|x| x.as_u64())) {
+            let bit = match sp.school {
+                crate::vars::School::Physical => 1, crate::vars::School::Holy => 2, crate::vars::School::Fire => 4, crate::vars::School::Nature => 8,
+                crate::vars::School::Frost => 16, crate::vars::School::Shadow => 32, crate::vars::School::Arcane => 64,
+            };
+            let ok = mask & bit != 0;
+            let note = if ok { String::new() } else { format!("school {}, the game's mask is {mask} (1 physical, 2 holy, 4 fire, 8 nature, 16 frost, 32 shadow, 64 arcane)", sp.school.name()) };
+            self.push(cid, sp, lv, gid, "school", Some(bit as f64), Some(mask as f64), if ok { Status::Ok } else { Status::Mismatch }, note);
+        }
+        // the dispel type of the debuffs it leaves (what cures take them off)
+        let mut auras = vec![];
+        crate::world::applied_auras(&sp.effects, &mut auras);
+        if let Some(ch) = &sp.channel {
+            crate::world::applied_auras(&ch.effects, &mut auras);
+        }
+        let debuffs = auras.iter().any(|&a| { let d = &self.w.auras[a as usize]; d.debuff && d.dispel.is_none() });
+        if first && debuffs {
+            let game = g.get("dispel").and_then(|x| x.as_u64()).unwrap_or(0);
+            let want = match game { 1 => DISPEL_MAGIC, 2 => DISPEL_CURSE, 3 => DISPEL_DISEASE, 4 => DISPEL_POISON, _ => 0 };
+            let ok = sp.dispel == want;
+            let note = if ok { String::new() } else { format!("dispel type {}, the game's is {game} (1 magic, 2 curse, 3 disease, 4 poison)", sp.dispel) };
+            self.push(cid, sp, lv, gid, "dispel", Some(sp.dispel as f64), Some(want as f64), if ok { Status::Ok } else { Status::Mismatch }, note);
+        }
         // costs
         let game_cost = |power: &str| -> Option<f64> {
             let c = g.get("cost")?.as_array()?.iter().find(|c| c.get("power").and_then(|p| p.as_str()) == Some(power))?;

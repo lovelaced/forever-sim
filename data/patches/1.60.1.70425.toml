@@ -271,9 +271,8 @@ effects = [
   { type = "emit", event = "gore_trigger" },
 ]
 
-# Oct 15 notes: Slam is no longer subject to spell pushback. The engine has
-# no per-spell pushback flag, so this is a class passive; Slam is the only
-# warrior spell with a cast time. The first three passives are unchanged.
+# Oct 15 notes: Slam is no longer subject to spell pushback (a spell
+# modifier on Slam alone). The first three passives are unchanged.
 [[classes.warrior.passives]]
 name = "Victory"
 procs = [{ on = "kill", effects = [{ type = "aura", aura = "victory_rush_ready" }] }]
@@ -289,7 +288,7 @@ procs = [
 ]
 [[classes.warrior.passives]]
 name = "Slam ignores pushback"
-mods = [{ stat = "pushback_resist", add = 1 }]
+spell_mods = [{ spells = ["slam"], prop = "pushback_resist", add = 1 }]
 
 # Not modelled: Battle Shout is raid wide (5242 ...: targets 20 -> 56; the sim
 # has no party). Overpower against much lower level enemies: the sim's
@@ -458,27 +457,27 @@ tick = { interval = "opt.hawk_dive_interval", effects = [{ type = "damage", scho
 # the sim, summoning on regular mobs loses kills per hour against not doing
 # it (BM Ranged, solo_1: about 6% at level 30, 2% at level 60).
 actions = [
-  { cast = "wing_clip", if = "target.dist < 6 && target.is_player" },   # slow it, then step out of the dead zone
-  { cast = "feign_death", if = "hp_pct < 0.15 && !target.boss" },   # escape: drop it all
+  { cast = "wing_clip", if = "target.dist < 6 && (target.is_player || (has_aggro && hp_pct < 0.8))" },   # a player, or a mob on you once it hurts: slow it, then step out of the dead zone
+  { cast = "feign_death", if = "hp_pct < 0.3 && !target.boss" },   # escape: drop it all before the last few blows
   { cast = "feign_death", if = "target.boss && threat.pct > 0.85" },   # in a group: shed threat and keep shooting
-  { cast = "disengage", if = "has_aggro && pet.active && !target.is_player && target.dist < 6" },   # hand it back to the pet
+  { cast = "disengage", if = "has_aggro && pet.active && !target.is_player && target.dist < 6 && hp_pct < 0.8" },   # hand it back to the pet once it hurts (Growl often does it first)
   { cast = "scare_beast", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.feared && hp_pct < 0.5" },   # a beast add runs off when it gets rough
   { cast = "concussive_shot", if = "target.fleeing || (target.is_player && !target.slowed)" },   # stop a runner, slow a chaser
   { cast = "volley", if = "enemies_active >= 3 && cc_near == 0" },
   { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
-  { cast = "deterrence", if = "hp_pct < 0.35" },
+  { cast = "deterrence", if = "hp_pct < 0.5 && enemies_within_8 >= 1", emergency = true },   # dodge and parry: only against blows, and before the last one
   { cast = "intimidation", target = "enemy", if = "target.is_player" },
   { cast = "bestial_wrath" },
   { cast = "rapid_fire" },
   { cast = "blood_fury" },
   { cast = "berserking" },
-  { cast = "scatter_shot", if = "target.is_player" },
+  { cast = "scatter_shot", if = "target.is_player && target.dist < 15 && !target.casting" },   # a peel on someone already close, never walking up for it
   { cast = "serpent_sting", if = "target.hp_pct > 0.3" },
   { cast = "summon_hawk", if = "target.aura.hawk.stacks < 2 && (target.boss || target.is_player)" },
-  { cast = "sniper_shot" },
-  { cast = "multi_shot", if = "(enemies >= 2 && cc_near == 0) || !known.aimed_shot" },
-  { cast = "aimed_shot" },
-  { cast = "arcane_shot", if = "mana_pct > 0.3" },
+  { cast = "sniper_shot", if = "!(has_aggro && target.moving)" },
+  { cast = "multi_shot", if = "(enemies_active >= 2 || !known.aimed_shot) && enemies_active == enemies" },   # never while one is trapped or scared: it hits them all
+  { cast = "aimed_shot", if = "!(has_aggro && target.moving)" },   # not while it runs at you: the cast would end in the dead zone
+  { cast = "arcane_shot", if = "mana_pct > 0.3 && !target.trash" },   # not worth its mana on trash: the pet and Auto Shot do that work
   { cast = "aspect_of_the_hawk" },
 ]
 
@@ -490,8 +489,8 @@ actions = [
 # it (BM Ranged, solo_1: about 6% at level 30, 2% at level 60).
 actions = [
   { cast = "mend_pet", if = "pet.active && pet.hp_pct < 0.4 && !pet.aura.mend_pet.up" },
-  { cast = "feign_death", if = "hp_pct < 0.15 && !target.boss" },   # escape: drop it all
-  { cast = "deterrence", if = "hp_pct < 0.35" },
+  { cast = "feign_death", if = "hp_pct < 0.3 && !target.boss" },   # escape: drop it all before the last few blows
+  { cast = "deterrence", if = "hp_pct < 0.5 && enemies_within_8 >= 1", emergency = true },   # dodge and parry: only against blows, and before the last one
   { cast = "scare_beast", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.feared && hp_pct < 0.5" },   # a beast add runs off when it gets rough
   { cast = "concussive_shot", if = "target.fleeing" },   # stop a runner
   { cast = "intimidation", target = "enemy", if = "target.is_player" },
@@ -507,6 +506,8 @@ actions = [
   { cast = "lacerate", if = "target.hp_pct > 0.3" },
   { cast = "serpent_sting", if = "target.hp_pct > 0.3" },
   { cast = "summon_hawk", if = "target.aura.hawk.stacks < 2 && (target.boss || target.is_player)" },
+  { cast = "aimed_shot", if = "(rooted || frozen) && target.dist > 8" },   # stuck out of reach: shoot instead
+  { cast = "arcane_shot", if = "target.dist > 8 && mana_pct > 0.3" },
   { cast = "aspect_of_the_monkey" },
 ]
 
@@ -571,7 +572,8 @@ procs = [
 
 [classes.mage.talents.improved_channeling]
 # 70425 data: spell 11237 effect 1 now also lists Arcane Wrath
-text = "20% per rank chance that damage does not push back Arcane Missiles, 14% per rank for Arcane Blast and Arcane Wrath (pushback resistance for single spells is not simulated)."
+text = "20% per rank chance that damage does not push back Arcane Missiles, 14% per rank for Arcane Blast and Arcane Wrath."
+spell_mods = [{ spells = ["arcane_missiles"], prop = "pushback_resist", add = "0.2 * rank" }, { spells = ["arcane_blast", "arcane_wrath"], prop = "pushback_resist", add = "0.14 * rank" }]
 
 # ======================================================================
 # Fire talents
@@ -778,6 +780,7 @@ effects = [{ type = "damage", school = "arcane", min = "r.lo", max = "r.hi", coe
 name = "Frost Blast"
 icon = "spell_frost_frostbolt"
 school = "frost"
+dispel = "magic"
 ranks = [
   { level = 24, id = 1326053, lo = 25, lo_per_level = 0.284, hi = 27, hi_per_level = 0.316, mana = 40, cast = 1.5, max_level = 35, coef = 0.343 },
   { level = 36, id = 1326054, lo = 43, lo_per_level = 0.474, hi = 47, hi_per_level = 0.526, mana = 65, cast = 1.5, max_level = 47, coef = 0.343 },
@@ -832,25 +835,40 @@ applies = ["mage"]
 # other Frost Blast rules: best or tied in every scenario.
 # Gnomes use Eureka! on cooldown, like the other racials (other races skip
 # the line, so no existing build changes).
-desc = "Frost: Ice Barrier, Frost Nova into Ice Lance/Frostbolt shatter, Frostbolt filler that stacks Winter's Chill, Cone of Cold at 3 stacks (5 on a boss) with Frost Blast adding the last one, Evocation when dry"
+# Phase 3 (Oct 19): Mana Shield fills the gaps between Ice Barriers (against
+# a player once it has hurt you), Frost Ward goes up once a player's
+# Frostbolt or Frost Blast has chilled you, a hunter's pet gets sheeped, and a
+# sheeped add waits while you bandage. An interrupt locks out only Frost, so
+# against a player the mage keeps casting Fire and Arcane spells instead of
+# wanding. Frost Blast stays as it is: holding it to Cone of Cold range, to
+# 20 yards, to moving or to unslowed targets all measured worse in leveling
+# at 60 and in PvP (it's the quick chill that fishes for Frostbite and
+# Fingers of Frost while a target closes in). Ice Block at 25-35% against
+# players also measured worse than at 15%.
+desc = "Frost: Ice Barrier and Mana Shield, Frost Nova and a step back into Ice Lance and Frostbolt shatters, Frostbolt filler that stacks Winter's Chill, Cone of Cold at 3 stacks (5 on a boss) with Frost Blast adding the last one, Evocation when dry"
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
-  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss", emergency = true },   # escape
   { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
   { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
+  { cast = "frost_ward", if = "target.is_player && (aura.frostbolt_chill.up || aura.frost_blast_chill.up) && !aura.frost_ward.up" },   # a frost mage: ward its next bolts
+  { cast = "mana_shield", if = "!aura.mana_shield.up && !aura.ice_barrier.up && (target.is_player ? hp_pct < 0.8 : enemies_within_5 >= 1 && hp_pct < 0.5) && mana_pct > 0.3" },   # once a player has hurt you, or a monster has you at half health
   { cast = "cold_snap", if = "cd.ice_barrier.remains > 10 && cd.frost_nova.remains > 10 && (target.is_player || enemies_active >= 2)" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "eureka" },
   { cast = "presence_of_mind" },
   { cast = "polymorph", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.incapacitated && hp_pct < 0.7" },   # sheep the add when it gets rough
+  { cast = "polymorph", target = "other_enemy", pick = "nearest", if = "fight.pvp && target.beast && !target.held" },   # a hunter's pet
+  { cast = "polymorph", if = "!target.is_player && enemies_active < 2 && hp_pct < 0.35 && target.hp_pct > 0.5 && !target.held && cd.frost_nova.remains > 1" },   # alone with a fresh monster and losing: sheep it to bandage
+  { cast = "first_aid", if = "target.my_cc && enemies_active == 0 && hp_pct < 0.7 && debuffs.poison + debuffs.magic + debuffs.curse + debuffs.disease == 0" },   # the sheep waits while you bandage
   { cast = "arcane_power" },
-  { cast = "frost_nova", if = "target.fleeing && !aura.polymorph_out.up" },   # stop a runner
-  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15 && !aura.polymorph_out.up && target.dist < 8" },   # once it's on you
+  { cast = "frost_nova", if = "target.fleeing && cc_near == 0" },   # stop a runner
+  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15 && cc_near == 0 && target.dist < 8" },   # once it's on you
   { cast = "step_back", if = "(target.frozen || target.rooted) && target.dist < 10" },   # kite: out of reach while it's held
   { cast = "blizzard", if = "enemies_active >= 3 && !aura.polymorph_out.up" },
   { cast = "arcane_explosion", if = "enemies_within_10 >= 3 && !aura.polymorph_out.up && mana_pct > 0.3" },
@@ -861,6 +879,10 @@ actions = [
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (target.hp_pct < 0.3 || mana_pct < 0.3)" },   # leveling: a few casts, then wand to finish
   { cast = "frostbolt" },
   { cast = "fireball", if = "!known.frostbolt" },
+  # a player locked Frost out (Kick, Counterspell, Earth Shock): Fire and Arcane still work
+  { cast = "fire_blast", if = "target.is_player && target.dist <= 20 + 3 * t.flame_throwing + (t.improved_fire_blast == 2 ? 15 : 8 * t.improved_fire_blast)" },
+  { cast = "arcane_explosion", if = "target.is_player && enemies_within_10 >= 1 && cc_near == 0" },
+  { cast = "fireball", if = "target.is_player && enemies_within_5 == 0" },   # not a long cast with someone hitting you
   { cast = "shoot", if = "gcd_remains <= 0" },   # out of mana: the wand is free
 ]
 
@@ -880,16 +902,25 @@ actions = [
 # rank 2 at 50) lost to Fireball at 40, 50 and 55; Ice Lance on a boss lost
 # 14 DPS to Frostfire Bolt; Ice Lance on a Frost Nova'd target lost kills.
 # Builds without Fingers of Frost play as before.
-desc = "Fire: Scorch to five stacks on long fights, Fireball (Frostfire Bolt once Fingers of Frost is taken), Fire Blast, Pyroblast with three Heating Up stacks or Presence of Mind, Ice Lance on Fingers of Frost against monsters, Combustion"
+# Phase 3 (Oct 19): Fire Blast only once the target is in its reach (walking
+# in from 35 yards for it was Fire's biggest loss: solo at 60 went from 122
+# to 132 kills an hour, hard doubles at 40 from 39 to 67), and not into your
+# own Frost Nova unless it finishes the target. Frost Nova is followed by a
+# step back, as Frost does. Mana Shield against a player once it has hurt
+# you, Frost Ward against a frost mage, a sheep on a hunter's pet, a bandage
+# while a sheeped add waits, and Arcane and Frost spells while a player has
+# Fire locked out.
+desc = "Fire: Fireball from range (Frostfire Bolt once Fingers of Frost is taken), Fire Blast once it's in reach, Pyroblast with three Heating Up stacks or Presence of Mind, Scorch to five stacks on long fights, Ice Lance on Fingers of Frost against monsters, Combustion, Frost Nova and a step back, Mana Shield"
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
-  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss", emergency = true },   # escape
   { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
   { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
-  { cast = "mana_shield", if = "!aura.mana_shield.up && !aura.ice_barrier.up && enemies_within_5 >= 1 && hp_pct < 0.5 && mana_pct > 0.3" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
+  { cast = "frost_ward", if = "target.is_player && (aura.frostbolt_chill.up || aura.frost_blast_chill.up) && !aura.frost_ward.up" },   # a frost mage: ward its next bolts
+  { cast = "mana_shield", if = "!aura.mana_shield.up && !aura.ice_barrier.up && (target.is_player ? hp_pct < 0.8 : enemies_within_5 >= 1 && hp_pct < 0.5) && mana_pct > 0.3" },   # once a player has hurt you, or a monster has you at half health
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -897,18 +928,25 @@ actions = [
   { cast = "combustion" },
   { cast = "presence_of_mind" },
   { cast = "polymorph", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.incapacitated" },   # sheep the add
-  { cast = "frost_nova", if = "target.fleeing && !aura.polymorph_out.up" },   # stop a runner
-  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15 && !aura.polymorph_out.up && target.dist < 8" },   # once it's on you
+  { cast = "polymorph", target = "other_enemy", pick = "nearest", if = "fight.pvp && target.beast && !target.held" },   # a hunter's pet
+  { cast = "polymorph", if = "!target.is_player && enemies_active < 2 && hp_pct < 0.35 && target.hp_pct > 0.5 && !target.held && cd.frost_nova.remains > 1" },   # alone with a fresh monster and losing: sheep it to bandage
+  { cast = "first_aid", if = "target.my_cc && enemies_active == 0 && hp_pct < 0.7 && debuffs.poison + debuffs.magic + debuffs.curse + debuffs.disease == 0" },   # the sheep waits while you bandage
+  { cast = "frost_nova", if = "target.fleeing && cc_near == 0" },   # stop a runner
+  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15 && cc_near == 0 && target.dist < 8" },   # once it's on you
+  { cast = "step_back", if = "(target.frozen || target.rooted) && target.dist < 10" },   # kite: out of reach while it's held
   { cast = "blast_wave", if = "enemies_active >= 2 && !aura.polymorph_out.up" },
   { cast = "flamestrike", if = "enemies_active >= 3 && !aura.polymorph_out.up" },
   { cast = "arcane_explosion", if = "enemies_within_10 >= 3 && !aura.polymorph_out.up && mana_pct > 0.3" },
   { cast = "pyroblast", if = "aura.presence_of_mind.up || aura.heating_up.stacks >= 3" },
   { cast = "ice_lance", if = "aura.fingers_of_frost.up && !target.frozen && !target.boss" },
   { cast = "scorch", if = "known.scorch && t.improved_scorch > 0 && target.max_hp > 20000 && (target.aura.fire_vulnerability.stacks < 5 || target.aura.fire_vulnerability.remains < 4)" },
-  { cast = "fire_blast" },
+  { cast = "fire_blast", if = "target.dist <= 20 + 3 * t.flame_throwing + (t.improved_fire_blast == 2 ? 15 : 8 * t.improved_fire_blast) && (!target.frozen || target.hp_pct < 0.25)" },   # once it's in reach (no walking in for it), and not into your own Frost Nova unless it finishes
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (target.hp_pct < 0.3 || mana_pct < 0.3)" },   # leveling: a few casts, then wand to finish
   { cast = "frostfire_bolt", if = "t.fingers_of_frost > 0" },
   { cast = "fireball" },
+  # a player locked Fire out (Kick, Counterspell, Earth Shock): Arcane and Frost still work
+  { cast = "arcane_explosion", if = "target.is_player && enemies_within_10 >= 1 && cc_near == 0" },
+  { cast = "frostbolt", if = "target.is_player && enemies_within_5 == 0" },   # not a long cast with someone hitting you
   { cast = "shoot", if = "gcd_remains <= 0" },   # out of mana: the wand is free
 ]
 
@@ -923,15 +961,27 @@ actions = [
 # Gnomes use Eureka! on cooldown (other races skip the line). Arcane Wrath
 # into a Frost Nova was tested again with the standard Arcane build
 # (builds/mage/arcane.toml, 47/4/0): 2-4% worse in solo_2 and pressure.
-desc = "Arcane: Arcane Blast to two stacks (they last 15 sec), Arcane Wrath on a tanked boss, Arcane Missiles (free with Missile Barrage)"
+# Phase 3 (Oct 19): Frost Nova is followed by a step back. With no Ice
+# Barrier to lean on, Mana Shield goes up once a player has hit you. Frost
+# Ward against a frost mage, a sheep on a hunter's pet, a bandage while a
+# sheeped add waits, and Fire and Frost spells while a player has Arcane
+# locked out. Missiles still go into absorb shields: holding Missile Barrage
+# lost 5 points in the Shadow priest duel at 60, and building four Arcane
+# Blast stacks under a shield was flat in the open world. Arcane Blast ahead
+# of Missile Barrage, to keep stacks up, lost kills at 60.
+desc = "Arcane: Arcane Blast to two stacks (they last 15 sec), Arcane Wrath on a tanked boss, Arcane Missiles (free with Missile Barrage), Frost Nova and a step back, Mana Shield"
+# from Arcane Blast's reach (Arcane Geometry adds 3 yd a point), not the
+# frost and fire spells it falls back to when Arcane is locked out
+stand_at = "30 + 3 * t.arcane_geometry"
 actions = [
   { cast = "counterspell" },
-  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss", emergency = true },   # escape
   { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
   { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
-  { cast = "mana_shield", if = "!aura.mana_shield.up && !aura.ice_barrier.up && enemies_within_5 >= 1 && hp_pct < 0.5 && mana_pct > 0.3" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
+  { cast = "frost_ward", if = "target.is_player && (aura.frostbolt_chill.up || aura.frost_blast_chill.up) && !aura.frost_ward.up" },   # a frost mage: ward its next bolts
+  { cast = "mana_shield", if = "!aura.mana_shield.up && !aura.ice_barrier.up && (target.is_player ? hp_pct < 0.95 : enemies_within_5 >= 1 && hp_pct < 0.5) && mana_pct > 0.3" },   # no Ice Barrier, cheaper with Arcane Shielding: up once a player has hit you, or when a monster has you at half health
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -939,15 +989,23 @@ actions = [
   { cast = "arcane_power" },
   { cast = "presence_of_mind" },
   { cast = "polymorph", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && !target.incapacitated" },   # sheep the add
+  { cast = "polymorph", target = "other_enemy", pick = "nearest", if = "fight.pvp && target.beast && !target.held" },   # a hunter's pet
+  { cast = "polymorph", if = "!target.is_player && enemies_active < 2 && hp_pct < 0.35 && target.hp_pct > 0.5 && !target.held && cd.frost_nova.remains > 1" },   # alone with a fresh monster and losing: sheep it to bandage
+  { cast = "first_aid", if = "target.my_cc && enemies_active == 0 && hp_pct < 0.7 && debuffs.poison + debuffs.magic + debuffs.curse + debuffs.disease == 0" },   # the sheep waits while you bandage
   { cast = "arcane_explosion", if = "enemies_within_10 >= 3 && !aura.polymorph_out.up && mana_pct > 0.3" },
-  { cast = "frost_nova", if = "target.fleeing && !aura.polymorph_out.up" },   # stop a runner
-  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15 && !aura.polymorph_out.up && target.dist < 8" },   # once it's on you
+  { cast = "frost_nova", if = "target.fleeing && cc_near == 0" },   # stop a runner
+  { cast = "frost_nova", if = "!target.frozen && !target.boss && target.hp_pct > 0.15 && cc_near == 0 && target.dist < 8" },   # once it's on you
+  { cast = "step_back", if = "(target.frozen || target.rooted) && target.dist < 10" },   # kite: out of reach while it's held
   { cast = "arcane_missiles", if = "aura.missile_barrage.up" },
   { cast = "arcane_wrath", if = "target.boss || target.stunned" },
   { cast = "arcane_blast", if = "aura.arcane_blast.stacks < 2 && mana_pct > 0.25" },
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (target.hp_pct < 0.3 || mana_pct < 0.3)" },   # leveling: a few casts, then wand to finish
   { cast = "arcane_missiles" },
   { cast = "fireball", if = "!known.arcane_missiles" },
+  # a player locked Arcane out (Kick, Counterspell, Earth Shock): Fire and Frost still work
+  { cast = "fire_blast", if = "target.is_player && target.dist <= 20 + 3 * t.flame_throwing + (t.improved_fire_blast == 2 ? 15 : 8 * t.improved_fire_blast)" },
+  { cast = "cone_of_cold", if = "target.is_player && enemies_within_10 >= 1 && cc_near == 0" },
+  { cast = "frostbolt", if = "target.is_player && enemies_within_5 == 0" },   # not a long cast with someone hitting you
   { cast = "shoot", if = "gcd_remains <= 0" },   # out of mana: the wand is free
 ]
 
@@ -959,15 +1017,20 @@ actions = [
 # instants (duel vs Frost: 81% wins with it, 93% without), so there Arcane
 # Explosion stays the filler, as it does on two or more targets and when
 # Winter's Chill is not taken. (Erin's call: play it this way.)
-desc = "Battlemage: sword in melee plus instants (Frost Nova, Ice Lance on frozen, Fire Blast, Cone of Cold), Frost Blast to stack Winter's Chill on one monster, Arcane Explosion otherwise, Ice Barrier"
+# Phase 3 (Oct 19): Mana Shield between Ice Barriers (hard doubles at 40
+# went from 33 to 47 kills an hour). A sheep on a hunter's pet, which helps
+# the casters a lot, lost against hunters here (51% to 15% at 60), so the
+# battlemage leaves the pet alone.
+desc = "Battlemage: sword in melee plus instants (Frost Nova, Ice Lance on frozen, Fire Blast, Cone of Cold), Frost Blast to stack Winter's Chill on one monster, Arcane Explosion otherwise, Ice Barrier and Mana Shield"
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
-  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss", emergency = true },   # escape
   { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
   { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
+  { cast = "mana_shield", if = "!aura.mana_shield.up && !aura.ice_barrier.up && (target.is_player ? hp_pct < 0.8 : enemies_within_5 >= 1 && hp_pct < 0.5) && mana_pct > 0.3" },   # once a player has hurt you, or a monster has you at half health
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -1078,7 +1141,7 @@ spell_mods = []
 
 [classes.priest.talents.vampiric_embrace]
 # Oct 15 notes: 30 sec cooldown (was 1 min), can't be resisted.
-text = "Heal for 20% of your Shadow damage for 30 sec. 30 sec cooldown."
+text = "You and your party heal for 20% of your Shadow damage for 30 sec. 30 sec cooldown."
 
 [classes.priest.talents.devouring_contagion]
 # Oct 15 notes: spreads to 2 targets; the spread no longer costs mana or
@@ -1093,8 +1156,10 @@ text = "Shadowform: +10% Shadow damage, Shadow spells cost 50% less, Mind Blast,
 # 70425 data: spell 431622 gains effect 1 (20), and the tooltip now reads
 # "Shields up to ${$s2*$pl} damage": 20 times your level (1200 at 60). Oct 15
 # notes: "Added to the tooltip ... what the maximum value for the shield is".
+# The shield goes on whoever the heal landed on ("on the target"), not on
+# the priest: in a group that's the tank or whoever you healed.
 text = "Non-periodic critical heals shield the target for 5% of the heal per point (15% at 3/3), up to 20 times your level."
-procs = [{ on = "heal_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "divine_aegis", target = "self", stacks = "min(event.amount * 0.05 * rank, 20 * level)" }] }]
+procs = [{ on = "heal_crit", if = "!event.periodic", effects = [{ type = "aura", aura = "divine_aegis", target = "target", stacks = "min(event.amount * 0.05 * rank, 20 * level)" }] }]
 
 # ------------------------------------------------------------ priest: auras
 
@@ -1501,27 +1566,32 @@ effects = [{ type = "aura", aura = "elemental_mastery" }]
 # up, Lightning Bolt (1.5 sec with Elemental Alacrity) does more per second
 # than Chain Lightning on one target, so Chain Lightning waits for it to end.
 # On one target Chain Lightning does about half of Lightning Bolt's damage
-# per mana, so it waits for mana above 60% there (boss 207 -> 220 DPS at 60).
-desc = "Elemental: Elemental Mastery, Flame Shock, Lava Burst, Earth Shock, Chain Lightning, Lightning Bolt, Searing Totem; heals when hurt"
+# per mana, so it's kept for two or more (the boss runs out of mana, and
+# leveling drinks less: boss 224 -> 226 DPS, solo 100 -> 103 kills/h at 60).
+# It opens from range and puts Flame Shock and Searing Totem down once the
+# mob is in their reach, instead of walking up to it.
+desc = "Elemental: opens from range, Elemental Mastery, Flame Shock once in reach, Lava Burst, Lightning Bolt, Chain Lightning on two or more, Searing Totem, Frost Shock to finish a mob that may run; heals when hurt"
 actions = [
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
-  { cast = "natures_swiftness", if = "hp_pct < 0.3" },
-  { cast = "healing_wave", if = "hp_pct < 0.3 && aura.natures_swiftness.up" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
+  { cast = "natures_swiftness", if = "hp_pct < 0.3", emergency = true },
+  { cast = "healing_wave", if = "aura.natures_swiftness.up" },   # the instant cast goes on Healing Wave
   { cast = "lesser_healing_wave", if = "hp_pct < 0.35 && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > 0.2)" },
   { cast = "healing_wave", if = "hp_pct < 0.35 && !known.lesser_healing_wave && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > 0.2)" },
   { cast = "earth_shock", if = "target.casting" },   # cut a cast short
+  { cast = "earth_shock", target = "other_enemy", if = "target.casting" },   # the add's too
   { cast = "purge", if = "target.is_player && target.magic_buffs > 0" },   # strip a player's shield or buff
   { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
   { cast = "frost_shock", if = "target.fleeing && !target.slowed" },   # stop a runner
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "elemental_mastery" },
-  { cast = "flame_shock", if = "!target.aura.flame_shock.up && (target.hp_pct > 0.35 || target.boss)" },
+  { cast = "flame_shock", if = "!target.aura.flame_shock.up && (target.hp_pct > 0.35 || target.boss) && target.dist <= 20" },   # once it comes in reach: open from range
   { cast = "lava_burst" },
+  { cast = "frost_shock", if = "target.hp_pct < 0.35 && target.humanoid && target.trash" },   # it may run: finish it slowed
   { cast = "earth_shock", if = "target.hp_pct < 0.35 || !known.flame_shock" },
-  { cast = "chain_lightning", if = "!aura.elemental_mastery.up && (enemies >= 2 || mana_pct > 0.6)" },
-  { cast = "searing_totem", if = "target.hp_pct > 0.4 || target.boss" },
-  { cast = "fire_nova", if = "enemies >= 2" },
-  { cast = "lightning_bolt" },
+  { cast = "chain_lightning", if = "!aura.elemental_mastery.up && enemies >= 2" },
+  { cast = "searing_totem", if = "(target.hp_pct > 0.4 || target.boss) && target.dist <= 20" },   # where its bolts reach
+  { cast = "fire_nova", if = "enemies_within_8 >= 2" },   # two or more around you and your totem
+  { cast = "lightning_bolt", rank = "target.is_player ? 10 : 8" },   # rank 8 does more damage per mana (the top ranks run dry on a boss); the top rank against players
 ]

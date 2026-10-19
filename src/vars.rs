@@ -83,6 +83,17 @@ pub const N_STATS: usize = Stat::ALL.len();
 named_enum!(Res { Hp = "hp", Mana = "mana", Rage = "rage", Energy = "energy" });
 pub const N_RES: usize = 4;
 
+/// The kind of fight a test is, for rotations that play trash, bosses and
+/// players differently (`fight.boss`, `fight.pvp`, ...).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum FightKind {
+    #[default]
+    Leveling,
+    Boss,
+    Pvp,
+    Healing,
+}
+
 named_enum!(School {
     Physical = "physical", Holy = "holy", Fire = "fire", Nature = "nature",
     Frost = "frost", Shadow = "shadow", Arcane = "arcane",
@@ -207,6 +218,18 @@ pub enum VarRef {
     UnitInCombat(Who),
     /// How many buffs a Purge could take off the unit.
     MagicBuffs(Who),
+    /// The health share your rotation eats below between pulls.
+    EatBelow,
+    /// The unit is held by crowd control that damage would break
+    /// (`hold` auras: Polymorph, Sap, Freezing Trap...).
+    Held(Who),
+    /// ...held by your own.
+    MyCc(Who),
+    /// An ordinary mob: not a boss, not a player or player-like enemy.
+    Trash(Who),
+    /// How many debuffs of the given dispel types (`DISPEL_*` bits) the
+    /// unit holds.
+    Debuffs(Who, u8),
     /// Your threat on your target as a share of whoever it's attacking (1
     /// when it's attacking you).
     ThreatPct,
@@ -227,6 +250,16 @@ pub enum VarRef {
     TotemInRange(u8),
     Time,
     CombatTime,
+    /// The pull being fought, or between pulls the next one: how many mobs,
+    /// how many of them cast, and how hard they hit (1 = normal).
+    PullSize,
+    PullCasters,
+    PullDanger,
+    /// What kind of test this is.
+    FightIs(FightKind),
+    /// Potions are in use in this fight (the `potions` setting: never, in
+    /// group fights, or always).
+    PotionsOk,
     AuraUp(Who, u32),
     AuraStacks(Who, u32),
     AuraRemains(Who, u32),

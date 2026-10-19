@@ -532,6 +532,7 @@ actions = [{ cast = "spell_lock", if = "target.casting" }]
 [auras.aftermath_daze]
 name = "Aftermath"
 debuff = true
+dispel = "magic"
 per_source = false
 mechanic = "slow"
 duration = 5
@@ -605,6 +606,7 @@ spell_mods = [{ spells = ["shadow_bolt"], prop = "cast_time", mul = 0 }]
 [auras.shadow_vulnerability]
 name = "Improved Shadow Bolt"
 debuff = true
+dispel = "magic"
 duration = 12
 text = "Marks the target: your Shadow damage to it is 4% higher per Improved Shadow Bolt rank (the talent applies it to your Shadow spells)."
 [auras.shadow_and_flame_shadow]
@@ -672,6 +674,7 @@ duration = 120
 # ------------------------------------------------------------------ spells
 [spells.demon_skin]
 name = "Demon Skin"
+school = "shadow"
 icon = "spell_shadow_ragingscream"
 target = "self"
 requires = "!aura.demon_skin.up && !known.demon_armor"
@@ -683,6 +686,7 @@ effects = [{ type = "aura", aura = "demon_skin" }]
 
 [spells.demon_armor]
 name = "Demon Armor"
+school = "shadow"
 icon = "spell_shadow_ragingscream"
 target = "self"
 requires = "!aura.demon_armor.up"
@@ -697,6 +701,7 @@ effects = [{ type = "aura", aura = "demon_armor" }]
 
 [spells.summon_imp]
 name = "Summon Imp"
+school = "shadow"
 icon = "spell_shadow_summonimp"
 target = "self"
 cast_time = 10
@@ -709,6 +714,7 @@ effects = [
 ]
 [spells.summon_voidwalker]
 name = "Summon Voidwalker"
+school = "shadow"
 icon = "spell_shadow_summonvoidwalker"
 level = 10
 target = "self"
@@ -723,6 +729,7 @@ effects = [
 ]
 [spells.summon_succubus]
 name = "Summon Succubus"
+school = "shadow"
 icon = "spell_shadow_summonsuccubus"
 level = 20
 target = "self"
@@ -737,6 +744,7 @@ effects = [
 ]
 [spells.summon_felhunter]
 name = "Summon Felhunter"
+school = "shadow"
 icon = "spell_shadow_summonfelhunter"
 level = 30
 target = "self"
@@ -752,6 +760,7 @@ effects = [
 
 [spells.demonic_sacrifice]
 name = "Demonic Sacrifice"
+school = "shadow"
 range = 100
 icon = "spell_shadow_psychicscream"
 talent = "demonic_sacrifice"
@@ -771,6 +780,7 @@ effects = [
 
 [spells.soul_link]
 name = "Soul Link"
+school = "shadow"
 range = 100
 icon = "spell_shadow_gathershadows"
 talent = "soul_link"
@@ -781,6 +791,7 @@ effects = [{ type = "aura", aura = "soul_link_buff" }]
 
 [spells.amplify_curse]
 name = "Amplify Curse"
+school = "shadow"
 icon = "spell_shadow_contagion"
 talent = "amplify_curse"
 target = "self"
@@ -810,6 +821,7 @@ effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coe
 name = "Immolate"
 icon = "spell_fire_immolation"
 school = "fire"
+dispel = "magic"
 cast_time = 2
 requires = "!target.aura.immolate.up"
 text = "tick = the burn every 3 sec (5 ticks)."
@@ -828,6 +840,7 @@ effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef 
 name = "Corruption"
 icon = "spell_shadow_abominationexplosion"
 school = "shadow"
+dispel = "magic"
 cast_time = 2
 requires = "!target.aura.corruption.up"
 text = "tick = damage every 3 sec; dur = duration."
@@ -846,6 +859,7 @@ effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, o
 name = "Bane of Agony"
 icon = "spell_shadow_curseofsargeras"
 school = "shadow"
+dispel = "curse"
 requires = "!target.aura.bane_of_agony.up"
 text = "tick = damage every 2 sec (12 ticks)."
 ranks = [
@@ -861,6 +875,7 @@ effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, o
 [spells.siphon_life]
 name = "Siphon Life"
 icon = "spell_shadow_requiem"
+dispel = "magic"
 talent = "siphon_life"
 school = "shadow"
 requires = "!target.aura.siphon_life.up"
@@ -875,6 +890,7 @@ effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, o
 [spells.wrack]
 name = "Wrack"
 icon = "ability_deathknight_hemorrhagicfever"
+dispel = "magic"
 talent = "wrack"
 school = "shadow"
 cost = { mana = 200 }
@@ -925,6 +941,7 @@ effects = [
 
 [spells.life_tap]
 name = "Life Tap"
+school = "shadow"
 radius = 50000
 icon = "spell_shadow_burningspirit"
 target = "self"
@@ -947,13 +964,14 @@ effects = [
 name = "Death Coil"
 icon = "spell_shadow_deathcoil"
 school = "shadow"
+dispel = "magic"
 cooldown = 120
 ranks = [
   { level = 42, id = 6789, dmg = 272, dmg_per_level = 2.2, max_level = 48, mana = 435 },
   { level = 50, id = 17925, dmg = 359, dmg_per_level = 2.6, max_level = 56, mana = 525 },
   { level = 58, id = 17926, dmg = 454, dmg_per_level = 3, max_level = 64, mana = 600 },
 ]
-effects = [{ type = "damage", school = "shadow", amount = "r.dmg", coef = 0.214, lifesteal = 1, on_hit = [{ type = "aura", aura = "fear", target = "target", duration = 3 }] }]
+effects = [{ type = "damage", school = "shadow", amount = "r.dmg", coef = 0.214, lifesteal = 1, on_hit = [{ type = "aura", aura = "horror", target = "target", duration = 3 }] }]
 
 [spells.searing_pain]
 name = "Searing Pain"
@@ -1088,6 +1106,7 @@ effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", tag = "
 # cost nothing here (see data/reference/accepted/warlock.toml).
 [spells.blood_pact]
 name = "Blood Pact"
+school = "shadow"
 range = 20
 radius = 30
 icon = "spell_shadow_bloodboil"
@@ -1120,6 +1139,8 @@ ranks = [
 effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = "r.coef", mult = "1 + 0.1 * t.improved_imp" }]
 [spells.torment]
 name = "Torment"
+target = "enemy"
+school = "shadow"
 range = 5
 icon = "spell_shadow_gathershadows"
 level = 10
@@ -1154,6 +1175,7 @@ effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coe
 # ------------------------------------------------------------------ crowd control and escapes
 [spells.fear]
 name = "Fear"
+dispel = "magic"
 range = 20
 icon = "spell_shadow_possession"
 school = "shadow"
@@ -1164,6 +1186,7 @@ ranks = [{ level = 8, id = 5782, dur = 10 }, { level = 32, id = 6213, dur = 15 }
 effects = [{ type = "aura", aura = "fear", target = "target", duration = "r.dur" }]
 [spells.howl_of_terror]
 name = "Howl of Terror"
+dispel = "magic"
 radius = 10
 icon = "spell_shadow_deathscream"
 school = "shadow"
@@ -1175,16 +1198,19 @@ cost = { mana = "r.mana" }
 effects = [{ type = "aura", aura = "fear", target = "enemies", max_targets = 5, duration = "r.dur" }]
 [spells.seduction]
 name = "Seduction"
+dispel = "magic"
 range = 30
 icon = "spell_shadow_mindsteal"
 school = "shadow"
 level = 26
 cast_time = 1.5
-text = "Your Succubus charms the target for 15 sec. Any damage breaks it."
+text = "Your Succubus charms a humanoid for 15 sec. Any damage breaks it."
+requires = "target.humanoid"
 ranks = [{ level = 26, id = 6358 }]
 effects = [{ type = "aura", aura = "seduction", target = "target", duration = 15 }]
 [spells.banish]
 name = "Banish"
+dispel = "magic"
 range = 30
 icon = "spell_shadow_cripple"
 school = "shadow"
@@ -1196,6 +1222,7 @@ cost = { mana = "r.mana" }
 effects = [{ type = "aura", aura = "banish", target = "target", duration = "r.dur" }]
 [spells.curse_of_exhaustion]
 name = "Curse of Exhaustion"
+dispel = "curse"
 range = 30
 icon = "spell_shadow_grimward"
 school = "shadow"
@@ -1206,6 +1233,7 @@ ranks = [{ level = 30, id = 18223 }]
 effects = [{ type = "aura", aura = "curse_of_exhaustion", target = "target", duration = 12 }]
 [spells.curse_of_recklessness]
 name = "Curse of Recklessness"
+dispel = "curse"
 range = 30
 icon = "spell_shadow_unholystrength"
 school = "shadow"
@@ -1272,6 +1300,7 @@ effects = [{ type = "interrupt", target = "target", lockout = "r.lock" }, { type
 
 [auras.seduction]
 name = "Seduction"
+hold = true
 debuff = true
 per_source = false
 mechanic = "incap"
@@ -1279,6 +1308,7 @@ dr = "fear"
 break_on_damage = true
 [auras.banish]
 name = "Banished"
+hold = true
 debuff = true
 per_source = false
 mechanic = "stun"
@@ -1307,16 +1337,18 @@ mechanic = "silence"
 
 # ------------------------------------------------------------------ rotations
 [rotations.affliction_drain]
-desc = "Affliction levelling with the Voidwalker tanking: Corruption, Bane of Agony, Siphon Life, Wrack, Nightfall Shadow Bolts, Drain Life when hurt, Life Tap"
+desc = "Affliction leveling with the Voidwalker tanking: Corruption, Bane of Agony, Siphon Life, Wrack, Nightfall Shadow Bolts, Drain Life when hurt, Life Tap, and Fear for anything that reaches you"
 auto_melee = false
 precombat = ["demon_armor", "demon_skin", "summon_voidwalker"]
 opener = []
 actions = [
-  { cast = "healthstone", if = "hp_pct < 0.3" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "death_coil", if = "hp_pct < 0.4" },
-  { cast = "life_tap", if = "mana_pct < 0.25 && hp_pct > 0.6" },
-  { cast = "howl_of_terror", if = "enemies_within_10 >= 2 && hp_pct < 0.4" },   # panic: everyone near runs
+  { cast = "healthstone", if = "hp_pct < 0.3", emergency = true },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "death_coil", if = "hp_pct < 0.4", emergency = true },
+  { cast = "life_tap", if = "mana_pct < 0.25 && hp_pct > (fight.boss && !has_aggro ? 0.25 : 0.6)" },   # on a boss with the tank holding it, nobody hits you: tap deeper
+  { cast = "howl_of_terror", if = "enemies_within_10 >= 2 && (hp_pct < 0.4 || !target.is_player)" },   # two or more on you: everyone near runs while the DoTs tick (players: kept for when it gets bad)
+  { cast = "fear", if = "target.is_player && !target.feared && !target.held && !target.immune_fear && target.dist < 8" },   # a player in your face: fear it first, then DoT it (not through Berserk and the like)
+  { cast = "fear", if = "!target.is_player && !target.boss && !target.feared && hp_pct < 0.5 && has_aggro && target.dist < 8" },   # it's on you: fear it off, let the DoTs work
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "corruption" },
@@ -1325,23 +1357,23 @@ actions = [
   { cast = "bane_of_agony", if = "target.hp_pct > 0.3 || target.boss" },
   { cast = "bane_of_agony", target = "other_enemy", pick = "undotted", if = "enemies >= 2 && target.hp_pct > 0.5 && !target.feared && !target.incapacitated && !target.stunned" },
   { cast = "banish", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && (target.demon || target.elemental) && !target.feared && !target.incapacitated && !target.stunned" },   # hold the add
-  { cast = "fear", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && !target.boss && !target.feared && !target.incapacitated && !target.stunned" },
+  { cast = "fear", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && target.dist < 8 && !target.boss && !target.feared && !target.incapacitated && !target.stunned" },   # the add is on you, not the Voidwalker: fear it off
   { cast = "siphon_life" },
   { cast = "wrack", if = "target.aura.corruption.up" },
-  { cast = "shadow_bolt", if = "aura.shadow_trance.up" },
+  { cast = "shadow_bolt", if = "aura.shadow_trance.up && (!target.feared || !target.is_player || target.aura.fear.remains < 1)" },   # an instant bolt would break the Fear on a player
   { cast = "drain_life", if = "hp_pct < 0.7" },
   { cast = "drain_soul", if = "target.hp_pct < 0.25 && !target.boss" },
-  { cast = "fear", if = "!target.is_player && !target.boss && !target.feared && hp_pct < 0.5 && has_aggro && target.dist < 8" },   # it's on you: fear it off, let the DoTs work
-  { cast = "fear", if = "target.is_player && !target.feared && hp_pct < 0.8" },   # duels: fear, let the DoTs work
+  { cast = "fear", if = "target.is_player && !target.feared && !target.immune_fear && hp_pct < 0.8" },   # duels: fear, let the DoTs work
   { cast = "curse_of_exhaustion", if = "target.fleeing && !target.slowed" },
   { cast = "curse_of_recklessness", if = "target.humanoid && !target.is_player && !target.boss && target.hp_pct < 0.25 && target.hp_pct > 0.15 && !target.fleeing && enemies < 2" },   # it won't run
   { cast = "rain_of_fire", if = "enemies_active >= 3 && cc_near == 0" },
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && mana_pct < 0.9" },   # leveling: dots up, then wand until it dies (not at full mana: Warcraft Tavern's Forever guide)
-  { cast = "shadow_bolt", if = "t.nightfall == 0 || mana_pct > 0.5" },
+  { cast = "shadow_bolt", if = "(t.nightfall == 0 || mana_pct > 0.5) && (!target.feared || !target.is_player || target.aura.fear.remains < 3)" },
   { cast = "drain_life" },
   { cast = "shoot", if = "gcd_remains <= 0" },   # out of mana: the wand is free
 ]
 rest = [
+  { cast = "health_funnel", if = "pet.active && pet.hp_pct < 0.6 && hp_pct > 0.6" },   # pets keep their wounds between pulls
   { cast = "summon_voidwalker", if = "!pet.active" },
   { cast = "life_tap", if = "mana_pct < 0.7 && hp_pct > 0.8" },
   { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
@@ -1349,20 +1381,22 @@ rest = [
   { cast = "demon_armor" },
   { cast = "demon_skin" },
 ]
-eat_below = 0.5
-drink_below = 0.35
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.35"
 
 [rotations.pact]
-desc = "Demonic Pact: sacrifice the Voidwalker for mana regeneration, then fight with a Felhunter (Imp below 30); Soul Link; Affliction DoTs and Drain Life"
+desc = "Demonic Pact: sacrifice the Voidwalker for mana regeneration, then fight with a Felhunter (Imp below 30); Soul Link; Affliction DoTs and Drain Life, and Fear for anything that reaches you"
 auto_melee = false
 precombat = ["demon_armor", "demon_skin", { cast = "summon_voidwalker", if = "t.demonic_pact > 0 && !aura.sacrifice_voidwalker.up" }, { cast = "demonic_sacrifice", if = "t.demonic_pact > 0 && pet.voidwalker.active && !aura.sacrifice_voidwalker.up" }, "summon_felhunter", { cast = "summon_imp", if = "!pet.active" }, "soul_link"]
 opener = []
 actions = [
-  { cast = "healthstone", if = "hp_pct < 0.3" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "death_coil", if = "hp_pct < 0.4" },
-  { cast = "life_tap", if = "mana_pct < 0.25 && hp_pct > 0.6" },
-  { cast = "howl_of_terror", if = "enemies_within_10 >= 2 && hp_pct < 0.4" },   # panic: everyone near runs
+  { cast = "healthstone", if = "hp_pct < 0.3", emergency = true },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "death_coil", if = "hp_pct < 0.4", emergency = true },
+  { cast = "life_tap", if = "mana_pct < 0.25 && hp_pct > (fight.boss && !has_aggro ? 0.25 : 0.6)" },   # on a boss with the tank holding it, nobody hits you: tap deeper
+  { cast = "howl_of_terror", if = "enemies_within_10 >= 2 && (hp_pct < 0.4 || !target.is_player)" },   # two or more on you: everyone near runs while the DoTs tick (players: kept for when it gets bad)
+  { cast = "fear", if = "target.is_player && !target.feared && !target.held && !target.immune_fear && target.dist < 8" },   # a player in your face: fear it first, then DoT it
+  { cast = "fear", if = "!target.is_player && !target.boss && !target.feared && hp_pct < 0.5 && has_aggro && target.dist < 8" },   # it's on you: fear it off, let the DoTs work
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "corruption" },
@@ -1371,22 +1405,22 @@ actions = [
   { cast = "bane_of_agony", if = "target.hp_pct > 0.3 || target.boss" },
   { cast = "bane_of_agony", target = "other_enemy", pick = "undotted", if = "enemies >= 2 && target.hp_pct > 0.5 && !target.feared && !target.incapacitated && !target.stunned" },
   { cast = "banish", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && (target.demon || target.elemental) && !target.feared && !target.incapacitated && !target.stunned" },   # hold the add
-  { cast = "fear", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && !target.boss && !target.feared && !target.incapacitated && !target.stunned" },
+  { cast = "fear", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && target.dist < 8 && hp_pct < 0.7 && !target.boss && !target.feared && !target.incapacitated && !target.stunned" },   # nothing holds the add: fear it once it is on you and starts to hurt
   { cast = "siphon_life" },
   { cast = "immolate", if = "target.hp_pct > 0.4 && !known.siphon_life" },
-  { cast = "shadow_bolt", if = "aura.shadow_trance.up" },
+  { cast = "shadow_bolt", if = "aura.shadow_trance.up && (!target.feared || !target.is_player || target.aura.fear.remains < 1)" },   # an instant bolt would break the Fear on a player
   { cast = "drain_life", if = "(hp_pct < 0.75) && !(!target.is_player && target.hp < 0.5 * hp && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
-  { cast = "fear", if = "!target.is_player && !target.boss && !target.feared && hp_pct < 0.5 && has_aggro && target.dist < 8" },   # it's on you: fear it off, let the DoTs work
-  { cast = "fear", if = "target.is_player && !target.feared && hp_pct < 0.8" },   # duels: fear, let the DoTs work
+  { cast = "fear", if = "target.is_player && !target.feared && !target.immune_fear && hp_pct < 0.8" },   # duels: fear, let the DoTs work
   { cast = "curse_of_exhaustion", if = "target.fleeing && !target.slowed" },
   { cast = "curse_of_recklessness", if = "target.humanoid && !target.is_player && !target.boss && target.hp_pct < 0.25 && target.hp_pct > 0.15 && !target.fleeing && enemies < 2" },   # it won't run
   { cast = "rain_of_fire", if = "enemies_active >= 3 && cc_near == 0" },
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && mana_pct < 0.9" },   # leveling: dots up, then wand until it dies (not at full mana: Warcraft Tavern's Forever guide)
-  { cast = "searing_pain", if = "t.demonic_brand > 0 && !pet.aura.demonic_brand.up" },
-  { cast = "shadow_bolt" },
+  { cast = "searing_pain", if = "t.demonic_brand > 0 && !pet.aura.demonic_brand.up && (!target.feared || !target.is_player)" },
+  { cast = "shadow_bolt", if = "!target.feared || !target.is_player || target.aura.fear.remains < 3" },   # a feared player gets DoTs, not a bolt that breaks the Fear
   { cast = "shoot", if = "gcd_remains <= 0" },   # out of mana: the wand is free
 ]
 rest = [
+  { cast = "health_funnel", if = "pet.active && pet.hp_pct < 0.6 && hp_pct > 0.6" },   # pets keep their wounds between pulls
   { cast = "summon_voidwalker", if = "!aura.sacrifice_voidwalker.up && !pet.active && known.demonic_sacrifice" },
   { cast = "demonic_sacrifice", if = "pet.voidwalker.active && known.demonic_sacrifice" },
   { cast = "summon_felhunter", if = "!pet.active" },
@@ -1398,8 +1432,8 @@ rest = [
   { cast = "demon_armor" },
   { cast = "demon_skin" },
 ]
-eat_below = 0.5
-drink_below = 0.35
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.35"
 
 [rotations.destruction]
 # The Voidwalker tanks from level 10 (the Imp before): Warcraft Tavern's
@@ -1409,40 +1443,50 @@ drink_below = 0.35
 # level 30 and 122 against 79 at 60; boss 64 DPS against 61 at 30, 267
 # against 276 at 60.
 # Sacrificing the Succubus at 60 (the build's last point) gave boss 270 DPS
-# and solo_2_hard 68 kills/h, so the demon stays out. Conflagrate on
-# cooldown against Conflagrate only before Immolate runs out: within 2%.
+# and solo_2_hard 68 kills/h, so the demon stays out.
+# Until Shadow and Flame is full (level 44 here) Conflagrate eats the
+# Immolate, so a lone mob or a boss waits for the burn to run out (or a
+# kill) instead of recasting Immolate every 10 seconds: solo_1 at 30 went
+# from 113 to 119 kills/h, with a third fewer drinks. Players and double
+# pulls still get it on cooldown for the burst.
+# On a boss: Corruption, Bane of Agony, Shadowburn on cooldown, and Life Tap
+# down to a quarter of your health while the tank holds it (it wanded out of
+# mana before): 290 to 351 DPS at 60.
 # Gnomes use Eureka! on cooldown.
-desc = "Destruction with the Voidwalker tanking: Immolate, Conflagrate, Shadowburn to finish, Incinerate or Shadow Bolt"
+desc = "Destruction with the Voidwalker tanking: Immolate, Conflagrate, Shadowburn to finish, Incinerate or Shadow Bolt; Corruption and Bane of Agony on bosses"
 auto_melee = false
 precombat = ["demon_armor", "demon_skin", "summon_voidwalker", { cast = "summon_imp", if = "!pet.active" }]
 opener = []
 actions = [
-  { cast = "healthstone", if = "hp_pct < 0.3" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
-  { cast = "death_coil", if = "hp_pct < 0.4" },
-  { cast = "life_tap", if = "mana_pct < 0.2 && hp_pct > 0.5" },
-  { cast = "howl_of_terror", if = "enemies_within_10 >= 2 && hp_pct < 0.4" },   # panic: everyone near runs
+  { cast = "healthstone", if = "hp_pct < 0.3", emergency = true },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
+  { cast = "death_coil", if = "hp_pct < 0.4", emergency = true },
+  { cast = "life_tap", if = "mana_pct < 0.2 && hp_pct > (fight.boss && !has_aggro ? 0.25 : 0.5)" },   # on a boss with the tank holding it, nobody hits you: tap deeper
+  { cast = "howl_of_terror", if = "enemies_within_10 >= 3 || (enemies_within_10 >= 2 && hp_pct < 0.5)" },   # three on you, or two once it hurts: everyone near runs
+  { cast = "fear", if = "target.is_player && !target.feared && !target.held && !target.immune_fear && target.dist < 8" },   # a player in your face: fear it first
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "eureka" },
-  { cast = "shadowburn", if = "target.hp_pct < 0.25" },
+  { cast = "shadowburn", if = "target.hp_pct < 0.25 || target.boss" },
   { cast = "immolate", if = "target.hp_pct > 0.25 || target.boss" },
   { cast = "banish", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && (target.demon || target.elemental) && !target.feared && !target.incapacitated && !target.stunned" },   # hold the add
   { cast = "fear", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && !target.boss && !target.feared && !target.incapacitated && !target.stunned" },
-  { cast = "conflagrate" },
-  { cast = "corruption", if = "target.boss" },
+  { cast = "conflagrate", if = "(t.shadow_and_flame >= 5 || target.is_player || enemies >= 2 || target.aura.immolate.remains < 3 || target.hp_pct < 0.3) && !target.feared" },   # before Shadow and Flame it eats the Immolate: on a lone mob or a boss, wait for the burn to run out or a kill (players and pulls of two get the burst); never into your own Fear
+  { cast = "corruption", if = "target.boss || (target.feared && target.is_player)" },   # a boss gets the DoTs too, and so does a player while it runs in fear
+  { cast = "bane_of_agony", if = "target.boss || (target.feared && target.is_player)" },
   { cast = "fear", if = "!target.is_player && !target.boss && !target.feared && hp_pct < 0.5 && has_aggro && target.dist < 8" },   # it's on you: fear it off, let the DoTs work
-  { cast = "fear", if = "target.is_player && !target.feared && hp_pct < 0.8" },   # duels: fear, let the DoTs work
+  { cast = "fear", if = "target.is_player && !target.feared && !target.immune_fear && hp_pct < 0.8" },   # duels: fear, let the DoTs work
   { cast = "curse_of_exhaustion", if = "target.fleeing && !target.slowed" },
   { cast = "curse_of_recklessness", if = "target.humanoid && !target.is_player && !target.boss && target.hp_pct < 0.25 && target.hp_pct > 0.15 && !target.fleeing && enemies < 2" },   # it won't run
   { cast = "rain_of_fire", if = "enemies_active >= 3 && cc_near == 0" },
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (target.hp_pct < 0.2 || mana_pct < 0.4)" },   # leveling: wand to finish and save mana
-  { cast = "incinerate", if = "target.aura.immolate.up" },
-  { cast = "shadow_bolt" },
+  { cast = "incinerate", if = "target.aura.immolate.up && (!target.feared || !target.is_player || target.aura.fear.remains < 2.5)" },   # not into a feared player until the Fear is about to end
+  { cast = "shadow_bolt", if = "!target.feared || !target.is_player || target.aura.fear.remains < 3" },
   { cast = "shoot", if = "gcd_remains <= 0" },   # out of mana: the wand is free
 ]
 rest = [
+  { cast = "health_funnel", if = "pet.active && pet.hp_pct < 0.6 && hp_pct > 0.6" },   # pets keep their wounds between pulls
   { cast = "summon_voidwalker", if = "!pet.active" },
   { cast = "summon_imp", if = "!pet.active" },
   { cast = "life_tap", if = "mana_pct < 0.7 && hp_pct > 0.8" },
@@ -1451,8 +1495,8 @@ rest = [
   { cast = "demon_armor" },
   { cast = "demon_skin" },
 ]
-eat_below = 0.5
-drink_below = 0.35
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.35"
 
 [rotations.demonology]
 # Demonology as Warcraft Tavern's Forever guides play it (Method's adds Soul
@@ -1477,36 +1521,38 @@ auto_melee = false
 precombat = ["demon_armor", "demon_skin", { cast = "summon_imp", if = "t.demonic_pact > 0 && !aura.sacrifice_imp.up" }, { cast = "demonic_sacrifice", if = "t.demonic_pact > 0 && pet.imp.active && !aura.sacrifice_imp.up" }, "summon_succubus", { cast = "summon_voidwalker", if = "!known.summon_succubus" }, { cast = "summon_imp", if = "!pet.active" }, "soul_link"]
 opener = []
 actions = [
-  { cast = "healthstone", if = "hp_pct < 0.3" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
-  { cast = "death_coil", if = "hp_pct < 0.4" },
-  { cast = "life_tap", if = "mana_pct < 0.25 && hp_pct > 0.6" },
-  { cast = "howl_of_terror", if = "enemies_within_10 >= 2 && hp_pct < 0.4" },   # panic: everyone near runs
+  { cast = "healthstone", if = "hp_pct < 0.3", emergency = true },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
+  { cast = "death_coil", if = "hp_pct < 0.4", emergency = true },
+  { cast = "life_tap", if = "mana_pct < 0.25 && hp_pct > (fight.boss && !has_aggro ? 0.25 : 0.6)" },   # on a boss with the tank holding it, nobody hits you: tap deeper
+  { cast = "howl_of_terror", if = "enemies_within_10 >= 3 || (enemies_within_10 >= 2 && hp_pct < 0.5)" },   # three on you, or two once it hurts: everyone near runs
+  { cast = "fear", if = "target.is_player && !target.feared && !target.held && !target.immune_fear && target.dist < 8" },   # a player in your face: fear it first, then DoT it
+  { cast = "fear", if = "!target.is_player && !target.boss && !target.feared && hp_pct < 0.5 && has_aggro && target.dist < 8" },   # it's on you: fear it off, let the DoTs work
+  { cast = "fear", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && target.dist < 8 && hp_pct < 0.7 && !target.boss && !target.feared && !target.incapacitated && !target.stunned" },   # the Succubus holds nothing: an add on you gets feared once it starts to hurt
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "eureka" },
-  { cast = "searing_pain", if = "t.demonic_brand > 0 && pet.active && !pet.imp.active && !pet.aura.demonic_brand.up" },
+  { cast = "searing_pain", if = "t.demonic_brand > 0 && pet.active && !pet.imp.active && !pet.aura.demonic_brand.up && (!target.feared || !target.is_player)" },
   { cast = "corruption" },
   { cast = "corruption", target = "other_enemy", pick = "undotted", if = "enemies >= 2 && target.hp_pct > 0.3 && !target.feared && !target.incapacitated && !target.stunned" },   # spread it
   { cast = "bane_of_agony", if = "target.hp_pct > 0.3 || target.boss" },
   { cast = "bane_of_agony", target = "other_enemy", pick = "undotted", if = "enemies >= 2 && target.hp_pct > 0.5 && !target.feared && !target.incapacitated && !target.stunned" },
   { cast = "banish", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && (target.demon || target.elemental) && !target.feared && !target.incapacitated && !target.stunned" },   # hold the add
-  { cast = "fear", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && hp_pct < 0.45 && !target.boss && !target.feared && !target.incapacitated && !target.stunned" },
   { cast = "immolate", if = "target.hp_pct > 0.4 || target.boss" },
-  { cast = "soul_fire", if = "aura.decimation.up" },
-  { cast = "fear", if = "!target.is_player && !target.boss && !target.feared && hp_pct < 0.5 && has_aggro && target.dist < 8" },   # it's on you: fear it off, let the DoTs work
-  { cast = "fear", if = "target.is_player && !target.feared && hp_pct < 0.8" },   # duels: fear, let the DoTs work
+  { cast = "soul_fire", if = "aura.decimation.up && (!target.feared || !target.is_player || target.aura.fear.remains < 4)" },
+  { cast = "fear", if = "target.is_player && !target.feared && !target.immune_fear && hp_pct < 0.8" },   # duels: fear, let the DoTs work
   { cast = "curse_of_exhaustion", if = "target.fleeing && !target.slowed" },
   { cast = "curse_of_recklessness", if = "target.humanoid && !target.is_player && !target.boss && target.hp_pct < 0.25 && target.hp_pct > 0.15 && !target.fleeing && enemies < 2" },   # it won't run
   { cast = "rain_of_fire", if = "enemies_active >= 3 && cc_near == 0" },
   { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (target.hp_pct < 0.2 || mana_pct < 0.4)" },   # leveling: wand to finish (Warcraft Tavern: below about 20%)
   { cast = "drain_life", if = "hp_pct < 0.5 && !target.boss" },
-  { cast = "searing_pain", if = "!aura.sacrifice_imp.up" },
-  { cast = "shadow_bolt" },
+  { cast = "searing_pain", if = "!aura.sacrifice_imp.up && (!target.feared || !target.is_player || target.aura.fear.remains < 1.5)" },
+  { cast = "shadow_bolt", if = "!target.feared || !target.is_player || target.aura.fear.remains < 3" },   # a feared player gets DoTs, not a bolt that breaks the Fear
   { cast = "shoot", if = "gcd_remains <= 0" },   # out of mana: the wand is free
 ]
 rest = [
+  { cast = "health_funnel", if = "pet.active && pet.hp_pct < 0.6 && hp_pct > 0.6" },   # pets keep their wounds between pulls
   { cast = "summon_imp", if = "t.demonic_pact > 0 && !aura.sacrifice_imp.up && !pet.active" },
   { cast = "demonic_sacrifice", if = "t.demonic_pact > 0 && pet.imp.active" },
   { cast = "summon_succubus", if = "!pet.active" },
@@ -1519,5 +1565,5 @@ rest = [
   { cast = "demon_armor" },
   { cast = "demon_skin" },
 ]
-eat_below = 0.5
-drink_below = 0.35
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.35"

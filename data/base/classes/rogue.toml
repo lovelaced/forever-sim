@@ -104,7 +104,7 @@ icon = "ability_rogue_feigndeath"
 tree = "Assassination"
 points = 15
 ranks = 5
-text = "Poison damage +20%, and poisons are 40% harder to dispel (dispels are not simulated)."
+text = "Poison damage +20%, and a cure fails on your Deadly Poison 40% of the time."
 [talents.cold_blood]
 icon = "spell_ice_lament"
 tree = "Assassination"
@@ -378,7 +378,7 @@ icon = "spell_shadow_antishadow"
 tree = "Subtlety"
 points = 20
 ranks = 1
-text = "Finishes the cooldown of your other rogue abilities, 10 min cooldown (not simulated)."
+text = "Finishes the cooldown of your other rogue abilities, 10 min cooldown."
 [talents.hemorrhage]
 icon = "spell_shadow_lifedrain"
 tree = "Subtlety"
@@ -413,6 +413,9 @@ text = "Rupture ticks make your next Hemorrhage or Backstab cost 3 less Energy p
 [[passives]]
 name = "Riposte window"
 procs = [{ on = "parry", effects = [{ type = "aura", aura = "riposte_ready" }] }]
+[[passives]]
+name = "Weapon hits"
+procs = [{ on = "struck_melee", effects = [{ type = "aura", aura = "weapon_hits" }] }]
 
 # ------------------------------------------------------------------ auras
 [auras.stealth]
@@ -467,6 +470,7 @@ duration = 18
 tick = { interval = 3, effects = [{ type = "damage", school = "physical", periodic = true, tag = "Garrote", amount = "r.tick + opt.rogue_garrote_ap * ap / 6" }] }
 [auras.sap]
 name = "Sap"
+hold = true
 debuff = true
 per_source = false
 mechanic = "incap"
@@ -475,6 +479,7 @@ quiet = true
 break_on_damage = true
 [auras.blind]
 name = "Blind"
+hold = true
 debuff = true
 per_source = false
 mechanic = "incap"
@@ -565,6 +570,11 @@ name = "Riposte window"
 react = true
 hidden = true
 duration = 5
+[auras.weapon_hits]
+name = "Weapon hits"
+hidden = true
+duration = 5
+text = "A weapon hit you in the last 5 sec: Evasion only helps against those."
 [auras.thousand_cuts]
 name = "Thousand Cuts"
 duration = 10
@@ -596,6 +606,8 @@ procs = [{ on = "melee_landed", if = "event.oh", chance = "0.3 + 0.02 * t.improv
 [auras.deadly_poison]
 name = "Deadly Poison"
 debuff = true
+dispel = "poison"
+dispel_resist = "0.08 * t.vile_poisons"
 duration = 12
 max_stacks = 5
 tick = { interval = 3, effects = [{ type = "damage", school = "nature", periodic = true, tag = "Deadly Poison", amount = "r.tick * stacks * (aura.venom.up ? 1.3 : 1)", mult = "1 + 0.04 * t.vile_poisons" }] }
@@ -762,6 +774,7 @@ effects = [{ type = "aura", aura = "sap", target = "target", duration = "r.dur" 
 
 [spells.blind]
 name = "Blind"
+dispel = "poison"
 range = 10
 icon = "spell_shadow_mindsteal"
 school = "nature"
@@ -777,9 +790,12 @@ icon = "ability_vanish"
 target = "self"
 off_gcd = true
 cooldown = 300
-text = "You drop out of sight: every mob fighting you forgets you, and you're back in Stealth. A mob left with nobody to fight goes home."
+text = "You drop out of sight: every mob fighting you forgets you, and you're back in Stealth. A mob left with nobody to fight goes home. It also breaks roots and slows."
 ranks = [{ level = 22, id = 1856 }, { level = 42, id = 1857 }]
-effects = [{ type = "drop_threat" }, { type = "aura", aura = "stealth" }]
+# Vanish Purge (18461): a moment's immunity to roots and snares. Mobs forget
+# you; a player (or a player-like attacker) has no threat to drop and keeps
+# looking for you, so the fight goes on
+effects = [{ type = "if", cond = "!target.is_player", then = [{ type = "drop_threat" }] }, { type = "aura", aura = "stealth" }, { type = "dispel", mechanics = ["root", "slow", "freeze"] }]
 
 [spells.sprint]
 name = "Sprint"
@@ -943,7 +959,7 @@ effects = [
 name = "Ambush"
 icon = "ability_rogue_ambush"
 cost = { energy = 60 }
-requires = "(aura.stealth.up || aura.cutthroat.up) && mh.dagger"
+requires = "(aura.stealth.up || aura.cutthroat.up) && behind && mh.dagger"
 # bonus = the game's flat bonus; 250% applies to it too (rank 1: +70, as the tooltip says)
 ranks = [
   { level = 18, id = 8676, bonus = 28 },
@@ -1039,6 +1055,34 @@ target = "self"
 ranks = [{ level = 1, id = 14177 }]
 effects = [{ type = "aura", aura = "cold_blood" }]
 
+[spells.preparation]
+name = "Preparation"
+icon = "spell_shadow_antishadow"
+talent = "preparation"
+cooldown = 600
+gcd = 1
+target = "self"
+text = "Finishes the cooldown of your other rogue abilities."
+ranks = [{ level = 1, id = 14185 }]
+effects = [
+  { type = "cooldown", spell = "ghostly_strike" },
+  { type = "cooldown", spell = "riposte" },
+  { type = "cooldown", spell = "gouge" },
+  { type = "cooldown", spell = "kick" },
+  { type = "cooldown", spell = "blind" },
+  { type = "cooldown", spell = "vanish" },
+  { type = "cooldown", spell = "sprint" },
+  { type = "cooldown", spell = "distract" },
+  { type = "cooldown", spell = "feint" },
+  { type = "cooldown", spell = "kidney_shot" },
+  { type = "cooldown", spell = "premeditation" },
+  { type = "cooldown", spell = "evasion" },
+  { type = "cooldown", spell = "blade_flurry" },
+  { type = "cooldown", spell = "adrenaline_rush" },
+  { type = "cooldown", spell = "cold_blood" },
+  { type = "cooldown", spell = "stealth" },
+]
+
 # Poisons: the game coats one weapon at a time; the sim keeps one poison per
 # hand so each hand can carry a different one. Damage and chances are the
 # game's: Instant Poison I-VI deals 8680/8685/8689/11335/11336/11337 on a 20%
@@ -1073,15 +1117,20 @@ effects = [{ type = "aura", aura = "deadly_poison_oh" }]
 
 # ------------------------------------------------------------------ rotations
 [rotations.combat_swords]
-desc = "Combat swords: Slice and Dice up, Sinister Strike to 5 points, Eviscerate, Blade Flurry and Adrenaline Rush on cooldown; Evasion when low against two or more or a player, Kidney Shot against players"
+desc = "Combat swords: Garrote on mobs and Cheap Shot on players (with two humanoids, Sap one first), Sinister Strike to 5 points, Slice and Dice early, Cold Blood into Eviscerate, Blade Flurry and Adrenaline Rush on cooldown. Blind takes an add out of the fight and Evasion comes out when weapons have you low; against players, Kidney Shot, Sprint after a runner and Vanish into a fresh Cheap Shot"
 precombat = ["instant_poison_mh", "deadly_poison_oh", { cast = "instant_poison_oh", if = "!known.deadly_poison_oh" }, "stealth"]
-opener = [{ cast = "sap", target = "other_enemy", pick = "nearest", if = "enemies >= 2" }, "premeditation", "cheap_shot"]
+# two mobs: Sap the one you reach first and open on the other. Cheap Shot goes
+# last, so nothing after it holds the rotation back while a player runs off
+opener = [{ cast = "sap", if = "enemies >= 2" }, "premeditation", { cast = "garrote", if = "!target.is_player" }, "cheap_shot"]
 actions = [
+  { cast = "healing_potion", if = "potions && hp_pct < 0.2", emergency = true },
   { cast = "will_to_survive" },
-  { cast = "evasion", if = "hp_pct < 0.5 && (target.is_player || enemies >= 2)" },
-  { cast = "vanish", if = "hp_pct < 0.15 && !target.is_player" },   # escape
-  { cast = "blind", target = "other_enemy", if = "enemies >= 2 && hp_pct < 0.5" },   # take the add out of the fight
-  { cast = "stoneform", if = "hp_pct < 0.5" },
+  { cast = "evasion", if = "hp_pct < 0.5 && aura.weapon_hits.up && (target.is_player || enemies >= 2)", emergency = true },   # dodging helps only against weapons
+  { cast = "vanish", if = "hp_pct < 0.15 && !target.is_player && (enemies_active >= 2 || target.hp_pct > hp_pct)", emergency = true },   # escape, unless the last mob is nearly dead
+  { cast = "vanish", if = "target.is_player && hp_pct < 0.35 && energy >= 60 && !target.stunned", emergency = true },   # losing to a player: start over
+  { cast = "cheap_shot", if = "target.is_player" },   # from Stealth again, after Vanish
+  { cast = "blind", target = "other_enemy", if = "enemies_active >= 2 && !target.held && !aura.blade_flurry.up && !cd.blade_flurry.ready" },   # Blade Flurry kills both; without it, fight one at a time
+  { cast = "stoneform", if = "hp_pct < 0.5", emergency = true },
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "elunes_light" },
@@ -1093,9 +1142,10 @@ actions = [
   { cast = "feint", if = "!has_aggro && threat.pct > 0.8" },   # keep the group's tank on it
   { cast = "kidney_shot", if = "target.fleeing && !target.stunned" },   # stop a runner
   { cast = "sprint", if = "target.fleeing && target.dist > 5" },
-  { cast = "kidney_shot", if = "target.is_player && cp >= 4 && !target.stunned" },
-  { cast = "slice_and_dice", if = "!aura.slice_and_dice.up && cp >= 2 && target.hp_pct > 0.35" },
-  { cast = "cold_blood", if = "cp >= 4" },
+  { cast = "sprint", if = "target.is_player && target.dist > 8" },   # catch a player who blinks or kites
+  { cast = "kidney_shot", if = "target.is_player && !target.stunned && (cp >= 4 || (cp >= 2 && hp_pct < 0.4))" },   # 4 points, or 2 when you're losing
+  { cast = "slice_and_dice", if = "!aura.slice_and_dice.up && cp >= 2 && target.hp_pct > (target.trash ? 0.6 : 0.35) && hp_pct > 0.4" },   # not while dying; an ordinary mob only early on
+  { cast = "cold_blood", if = "cp >= 5" },   # right before the Eviscerate, not on a Sinister Strike
   { cast = "eviscerate", if = "cp >= 5 || (cp >= 2 && target.hp_pct < 0.2)" },
   { cast = "sinister_strike" },
 ]
@@ -1104,18 +1154,23 @@ rest = [
   { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
   { cast = "stealth" },
 ]
-eat_below = 0.55
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.55"
 
 [rotations.daggers]
-desc = "Daggers: Ambush/Garrote opener, Mutilate or Backstab (Sinister Strike when not behind), Rupture on long fights, Eviscerate; Evasion when low against two or more or a player"
+desc = "Daggers: Ambush from behind on mobs and Cheap Shot on players (with two humanoids, Sap one first), Mutilate or Backstab (Sinister Strike when you can't), Venom on bosses, Rupture on long fights, Eviscerate. Blind takes an add out of the fight and Evasion comes out when weapons have you low; against players, Kidney Shot, Sprint after a runner and Vanish into a fresh Cheap Shot"
 precombat = ["instant_poison_mh", "deadly_poison_oh", { cast = "instant_poison_oh", if = "!known.deadly_poison_oh" }, "stealth"]
-opener = [{ cast = "sap", target = "other_enemy", pick = "nearest", if = "enemies >= 2" }, "premeditation", "ambush", "garrote", "cheap_shot"]
+# two mobs: Sap the one you reach first and open on the other; players get
+# Cheap Shot once you know it
+opener = [{ cast = "sap", if = "enemies >= 2" }, "premeditation", { cast = "ambush", if = "!target.is_player || !known.cheap_shot" }, { cast = "garrote", if = "!target.is_player" }, "cheap_shot"]
 actions = [
+  { cast = "healing_potion", if = "potions && hp_pct < 0.2", emergency = true },
   { cast = "will_to_survive" },
-  { cast = "evasion", if = "hp_pct < 0.5 && (target.is_player || enemies >= 2)" },
-  { cast = "vanish", if = "hp_pct < 0.15 && !target.is_player" },   # escape
-  { cast = "blind", target = "other_enemy", if = "enemies >= 2 && hp_pct < 0.5" },   # take the add out of the fight
-  { cast = "stoneform", if = "hp_pct < 0.5" },
+  { cast = "evasion", if = "hp_pct < 0.5 && aura.weapon_hits.up && (target.is_player || enemies >= 2)", emergency = true },   # dodging helps only against weapons
+  { cast = "vanish", if = "hp_pct < 0.15 && !target.is_player && (enemies_active >= 2 || target.hp_pct > hp_pct)", emergency = true },   # escape, unless the last mob is nearly dead
+  { cast = "vanish", if = "target.is_player && hp_pct < 0.35 && energy >= 60 && !target.stunned", emergency = true },   # losing to a player: start over
+  { cast = "cheap_shot", if = "target.is_player" },   # from Stealth again, after Vanish
+  { cast = "blind", target = "other_enemy", if = "enemies_active >= 2 && !target.held" },   # an add Sap couldn't take: fight one at a time
+  { cast = "stoneform", if = "hp_pct < 0.5", emergency = true },
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "elunes_light" },
@@ -1126,9 +1181,10 @@ actions = [
   { cast = "feint", if = "!has_aggro && threat.pct > 0.8" },   # keep the group's tank on it
   { cast = "kidney_shot", if = "target.fleeing && !target.stunned" },   # stop a runner
   { cast = "sprint", if = "target.fleeing && target.dist > 5" },
-  { cast = "kidney_shot", if = "target.is_player && cp >= 4 && !target.stunned" },
-  { cast = "slice_and_dice", if = "!aura.slice_and_dice.up && cp >= 2 && target.hp_pct > 0.35" },
-  { cast = "venom", if = "!aura.venom.up && cp >= 3" },
+  { cast = "sprint", if = "target.is_player && target.dist > 8" },   # catch a player who blinks or kites
+  { cast = "kidney_shot", if = "target.is_player && !target.stunned && (cp >= 4 || (cp >= 2 && hp_pct < 0.4))" },   # 4 points, or 2 when you're losing
+  { cast = "slice_and_dice", if = "!aura.slice_and_dice.up && cp >= 2 && target.hp_pct > (target.trash ? 0.6 : 0.35) && hp_pct > 0.4" },   # not while dying; an ordinary mob only early on
+  { cast = "venom", if = "!aura.venom.up && cp >= 3 && target.boss" },   # long fights only: mobs and players die before it pays
   { cast = "rupture", if = "cp >= 5 && !target.aura.rupture.up && target.hp_pct > 0.5" },
   { cast = "cold_blood", if = "cp >= 4" },
   { cast = "eviscerate", if = "cp >= 5 || (cp >= 2 && target.hp_pct < 0.2)" },
@@ -1144,18 +1200,24 @@ rest = [
   { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
   { cast = "stealth" },
 ]
-eat_below = 0.55
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.55"
 
 [rotations.subtlety]
-desc = "Subtlety: Premeditation and Ambush from Stealth (Cheap Shot without a dagger), Ghostly Strike on cooldown, Hemorrhage as the builder (Backstab or Sinister Strike before 30), Slice and Dice, Rupture on long fights, Eviscerate; Evasion when low against two or more or a player"
+desc = "Subtlety: Premeditation and Ambush from behind on mobs, Cheap Shot on players (with two humanoids, Sap one first), Ghostly Strike on cooldown, Hemorrhage as the builder (Backstab or Sinister Strike before 30), Slice and Dice, Rupture on long fights, Eviscerate. Blind takes an add out of the fight, Evasion comes out when weapons have you low and Preparation brings Vanish and Evasion back; against players, Kidney Shot, Sprint after a runner and Vanish into a fresh Cheap Shot"
 precombat = ["instant_poison_mh", "deadly_poison_oh", { cast = "instant_poison_oh", if = "!known.deadly_poison_oh" }, "stealth"]
-opener = [{ cast = "sap", target = "other_enemy", pick = "nearest", if = "enemies >= 2" }, "premeditation", "ambush", "cheap_shot"]
+# two mobs: Sap the one you reach first and open on the other; players get
+# Cheap Shot once you know it
+opener = [{ cast = "sap", if = "enemies >= 2" }, "premeditation", { cast = "ambush", if = "!target.is_player || !known.cheap_shot" }, "cheap_shot"]
 actions = [
+  { cast = "healing_potion", if = "potions && hp_pct < 0.2", emergency = true },
   { cast = "will_to_survive" },
-  { cast = "evasion", if = "hp_pct < 0.5 && (target.is_player || enemies >= 2)" },
-  { cast = "vanish", if = "hp_pct < 0.15 && !target.is_player" },   # escape
-  { cast = "blind", target = "other_enemy", if = "enemies >= 2 && hp_pct < 0.5" },   # take the add out of the fight
-  { cast = "stoneform", if = "hp_pct < 0.5" },
+  { cast = "evasion", if = "hp_pct < 0.5 && aura.weapon_hits.up && (target.is_player || enemies >= 2)", emergency = true },   # dodging helps only against weapons
+  { cast = "vanish", if = "hp_pct < 0.15 && !target.is_player && (enemies_active >= 2 || target.hp_pct > hp_pct)", emergency = true },   # escape, unless the last mob is nearly dead
+  { cast = "vanish", if = "target.is_player && hp_pct < 0.35 && energy >= 60 && !target.stunned", emergency = true },   # losing to a player: start over
+  { cast = "cheap_shot", if = "target.is_player" },   # from Stealth again, after Vanish
+  { cast = "preparation", if = "!cd.vanish.ready && !cd.evasion.ready" },   # both escapes spent: get them back
+  { cast = "blind", target = "other_enemy", if = "enemies_active >= 2 && !target.held" },   # an add Sap couldn't take: fight one at a time
+  { cast = "stoneform", if = "hp_pct < 0.5", emergency = true },
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "elunes_light" },
@@ -1165,20 +1227,21 @@ actions = [
   { cast = "feint", if = "!has_aggro && threat.pct > 0.8" },   # keep the group's tank on it
   { cast = "kidney_shot", if = "target.fleeing && !target.stunned" },   # stop a runner
   { cast = "sprint", if = "target.fleeing && target.dist > 5" },
-  { cast = "kidney_shot", if = "target.is_player && cp >= 4 && !target.stunned" },
-  { cast = "slice_and_dice", if = "!aura.slice_and_dice.up && cp >= 2 && target.hp_pct > 0.35" },
+  { cast = "sprint", if = "target.is_player && target.dist > 8" },   # catch a player who blinks or kites
+  { cast = "kidney_shot", if = "target.is_player && !target.stunned && (cp >= 4 || (cp >= 2 && hp_pct < 0.4))" },   # 4 points, or 2 when you're losing
+  { cast = "slice_and_dice", if = "!aura.slice_and_dice.up && cp >= 2 && target.hp_pct > (target.trash ? 0.6 : 0.35) && hp_pct > 0.4" },   # not while dying; an ordinary mob only early on
   { cast = "rupture", if = "cp >= 5 && !target.aura.rupture.up && (target.boss ? target.hp_pct > 0.1 : target.hp_pct > 0.5)" },
   { cast = "eviscerate", if = "cp >= 5 || (cp >= 2 && target.hp_pct < 0.2)" },
   { cast = "ambush" },
-  { cast = "ghostly_strike" },
-  { cast = "hemorrhage", if = "!target.aura.hemorrhage.up" },
+  { cast = "ghostly_strike", if = "!aura.stealth.up || energy >= 60" },   # in Stealth, save Energy for Ambush
+  { cast = "hemorrhage", if = "!target.aura.hemorrhage.up && (!aura.stealth.up || energy >= 60)" },
   { cast = "backstab" },
-  { cast = "hemorrhage" },
-  { cast = "sinister_strike", if = "!known.hemorrhage && !(behind && mh.dagger)" },
+  { cast = "hemorrhage", if = "!aura.stealth.up || energy >= 60" },
+  { cast = "sinister_strike", if = "!known.hemorrhage && !(behind && mh.dagger) && (!aura.stealth.up || energy >= 60)" },
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75" },
   { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
   { cast = "stealth" },
 ]
-eat_below = 0.55
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.55"

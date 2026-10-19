@@ -29,7 +29,7 @@
       </div>
       <nav class="mast-nav" aria-label="Site">
         <button class="btn btn-small" id="about-btn" type="button">How it works</button>
-        <button class="btn btn-small" id="share-btn" type="button">Share these builds</button>
+        <button class="btn btn-small" id="share-btn" type="button" disabled>Share these builds</button>
       </nav>
     </div>
     <nav id="views" class="view-tabs" aria-label="Views"></nav>
@@ -71,8 +71,8 @@
       <ul>
         <li><b>Each test</b> has a row with every build’s result. Open it for the details: a summary, how the build played, one fight step by step, and every number.</li>
         <li><b>The main build</b> wears the gold dragon ring. The others are measured against it, and its fights are the ones shown first. Any build can be the main build; use its card’s menu.</li>
-        <li><b>“About the same”</b> means the gap is smaller than the simulation’s margin of error. Every build faces exactly the same dice rolls, so a clear gap comes from the builds, not luck.</li>
-        <li><b>Ranges</b> are 95% confidence intervals: if you ran the test again, the average would almost always land inside them.</li>
+        <li><b>“About the same”</b> means the gap between two builds is too small to tell from luck, or smaller than 0.5% (a point, for scores and win rates). Every build faces exactly the same dice rolls, so a clear gap comes from the builds, not luck.</li>
+        <li><b>Ranges</b> hold the true answer about 19 times in 20. Running a test again replays the same dice and gives the same numbers; Precise accuracy runs more fights to narrow the ranges.</li>
       </ul>
       <h3>Trying a change</h3>
       <p>Press “Add a build to compare” to copy a build, change something in the copy, and simulate. After you change a build and simulate again, the results say what your change did, measured on the same fights as before.</p>

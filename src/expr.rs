@@ -8,7 +8,7 @@
 //! so a typo in a data file is reported with its location before any
 //! simulation runs.
 
-use crate::vars::VarRef;
+use crate::vars::{VarRef, Who};
 
 #[derive(Clone, Debug, PartialEq)]
 enum Tok {
@@ -296,6 +296,23 @@ impl Expr {
     /// Walk every variable used (for "which talents are modeled" reports).
     pub fn visit_vars(&self, f: &mut dyn FnMut(&VarRef)) {
         visit(&self.node, f)
+    }
+
+    /// Whether the value can't change within a fight while the holder's
+    /// auras stay the same: it reads only talents, ranks, settings, its own
+    /// level, known spells, race and class, an aura's stacks, and its own
+    /// auras and forms.
+    pub fn fixed_in_fight(&self) -> bool {
+        let mut ok = true;
+        self.visit_vars(&mut |v| {
+            ok &= matches!(
+                v,
+                VarRef::Talent(..) | VarRef::Rank(_) | VarRef::Opt(_) | VarRef::Level(Who::Me) | VarRef::Stacks | VarRef::Known(_) | VarRef::Race(_)
+                    | VarRef::Class(_) | VarRef::Spell(_) | VarRef::BaseMana(Who::Me) | VarRef::BaseHp(Who::Me) | VarRef::AuraUp(Who::Me, _)
+                    | VarRef::AuraStacks(Who::Me, _) | VarRef::Form(_) | VarRef::InAnyForm
+            );
+        });
+        ok
     }
 }
 

@@ -1,0 +1,18 @@
+{
+  "note": "ms per build and fight on one thread (tools/bench.mjs); the website's TEST_MS follows these",
+  "ms": {
+    "solo_1": 15.44,
+    "solo_2": 18.92,
+    "solo_2_hard": 17.92,
+    "solo_3": 18.04,
+    "boss": 2.35,
+    "pressure": 2.38,
+    "pressure_2v1": 3.74,
+    "duel": 0.72,
+    "strike_first": 4.5,
+    "struck_first": 4.33,
+    "heal_dungeon": 15.3,
+    "heal_tank": 10.14,
+    "heal_raid": 49.9
+  }
+}

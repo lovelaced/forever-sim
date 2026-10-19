@@ -46,8 +46,8 @@
 
 
 [mage.talent_arcane_shielding]
-"value.0" = "Mana Shield costs 17/33% less mana per point of damage. Not simulated: the shield's 2 mana a point is a fixed number in the sim, which talents can't change yet."
-"value.1" = "Mage Armor resistances +25/50%. Not simulated: Mage Armor is not in the sim and there are no spell resistances."
+"value.0" = "Modelled in Mana Shield's mana per point absorbed (2 x (1 - 0.17 or 0.33)), which the audit can't read from the talent."
+"value.1" = "Mage Armor resistances +25/50%. Not simulated: the sim has no spell resistances."
 
 [mage.talent_improved_counterspell]
 "value.0" = "Counterspell also silences for 2/4 sec. Not simulated: the sim's Counterspell lockout (10 sec) already stops every school, so a shorter silence adds nothing."

@@ -3,8 +3,8 @@
 // the same engine pool as the scorecard, one run at a time.
 import * as M from './meta.js';
 import { h, art, withTip, tt, flash, fmtMetric, fmtNum, fmtSec, heroImg } from './ui.js';
-import { S, env, bus, classOf, presetOf, presetTags, isExperimental, baseName, accuracyOf, scenarioMeta, primaryOf, classColor, nameOf, apiBuild, raceOf, baselineBuild } from './state.js';
-import { metricOf, rangeTip, playLikePicker } from './results.js';
+import { S, env, bus, classOf, presetOf, presetTags, isExperimental, baseName, accuracyOf, scenarioMeta, primaryOf, classColor, nameOf, apiBuild, raceOf, baselineBuild, sig, engineStamp, requestOpts } from './state.js';
+import { metricOf, rangeTip, playLikePicker, smdOf } from './results.js';
 
 // The ranking's tests, in the order the switcher shows them: seven for
 // everyone, then three for the healers (the raid at level 60 only).
@@ -12,7 +12,8 @@ export const RANK_TESTS = ['solo_1', 'solo_2', 'solo_2_hard', 'solo_3', 'boss', 
 // Quickest first, so lists appear while the slow three-mob test runs.
 const RANK_RUN_ORDER = ['boss', 'solo_1', 'heal_dungeon', 'heal_tank', 'heal_raid', 'solo_2', 'solo_2_hard', 'pressure', 'pressure_2v1', 'solo_3'];
 // Rough share of the run each test takes (timed on Standard), for the progress bar.
-const RANK_COST = { boss: 1, solo_1: 4, solo_2: 12, solo_2_hard: 11, pressure: 13, pressure_2v1: 30, solo_3: 80, heal_dungeon: 1, heal_tank: 1, heal_raid: 2 };
+// a test's share of a whole rankings run, by its cost per fight
+const RANK_COST = (test) => M.TEST_MS[test] || 10;
 const RANK_TITLES = {
   solo_1: 'One mob', solo_2: 'Two mobs', solo_2_hard: 'Two tough mobs', solo_3: 'Three mobs', boss: 'Dungeon boss', pressure: 'World PvP', pressure_2v1: 'Two attackers',
   heal_dungeon: 'Dungeon healing', heal_tank: 'Main tank healing', heal_raid: 'Raid healing',
@@ -33,7 +34,7 @@ export function initRankings() {
   S.duels = { build: null, level: 30, acc: 'standard', experiments: true, result: null, run: null };
   try {
     const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
-    if (saved && saved.data === env.catalog.data_build) {
+    if (saved && saved.data === engineStamp()) {
       Object.assign(S.rank, saved.rank || {}, { run: null });
       Object.assign(S.duels, saved.duels || {}, { run: null });
     }
@@ -44,12 +45,24 @@ export function initRankings() {
 function save() {
   try {
     const strip = (x) => { const { run, ...rest } = x; return rest; };
-    localStorage.setItem(STORE, JSON.stringify({ data: env.catalog.data_build, rank: strip(S.rank), duels: strip(S.duels) }));
+    localStorage.setItem(STORE, JSON.stringify({ data: engineStamp(), rank: strip(S.rank), duels: strip(S.duels) }));
   } catch { /* storage full or off: results stay for this visit */ }
 }
 
-// The settings a result depends on; a result with another key is out of date.
-const settingsKey = (x, extra = '') => JSON.stringify([x.level, x.acc, x.experiments, S.opts, env.catalog.data_build, extra]);
+// The build ids the saved Duels view refers to, so new builds get other ids.
+export function savedDuelUids() {
+  try {
+    const key = JSON.parse(localStorage.getItem(STORE) || 'null')?.duels?.build;
+    const m = typeof key === 'string' && key.match(/^build:(\d+)$/);
+    return m ? [Number(m[1])] : [];
+  } catch { return []; }
+}
+
+// The settings a result depends on; a result with another key is out of
+// date. How the opponent plays only matters in the duels (`withPlay`).
+const settingsKey = (x, extra = '', withPlay = false) => JSON.stringify([x.level, x.acc, x.experiments, requestOpts(withPlay), engineStamp(), extra]);
+// The Duels view's key: also which build is yours, as it is now.
+const duelKey = (st, me) => settingsKey(st, `${st.build}|${me?.sig || ''}`, true);
 
 const pool = (withExperiments) => env.catalog.presets
   .filter((p) => withExperiments || !isExperimental(p))
@@ -79,7 +92,7 @@ export async function runRankings() {
   const a = accuracyOf(st.acc);
   const key = settingsKey(st);
   const tests = rankTests(st.level);
-  const total = tests.reduce((a, t) => a + RANK_COST[t], 0);
+  const total = tests.reduce((a, t) => a + RANK_COST(t), 0);
   let done = 0;
   const run = { i: 0, frac: 0, test: tests[0], t0: performance.now(), cancelled: false, finished: false, n: tests.length };
   st.run = run;
@@ -91,16 +104,19 @@ export async function runRankings() {
     // the healing tests are for the healer builds
     const presets = isHealTest(test) ? everyone.filter((p) => p.role === 'healer') : everyone;
     const builds = presets.map((p) => presetApi(p, st.level));
-    const req = { op: 'start', scenario: test, builds, precision: a.precision, max_reps: a.max_reps, min_reps: 32 };
-    if (Object.keys(S.opts).length) req.opts = { ...S.opts };
+    // each build stops once its own number is precise; only what the list
+    // shows is kept, and no build is compared with another
+    const req = { op: 'start', scenario: test, builds, precision: a.precision, max_reps: M.maxRepsFor(test, st.acc), min_reps: 32, independent: true, keep: [primaryOf(test), 'deaths_per_hour'] };
+    const opts = requestOpts();
+    if (opts) req.opts = opts;
     const t0 = performance.now();
     try {
-      let est = a.max_reps;
+      let est = req.max_reps;
       const res = await env.engine.simulate(req, (p) => {
         est = estimateReps(p, est);
-        run.frac = (done + RANK_COST[test] * Math.min(0.97, p.reps / Math.max(est, 1))) / total;
+        run.frac = (done + RANK_COST(test) * Math.min(0.97, p.reps / Math.max(est, 1))) / total;
         bus.progress();
-      }, () => run.cancelled, { columns: [] });
+      }, () => run.cancelled, { columns: [], pairs: [] });
       if (!res) break;
       // keep only what the list shows, so the result fits in local storage
       const keep = new Set([primaryOf(test), 'deaths_per_hour']);
@@ -112,7 +128,7 @@ export async function runRankings() {
       st.results[test] = { key, error: e.message || String(e) };
     }
     run.i++;
-    done += RANK_COST[test];
+    done += RANK_COST(test);
     run.frac = done / total;
     bus.render();
   }
@@ -123,8 +139,9 @@ export async function runRankings() {
   bus.render();
 }
 
-// One build against every other, each pair once: duels start on the same
-// tick and whoever reacts first strikes first.
+// One build against every other: one session, a variant per opponent, so
+// your build is always the build and "how your opponent plays" goes to them.
+// Duels start on the same tick and whoever reacts first strikes first.
 export async function runDuels() {
   if (anyRunning()) { flash('Another simulation is still running. Wait for it or stop it first.'); return; }
   const st = S.duels;
@@ -133,11 +150,12 @@ export async function runDuels() {
   const others = pool(st.experiments).filter((p) => p.file !== st.build);
   const level = me.own ? me.level : st.level;
   const a = accuracyOf(st.acc);
-  const base = { op: 'start', scenario: 'duel', precision: a.precision, max_reps: a.max_reps, min_reps: 32 };
-  if (Object.keys(S.opts).length) base.opts = { ...S.opts };
+  // each opponent's duels stop once that score is precise
+  const base = { op: 'start', scenario: 'duel', precision: a.precision, max_reps: M.maxRepsFor('duel', st.acc), min_reps: 32, independent: true, keep: ['score', 'first', 'score_first', 'score_second', 'duration'] };
+  const opts = requestOpts(true);
+  if (opts) base.opts = opts;
   const mine = me.api(level);
-  // everyone challenges me, in one session
-  const sessions = [{ ...base, builds: others.map((p) => presetApi(p, level)), opponent: mine }];
+  const sessions = [{ ...base, builds: [mine], opponents: others.map((p) => presetApi(p, level)) }];
   const run = { i: 0, frac: 0, t0: performance.now(), cancelled: false, finished: false, n: sessions.length };
   st.run = run;
   bus.render();
@@ -148,7 +166,7 @@ export async function runDuels() {
       const res = await env.engine.simulate(req, (p) => {
         run.frac = (run.i + Math.min(0.95, p.reps / Math.max(p.max_reps || a.max_reps, 1))) / run.n;
         bus.progress();
-      }, () => run.cancelled, { columns: [] });
+      }, () => run.cancelled, { columns: [], pairs: [] });
       if (!res) break;
       results.push(res);
       run.i++;
@@ -157,12 +175,12 @@ export async function runDuels() {
     }
     if (!run.cancelled) {
       st.result = {
-        key: settingsKey(st, st.build), build: st.build, me: { name: me.name, cls: me.cls, race: me.race }, files: others.map((p) => p.file),
+        key: duelKey(st, me), build: st.build, me: { name: me.name, cls: me.cls, race: me.race }, files: others.map((p) => p.file),
         level, acc: st.acc, ms: performance.now() - run.t0, ...duelTable(results, others.length),
       };
     }
   } catch (e) {
-    st.result = { key: settingsKey(st, st.build), build: st.build, error: e.message || String(e) };
+    st.result = { key: duelKey(st, me), build: st.build, me: { name: me.name, cls: me.cls, race: me.race }, error: e.message || String(e) };
   }
   run.finished = true;
   run.ms = performance.now() - run.t0;
@@ -171,10 +189,9 @@ export async function runDuels() {
   bus.render();
 }
 
-// Each opponent: my score against them (a win 1, a draw or timeout half),
-// when I react first and when they do. They're the challengers, so my side
-// is the other side of their numbers.
-function duelTable(results, n) {
+// Each opponent (variant i): my score against them (a win 1, a draw or a
+// timeout half), when I react first and when they do.
+export function duelTable(results, n) {
   const m = (i, name) => results[0].variants[i]?.metrics.find((q) => q.name === name);
   const rows = [];
   for (let i = 0; i < n; i++) {
@@ -182,10 +199,9 @@ function duelTable(results, n) {
     if (!s) continue;
     const f = m(i, 'first')?.mean ?? 0.5;
     const sf = m(i, 'score_first')?.mean, ss = m(i, 'score_second')?.mean;
-    // their score when they reacted first is mine when they did
-    const iFirst = ss != null && f < 1 ? 1 - ss / (1 - f) : null;
-    const theyFirst = sf != null && f > 0 ? 1 - sf / f : null;
-    rows.push({ i, mean: 1 - s.mean, lo: 1 - (s.hi ?? s.mean), hi: 1 - (s.lo ?? s.mean), iFirst, theyFirst, duration: m(i, 'duration')?.mean || 0 });
+    const iFirst = sf != null && f > 0 ? sf / f : null;
+    const theyFirst = ss != null && f < 1 ? ss / (1 - f) : null;
+    rows.push({ i, mean: s.mean, lo: s.lo ?? s.mean, hi: s.hi ?? s.mean, iFirst, theyFirst, duration: m(i, 'duration')?.mean || 0 });
   }
   return { rows };
 }
@@ -209,7 +225,7 @@ const levelPicker = (st, disabled) => h('div.quick', { role: 'group', 'aria-labe
   LEVELS.map((l) => h('button.chip', { type: 'button', disabled, 'aria-pressed': String(st.level === l), onclick: () => { st.level = l; bus.render(); } }, String(l))));
 
 const accuracyPicker = (st, disabled) => h('div.hourglasses', { role: 'group', 'aria-label': 'Accuracy' }, M.ACCURACY.map((a) => h('button', {
-  type: 'button', disabled, 'aria-pressed': String(a.id === st.acc), onclick: () => { st.acc = a.id; bus.render(); }, title: `${a.note} of the true answer`,
+  type: 'button', disabled, 'aria-pressed': String(a.id === st.acc), onclick: () => { st.acc = a.id; bus.render(); }, title: `${a.note} of the true answer, about 19 times in 20`,
 }, h('img.px', { src: `art/hourglass-${a.id}.png`, alt: '' }), h('span', a.title), h('small', a.short))));
 
 const experimentsToggle = (st, disabled) => h('label.toggle-line', h('input.check', {
@@ -296,7 +312,7 @@ function rankList(st, r, test) {
   // its rank (measured against that first build, so ties don't chain)
   let lead = null;
   rows.forEach((x, k) => {
-    x.tied = !!lead && x.m.hi >= lead.m.lo;
+    x.tied = !!lead && (x.m.hi >= lead.m.lo || Math.abs(lead.m.mean - x.m.mean) < smdOf(pm, lead.m.mean));
     if (!x.tied) { lead = x; x.rank = k + 1; } else x.rank = lead.rank;
   });
   const stale = r.key !== settingsKey(st);
@@ -325,7 +341,7 @@ function rankList(st, r, test) {
         h('span.raid-name', h('b', baseName(x.p.name)), h('span', classOf(x.p.class)?.name), tagsOf(x.p)),
         h('span.raid-val', fmtMetric(x.m.mean, pm), h('small', extra(x)))),
       compareButton(x.p, r.level)))),
-    h('p.hint.bar-hint', withTip(h('span.q', { tabindex: '0' }, '= means tied'), () => [tt.title('Tied'), tt.line('Within the margin of error of the build above with that rank.', 'gold'), ...rangeTip().slice(1)]),
+    h('p.hint.bar-hint', withTip(h('span.q', { tabindex: '0' }, '= means tied'), () => [tt.title('Tied'), tt.line('Too close to the build above with that rank to call: their ranges overlap, or the gap is under 0.5% (a point, for scores).', 'gold'), ...rangeTip().slice(1)]),
       test.startsWith('pressure') ? ' · A very high number means the attacker can’t get through at all.' : ''));
 }
 
@@ -336,7 +352,7 @@ function rankList(st, r, test) {
 const ownBuild = (key) => (key && key.startsWith('build:') ? S.builds.find((b) => `build:${b.uid}` === key) : null);
 const duelistOf = (key) => {
   const b = ownBuild(key);
-  if (b) return { name: nameOf(b), cls: b.cls, race: b.race, level: b.level, api: (lvl) => apiBuild(b, nameOf(b)), own: true };
+  if (b) return { name: nameOf(b), cls: b.cls, race: b.race, level: b.level, api: (lvl) => apiBuild(b, nameOf(b)), own: true, sig: sig(b) };
   const p = presetOf(key);
   return p ? { name: baseName(p.name), cls: p.class, race: p.race, file: p.file, api: (lvl) => presetApi(p, lvl) } : null;
 };
@@ -361,19 +377,19 @@ export function renderDuels(root) {
   if (running) out.push(progressBlock(st.run, `Duel ${Math.min(st.run.i + 1, st.run.n)} of ${st.run.n}`));
   else if (st.run?.stopped) out.push(h('p.hint', 'Stopped before every duel finished, so there are no results yet.'));
   const r = st.result;
-  if (r && (r.me || presetOf(r.build))) out.push(duelBoard(st, r));
+  if (r && (r.error || r.me || presetOf(r.build))) out.push(duelBoard(st, r, me));
   else if (!running && me) out.push(h('div.empty-big', h('img.px', { src: 'art/dummies.png', alt: '' }), h('p', `Nothing run yet for ${me.name}. Pick a level and press the button.`)));
   root.replaceChildren(...out.filter(Boolean));
 }
 
-function duelBoard(st, r) {
-  if (r.error) return h('div.warn', r.error);
+function duelBoard(st, r, now) {
+  if (r.error) return h('div.warn', `These duels failed: ${r.error}`);
   const me = r.me || (() => { const p = presetOf(r.build); return { name: baseName(p.name), cls: p.class, race: p.race }; })();
   const rows = r.rows.map((x) => ({ ...x, p: presetOf(r.files[x.i]) })).filter((x) => x.p).sort((a, b) => b.mean - a.mean);
   const wins = rows.filter((x) => x.lo > 0.5).length;
   const losses = rows.filter((x) => x.hi < 0.5).length;
   const even = rows.length - wins - losses;
-  const stale = r.key !== settingsKey(st, st.build);
+  const stale = r.key !== duelKey(st, now);
   const name = me.name;
   const best = rows[0];
   const worst = rows[rows.length - 1];

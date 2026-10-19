@@ -325,6 +325,21 @@ impl Reg {
 
     fn resolve(&mut self, name: &str, ctx: Ctx) -> R<VarRef> {
         let w = &self.w;
+        // the pull being fought (between pulls, the next one) and the kind of fight
+        match name {
+            "pull.size" => return Ok(VarRef::PullSize),
+            "pull.casters" => return Ok(VarRef::PullCasters),
+            "pull.danger" => return Ok(VarRef::PullDanger),
+            "fight.leveling" => return Ok(VarRef::FightIs(FightKind::Leveling)),
+            "fight.boss" => return Ok(VarRef::FightIs(FightKind::Boss)),
+            "fight.pvp" => return Ok(VarRef::FightIs(FightKind::Pvp)),
+            "fight.healing" => return Ok(VarRef::FightIs(FightKind::Healing)),
+            "potions" => return Ok(VarRef::PotionsOk),
+            _ if name.starts_with("pull.") || name.starts_with("fight.") => {
+                return Err(format!("'{name}': use pull.size, pull.casters, pull.danger, fight.leveling, fight.boss, fight.pvp or fight.healing"))
+            }
+            _ => {}
+        }
         // allies in the group (`party.`) or everywhere (`raid.`)
         for (pre, group) in [("party.", true), ("raid.", false)] {
             if let Some(r) = name.strip_prefix(pre) {
@@ -455,6 +470,7 @@ impl Reg {
                 "cc_near" => return Ok(VarRef::CcNear),
                 "hit_index" => return Ok(VarRef::HitIndex),
                 "in_combat" => return Ok(VarRef::InCombat),
+                "eat_below" => return Ok(VarRef::EatBelow),
                 "gcd_remains" => return Ok(VarRef::GcdRemains),
                 "dual_wield" => return Ok(VarRef::DualWield),
                 "two_hand" => return Ok(VarRef::TwoHand),
@@ -492,6 +508,13 @@ impl Reg {
             "fleeing" => return Ok(VarRef::Fleeing(who)),
             "in_combat" if who != Who::Me => return Ok(VarRef::UnitInCombat(who)),
             "magic_buffs" => return Ok(VarRef::MagicBuffs(who)),
+            "held" => return Ok(VarRef::Held(who)),
+            "my_cc" => return Ok(VarRef::MyCc(who)),
+            "trash" => return Ok(VarRef::Trash(who)),
+            "debuffs.magic" => return Ok(VarRef::Debuffs(who, DISPEL_MAGIC)),
+            "debuffs.curse" => return Ok(VarRef::Debuffs(who, DISPEL_CURSE)),
+            "debuffs.disease" => return Ok(VarRef::Debuffs(who, DISPEL_DISEASE)),
+            "debuffs.poison" => return Ok(VarRef::Debuffs(who, DISPEL_POISON)),
             "has_aggro" => return Ok(VarRef::HasAggro),
             "alive" => return Ok(VarRef::Alive(who)),
             "casting" => return Ok(VarRef::Casting(who)),
@@ -572,6 +595,7 @@ impl Reg {
             "ally" => TargetSel::Ally,
             "party" | "group" => TargetSel::Party,
             "allies" => TargetSel::Allies(self.exd(t, "max_targets", "100", ctx, path)?),
+            "others_near_me" => TargetSel::OthersNearMe(self.exd(t, "max_targets", "100", ctx, path)?),
             "enemies" | "all_enemies" => {
                 TargetSel::Enemies(self.exd(t, "max_targets", "100", ctx, path)?)
             }
@@ -647,6 +671,8 @@ impl Reg {
                     periodic,
                     no_proc: bl(t, "no_proc", false),
                     fixed: bl(t, "fixed", false),
+                    unavoidable: bl(t, "unavoidable", false),
+                    binary: t.get("binary").and_then(|v| v.as_bool()),
                 };
                 Effect::Damage(Box::new(fx))
             }
@@ -752,6 +778,16 @@ impl Reg {
             "teleport" => Effect::Teleport(self.exd(t, "yards", "20", ctx, path)?),
             "drop_threat" => Effect::DropThreat { resist: bl(t, "resist", false) },
             "purge" => Effect::Purge { who: self.target_sel(t, "target", "target", ctx, path)?, count: self.exd(t, "count", "1", ctx, path)? },
+            "cleanse" => {
+                let mut types = 0;
+                for x in strs(t, "types") {
+                    types |= dispel_bit(&x).ok_or_else(|| format!("{path}.types: unknown '{x}' (magic, curse, disease, poison)"))?;
+                }
+                if types == 0 {
+                    return Err(format!("{path}: a cleanse needs `types`"));
+                }
+                Effect::Cleanse { who: self.target_sel(t, "target", "target", ctx, path)?, types, count: self.exd(t, "count", "1", ctx, path)? }
+            }
             "trap" => Effect::Trap {
                 arm: f(t, "arm", 2.0),
                 radius: f(t, "radius", 5.0),
@@ -828,11 +864,13 @@ impl Reg {
                 Some("gcd") => SpellProp::Gcd,
                 Some("range") => SpellProp::Range,
                 Some("radius") => SpellProp::Radius,
+                Some("pushback_resist") => SpellProp::PushbackResist,
                 x => return Err(format!("{p}.prop: unknown {x:?}")),
             };
             let (op, key) = if t.contains_key("mul") { (ModOp::Mul, "mul") } else { (ModOp::Add, "add") };
             let value = self.ex(t, key, ctx, &p)?.ok_or_else(|| format!("{p}: needs `add` or `mul`"))?;
-            out.push(SpellMod { spells, school, prop, op, value });
+            let fixed = value.fixed_in_fight();
+            out.push(SpellMod { spells, school, prop, op, value, fixed });
         }
         Ok(out)
     }
@@ -907,6 +945,7 @@ impl Reg {
         };
         Ok(Passive {
             name: s(t, "name").unwrap_or_else(|| name.to_string()),
+            cond_fixed: c.as_ref().map_or(true, |e| e.fixed_in_fight()),
             cond: c,
             mods: self.stat_mods(t.get("mods"), ctx, &format!("{path}.mods"))?,
             spell_mods: self.spell_mods(t.get("spell_mods"), ctx, &format!("{path}.spell_mods"))?,
@@ -933,13 +972,24 @@ impl Reg {
         Ok(out)
     }
 
-    fn rotation(&mut self, id: &str, t: &Table, ctx: Ctx, path: &str) -> R<Rotation> {
+    /// A rotation; `extra_rest` lines (the shared bandage) go after its own
+    /// between-pulls lines.
+    fn rotation(&mut self, id: &str, t: &Table, ctx: Ctx, path: &str, extra_rest: &[Value]) -> R<Rotation> {
         let mut lists = Vec::new();
         for key in ["precombat", "opener", "actions", "rest"] {
             let mut acts = Vec::new();
-            if let Some(Value::Array(a)) = t.get(key) {
+            let mut items = match t.get(key) {
+                Some(Value::Array(a)) => a.clone(),
+                _ => vec![],
+            };
+            let own = items.len();
+            if key == "rest" {
+                items.extend(extra_rest.iter().cloned());
+            }
+            if !items.is_empty() {
+                let a = &items;
                 for (i, e) in a.iter().enumerate() {
-                    let p = format!("{path}.{key}[{i}]");
+                    let p = if i < own { format!("{path}.{key}[{i}]") } else { format!("common.rest[{}]", i - own) };
                     let (sp, cond, target, line) = match e {
                         Value::String(x) => (x.clone(), None, None, x.clone()),
                         Value::Table(at) => {
@@ -948,10 +998,8 @@ impl Reg {
                                 Some(c) => format!("{sp} if {c}"),
                                 None => sp.clone(),
                             };
-                            if let Some(r) = s(at, "rank") {
-                                if r != "fit" && r != "max" {
-                                    return Err(format!("{p}.rank: use \"fit\" or \"max\""));
-                                }
+                            if let Some(Value::Boolean(_) | Value::Array(_) | Value::Table(_)) = at.get("rank") {
+                                return Err(format!("{p}.rank: use \"fit\", \"max\", a rank number or a formula"));
                             }
                             (sp, self.ex(at, "if", ctx, &p)?, s(at, "target"), line)
                         }
@@ -989,17 +1037,31 @@ impl Reg {
                     if let Some(c) = &cond {
                         c.visit_vars(&mut |v| cond_rank |= matches!(v, VarRef::Rank(_)));
                     }
+                    // upkeep: the line waits for the spell's own aura to be
+                    // missing or running out (not for its stacks: Sunder), and
+                    // its cooldown isn't shared with other spells (the shocks)
+                    let lt = e.as_table();
                     let mut upkeep = false;
-                    if let Some(c) = &cond {
+                    if let (Some(c), None) = (&cond, self.w.spells[spell as usize].cd_group) {
                         let mut mine = vec![];
                         applied_auras(&self.w.spells[spell as usize].effects, &mut mine);
                         c.visit_vars(&mut |v| {
-                            if let VarRef::AuraUp(_, x) | VarRef::AuraRemains(_, x) | VarRef::AuraStacks(_, x) = v {
+                            if let VarRef::AuraUp(_, x) | VarRef::AuraRemains(_, x) = v {
                                 upkeep |= mine.contains(x);
                             }
                         });
                     }
-                    acts.push(Action { spell, cond, target: tgt, rank, cond_rank, upkeep, line });
+                    if let Some(Value::Boolean(b)) = lt.and_then(|t| t.get("upkeep")) {
+                        upkeep = *b;
+                    }
+                    let emergency = lt.map_or(false, |t| bl(t, "emergency", false));
+                    let rank_cap = match lt.and_then(|t| t.get("rank")) {
+                        Some(Value::String(x)) if x == "fit" || x == "max" => None,
+                        Some(_) => self.ex(lt.unwrap(), "rank", ctx, &p)?,
+                        None => None,
+                    };
+                    let breaks_cc = lt.map_or(false, |t| bl(t, "breaks_cc", false));
+                    acts.push(Action { spell, cond, target: tgt, rank, cond_rank, upkeep, emergency, breaks_cc, rank_cap, line });
                 }
             }
             lists.push(acts);
@@ -1026,10 +1088,20 @@ impl Reg {
             let sp = &self.w.spells[a.spell as usize];
             sp.off_gcd || sp.next_swing
         }).map(|(k, _)| k as u16).collect();
+        let emergency = actions.iter().enumerate().filter(|(_, a)| a.emergency).map(|(k, _)| k as u16).collect();
         Ok(Rotation {
             off_gcd,
-            stand_at: f(t, "stand_at", -1.0),
-            keep_min: f(t, "keep_min", 0.0),
+            emergency,
+            stand_at: if matches!(t.get("stand_at"), Some(Value::String(_))) { -1.0 } else { f(t, "stand_at", -1.0) },
+            keep_min: if matches!(t.get("keep_min"), Some(Value::String(_))) { 0.0 } else { f(t, "keep_min", 0.0) },
+            stand_expr: match t.get("stand_at") {
+                Some(Value::String(_)) => self.ex(t, "stand_at", ctx, path)?,
+                _ => None,
+            },
+            keep_expr: match t.get("keep_min") {
+                Some(Value::String(_)) => self.ex(t, "keep_min", ctx, path)?,
+                _ => None,
+            },
             ranges,
             id: id.to_string(),
             desc: s(t, "desc").unwrap_or_default(),
@@ -1039,8 +1111,8 @@ impl Reg {
             opener,
             actions,
             rest,
-            eat_below: f(t, "eat_below", 0.5),
-            drink_below: f(t, "drink_below", 0.4),
+            eat_below: self.exd(t, "eat_below", "0.5", ctx, path)?,
+            drink_below: self.exd(t, "drink_below", "0.4", ctx, path)?,
             healer: bl(t, "healer", false),
         })
     }
@@ -1164,12 +1236,12 @@ pub fn parse_gear_stats(t: &Table, path: &str) -> R<GearStats> {
 const SPELL_KEYS: &[&str] = &[
     "name", "school", "talent", "level", "race", "ranks", "cost", "cast_time", "channel", "gcd", "off_gcd",
     "cooldown", "cd_group", "requires", "forms", "next_swing", "auto_repeat", "target", "effects", "finisher", "usable_while",
-    "source", "text", "icon", "range", "min_range", "radius", "from_totem",
+    "source", "text", "icon", "range", "min_range", "radius", "from_totem", "dispel",
 ];
 const AURA_KEYS: &[&str] = &[
     "name", "duration", "max_stacks", "charges", "per_source", "debuff", "mechanic", "break_on_damage", "tick",
     "mods", "spell_mods", "procs", "on_apply", "on_refresh", "on_expire", "on_remove", "absorb", "group", "form",
-    "consume_on_cast", "refresh", "dispel", "text", "source", "icon", "hidden", "combat_only", "react", "slow", "speed", "stealth", "dr", "absorb_school", "mana_per_absorb", "no_flee", "distracts", "free", "quiet", "totem",
+    "consume_on_cast", "refresh", "dispel", "text", "source", "icon", "hidden", "combat_only", "react", "slow", "speed", "stealth", "dr", "absorb_school", "mana_per_absorb", "no_flee", "distracts", "free", "quiet", "totem", "jumped", "dispel_resist", "hold",
 ];
 
 fn check_keys(t: &Table, allowed: &[&str], path: &str) -> R<()> {
@@ -1205,8 +1277,9 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         gcd: f(c, "gcd", 1.5),
         energy_gcd: f(c, "energy_gcd", 1.0),
         auto_repeat_windup: f(c, "auto_repeat_windup", 0.5),
-        pushback: f(c, "pushback", 0.5),
-        max_pushbacks: f(c, "max_pushbacks", 2.0) as u32,
+        pushback: num_list(c.get("pushback")),
+        pushback_later: num_list(c.get("pushback_later")),
+        channel_pushback_later: f(c, "channel_pushback_later", 0.25),
         heal_to_spell_damage: f(c, "heal_to_spell_damage", 1.0 / 3.0),
         melee_crit_mult: f(c, "melee_crit_mult", 2.0),
         spell_crit_mult: f(c, "spell_crit_mult", 1.5),
@@ -1285,8 +1358,8 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         if let Some(Value::Array(a)) = rt.get("table") {
             for row in a {
                 let v = num_list(Some(row));
-                if v.len() == 4 {
-                    table.push((v[0] as u32, v[1], v[2], v[3]));
+                if v.len() == 4 || v.len() == 5 {
+                    table.push((v[0] as u32, v[1], v[2], v[3], v.get(4).copied()));
                 }
             }
         }
@@ -1300,6 +1373,8 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
     let world = World {
         uid: WORLDS.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
         party: vec![],
+        party_group: BTreeMap::new(),
+        party_brings: vec![],
         mixes: BTreeMap::new(),
         meta,
         combat,
@@ -1329,6 +1404,11 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
     let classes_t = sub(root, "classes").unwrap_or(&empty);
     let races_t = sub(root, "races").unwrap_or(&empty);
     let common_t = sub(root, "common").unwrap_or(&empty);
+    // between-pulls lines every class rotation ends with (bandages)
+    let common_rest: Vec<Value> = match common_t.get("rest") {
+        Some(Value::Array(a)) => a.clone(),
+        _ => vec![],
+    };
 
     // ------------------------------------------------ pass 1: register names
     // (class idx, spell table, qualified id, plain id)
@@ -1508,7 +1588,12 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
                 Some("replace") => Refresh::Replace,
                 _ => Refresh::Refresh,
             },
-            dispel_type: s(at, "dispel"),
+            dispel: match s(at, "dispel") {
+                Some(x) => Some(dispel_bit(&x).ok_or_else(|| format!("auras.{id}.dispel: unknown '{x}' (magic, curse, disease, poison, none)"))?),
+                None => None,
+            },
+            dispel_resist: None,
+            hold: bl(at, "hold", false),
             text: s(at, "text").unwrap_or_default(),
             icon: s(at, "icon"),
             hidden: bl(at, "hidden", false),
@@ -1520,8 +1605,13 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
             stealth: bl(at, "stealth", false),
             dr: None,
             absorb_school: None,
-            mana_per_absorb: f(at, "mana_per_absorb", 0.0),
+            mana_per_absorb: None,
             no_flee: bl(at, "no_flee", false),
+            jumped_drop: match s(at, "jumped").as_deref() {
+                None | Some("keep") => false,
+                Some("drop") => true,
+                Some(x) => return Err(format!("auras.{id}.jumped: '{x}' (keep or drop)")),
+            },
             distracts: bl(at, "distracts", false),
             free: bl(at, "free", false),
             quiet: bl(at, "quiet", false),
@@ -1574,6 +1664,10 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
             class: *class,
             race: *race,
             school: School::from_name(&school).ok_or_else(|| format!("{path}.school: unknown '{school}'"))?,
+            dispel: match s(st, "dispel") {
+                Some(x) => dispel_bit(&x).ok_or_else(|| format!("{path}.dispel: unknown '{x}' (magic, curse, disease, poison, none)"))?,
+                None => 0,
+            },
             talent,
             learn_level: f(st, "level", 1.0) as u32,
             ranks,
@@ -1646,6 +1740,8 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         let on_expire = reg.effects(at.get("on_expire"), ctx, &format!("{path}.on_expire"))?;
         let on_remove = reg.effects(at.get("on_remove"), ctx, &format!("{path}.on_remove"))?;
         let absorb = reg.ex(at, "absorb", ctx, &path)?;
+        let mana_per_absorb = reg.ex(at, "mana_per_absorb", ctx, &path)?;
+        let dispel_resist = reg.ex(at, "dispel_resist", ctx, &path)?;
         let totem_health = match sub(at, "totem") {
             Some(tt) if matches!(tt.get("health"), Some(Value::String(_))) => reg.ex(tt, "health", ctx, &format!("{path}.totem"))?,
             _ => None,
@@ -1665,6 +1761,8 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         a.on_expire = on_expire;
         a.on_remove = on_remove;
         a.absorb = absorb;
+        a.mana_per_absorb = mana_per_absorb;
+        a.dispel_resist = dispel_resist;
         a.slow = slow;
         a.speed = speed;
         // diminishing returns: the group named, else the mechanic's own
@@ -1733,6 +1831,7 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
                 duration: reg.exd(ch, "duration", "5", ctx, &format!("{path}.channel"))?,
                 interval: reg.exd(ch, "interval", "1", ctx, &format!("{path}.channel"))?,
                 effects: reg.effects(ch.get("effects"), ctx, &format!("{path}.channel.effects"))?,
+                breaks: bl(ch, "breaks_on_damage", false),
             }),
             None => None,
         };
@@ -1823,13 +1922,13 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
         let mut rotations = BTreeMap::new();
         for (rid, rv) in sub(ct, "rotations").unwrap_or(&empty) {
             let p = format!("{path}.rotations.{rid}");
-            rotations.insert(rid.clone(), reg.rotation(rid, tbl(rv, &p)?, ctx, &p)?);
+            rotations.insert(rid.clone(), reg.rotation(rid, tbl(rv, &p)?, ctx, &p, &common_rest)?);
         }
         for (pid, pv) in sub(ct, "pets").unwrap_or(&empty) {
             let p = format!("{path}.pets.{pid}");
             let pt = tbl(pv, &p)?;
             let rotation = match sub(pt, "rotation") {
-                Some(rt) => Some(reg.rotation(pid, rt, ctx, &format!("{p}.rotation"))?),
+                Some(rt) => Some(reg.rotation(pid, rt, ctx, &format!("{p}.rotation"), &[])?),
                 None => None,
             };
             let ctn = s(pt, "creature").unwrap_or("beast".into());
@@ -1999,7 +2098,8 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
                 max_dead: f(st, "max_dead", 1.0) as u32,
                 lo: f(st, "lo", 0.2),
                 hi: f(st, "hi", 5.0),
-                steps: f(st, "steps", 8.0) as u32,
+                // 12 steps: a 0.08% grid, finer than any accuracy the site asks for
+                steps: f(st, "steps", 12.0) as u32,
                 min_level: f(st, "min_level", 1.0) as u32,
             }),
             x => return Err(format!("{p}.kind: unknown {x:?} (leveling, boss, duel, pressure, healing)")),
@@ -2074,6 +2174,39 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
             reg.w.party.push(PartyBuff { id: id.clone(), spell, for_, option });
         }
     }
+    // a typical group: who fills each slot, and what each class brings
+    let class_list = |reg: &Reg, v: &Value, p: &str| -> R<Vec<usize>> {
+        v.as_array().ok_or_else(|| format!("{p}: expected a list of classes"))?.iter()
+            .map(|c| c.as_str().and_then(|c| reg.w.class_index(c)).ok_or_else(|| format!("{p}: unknown class {c}")))
+            .collect()
+    };
+    if let Some(g) = sub(root, "party_group") {
+        for (side, v) in g {
+            let p = format!("party_group.{side}");
+            let slots = v.as_array().ok_or_else(|| format!("{p}: expected a list of slots"))?;
+            let slots = slots.iter().map(|x| class_list(&reg, x, &p)).collect::<R<Vec<_>>>()?;
+            reg.w.party_group.insert(side.clone(), slots);
+        }
+    }
+    reg.w.party_brings = vec![vec![]; reg.w.classes.len()];
+    if let Some(b) = sub(root, "party_brings") {
+        for (cls, v) in b {
+            let p = format!("party_brings.{cls}");
+            let c = reg.w.class_index(cls).ok_or_else(|| format!("{p}: unknown class"))?;
+            let lists = v.as_array().ok_or_else(|| format!("{p}: expected lists of party buffs"))?;
+            let mut out = vec![];
+            for l in lists {
+                let ids = l.as_array().ok_or_else(|| format!("{p}: expected lists of party buffs"))?;
+                let mut ks = vec![];
+                for id in ids {
+                    let id = id.as_str().unwrap_or_default();
+                    ks.push(reg.w.party.iter().position(|pb| pb.id == id).ok_or_else(|| format!("{p}: unknown party buff '{id}'"))?);
+                }
+                out.push(ks);
+            }
+            reg.w.party_brings[c] = out;
+        }
+    }
     Ok(reg.w)
 }
 
@@ -2081,18 +2214,31 @@ pub fn compile(tree: Value, meta: WorldMeta) -> R<World> {
 fn enemy_def(reg: &mut Reg, eid: &str, et: &Table, p: &str) -> R<EnemyDef> {
     let ctx = Ctx { class: None, rank_alias: None };
     let rotation = match sub(et, "rotation") {
-        Some(rt) => Some(reg.rotation(eid, rt, ctx, &format!("{p}.rotation"))?),
+        Some(rt) => Some(reg.rotation(eid, rt, ctx, &format!("{p}.rotation"), &[])?),
         None => None,
     };
     let mut stuns = Vec::new();
     if let Some(Value::Array(a)) = et.get("stuns") {
-        for x in a {
-            let v = num_list(Some(x));
-            if v.len() == 2 {
-                stuns.push((v[0], v[1]));
+        for (k, st) in a.iter().enumerate() {
+            let sp = format!("{p}.stuns[{k}]");
+            // [seconds, duration], or { at, dur, aura } with its own aura
+            if let Some(t) = st.as_table() {
+                let at = f(t, "at", 0.0);
+                let dur = f(t, "dur", 0.0);
+                let aura = match s(t, "aura") {
+                    Some(n) => Some(*reg.w.aura_index.get(&n).ok_or_else(|| format!("{sp}.aura: unknown aura '{n}'"))?),
+                    None => None,
+                };
+                stuns.push((at, dur, aura));
+            } else {
+                let v = num_list(Some(st));
+                if v.len() == 2 {
+                    stuns.push((v[0], v[1], None));
+                }
             }
         }
     }
+
     let mut script = Vec::new();
     if let Some(Value::Array(a)) = et.get("script") {
         for (k, x) in a.iter().enumerate() {
@@ -2120,6 +2266,10 @@ fn enemy_def(reg: &mut Reg, eid: &str, et: &Table, p: &str) -> R<EnemyDef> {
                 first: f(xt, "first", every),
                 targets,
                 melee: bl(xt, "melee", false),
+                aura: match s(xt, "aura") {
+                    Some(a) => Some(reg.aura_ref(&a, ctx, &q)?),
+                    None => None,
+                },
             });
         }
     }

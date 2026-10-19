@@ -52,6 +52,7 @@
 .foe-val { display: flex; align-items: center; gap: 8px; }
 .foe-bar { position: relative; flex: 1 1 auto; min-width: 40px; height: 8px; background: #000; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
 .foe-bar i { position: absolute; inset: 0 auto 0 0; background: var(--slot, var(--wow-gold)); }
+.foe-bar s { position: absolute; top: -2px; bottom: -2px; border-left: 1px solid rgba(255, 255, 255, .55); border-right: 1px solid rgba(255, 255, 255, .55); background: rgba(255, 255, 255, .12); text-decoration: none; }
 .foe-val b { flex: 0 0 3.2em; font: 600 var(--fs-m)/1 var(--sans); text-align: right; font-variant-numeric: tabular-nums; }
 .foe-watch { white-space: nowrap; }
 .foe-specs { padding: 0 var(--s3) var(--s2) calc(84 * var(--art) + var(--s3)); }
@@ -86,7 +87,7 @@
 .cards { display: flex; gap: var(--s4); align-items: stretch; }
 .card { position: relative; flex: 0 1 400px; min-width: 0; display: flex; flex-direction: column; gap: var(--s2); padding: 4px 6px; }
 .card.main { filter: drop-shadow(0 0 14px rgba(255, 209, 0, .12)); }
-.card.editing { filter: drop-shadow(0 0 0 1px var(--gilt)) drop-shadow(0 0 16px rgba(255, 209, 0, .22)); }
+.card.editing { filter: drop-shadow(0 0 1px var(--gilt)) drop-shadow(0 0 16px rgba(255, 209, 0, .22)); }
 .card-top { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s3); align-items: center; }
 .card-portrait { position: relative; width: calc(64 * var(--art)); height: calc(64 * var(--art)); flex: none; }
 .card-portrait .face { position: absolute; inset: 8px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: radial-gradient(circle at 40% 30%, #3a3127, #0d0b09 75%); box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--gilt-line), 0 0 0 5px #000; }

@@ -163,6 +163,12 @@ impl Explain<'_> {
             VarRef::PetActive(None) => "your pet is out".into(),
             VarRef::PetActive(Some(p)) => format!("your {} is out", self.w.pets.get(*p as usize).map_or("pet".into(), |d| d.name.clone())),
             VarRef::InCombat => "you're in combat".into(),
+            VarRef::Debuffs(who, m) => debuff_on(*who, *m, true),
+            VarRef::Held(who) => format!("{} {} held by crowd control", Self::subject(*who), be(*who)),
+            VarRef::MyCc(who) => format!("{} {} held by your crowd control", Self::subject(*who), be(*who)),
+            VarRef::Trash(who) => format!("{} {} an ordinary mob", Self::subject(*who), be(*who)),
+            VarRef::FightIs(k) => fight_is(*k, true),
+            VarRef::PotionsOk => "potions are in use".into(),
             VarRef::UnitInCombat(who) => format!("{} is in combat", Self::subject(*who)),
             VarRef::TotemActive(e) => format!("your {} is down", totem_word(*e)),
             VarRef::TotemInRange(e) => format!("your {} reaches", totem_word(*e)),
@@ -220,6 +226,12 @@ impl Explain<'_> {
             VarRef::Moving(Who::Me) => "you're standing still".into(),
             VarRef::Behind => "you're not behind the target".into(),
             VarRef::InCombat => "you're out of combat".into(),
+            VarRef::Debuffs(who, m) => debuff_on(*who, *m, false),
+            VarRef::Held(who) => format!("{} {} not held by crowd control", Self::subject(*who), be(*who)),
+            VarRef::MyCc(who) => format!("{} {} not held by your crowd control", Self::subject(*who), be(*who)),
+            VarRef::Trash(who) => format!("{} {} a boss or a player", Self::subject(*who), be(*who)),
+            VarRef::FightIs(k) => fight_is(*k, false),
+            VarRef::PotionsOk => "potions aren't in use".into(),
             VarRef::Talent(_, t) => format!("you don't have {}", self.talent(*t)),
             _ => return None,
         })
@@ -260,6 +272,10 @@ impl Explain<'_> {
             if let (Node::C(_), Node::C(_)) = (y.as_ref(), z.as_ref()) {
                 return Some(format!("{} when {}, otherwise {}", self.cmp(op, a, y)?, self.inner(c)?, self.cmp(op, a, z)?));
             }
+        }
+        // the bandage between pulls: only when you'd eat anyway
+        if let (Node::V(VarRef::ResPct(Who::Me, Res::Hp)), Node::V(VarRef::EatBelow), "<") = (a, b, op) {
+            return Some("your health is low enough that you'd eat".into());
         }
         // `target.hp < <the hit's damage>`: the hit would finish it
         if let (Node::V(VarRef::Res(Who::Target, Res::Hp)), "<" | "<=") = (a, op) {
@@ -323,6 +339,21 @@ impl Explain<'_> {
                 ("<", n) if n <= 2.0 => "only one enemy is fighting you".into(),
                 _ => format!("{} {} enemies are fighting you", rel("more", "fewer"), num(c)),
             },
+            VarRef::PullSize => match (op, c) {
+                (">=", n) => format!("the pull has {} or more mobs", num(n)),
+                (">", n) => format!("the pull has more than {} {}", num(n), if n == 1.0 { "mob" } else { "mobs" }),
+                ("<", n) if n <= 2.0 => "the pull is a single mob".into(),
+                _ => format!("the pull has {} {} mobs", rel("more", "fewer"), num(c)),
+            },
+            VarRef::PullCasters => match (op, c) {
+                (">=", n) if n <= 1.0 => "the pull has a caster".into(),
+                (">", n) if n == 0.0 => "the pull has a caster".into(),
+                _ => format!("the pull has {} {} casters", rel("more", "fewer"), num(c)),
+            },
+            VarRef::PullDanger => match (op, c) {
+                (">", n) if n >= 1.0 => "the mobs hit harder than usual".into(),
+                _ => format!("the mobs hit {} {} times as hard as usual", rel("more than", "less than"), num(c)),
+            },
             VarRef::EnemiesWithin(yd) => match (op, c) {
                 (">=", n) => format!("{} or more enemies are within {} yards", num(n), yd),
                 _ => format!("{} {} enemies are within {} yards", rel("more", "fewer"), num(c), yd),
@@ -367,6 +398,11 @@ impl Explain<'_> {
             }
             VarRef::AllyCount(group) => format!("{} {} {} alive", rel("more", "fewer"), num(c), if *group { "in your group are" } else { "allies are" }),
             VarRef::Deficit(who) => format!("{} missing health is {} {}", Self::whose(*who), rel("above", "below"), num(c)),
+            VarRef::Debuffs(who, m) => match (op, c) {
+                (">", z) | (">=", z) if z <= 1.0 && (op == ">" || z == 1.0) => debuff_on(*who, *m, true),
+                ("==", z) | ("<=", z) | ("<", z) if z == 0.0 || (op == "<" && z == 1.0) => debuff_on(*who, *m, false),
+                _ => format!("{} {} {} are on {}", rel("more", "fewer"), num(c), debuff_word(*m).1, object(*who)),
+            },
             VarRef::Stat(who, s) => format!("{} {} is {} {}", Self::whose(*who), s.name().replace('_', " "), rel("above", "below"), num(c)),
             _ => return None,
         })
@@ -376,6 +412,44 @@ impl Explain<'_> {
 enum Part {
     Skip,
     Text(String),
+}
+
+/// A dispel type in words: (one, several).
+fn debuff_word(m: u8) -> (&'static str, &'static str) {
+    match m {
+        DISPEL_MAGIC => ("a magic effect", "magic effects"),
+        DISPEL_CURSE => ("a curse", "curses"),
+        DISPEL_DISEASE => ("a disease", "diseases"),
+        DISPEL_POISON => ("a poison", "poisons"),
+        _ => ("an effect a cure takes off", "effects a cure takes off"),
+    }
+}
+
+/// "is", or "are" after "you" and "they".
+fn be(who: Who) -> &'static str {
+    if matches!(who, Who::Me | Who::Ally) { "are" } else { "is" }
+}
+
+fn object(who: Who) -> &'static str {
+    match who {
+        Who::Me => "you",
+        Who::Ally => "them",
+        Who::Target => "the target",
+        Who::Pet => "your pet",
+        Who::Owner => "your master",
+        Who::Tank => "the tank",
+        Who::Lowest => "the most hurt ally",
+    }
+}
+
+/// "a poison is on you", "no curse is on them".
+fn debuff_on(who: Who, m: u8, yes: bool) -> String {
+    let (one, _) = debuff_word(m);
+    if yes {
+        format!("{one} is on {}", object(who))
+    } else {
+        format!("no {} is on {}", one.trim_start_matches("a ").trim_start_matches("an "), object(who))
+    }
 }
 
 fn mech(m: Mechanic) -> &'static str {
@@ -457,4 +531,15 @@ fn totem_word(e: u8) -> String {
         Some("trap") | None => "trap".into(),
         Some(x) => format!("{x} totem"),
     }
+}
+
+// "this is a boss fight" (or, `yes` false, "this isn't a boss fight").
+fn fight_is(k: FightKind, yes: bool) -> String {
+    let (y, n) = match k {
+        FightKind::Leveling => ("you're leveling", "you're not leveling"),
+        FightKind::Boss => ("this is a boss fight", "this isn't a boss fight"),
+        FightKind::Pvp => ("you're fighting players", "you're not fighting players"),
+        FightKind::Healing => ("you're healing a group", "you're not healing a group"),
+    };
+    (if yes { y } else { n }).to_string()
 }

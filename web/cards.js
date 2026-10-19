@@ -6,7 +6,8 @@
 import * as M from './meta.js';
 import { h, art, withTip, tt } from './ui.js';
 import { gearLines } from './editor.js';
-import { S, MAX_BUILDS, classOf, raceOf, nameOf, classColor, baselineBuild, buildDiff, diffText, presetOf, presetTags } from './state.js';
+import { S, MAX_BUILDS, classOf, raceOf, nameOf, classColor, baselineBuild, buildDiff, diffText, presetOf, presetTags, primaryOf } from './state.js';
+import { judge } from './results.js';
 import { prepareClass } from './talents.js';
 import { changesFor } from './runner.js';
 
@@ -56,8 +57,9 @@ function card(b, k, isBase, base, actions) {
   let change = null;
   const ch = changesFor(b).filter((x) => S.rows[x.test]);
   if (ch.length) {
-    const better = ch.filter((x) => x.significant && x.diff > 0).length;
-    const worse = ch.filter((x) => x.significant && x.diff < 0).length;
+    const clear = (x) => judge(x, M.METRICS[primaryOf(x.test)]) === 'clear';
+    const better = ch.filter((x) => clear(x) && (x.diff > 0) === (M.METRICS[primaryOf(x.test)]?.good !== 'low')).length;
+    const worse = ch.filter((x) => clear(x)).length - better;
     const parts = [];
     if (better) parts.push(h('span.good', `better in ${better}`));
     if (worse) parts.push(h('span.bad', `worse in ${worse}`));

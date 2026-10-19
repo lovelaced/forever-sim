@@ -35,6 +35,11 @@ pub struct Motion {
     pub closing: bool,
 }
 
+/// How often a feared unit's turn heads away from whoever feared it (the
+/// rest of the time it doubles back), so fear covers less ground than a
+/// straight run.
+const FEAR_AWAY: f64 = 0.75;
+
 impl Default for Motion {
     fn default() -> Self {
         Motion { x: 0.0, t0: 0.0, v: 0.0, goal: Goal::Engage, next: INF, closing: false }
@@ -164,7 +169,7 @@ impl<'w> Sim<'w> {
         // a caster mob keeps its distance while it has mana for a bolt and
         // isn't locked out, then comes in to fight
         let casting_on = x.max_res[Res::Mana as usize] <= 0.0
-            || (x.res[Res::Mana as usize] >= x.max_res[Res::Mana as usize] / 6.5 && x.lockout <= self.t && x.mechs & Mechanic::Silence.bit() == 0);
+            || (x.res[Res::Mana as usize] >= x.max_res[Res::Mana as usize] / 6.5 && x.lockout.iter().all(|&l| l <= self.t) && x.mechs & Mechanic::Silence.bit() == 0);
         let mut want = match x.enemy {
             Some(e) if x.kind == Kind::Enemy && e.stand_at > 0.0 && casting_on => e.stand_at - c.move_margin,
             _ if x.stand_at > 0.0 => x.stand_at - c.move_margin,
@@ -184,8 +189,7 @@ impl<'w> Sim<'w> {
         if let Some(r) = x.chase {
             want = want.min((r - c.move_margin).max(0.5));
         }
-        let keep = x.rotation.map_or(0.0, |r| r.keep_min);
-        (want, keep)
+        (want, x.keep_min)
     }
 
     /// Where a character fights from, worked out once it's spawned: the
@@ -195,16 +199,18 @@ impl<'w> Sim<'w> {
     pub fn find_stand(&mut self, a: usize) {
         let Some(r) = self.actors[a].rotation else { return };
         let auto_melee = self.actors[a].auto_melee;
-        let v = if r.stand_at >= 0.0 {
-            // a bow's reach grows with talents (Hawk Eye)
-            r.stand_at + if self.actors[a].auto_ranged && r.stand_at > 0.0 { self.actors[a].st[Stat::RangedRange as usize] } else { 0.0 }
-        } else if auto_melee {
+        let auto = if auto_melee {
             0.0
         } else {
+            // the damage lines decide (not a curse, a fear or a dispel)
             let mut count: Vec<(f64, u32)> = vec![];
             for act in &r.actions {
                 let sp = &self.w.spells[act.spell as usize];
                 if act.target != SpellTarget::Enemy || sp.range < 20.0 || sp.radius > 0.0 || self.known(a, act.spell).is_none() {
+                    continue;
+                }
+                let damages = sp.effects.iter().any(|e| matches!(e, Effect::Damage(_))) || sp.channel.as_ref().map_or(false, |c| c.effects.iter().any(|e| matches!(e, Effect::Damage(_))));
+                if !damages {
                     continue;
                 }
                 let range = self.range_with(sp, &self.spell_mod_vals(a, Some(act.spell), None));
@@ -215,7 +221,33 @@ impl<'w> Sim<'w> {
             }
             count.iter().max_by(|x, y| x.1.cmp(&y.1).then(x.0.partial_cmp(&y.0).unwrap())).map_or(0.0, |c| c.0)
         };
+        self.actors[a].stand_auto = auto;
+        self.actors[a].keep_min = r.keep_min;
+        let v = if r.stand_at >= 0.0 { self.bow_reach(a, r.stand_at) } else { auto };
         self.actors[a].stand_at = v;
+        self.restand(a);
+    }
+
+    /// A stand range plus a bow's extra reach from talents (Hawk Eye).
+    fn bow_reach(&self, a: usize, at: f64) -> f64 {
+        at + if self.actors[a].auto_ranged && at > 0.0 { self.actors[a].st[Stat::RangedRange as usize] } else { 0.0 }
+    }
+
+    /// A rotation whose `stand_at` or `keep_min` is a formula works them out
+    /// again for the target in front of it.
+    pub fn restand(&mut self, a: usize) {
+        let Some(r) = self.actors[a].rotation else { return };
+        if r.stand_expr.is_none() && r.keep_expr.is_none() {
+            return;
+        }
+        let cx = Cx::new(a, self.actors[a].target, "");
+        if let Some(e) = &r.stand_expr {
+            let v = self.ev(e, &cx);
+            self.actors[a].stand_at = if v < 0.0 { self.actors[a].stand_auto } else { self.bow_reach(a, v) };
+        }
+        if let Some(e) = &r.keep_expr {
+            self.actors[a].keep_min = self.ev(e, &cx).max(0.0);
+        }
     }
 
     /// Whether the actor goes after its target at all (a boss that doesn't
@@ -254,18 +286,25 @@ impl<'w> Sim<'w> {
     }
 
     fn plan_one(&mut self, a: usize) {
+        self.restand(a);
         let c = &self.w.combat;
         let x = &self.actors[a];
         if self.phase != Phase::Fight || (x.kind == Kind::Enemy && !x.aware) || self.held_back(a) {
             self.stop(a);
             return;
         }
-        // a feared unit runs from whoever feared it
+        // a feared unit runs, mostly away from whoever feared it, turning now
+        // and then; roots and slows hold it as they would anyone
         if x.mechs & Mechanic::Fear.bit() != 0 {
             let w = self.w;
             let from = x.auras.iter().find(|i| w.auras[i.def as usize].mechanic == Some(Mechanic::Fear)).map(|i| i.src);
             if let Some(f) = from.filter(|&f| f != a) {
-                let v = -self.toward(a, f) * self.base_speed(a) * c.fear_speed;
+                if self.t >= self.actors[a].fear_turn - EPS {
+                    let x = &mut self.actors[a];
+                    x.fear_dir = if x.fear_rng.f64() < FEAR_AWAY { 1.0 } else { -1.0 };
+                    x.fear_turn = self.t + x.fear_rng.range(1.0, 2.0);
+                }
+                let v = -self.toward(a, f) * self.actors[a].fear_dir * self.speed(a);
                 self.set_v(a, v);
                 return;
             }
@@ -404,7 +443,9 @@ impl<'w> Sim<'w> {
         self.actors[a].mo.goal = Goal::Engage;
         self.stop(a);
         if let Some(k) = self.charges.iter().position(|c| c.0 == a) {
-            let (_, _, effs, cx) = self.charges.swap_remove(k);
+            let (_, _, effs, mut cx) = self.charges.swap_remove(k);
+            // a Charge that arrives lands its stun
+            cx.landed = true;
             self.run_effects(effs, cx);
         }
     }
@@ -425,6 +466,10 @@ impl<'w> Sim<'w> {
         let x = &self.actors[a];
         let c = &self.w.combat;
         let mut n = INF;
+        // a feared unit turns now and then
+        if x.mechs & Mechanic::Fear.bit() != 0 {
+            n = n.min(x.fear_turn);
+        }
         if x.kind == Kind::Enemy && !x.aware {
             for &p in &self.live {
                 let y = &self.actors[p];
@@ -433,6 +478,18 @@ impl<'w> Sim<'w> {
                 }
             }
             return n;
+        }
+        // someone waiting notices an enemy coming within their notice range
+        if x.waits {
+            for &p in &self.live {
+                let y = &self.actors[p];
+                if y.alive && y.team != x.team && (y.kind == Kind::Player || (y.owner.is_some() && y.kind != Kind::Totem)) {
+                    let r = self.notice_range(a, p);
+                    if r > 0.0 {
+                        n = n.min(self.cross(a, p, &[r]));
+                    }
+                }
+            }
         }
         let other = match x.mo.goal {
             Goal::Charge(to) => Some(to),
@@ -560,11 +617,45 @@ impl<'w> Sim<'w> {
     }
 
     /// Whether `a` hits `d` from behind: `d` is facing someone else, or
-    /// hasn't noticed anyone yet.
+    /// hasn't noticed anyone yet (in the open world, a stealthed attacker
+    /// the other side hasn't seen).
     pub fn behind(&self, a: usize, d: usize) -> bool {
         let x = &self.actors[a];
         let y = &self.actors[d];
-        x.behind || !y.aware || y.distracted || y.target.map_or(false, |t| t != a)
+        x.behind || !y.aware || y.distracted || y.target.map_or(false, |t| t != a) || (y.waits && x.stealthed)
+    }
+
+    /// How close an enemy player (or their pet) comes before someone waiting
+    /// for their first move notices them and starts to react: the
+    /// `skirmish_notice` setting, or `stealth_detect` for a stealthed one.
+    fn notice_range(&self, d: usize, p: usize) -> f64 {
+        let name = if self.actors[p].stealthed { "stealth_detect" } else { "skirmish_notice" };
+        self.opt_named(d, name).max(0.0)
+    }
+
+    /// Open-world PvP: someone waiting for the other side's first move notices
+    /// them coming close and starts to react.
+    pub fn check_notice(&mut self) {
+        let mut hit = None;
+        'all: for &d in &self.live {
+            let y = &self.actors[d];
+            if !y.alive || !y.waits {
+                continue;
+            }
+            for &p in &self.live {
+                let z = &self.actors[p];
+                if z.alive && z.team != y.team && (z.kind == Kind::Player || (z.owner.is_some() && z.kind != Kind::Totem)) {
+                    let r = self.notice_range(d, p);
+                    if r > 0.0 && self.dist(d, p) <= r + 1e-6 {
+                        hit = Some((d, p));
+                        break 'all;
+                    }
+                }
+            }
+        }
+        if let Some((d, p)) = hit {
+            self.rouse(d, p);
+        }
     }
 
     /// Whether `a` can reach `target` with a spell (range and dead zone).

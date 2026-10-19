@@ -114,7 +114,7 @@ speed = 0.9
 crit = 25.0
 dodge = "interp(level, 20,8, 40,10, 60,12)"
 parry = 5.0
-stuns = [[0, 4], [10, 6]]
+stuns = [{ at = 0, dur = 4 }, { at = 10, dur = 6, aura = "rogue.kidney_shot" }]   # Cheap Shot, then a Kidney Shot with its own diminishing returns
 
 # ------------------------------------------------------------ healing tests
 # The bosses of the healing tests hit to a timetable: melee on the tank plus
@@ -124,8 +124,10 @@ stuns = [[0, 4], [10, 6]]
 # scale 1 (5 players in the dungeon, 1 tank, 10 in the raid), calibrated so a
 # Holy priest preset breaks even near 1.
 
-# Dungeon boss (+2): 55% melee on the tank, 10% Mortal Strike on the tank,
-# 20% Fire Nova on everyone, 15% Shadow Bolts on someone other than the tank.
+# Dungeon boss (+2): 55% melee on the tank, 10% Mortal Strike on the tank
+# (healing on it halved for 5 sec), 20% Fire Nova on everyone, 5% Shadow
+# Bolts on someone other than the tank and 10% Shadow Word: Pain on someone
+# else (18 sec of damage, a magic effect a cure takes off).
 [enemies.heal_dungeon_boss]
 name = "Dungeon boss"
 creature = "humanoid"
@@ -138,14 +140,15 @@ speed = 2.0
 crit = 5.0
 dmg = "0.55 * 2.0 * interp(level, 10,43, 15,56, 20,65, 25,99, 30,129, 35,168, 40,216, 45,259, 50,324, 55,423, 60,648)"
 script = [
-  { name = "Mortal Strike", icon = "ability_warrior_savageblow", melee = true, target = "tank", every = 8, first = 5, dmg = "0.10 * 8 * interp(level, 10,43, 15,56, 20,65, 25,99, 30,129, 35,168, 40,216, 45,259, 50,324, 55,423, 60,648)" },
+  { name = "Mortal Strike", icon = "ability_warrior_savageblow", melee = true, target = "tank", every = 8, first = 5, aura = "boss_mortal_wound", dmg = "0.10 * 8 * interp(level, 10,43, 15,56, 20,65, 25,99, 30,129, 35,168, 40,216, 45,259, 50,324, 55,423, 60,648)" },
   { name = "Fire Nova", icon = "spell_fire_sealoffire", school = "fire", target = "all", every = 6, first = 4, dmg = "0.20 * 6 / 5 * interp(level, 10,43, 15,56, 20,65, 25,99, 30,129, 35,168, 40,216, 45,259, 50,324, 55,423, 60,648)" },
-  { name = "Shadow Bolt", icon = "spell_shadow_shadowbolt", school = "shadow", target = "others", count = 1, every = 3, first = 2, dmg = "0.15 * 3 * interp(level, 10,43, 15,56, 20,65, 25,99, 30,129, 35,168, 40,216, 45,259, 50,324, 55,423, 60,648)" },
+  { name = "Shadow Bolt", icon = "spell_shadow_shadowbolt", school = "shadow", target = "others", count = 1, every = 3, first = 2, dmg = "0.05 * 3 * interp(level, 10,43, 15,56, 20,65, 25,99, 30,129, 35,168, 40,216, 45,259, 50,324, 55,423, 60,648)" },
+  { name = "Shadow Word: Pain", icon = "spell_shadow_shadowwordpain", school = "shadow", target = "others", count = 1, every = 18, first = 8, aura = "boss_shadow_word_pain" },
 ]
 mods = [{ stat = "immune_stun", add = 1 }, { stat = "immune_root", add = 1 }, { stat = "immune_fear", add = 1 }, { stat = "immune_incap", add = 1 }]
 
-# Main tank boss (+3, crushing blows): 70% melee, 20% Mortal Strike, 10%
-# Flame Breath, all on the tank.
+# Main tank boss (+3, crushing blows): 70% melee, 20% Mortal Strike (healing
+# on the tank halved for 5 sec), 10% Flame Breath, all on the tank.
 [enemies.heal_tank_boss]
 name = "Raid boss"
 creature = "dragonkin"
@@ -158,7 +161,7 @@ speed = 2.0
 crit = 5.0
 dmg = "0.70 * 2.0 * interp(level, 10,34, 15,40, 20,47, 25,71, 30,96, 35,123, 40,159, 45,169, 50,205, 55,288, 60,549)"
 script = [
-  { name = "Mortal Strike", icon = "ability_warrior_savageblow", melee = true, target = "tank", every = 10, first = 6, dmg = "0.20 * 10 * interp(level, 10,34, 15,40, 20,47, 25,71, 30,96, 35,123, 40,159, 45,169, 50,205, 55,288, 60,549)" },
+  { name = "Mortal Strike", icon = "ability_warrior_savageblow", melee = true, target = "tank", every = 10, first = 6, aura = "boss_mortal_wound", dmg = "0.20 * 10 * interp(level, 10,34, 15,40, 20,47, 25,71, 30,96, 35,123, 40,159, 45,169, 50,205, 55,288, 60,549)" },
   { name = "Flame Breath", icon = "spell_fire_fire", school = "fire", target = "tank", every = 15, first = 9, dmg = "0.10 * 15 * interp(level, 10,34, 15,40, 20,47, 25,71, 30,96, 35,123, 40,159, 45,169, 50,205, 55,288, 60,549)" },
 ]
 mods = [{ stat = "immune_stun", add = 1 }, { stat = "immune_root", add = 1 }, { stat = "immune_fear", add = 1 }, { stat = "immune_incap", add = 1 }]

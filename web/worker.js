@@ -40,7 +40,9 @@ self.onmessage = async (e) => {
       loading = loading || load();
       await loading;
     }
-    self.postMessage({ id, res: call(req) });
+    // with how much memory it holds (WebAssembly memory only grows)
+    const res = call(req);
+    self.postMessage({ id, res, mem: inst.memory.buffer.byteLength });
   } catch (err) {
     // A trap leaves the module in an unknown state: start afresh next time.
     inst = null;

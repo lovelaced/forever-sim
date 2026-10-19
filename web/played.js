@@ -6,7 +6,7 @@
 // buttons switch to another build.
 import * as M from './meta.js';
 import { h, art, ability, withTip, tt, fmtNum, fmtSec } from './ui.js';
-import { S, env, bus, classOf, raceOf, apiBuild, nameOf, sig, baselineBuild, healRotationOf } from './state.js';
+import { S, env, bus, classOf, raceOf, apiBuild, nameOf, sig, baselineBuild, healRotationOf, requestOpts } from './state.js';
 import { metricOf } from './results.js';
 import { opponentApi } from './runner.js';
 
@@ -163,7 +163,7 @@ function healShare(v) {
 // ------------------------------------------------------------------ one fight
 
 function traceKey(ctx, b, foe) {
-  return JSON.stringify([ctx.test, sig(b), S.opts, foe ? foe.key : S.versus[ctx.test] ?? null]);
+  return JSON.stringify([ctx.test, sig(b), requestOpts(!!foe?.picked), foe ? foe.key : S.versus[ctx.test] ?? null]);
 }
 
 // Who a duel is against: the opponent picked, or between your own builds,
@@ -171,7 +171,7 @@ function traceKey(ctx, b, foe) {
 function duelFoe(ctx, cols, c) {
   if (ctx.row.one || cols.length < 2) {
     const api = opponentApi(c.b.level);
-    return api && { key: S.opponent, name: ctx.opponentName, api };
+    return api && { key: S.opponent, name: ctx.opponentName, api, picked: true };
   }
   const o = c.b.uid === ctx.base?.b.uid ? cols.find((x) => x !== c) : ctx.base || cols.find((x) => x !== c);
   return o && { key: sig(o.b), name: o.name, api: apiBuild(o.b, nameOf(o.b)) };
@@ -192,7 +192,7 @@ export function logPanel(ctx, cols) {
   if (!tr) {
     traces.set(key, 'loading');
     // a duel plays to the end (three minutes at most)
-    env.engine.call({ op: 'trace', scenario: ctx.test, build: apiBuild(c.b, nameOf(c.b)), opts: S.opts, versus: S.versus[ctx.test] ?? undefined,
+    env.engine.call({ op: 'trace', scenario: ctx.test, build: apiBuild(c.b, nameOf(c.b)), opts: requestOpts(!!foe?.picked) || undefined, versus: S.versus[ctx.test] ?? undefined,
       opponent: foe?.api, until: duel ? 180 : undefined })
       .then((r) => { traces.set(key, r); bus.detail(); })
       .catch((e) => { traces.set(key, { error: e.message || String(e) }); bus.detail(); });
@@ -269,6 +269,11 @@ function moveLine(e, me, pets, party) {
     case 'interrupt': return [true, `${who} ${e.who === me ? 'interrupt' : 'interrupts'} ${whom}’s cast`];
     case 'evade': return [false, `${who} loses track of you and heads home`];
     case 'resist': return [false, `${who} isn’t fooled`];
+    case 'fail': return [ours, `${e.who === me ? 'Your' : `${who}’s`} ${e.name} fails: ${whom} ${e.target === me ? 'are' : 'is'} out of range`];
+    case 'stop': return [ours, `${who} ${e.who === me ? 'stop' : 'stops'} casting ${e.name}`];
+    case 'broken': return [ours, `${e.who === me ? 'Your' : `${who}’s`} ${e.name} stops: ${e.who === me ? 'you' : 'they'} took damage`];
+    case 'dispel': return [ours, `${who} ${e.who === me ? 'take' : 'takes'} ${e.name} off ${e.target === e.who ? (e.who === me ? 'yourself' : 'themselves') : whom}`];
+    case 'dispel_resist': return [ours, `${e.name} on ${e.target === e.who ? (e.who === me ? 'you' : 'them') : whom} resists ${e.who === me ? 'your' : `${who}’s`} cure`];
     case 'trap': return [ours, `${whom[0].toUpperCase()}${whom.slice(1)} sets off ${e.who === me ? 'your' : `${who}’s`} ${e.name}`];
   }
   return null;
@@ -305,7 +310,7 @@ function rows(tr, test, aimed = new Set()) {
       continue;
     }
     // moving about, noticing, running away: short plain lines
-    if (e.kind === 'move' || e.kind === 'flee' || e.kind === 'joins' || e.kind === 'aggro' || e.kind === 'notice' || e.kind === 'interrupt' || e.kind === 'evade' || e.kind === 'resist' || e.kind === 'trap') {
+    if (e.kind === 'move' || e.kind === 'flee' || e.kind === 'joins' || e.kind === 'aggro' || e.kind === 'notice' || e.kind === 'interrupt' || e.kind === 'evade' || e.kind === 'resist' || e.kind === 'trap' || e.kind === 'fail' || e.kind === 'broken' || e.kind === 'dispel' || e.kind === 'dispel_resist' || e.kind === 'stop') {
       const line = moveLine(e, me, pets, party);
       if (line) {
         const r = row(e.t);
@@ -361,6 +366,11 @@ function rows(tr, test, aimed = new Set()) {
       continue;
     }
     const pet = e.pet ? `${e.who}: ` : '';
+    // in a party fight, the boss's debuffs on you or the group are the boss's doing
+    if (party.size && e.kind === 'gain' && e.target && e.target !== me && !party.has(e.target) && !pets.has(e.target)) {
+      r.theirs.push(item(foeFace(e.target, pullKind), h('span.aura', `${e.target}’s ${e.name} on ${e.who === me ? 'you' : e.who}`)));
+      continue;
+    }
     // a buff you just cast on yourself in a party fight comes with the cast
     if (party.size && e.kind === 'gain' && e.who === me && r.casts.some((x) => x.name === e.name && x.target === me)) continue;
     // someone else in your party: buffs on them come with your cast
@@ -382,7 +392,7 @@ function rows(tr, test, aimed = new Set()) {
       continue;
     }
     if (cast && (e.kind === 'miss' || e.kind === 'dodge' || e.kind === 'parry')) {
-      cast.el.append(h('span.muted', e.kind === 'miss' ? ' misses' : e.kind === 'dodge' ? ' is dodged' : ' is parried'));
+      cast.el.append(h('span.muted', e.kind === 'miss' ? (e.name === 'resisted' ? ' is resisted' : ' misses') : e.kind === 'dodge' ? ' is dodged' : ' is parried'));
       r.cast = null;
       continue;
     }

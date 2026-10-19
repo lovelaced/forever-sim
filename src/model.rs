@@ -55,8 +55,12 @@ pub struct CombatCfg {
     pub energy_gcd: f64,
     /// Seconds a wand winds up (standing still) before its first shot.
     pub auto_repeat_windup: f64,
-    pub pushback: f64,
-    pub max_pushbacks: u32,
+    /// Seconds per hit in the original game's pushback, the last repeating.
+    pub pushback: Vec<f64>,
+    /// The later rules: seconds per hit (none after these), and the share of
+    /// a channel's length each of those hits takes.
+    pub pushback_later: Vec<f64>,
+    pub channel_pushback_later: f64,
     pub heal_to_spell_damage: f64,
     pub melee_crit_mult: f64,
     pub spell_crit_mult: f64,
@@ -144,6 +148,9 @@ pub enum SpellProp {
     Gcd,
     /// How far the spell reaches (yards added, or a multiplier).
     Range,
+    /// Chance that a hit doesn't push back this spell's cast (Improved
+    /// Channeling for Arcane Missiles).
+    PushbackResist,
     /// How wide its area is.
     Radius,
 }
@@ -156,6 +163,9 @@ pub struct SpellMod {
     pub prop: SpellProp,
     pub op: ModOp,
     pub value: Expr,
+    /// Its value can't change within a fight while the auras stay the same
+    /// (it reads talents, ranks, settings, stacks...): it can be cached.
+    pub fixed: bool,
 }
 
 impl SpellMod {
@@ -252,6 +262,9 @@ pub struct Proc {
 pub struct Passive {
     pub name: String,
     pub cond: Option<Expr>,
+    /// The condition can't change within a fight while the auras stay the
+    /// same.
+    pub cond_fixed: bool,
     pub mods: Vec<StatMod>,
     pub spell_mods: Vec<SpellMod>,
     pub procs: Vec<Proc>,
@@ -265,6 +278,9 @@ pub enum TargetSel {
     Owner,
     /// All live hostile actors, up to a maximum.
     Enemies(Expr),
+    /// Hostile actors within the spell's radius of you, other than your
+    /// target, up to a maximum (Intimidating Shout's runners).
+    OthersNearMe(Expr),
     /// The acting unit's current hostile target (for auras the unit holds).
     MyTarget,
     /// The friendly unit the cast is on (yourself when it's on nobody else).
@@ -317,6 +333,12 @@ pub struct DamageFx {
     pub lifesteal: Option<Expr>,
     pub periodic: bool,
     pub no_proc: bool,
+    /// Can miss but can't be dodged, parried or blocked (Overpower).
+    pub unavoidable: bool,
+    /// Lands whole or not at all (no partial resists from levels): a spell
+    /// that also puts a non-damage effect on its target (Frostbolt's chill).
+    /// Worked out from its effects unless the data says (`binary`).
+    pub binary: Option<bool>,
     /// Ignores every damage modifier on the attacker and the target (spell
     /// modifiers, damage done and taken): Touch of the Grave in Forever.
     pub fixed: bool,
@@ -394,6 +416,27 @@ pub enum Effect {
     /// Take up to `count` magic buffs off each holder, the newest first
     /// (Purge).
     Purge { who: TargetSel, count: Expr },
+    /// Take up to `count` debuffs of the given dispel types (`DISPEL_*`
+    /// bits) off each holder, the newest first (Cleanse, Cure Poison).
+    Cleanse { who: TargetSel, types: u8, count: Expr },
+}
+
+/// Dispel types, as bits: which cures take a debuff off.
+pub const DISPEL_MAGIC: u8 = 1;
+pub const DISPEL_CURSE: u8 = 2;
+pub const DISPEL_DISEASE: u8 = 4;
+pub const DISPEL_POISON: u8 = 8;
+
+/// A dispel type's bit by name ("none" is 0).
+pub fn dispel_bit(name: &str) -> Option<u8> {
+    Some(match name {
+        "none" => 0,
+        "magic" => DISPEL_MAGIC,
+        "curse" => DISPEL_CURSE,
+        "disease" => DISPEL_DISEASE,
+        "poison" => DISPEL_POISON,
+        _ => return None,
+    })
 }
 
 #[derive(Clone, Debug)]
@@ -468,6 +511,8 @@ pub struct ChannelDef {
     pub duration: Expr,
     pub interval: Expr,
     pub effects: Vec<Effect>,
+    /// Any damage ends it (a bandage).
+    pub breaks: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -478,6 +523,9 @@ pub struct SpellDef {
     pub class: Option<usize>,
     pub race: Option<u16>,
     pub school: School,
+    /// The dispel type (a `DISPEL_*` bit, 0 for none) of the debuffs it
+    /// applies, unless an aura says otherwise.
+    pub dispel: u8,
     pub talent: Option<u16>,
     pub learn_level: u32,
     pub ranks: Vec<RankDef>,
@@ -569,7 +617,15 @@ pub struct AuraDef {
     pub form: Option<u16>,
     pub consume_on_cast: bool,
     pub refresh: Refresh,
-    pub dispel_type: Option<String>,
+    /// Its dispel type (a `DISPEL_*` bit, 0 for none); without one a debuff
+    /// takes the type of the spell that applies it.
+    pub dispel: Option<u8>,
+    /// Crowd control that holds an enemy out of the fight (Polymorph, Sap):
+    /// while another enemy fights, the holder's side leaves it alone.
+    pub hold: bool,
+    /// The chance a cure fails to take it off, read from whoever applied it
+    /// (Vile Poisons).
+    pub dispel_resist: Option<Expr>,
     pub text: String,
     /// The game's icon name; without one the website uses the icon of the
     /// spell that applies the aura.
@@ -594,9 +650,12 @@ pub struct AuraDef {
     /// An absorb that only takes one school (Fire Ward), and one paid for in
     /// mana, this much per point (Mana Shield).
     pub absorb_school: Option<School>,
-    pub mana_per_absorb: f64,
+    pub mana_per_absorb: Option<Expr>,
     /// Its holder can't run away at low health (Curse of Recklessness).
     pub no_flee: bool,
+    /// Gone when you're jumped in the open world even though it lasts long
+    /// (a charge shield you'd have used up or let lapse: Lightning Shield).
+    pub jumped_drop: bool,
     /// Its holder looks away (Distract): hits land from behind.
     pub distracts: bool,
     /// Its holder ignores slows and roots (Blessing of Freedom).
@@ -621,9 +680,19 @@ pub struct Action {
     /// The condition reads the rank's numbers (`r.`), so it's checked after
     /// the rank is chosen.
     pub cond_rank: bool,
-    /// Upkeep: the condition watches an aura the spell itself puts up (a
-    /// DoT, a debuff, a short buff), which a typical player reapplies late.
+    /// Upkeep: the condition watches whether an aura the spell itself puts
+    /// up (a DoT, a debuff, a short buff) is there, which a typical player
+    /// reapplies late. Inferred, or set with `upkeep = true/false`.
     pub upkeep: bool,
+    /// An emergency (`emergency = true`): a player takes it after a
+    /// reaction, never late or by slip, and stops their own cast for it.
+    pub emergency: bool,
+    /// It may hit an enemy your side holds with crowd control
+    /// (`breaks_cc = true`).
+    pub breaks_cc: bool,
+    /// The highest rank it casts (`rank = 8` or a formula; 1 is the first
+    /// rank): a cheaper rank to save mana.
+    pub rank_cap: Option<Expr>,
     pub line: String,
 }
 
@@ -640,10 +709,13 @@ pub struct Rotation {
     /// Indexes of the `actions` lines that can go during the global
     /// cooldown (off-GCD and next-swing moves).
     pub off_gcd: Vec<u16>,
+    /// Indexes of the `actions` lines marked `emergency`.
+    pub emergency: Vec<u16>,
     pub rest: Vec<Action>,
-    /// Out-of-combat resting thresholds (eat / drink below these fractions).
-    pub eat_below: f64,
-    pub drink_below: f64,
+    /// Out-of-combat resting thresholds (eat / drink below these fractions);
+    /// formulas, so they can depend on the next pull (`pull.size`).
+    pub eat_below: Expr,
+    pub drink_below: Expr,
     /// A play style for healing a group (the healing tests).
     pub healer: bool,
     /// Yards it fights from (-1: worked out for each character, see
@@ -651,6 +723,11 @@ pub struct Rotation {
     /// zone).
     pub stand_at: f64,
     pub keep_min: f64,
+    /// `stand_at` and `keep_min` as formulas, worked out as it fights (a
+    /// melee build that keeps its distance from casters); a negative
+    /// `stand_at` means the automatic range.
+    pub stand_expr: Option<Expr>,
+    pub keep_expr: Option<Expr>,
     /// Every distance at which one of its enemy lines comes into or out of
     /// range, for waking up exactly when moving changes what it can cast.
     pub ranges: Vec<f64>,
@@ -819,7 +896,8 @@ pub struct EnemyDef {
     pub behind: bool,
     pub school: School,
     pub rotation: Option<Rotation>,
-    pub stuns: Vec<(f64, f64)>,
+    /// Scripted stuns: (seconds in, how long, its aura; the generic stun when none).
+    pub stuns: Vec<(f64, f64, Option<AuraId>)>,
     pub mods: Vec<StatMod>,
     /// Timed attacks on the party (the healing tests' bosses).
     pub script: Vec<ScriptHit>,
@@ -863,6 +941,8 @@ pub struct ScriptHit {
     /// A weapon attack the tank can dodge, parry or block (else a spell
     /// that always lands).
     pub melee: bool,
+    /// A debuff it leaves on each target it lands on.
+    pub aura: Option<AuraId>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -922,19 +1002,23 @@ pub struct ScenarioDef {
 
 #[derive(Clone, Debug)]
 pub struct RestCfg {
-    /// (level, food health, drink mana, seconds to consume)
-    pub table: Vec<(u32, f64, f64, f64)>,
+    /// (level, food health, drink mana, seconds to consume, a mage's
+    /// conjured water mana where it's better than bought)
+    pub table: Vec<(u32, f64, f64, f64, Option<f64>)>,
 }
 
 impl RestCfg {
-    pub fn at(&self, level: u32) -> (f64, f64, f64) {
+    /// Food health, drink mana and seconds to consume one, at `level`
+    /// (`conjured`: a mage, drinking its own water).
+    pub fn at(&self, level: u32, conjured: bool) -> (f64, f64, f64) {
         let mut best = self.table[0];
         for &row in &self.table {
             if row.0 <= level {
                 best = row;
             }
         }
-        (best.1, best.2, best.3)
+        let drink = if conjured { best.4.unwrap_or(best.2) } else { best.2 };
+        (best.1, drink, best.3)
     }
 }
 
@@ -1003,6 +1087,12 @@ pub struct World {
     /// things made from it, like preset builds.
     pub uid: u64,
     pub party: Vec<PartyBuff>,
+    /// A typical group's slots by faction: per slot, the classes that can
+    /// fill it, in order (`party_group`).
+    pub party_group: BTreeMap<String, Vec<Vec<usize>>>,
+    /// What each class brings to a typical group (by class index): lists of
+    /// `party` buffs, the first wanted from each (`party_brings`).
+    pub party_brings: Vec<Vec<Vec<usize>>>,
     pub combat: CombatCfg,
     pub opts: Vec<OptDef>,
     pub classes: Vec<ClassDef>,

@@ -1,18 +1,18 @@
 // Forever Sim front end: set up to three builds, run them through every
 // test, and read how they compare. Results come first; the build editor
 // folds away and opens from a build card.
-import { startEngine } from './engine.js';
+import { startEngine, openEngine } from './engine.js';
 import * as M from './meta.js';
 import { h, loadIconManifest, loadGlyphs, setArtScale, retargetTip, hideTip, flash, fmtSec, debounce, tipIsPinned, repositionTip } from './ui.js';
 import {
   S, env, bus, MAX_BUILDS, DEFAULT_PRESET, DEFAULT_LEVEL, presetOf, raceOf, baseName, buildOf, nameOf, baselineBuild, copyBuild, buildFromPreset,
-  scenarioMeta, accuracyOf, sig, serial, restore, loadLocal, saveLocal, loadRows, encode, decode,
+  scenarioMeta, accuracyOf, sig, serial, restore, loadLocal, saveLocal, loadRows, encode, decode, claimUids,
 } from './state.js';
 import { renderCards } from './cards.js';
 import { renderEditor, refreshSheet, refreshLater } from './editor.js';
 import { renderScorecard } from './scorecard.js';
 import { simulateAll, cancelRun, scorecardTests } from './runner.js';
-import { initRankings, renderRankings, renderDuels, updateBigProgress } from './rankings.js';
+import { initRankings, renderRankings, renderDuels, updateBigProgress, savedDuelUids } from './rankings.js';
 
 const $ = (id) => document.getElementById(id);
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -91,6 +91,7 @@ bus.comparePreset = (file, level) => {
   setView('compare');
 };
 bus.progress = () => { updateProgress(); updateBigProgress(); };
+bus.flash = flash;
 
 // ------------------------------------------------------------------ builds
 
@@ -168,7 +169,7 @@ function statusText() {
   if (!run.finished) return `${scenarioMeta(run.test).title}, ${Math.min(run.i + 1, run.jobs.length)} of ${run.jobs.length} tests`;
   if (run.nothing) return 'Up to date';
   if (run.stopped) return `Stopped after ${run.i} of ${run.jobs.length} tests`;
-  return `Done in ${fmtSec(run.ms / 1000)}`;
+  return `Done in ${fmtSec(run.ms / 1000)}${run.failed ? ` · ${run.failed} ${run.failed === 1 ? 'test' : 'tests'} failed` : ''}`;
 }
 
 function updateProgress() {
@@ -206,7 +207,7 @@ function renderRunbar() {
       h('span', n > 1 ? `Simulate ${n} builds` : 'Simulate'), h('span.sub', `${tests} tests at ${accuracyOf(S.accuracy).title} accuracy`));
   const accuracy = h('div.hourglasses', { role: 'group', 'aria-label': 'Accuracy' }, M.ACCURACY.map((a) => h('button', {
     type: 'button', 'aria-pressed': String(a.id === S.accuracy), disabled: running, onclick: () => { S.accuracy = a.id; render(); },
-    title: `${a.note} of the true answer`,
+    title: `${a.note} of the true answer, about 19 times in 20`,
   }, h('img.px', { src: `art/hourglass-${a.id}.png`, alt: '' }), h('span', a.title), h('small', a.short))));
   const assume = relevantOptions().length ? h('button.btn.btn-small.assume-btn', { type: 'button', onclick: openAssumptions },
     changedN ? `Settings (${changedN} changed)` : 'Settings') : null;
@@ -297,6 +298,7 @@ function renderAssumptions() {
 // ------------------------------------------------------------------ sharing
 
 async function share() {
+  if (!env.catalog || !S.builds.length) return;
   const url = `${location.origin}${location.pathname}#b=${encode(serial())}`;
   try {
     await navigator.clipboard.writeText(url);
@@ -331,43 +333,114 @@ async function boot() {
     if (S.editing) closeEditor();
   });
 
-  try {
-    ({ engine: env.engine, catalog: env.catalog } = await startEngine());
-  } catch (e) {
+  const failed = (e) => {
+    $('app').hidden = true;
+    $('boot').hidden = false;
     $('boot').replaceChildren(h('div.frame', h('h2.frame-title', 'Something went wrong'),
       h('p', 'The simulator could not start in this browser.'),
       h('p.note', `Details: ${e.message}`),
       h('p.note', 'Try a recent version of Chrome, Edge, Firefox or Safari. If you opened the file directly from your computer, use the published site instead.')));
-    return;
+  };
+  // the published page ships the catalog: draw from it while the engine
+  // starts, and check the two belong together
+  const icons = loadIconManifest();
+  const shipped = window.fsimVersion ? await fetch(new URL('catalog.json', import.meta.url)).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null;
+  if (shipped && shipped.classes) {
+    env.catalog = shipped;
+    env.ready = openEngine().then(({ engine, version }) => {
+      if (version.build_id !== shipped.build_id) {
+        staleReload();
+        throw new Error('This page is out of date. Reload it to get the latest version.');
+      }
+      try { sessionStorage.removeItem('forever-sim/reloaded'); } catch { /* private mode */ }
+      env.engine = engine;
+      $('engine-kind').textContent = engine.kind === 'webassembly' ? 'in your browser' : 'on the local test server';
+      return engine;
+    });
+    env.ready.catch(failed);
+    // until it answers, requests wait for it
+    env.engine = {
+      kind: 'starting',
+      call: (req) => env.ready.then((e) => e.call(req)),
+      simulate: (...args) => env.ready.then((e) => e.simulate(...args)),
+    };
+  } else {
+    try {
+      ({ engine: env.engine, catalog: env.catalog } = await startEngine());
+      env.ready = Promise.resolve(env.engine);
+    } catch (e) {
+      failed(e);
+      return;
+    }
   }
-  await loadIconManifest();
+  await icons;
   $('boot').hidden = true;
   $('app').hidden = false;
   $('data-build').textContent = env.catalog.data_build;
-  $('engine-kind').textContent = env.engine.kind === 'webassembly' ? 'in your browser' : 'on the local test server';
+  if (env.engine.kind !== 'starting') $('engine-kind').textContent = env.engine.kind === 'webassembly' ? 'in your browser' : 'on the local test server';
 
+  try {
+    start();
+  } catch (e) {
+    // a bad save mustn't leave a blank page on every visit
+    console.error(e);
+    $('app').hidden = true;
+    $('boot').hidden = false;
+    $('boot').replaceChildren(h('div.boot-card.fr-small', h('p.boot-title', 'The page couldn’t open your saved builds'),
+      h('p', 'Something saved in this browser from an earlier visit couldn’t be read.'),
+      h('p.note', `Details: ${e.message || e}`),
+      h('button.primary.small', { type: 'button', onclick: () => { clearSaved(); location.reload(); } }, 'Clear saved results and reload')));
+    return;
+  }
+  $('share-btn').disabled = false;
+  // the drawn stand-ins for missing game icons come last
+  loadGlyphs().then(render);
+}
+
+// A page whose catalog and engine disagree is a stale copy of the site:
+// reload it once (not in a loop).
+function staleReload() {
+  try {
+    if (sessionStorage.getItem('forever-sim/reloaded')) return;
+    sessionStorage.setItem('forever-sim/reloaded', '1');
+    location.reload();
+  } catch { /* storage blocked: the error panel says to reload */ }
+}
+
+// Builds from a shared link, this browser's last visit, or the starting
+// build; then the saved results that still stand for them.
+function start() {
+  // saved results first, so builds get ids clear of the ones they mention
+  loadRows();
   let from = null;
   if (location.hash.startsWith('#b=')) {
     try { from = restore(decode(location.hash.slice(3))) ? 'link' : null; } catch { from = null; }
     if (from) history.replaceState(null, '', location.pathname + location.search);
     else flash('That shared link could not be read.');
+    if (from && S.restoreNote) flash(S.restoreNote);
   }
   if (!from && loadLocal()) from = 'local';
-  if (!from) S.builds = [buildFromPreset(presetOf(DEFAULT_PRESET) || env.catalog.presets[0], DEFAULT_LEVEL)];
-  if (!buildOf(S.baseline)) S.baseline = S.builds[0].uid;
-  loadRows();
+  if (!from) {
+    claimUids(savedDuelUids());
+    S.builds = [buildFromPreset(presetOf(DEFAULT_PRESET) || env.catalog.presets[0], DEFAULT_LEVEL)];
+  }
+  claimUids(savedDuelUids());
   initRankings();
   // Builds already in the saved results count as run, for "since your last run".
   for (const b of S.builds) {
-    if (Object.values(S.rows).some((r) => r.roles?.some((x) => x.sig === sig(b)))) S.ranAs.set(b.uid, { sig: sig(b), build: structuredClone(b), sheet: null });
+    if (Object.values(S.rows).some((r) => r.roles.some((x) => x.sig === sig(b)))) S.ranAs.set(b.uid, { sig: sig(b), build: structuredClone(b), sheet: null });
   }
   // A first visit on a wide screen opens the editor on the starting build; a
   // shared link, a return visit or a phone starts with the results.
   if (!from && !narrow()) S.editing = S.builds[0].uid;
   render();
   for (const b of S.builds) refreshSheet(b);
-  // the drawn stand-ins for missing game icons come last
-  loadGlyphs().then(render);
+}
+
+function clearSaved() {
+  try {
+    for (const k of Object.keys(localStorage)) if (k.startsWith('forever-sim/')) localStorage.removeItem(k);
+  } catch { /* storage is off */ }
 }
 
 boot();

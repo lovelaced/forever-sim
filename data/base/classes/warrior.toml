@@ -448,6 +448,15 @@ procs = [
 # ------------------------------------------------------------------ auras
 # Changing stance keeps up to 10 Rage (Tactical Mastery, baseline in Forever
 # from level 14, spell 1310185) plus 3 per rank of Improved Tactical Mastery.
+# Intimidating Shout's target cowers in place (the game's 20511, a stun in
+# fear's diminishing returns), while others nearby run.
+[auras.cower]
+name = "Intimidating Shout"
+debuff = true
+per_source = false
+mechanic = "stun"
+dr = "fear"
+break_on_damage = 0.15
 [auras.battle_stance]
 name = "Battle Stance"
 group = "stance"
@@ -636,11 +645,13 @@ mods = [{ stat = "heal_taken", mul = 0.5 }]
 # ------------------------------------------------------------------ spells
 # Stance requirements follow the game's spell data (the `forms` each spell
 # lists). Rage costs in the spell data are in tenths of a point.
+# The three stances share one 1 sec cooldown (category 47 in the spell data).
 [spells.battle_stance]
 name = "Battle Stance"
 icon = "ability_warrior_offensivestance"
 off_gcd = true
 cooldown = 1
+cd_group = "stance"
 target = "self"
 ranks = [{ level = 1, id = 2457 }]
 effects = [{ type = "aura", aura = "battle_stance" }]
@@ -649,6 +660,7 @@ name = "Defensive Stance"
 icon = "ability_warrior_defensivestance"
 off_gcd = true
 cooldown = 1
+cd_group = "stance"
 target = "self"
 ranks = [{ level = 10, id = 71 }]
 effects = [{ type = "aura", aura = "defensive_stance" }]
@@ -657,6 +669,7 @@ name = "Berserker Stance"
 icon = "ability_racial_avatar"
 off_gcd = true
 cooldown = 1
+cd_group = "stance"
 target = "self"
 ranks = [{ level = 30, id = 2458 }]
 effects = [{ type = "aura", aura = "berserker_stance" }]
@@ -773,7 +786,7 @@ ranks = [
   { level = 60, id = 11585, bonus = 35 },
 ]
 effects = [
-  { type = "damage", weapon = "mh", normalized = true, amount = "r.bonus" },
+  { type = "damage", weapon = "mh", normalized = true, amount = "r.bonus", unavoidable = true },   # can miss, but not be dodged, parried or blocked
   { type = "remove_aura", aura = "overpower_ready" },
   { type = "remove_aura", aura = "bloodthrill" },
 ]
@@ -871,9 +884,12 @@ icon = "ability_golemthunderclap"
 target = "enemy"
 cost = { rage = 25 }
 cooldown = 180
-text = "Up to five enemies within 8 yards of the target run in fear for 8 sec (damage can break it)."
+text = "The target cowers in place for 8 sec, and up to five other enemies within 8 yards of you run in fear (damage can break it)."
 ranks = [{ level = 22, id = 5246 }]
-effects = [{ type = "aura", aura = "fear", target = "enemies", max_targets = 5, duration = 8 }]
+effects = [
+  { type = "aura", aura = "cower", target = "target", duration = 8 },
+  { type = "aura", aura = "fear", target = "others_near_me", max_targets = 5, duration = 8 },
+]
 
 [spells.retaliation]
 name = "Retaliation"
@@ -1186,31 +1202,48 @@ effects = [{ type = "aura", aura = "stun", target = "target", duration = 5 }]
 
 # ------------------------------------------------------------------ rotations
 [rotations.fury_dw]
+# the Vampire builds heal themselves in the fight (Gore Drinker), so they eat
+# at 70% instead of 85% before a double or a tougher pull
+eat_below = "pull.size >= 2 || pull.danger > 1 ? (t.gore_drinker > 0 ? 0.7 : 0.85) : 0.5"
 # Same priority as the earlier Python sim.
 desc = "Fury dual wield: Bloodthirst > Whirlwind > Heroic Strike, cooldowns on use"
-precombat = ["battle_stance", "berserker_stance", "battle_shout"]
-# Charge needs Battle Stance: switch in, charge, switch back (Tactical Mastery keeps 10 Rage)
-opener = [
-  { cast = "battle_stance", if = "!aura.battle_stance.up" },
-  "charge",
-  { cast = "berserker_stance", if = "!aura.berserker_stance.up" },
-]
+# Charge needs Battle Stance, so it waits there between pulls and moves to
+# Berserker Stance once it has charged (Tactical Mastery keeps 10 Rage)
+precombat = ["battle_stance", "battle_shout"]
+opener = ["charge"]
 actions = [
+  { cast = "healing_potion", if = "potions && hp_pct < 0.2", emergency = true },
+  # back to Berserker Stance after a charge, an ambush or a stance dance,
+  # unless Retaliation (Battle Stance) or Disarm (Defensive Stance) is due
+  { cast = "berserker_stance", if = "!aura.berserker_stance.up && !(aura.battle_stance.up && enemies >= 2 && hp_pct < 0.5 && cd.retaliation.ready) && !(aura.defensive_stance.up && target.is_player && target.dist < 6 && target.ap > 3 * level && target.ap > target.rap && !target.disarmed && cd.disarm.ready)", upkeep = false },
   { cast = "victory_rush" },
-  { cast = "last_stand", if = "hp_pct < 0.25" },
-  { cast = "intimidating_shout", if = "(enemies >= 2 || target.is_player) && hp_pct < 0.4 && cc_near == 0" },   # panic
+  { cast = "last_stand", if = "hp_pct < 0.25", emergency = true },
+  # Retaliation needs Battle Stance: step into it when two are on you
+  { cast = "battle_stance", if = "!aura.battle_stance.up && enemies >= 2 && hp_pct < 0.5 && known.retaliation && cd.retaliation.ready", emergency = true },
+  { cast = "retaliation", if = "enemies >= 2 && hp_pct < 0.5", emergency = true },
+  # against a player: Intercept one who keeps out of reach, Pummel a cast, and
+  # with Tactical Mastery to keep the Rage, step into Defensive Stance to
+  # Disarm one who fights in melee with weapons
+  { cast = "intercept", if = "target.is_player" },
   { cast = "pummel", if = "target.casting" },
+  { cast = "defensive_stance", if = "!aura.defensive_stance.up && known.disarm && t.improved_tactical_mastery >= 4 && target.is_player && target.dist < 6 && target.ap > 3 * level && target.ap > target.rap && !target.disarmed && cd.disarm.ready && rage >= 20" },
+  { cast = "disarm", if = "target.is_player && target.ap > 3 * level && target.ap > target.rap" },
   { cast = "bloodrage", if = "rage < 40" },
   { cast = "berserker_rage", if = "rage < 80" },
-  { cast = "blood_fury" },
-  { cast = "berserking" },
-  { cast = "death_wish" },
+  # damage cooldowns only when you can hit: not disarmed, not stuck out of reach
+  { cast = "blood_fury", if = "!disarmed && (target.dist < 6 || !(frozen || rooted))" },
+  { cast = "berserking", if = "!disarmed && (target.dist < 6 || !(frozen || rooted))" },
+  { cast = "death_wish", if = "!disarmed && (target.dist < 6 || !(frozen || rooted))" },
+  # shout as a double starts: both hit softer for the whole fight
+  { cast = "demoralizing_shout", if = "enemies >= 2 && !target.aura.demoralizing_shout.up && cc_near == 0" },
   { cast = "hamstring", if = "(target.is_player || target.fleeing) && !target.slowed && rage >= 20" },
   { cast = "execute", if = "target.hp_pct < 0.2 && (level >= 40 || rage <= 30 || target.hp < 0.8 * (r.base + r.per * (rage - 15)))" },
+  # panic, after Execute: the target cowers in place and the others run (a
+  # lone player too: a few free seconds of hits, and its pet runs)
+  { cast = "intimidating_shout", if = "(enemies >= 2 || target.is_player) && hp_pct < 0.4 && cc_near == 0" },
   { cast = "bloodthirst" },
   { cast = "whirlwind", if = "!known.bloodthirst || cd.bloodthirst.remains > 1.5 || rage >= 55" },
   { cast = "heroic_strike", if = "rage >= 60 && target.hp_pct >= 0.2" },
-  { cast = "demoralizing_shout", if = "enemies >= 2 && !target.aura.demoralizing_shout.up && rage >= 30 && cc_near == 0" },
   { cast = "battle_shout", if = "!aura.battle_shout.up" },
 ]
 rest = [
@@ -1219,33 +1252,48 @@ rest = [
 ]
 
 [rotations.fury]
-desc = "Fury dual wield: Battle Stance with Rend, Overpower, Thunder Clap and Heroic Strike until Whirlwind at 36, then Berserker Stance with Bloodthirst > Whirlwind > Heroic Strike; Cleave on two or more"
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+desc = "Fury dual wield: Battle Stance with Rend, Overpower, Thunder Clap and Heroic Strike until Whirlwind at 36, then Berserker Stance with Bloodthirst > Whirlwind > Heroic Strike; Cleave on two or more; against players Intercept, Pummel and, with Improved Tactical Mastery, a step into Defensive Stance to Disarm"
 # Berserker Stance comes at 30, but it has nothing to press until Whirlwind
 # (36) and Bloodthirst (40), so the rotation stays in Battle Stance until then.
-precombat = ["battle_stance", { cast = "berserker_stance", if = "known.whirlwind" }, "battle_shout"]
-# Charge needs Battle Stance: switch in, charge, switch back (Tactical Mastery keeps 10 Rage)
-opener = [
-  { cast = "battle_stance", if = "!aura.battle_stance.up" },
-  "charge",
-  { cast = "berserker_stance", if = "known.whirlwind && !aura.berserker_stance.up" },
-]
+# Charge needs Battle Stance, so it waits there between pulls and moves to
+# Berserker Stance once it has charged (Tactical Mastery keeps 10 Rage)
+precombat = ["battle_stance", "battle_shout"]
+opener = ["charge"]
 actions = [
+  { cast = "healing_potion", if = "potions && hp_pct < 0.2", emergency = true },
+  # back to Berserker Stance after a charge, an ambush or a stance dance,
+  # unless Retaliation (Battle Stance) or Disarm (Defensive Stance) is due
+  { cast = "berserker_stance", if = "known.whirlwind && !aura.berserker_stance.up && !(aura.battle_stance.up && enemies >= 2 && hp_pct < 0.5 && cd.retaliation.ready) && !(aura.defensive_stance.up && target.is_player && target.dist < 6 && target.ap > 3 * level && target.ap > target.rap && !target.disarmed && cd.disarm.ready)", upkeep = false },
   { cast = "will_to_survive" },
   { cast = "victory_rush" },
-  { cast = "last_stand", if = "hp_pct < 0.25" },
-  { cast = "stoneform", if = "hp_pct < 0.5" },
-  { cast = "intimidating_shout", if = "(enemies >= 2 || target.is_player) && hp_pct < 0.4 && cc_near == 0" },   # panic
-  { cast = "retaliation", if = "enemies >= 2 && hp_pct < 0.5" },
+  { cast = "last_stand", if = "hp_pct < 0.25", emergency = true },
+  { cast = "stoneform", if = "hp_pct < 0.5", emergency = true },
+  # Retaliation needs Battle Stance: step into it when two are on you
+  { cast = "battle_stance", if = "!aura.battle_stance.up && enemies >= 2 && hp_pct < 0.5 && known.retaliation && cd.retaliation.ready", emergency = true },
+  { cast = "retaliation", if = "enemies >= 2 && hp_pct < 0.5", emergency = true },
+  # against a player: Intercept one who keeps out of reach, Pummel a cast, and
+  # with Tactical Mastery to keep the Rage, step into Defensive Stance to
+  # Disarm one who fights in melee with weapons
+  { cast = "intercept", if = "target.is_player" },
   { cast = "pummel", if = "target.casting" },
+  { cast = "defensive_stance", if = "!aura.defensive_stance.up && known.disarm && t.improved_tactical_mastery >= 4 && target.is_player && target.dist < 6 && target.ap > 3 * level && target.ap > target.rap && !target.disarmed && cd.disarm.ready && rage >= 20" },
+  { cast = "disarm", if = "target.is_player && target.ap > 3 * level && target.ap > target.rap" },
   { cast = "bloodrage", if = "rage < 40" },
   { cast = "berserker_rage", if = "rage < 80" },
-  { cast = "blood_fury" },
-  { cast = "berserking" },
-  { cast = "elunes_light" },
-  { cast = "eureka" },
-  { cast = "death_wish" },
+  # damage cooldowns only when you can hit: not disarmed, not stuck out of reach
+  { cast = "blood_fury", if = "!disarmed && (target.dist < 6 || !(frozen || rooted))" },
+  { cast = "berserking", if = "!disarmed && (target.dist < 6 || !(frozen || rooted))" },
+  { cast = "elunes_light", if = "!disarmed && (target.dist < 6 || !(frozen || rooted))" },
+  { cast = "eureka", if = "!disarmed && (target.dist < 6 || !(frozen || rooted))" },
+  { cast = "death_wish", if = "!disarmed && (target.dist < 6 || !(frozen || rooted))" },
+  # shout as a double starts: both hit softer for the whole fight
+  { cast = "demoralizing_shout", if = "enemies >= 2 && !target.aura.demoralizing_shout.up && cc_near == 0" },
   { cast = "hamstring", if = "(target.is_player || target.fleeing) && !target.slowed && rage >= 20" },
   { cast = "execute", if = "target.hp_pct < 0.2 && (level >= 40 || rage <= 30 || target.hp < 0.8 * (r.base + r.per * (rage - 15)))" },
+  # panic, after Execute: the target cowers in place and the others run (a
+  # lone player too: a few free seconds of hits, and its pet runs)
+  { cast = "intimidating_shout", if = "(enemies >= 2 || target.is_player) && hp_pct < 0.4 && cc_near == 0" },
   { cast = "bloodthirst" },
   { cast = "whirlwind", if = "!known.bloodthirst || cd.bloodthirst.remains > 1.5 || rage >= 55" },
   { cast = "overpower" },
@@ -1253,7 +1301,6 @@ actions = [
   { cast = "thunder_clap", if = "(enemies >= 2 || target.is_player) && !target.aura.thunder_clap.up && cc_near == 0" },
   { cast = "cleave", if = "enemies >= 2 && rage >= 50" },
   { cast = "heroic_strike", if = "enemies < 2 && rage >= (known.whirlwind ? 60 : 40) && target.hp_pct >= 0.2" },
-  { cast = "demoralizing_shout", if = "enemies >= 2 && !target.aura.demoralizing_shout.up && rage >= 30 && cc_near == 0" },
   { cast = "battle_shout", if = "!aura.battle_shout.up" },
 ]
 rest = [
@@ -1262,34 +1309,51 @@ rest = [
 ]
 
 [rotations.arms_2h]
-desc = "Arms two-hander in Battle Stance: Mortal Strike > Overpower > Rend > Slam, Spearing Strike and Heroic Strike with spare Rage; Sweeping Strikes, Thunder Clap and Cleave on two or more"
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+desc = "Arms two-hander in Battle Stance: Mortal Strike > Overpower > Rend > Slam, Spearing Strike and Heroic Strike with spare Rage; Sweeping Strikes, Thunder Clap and Cleave on two or more; against players it steps into Berserker Stance to Intercept or Pummel and into Defensive Stance to Disarm"
 precombat = ["battle_stance", "battle_shout"]
 opener = ["charge"]
 actions = [
+  { cast = "healing_potion", if = "potions && hp_pct < 0.2", emergency = true },
   { cast = "will_to_survive" },
   { cast = "victory_rush" },
-  { cast = "last_stand", if = "hp_pct < 0.25" },
-  { cast = "stoneform", if = "hp_pct < 0.5" },
-  { cast = "intimidating_shout", if = "(enemies >= 2 || target.is_player) && hp_pct < 0.4 && cc_near == 0" },   # panic
-  { cast = "retaliation", if = "enemies >= 2 && hp_pct < 0.5" },
+  { cast = "last_stand", if = "hp_pct < 0.25", emergency = true },
+  { cast = "stoneform", if = "hp_pct < 0.5", emergency = true },
+  { cast = "retaliation", if = "enemies >= 2 && hp_pct < 0.5", emergency = true },
+  # stance dancing against a player (Tactical Mastery keeps the Rage):
+  # Berserker Stance to Intercept one who keeps out of reach (not mid-Charge
+  # or rooted) or to Pummel a cast, Defensive Stance to Disarm one who fights
+  # in melee with weapons (more melee than ranged attack power), then back
+  { cast = "berserker_stance", if = "target.is_player && !aura.berserker_stance.up && rage >= 10 && (target.dist > 8 && target.dist < 25 && cd.intercept.ready && cd.charge.remains < 14 && !frozen && !rooted || target.dist < 6 && target.casting && known.pummel && cd.pummel.ready)" },
+  { cast = "intercept", if = "target.is_player" },
+  { cast = "pummel", if = "target.is_player && target.casting" },
+  { cast = "defensive_stance", if = "!aura.defensive_stance.up && known.disarm && t.improved_tactical_mastery >= 4 && target.is_player && target.dist < 6 && target.ap > 3 * level && target.ap > target.rap && !target.disarmed && cd.disarm.ready && rage >= 20" },
+  { cast = "disarm", if = "target.is_player && target.ap > 3 * level && target.ap > target.rap" },
+  { cast = "battle_stance", if = "!aura.battle_stance.up && !(aura.berserker_stance.up && target.is_player && target.dist < 6 && target.casting && cd.pummel.ready) && !(aura.defensive_stance.up && target.is_player && target.dist < 6 && target.ap > 3 * level && target.ap > target.rap && !target.disarmed && cd.disarm.ready)", upkeep = false },
   { cast = "bloodrage", if = "rage < 40" },
-  { cast = "blood_fury" },
-  { cast = "berserking" },
-  { cast = "elunes_light" },
-  { cast = "eureka" },
-  { cast = "death_wish" },
+  # damage cooldowns only when you can hit: not disarmed, not stuck out of reach
+  { cast = "blood_fury", if = "!disarmed && (target.dist < 6 || !(frozen || rooted))" },
+  { cast = "berserking", if = "!disarmed && (target.dist < 6 || !(frozen || rooted))" },
+  { cast = "elunes_light", if = "!disarmed && (target.dist < 6 || !(frozen || rooted))" },
+  { cast = "eureka", if = "!disarmed && (target.dist < 6 || !(frozen || rooted))" },
+  { cast = "death_wish", if = "!disarmed && (target.dist < 6 || !(frozen || rooted))" },
   { cast = "sweeping_strikes", if = "enemies >= 2" },
+  # shout as a double starts: both hit softer for the whole fight
+  { cast = "demoralizing_shout", if = "enemies >= 2 && !target.aura.demoralizing_shout.up && cc_near == 0" },
   { cast = "hamstring", if = "(target.is_player || target.fleeing) && !target.slowed && rage >= 20" },
   { cast = "execute", if = "target.hp_pct < 0.2 && (level >= 40 || rage <= 30 || target.hp < 0.8 * (r.base + r.per * (rage - 15)))" },
+  # panic, after Execute: the target cowers in place and the others run (a
+  # lone player too: a few free seconds of hits, and its pet runs)
+  { cast = "intimidating_shout", if = "(enemies >= 2 || target.is_player) && hp_pct < 0.4 && cc_near == 0" },
   { cast = "mortal_strike" },
   { cast = "overpower" },
   { cast = "rend", if = "!target.aura.rend.up && (target.boss ? target.hp_pct > 0.2 : target.hp_pct > 0.5)" },
   { cast = "thunder_clap", if = "(enemies >= 2 || target.is_player) && !target.aura.thunder_clap.up && (!known.sweeping_strikes || !cd.sweeping_strikes.ready) && cc_near == 0" },
-  { cast = "slam", if = "rage >= 30 && mh.swing_remains >= 1.4" },
+  # no 1.5 sec Slam at a target that's out of reach or on the move: it walks out of it
+  { cast = "slam", if = "rage >= 30 && mh.swing_remains >= 1.4 && target.dist < 6 && !target.moving" },
   { cast = "spearing_strike", if = "enemies < 2 && rage >= 45" },
   { cast = "cleave", if = "enemies >= 2 && rage >= 40" },
   { cast = "heroic_strike", if = "enemies < 2 && rage >= 60 && target.hp_pct >= 0.2" },
-  { cast = "demoralizing_shout", if = "enemies >= 2 && !target.aura.demoralizing_shout.up && rage >= 30 && cc_near == 0" },
   { cast = "battle_shout", if = "!aura.battle_shout.up" },
 ]
 rest = [
@@ -1298,36 +1362,48 @@ rest = [
 ]
 
 [rotations.prot_shield]
-desc = "Protection with a shield in Defensive Stance: Shield Slam > Revenge > Sunder (two on trash, five on players) > Heroic Strike; Thunder Clap on players and on two or more, Cleave on two or more"
-precombat = ["defensive_stance", "battle_shout"]
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+desc = "Protection with a shield in Defensive Stance: Shield Slam > Revenge > Sunder (two on doubles, five on players and the boss it tanks) > Heroic Strike; Thunder Clap on players and on two or more, Cleave on two or more; Shield Wall when low"
+# Charge needs Battle Stance unless the build has Vanguard, so without it the
+# warrior waits in Battle Stance between pulls and goes back to Defensive
+# Stance once it has charged
+precombat = [
+  { cast = "battle_stance", if = "t.vanguard == 0" },
+  { cast = "defensive_stance", if = "t.vanguard > 0" },
+  "battle_shout",
+]
 # In the boss test a Protection warrior tanks the boss (is_tank): it blocks,
 # Sunders it to five and taunts it back. Your own Protection warrior there
 # is not the tank, so it does neither.
-# Charge needs Battle Stance unless the build has Vanguard
-opener = [
-  { cast = "battle_stance", if = "t.vanguard == 0" },
-  "charge",
-  { cast = "defensive_stance", if = "!aura.defensive_stance.up" },
-]
+opener = ["charge"]
 actions = [
+  { cast = "healing_potion", if = "potions && hp_pct < 0.2", emergency = true },
+  # back to Defensive Stance after a charge without Vanguard
+  { cast = "defensive_stance", if = "!aura.defensive_stance.up", upkeep = false },
   { cast = "will_to_survive" },
   { cast = "victory_rush" },
-  { cast = "last_stand", if = "hp_pct < 0.25" },
-  { cast = "stoneform", if = "hp_pct < 0.5" },
+  { cast = "shield_wall", if = "hp_pct < 0.35", emergency = true },
+  { cast = "last_stand", if = "hp_pct < 0.25", emergency = true },
+  { cast = "stoneform", if = "hp_pct < 0.5", emergency = true },
   { cast = "bloodrage", if = "rage < 30" },
   { cast = "elunes_light" },
   { cast = "eureka" },
   { cast = "taunt", if = "is_tank && !has_aggro" },
   { cast = "shield_bash", if = "target.casting" },
+  # blocks feed Revenge, so they go out on trash too
   { cast = "shield_block", if = "rage >= 25 && (!target.boss || is_tank)" },
   { cast = "concussion_blow", if = "target.is_player" },
-  { cast = "disarm", if = "target.is_player" },
+  { cast = "disarm", if = "target.is_player && target.ap > 3 * level && target.ap > target.rap" },   # one who fights in melee with weapons
   { cast = "execute", if = "target.hp_pct < 0.2 && (level >= 40 || rage <= 30 || target.hp < 0.8 * (r.base + r.per * (rage - 15)))" },
   { cast = "shield_slam" },
   { cast = "revenge" },
   { cast = "thunder_clap", if = "(enemies >= 2 || target.is_player) && !target.aura.thunder_clap.up && cc_near == 0" },
-  { cast = "demoralizing_shout", if = "!target.aura.demoralizing_shout.up && (enemies >= 2 || is_tank)" },
-  { cast = "sunder_armor", if = "(!target.boss || is_tank) && target.aura.sunder_armor.stacks < (target.is_player || target.boss ? 5 : 2)" },
+  # the shout for the boss you tank, doubles and players who fight in melee,
+  # not a lone trash mob
+  { cast = "demoralizing_shout", if = "!target.aura.demoralizing_shout.up && (fight.boss ? is_tank : enemies >= 2 || target.is_player && target.ap > target.rap)" },
+  # Sunder the boss you tank, players and doubles; on a lone trash mob the
+  # Rage does more in Shield Slam and Revenge (solo, you are your own tank)
+  { cast = "sunder_armor", if = "(fight.boss ? is_tank : target.is_player || enemies >= 2) && target.aura.sunder_armor.stacks < (target.is_player || target.boss ? 5 : 2)" },
   { cast = "cleave", if = "enemies >= 2 && rage >= 45" },
   { cast = "heroic_strike", if = "enemies < 2 && rage >= 45" },
   { cast = "battle_shout", if = "!aura.battle_shout.up" },

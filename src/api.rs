@@ -6,13 +6,21 @@
 //! Requests (`op`):
 //! * `catalog` - everything the UI needs to draw pickers and talent trees.
 //! * `sheet` {build} - validate a build and return its character sheet.
-//! * `start` {scenario, builds, opponent?, opponents?, level?, opts?, precision?, max_reps?, seed?}
+//! * `start` {scenario, builds, opponent?, opponents?, level?, opts?, precision?, max_reps?, seed?,
+//!   keep?, full?, independent?, targets?}
 //!   (`opponents: "standard"`: the open-world PvP tests fight every standard build)
 //!   -> {id, max_reps}. Starts a Monte Carlo session; nothing runs yet.
+//!   `keep: [metric or "prefix:"]` keeps only those metrics (the primary
+//!   always), dropped before workers send them; `full: true` keeps every
+//!   value of every metric (otherwise `name:detail` breakdowns keep running
+//!   moments); `independent: true` lets each build stop at its own
+//!   checkpoint; `targets: {"score:": 0.05}` also needs every metric with
+//!   that prefix that precise.
 //! * `step` {id, reps} - run up to `reps` more replications per build and
 //!   report progress; call until `finished`.
-//! * `run` {id, from, count} - run replications `from..from+count` and return
-//!   their raw values without keeping them. The page sends these to several
+//! * `run` {id, from, count, only?} - run replications `from..from+count` and return
+//!   their raw values without keeping them (`only`: just those builds, the
+//!   `active` ones in the progress). The page sends these to several
 //!   Web Workers at once, each holding the same session.
 //! * `add` {id, chunk} - hand a `run` response to the session that keeps the
 //!   results; it reports progress like `step`.
@@ -28,13 +36,16 @@
 //!   b - a over the replications both have. Replication r of a build always
 //!   gives the same values (same build, settings and seed), so columns kept
 //!   from an earlier run pair exactly with a new run's.
+//! * `version` - the engine's build id (as in the catalog), to check a
+//!   saved catalog belongs to this engine.
 //! * `drop` {id} - forget a session.
 //! Every request may carry `patches: [{name, text}]` (TOML overlays) to test
 //! data changes; the world is rebuilt when they change.
 
 use crate::build::{build_from_table, Build};
 use crate::engine::Sim;
-use crate::mc::{self, McCfg, McResult, Variant};
+use crate::mc::{self, McCfg, Variant};
+use crate::store::{precision_of_moments, Registry, Store};
 use crate::model::*;
 use crate::scenario::{run_rep, run_rep_traced, RepInput, Values};
 use crate::validate::modelled_talents;
@@ -46,22 +57,32 @@ use std::sync::{Arc, Mutex};
 
 use crate::embedded;
 
-/// Replications for every variant: [variant][replication].
-type Chunk = Vec<Vec<Values>>;
+/// Replications for every variant: [variant][replication] (None for a
+/// build that wasn't run: it had already stopped).
+type Chunk = Vec<Option<Vec<Values>>>;
 
 struct Session {
     world: Arc<World>,
     scenario: String,
     variants: Vec<Variant>,
-    /// Replications 0..n, in order.
-    values: Chunk,
-    /// Chunks that arrived ahead of `values`, keyed by first replication.
+    /// The metrics seen, and each build's replications by column.
+    reg: Registry,
+    stores: Vec<Store>,
+    /// Replications merged so far, in order: the next chunk expected starts here.
+    merged: usize,
+    /// Chunks that arrived ahead of `merged`, keyed by first replication.
     pending: BTreeMap<usize, Chunk>,
-    /// Replication count at the last convergence check, and its precision.
-    checked: usize,
+    /// Each build's replication count at its last convergence check, and
+    /// its precision then; whether it's still running, and converged.
+    checked: Vec<usize>,
     precision: Vec<f64>,
+    active: Vec<bool>,
+    converged: Vec<bool>,
+    /// Each build stops at its own checkpoint (else all together).
+    independent: bool,
+    /// Metric prefixes that must also reach a precision.
+    targets: Vec<(String, f64)>,
     cfg: McCfg,
-    converged: bool,
     finished: bool,
 }
 
@@ -95,11 +116,12 @@ pub fn handle(req: &str) -> String {
         "catalog" => Ok(catalog(&world)),
         "sheet" => sheet(&world, &v),
         "start" => start(st, world, &v),
+        "version" => Ok(json!({ "build_id": env!("FSIM_BUILD_ID"), "data_build": world.meta.data_build })),
         "step" => step(st, &v),
         "run" => run_chunk(st, &v),
         "add" => add(st, &v),
         "result" => result(st, &v),
-        "pair" => pair(&v),
+        "pair" => pair(st, &v),
         "trace" => trace(&world, &v),
         "drop" => {
             if let Some(id) = v.get("id").and_then(|x| x.as_u64()) {
@@ -255,6 +277,8 @@ fn catalog(w: &World) -> J {
     let (spells, auras) = icon_maps(w);
     json!({
         "data_build": w.meta.data_build,
+        // a hash of the engine's source and data: saved results from another build are out of date
+        "build_id": env!("FSIM_BUILD_ID"),
         "patches": w.meta.patches,
         "classes": classes, "races": races, "gear": gear, "scenarios": scenarios, "options": options, "presets": presets,
         "spells": spells, "auras": auras,
@@ -774,7 +798,18 @@ fn start(st: &mut State, world: Arc<World>, v: &J) -> Result<J, String> {
         Some(o) if !o.is_null() => Some(parse_build(w, o, level).map_err(|e| format!("opponent: {e}"))?),
         _ => None,
     };
-    if matches!(sc.kind, ScenarioKind::Duel { .. }) && opponent.is_none() {
+    // one build dueling several foes: a variant per foe, the build the same in each
+    let foes = match v.get("opponents") {
+        Some(J::Array(list)) => {
+            if builds.len() != 1 {
+                return Err("dueling several opponents takes one build".into());
+            }
+            let parsed: Result<Vec<Build>, String> = list.iter().enumerate().map(|(i, o)| parse_build(w, o, level).map_err(|e| format!("opponent {}: {e}", i + 1))).collect();
+            Some(parsed?)
+        }
+        _ => None,
+    };
+    if matches!(sc.kind, ScenarioKind::Duel { .. }) && opponent.is_none() && foes.as_ref().map_or(true, |f| f.is_empty()) {
         return Err("a duel needs an opponent".into());
     }
     let mut variants = Vec::new();
@@ -790,7 +825,14 @@ fn start(st: &mut State, world: Arc<World>, v: &J) -> Result<J, String> {
                 opts[i as usize] = 1.0;
             }
         }
-        variants.push(Variant { world: 0, name: b.name.clone(), build: b, opponent: opponent.clone(), opts });
+        match &foes {
+            Some(foes) => {
+                for f in foes {
+                    variants.push(Variant { world: 0, name: f.name.clone(), build: b.clone(), opponent: Some(f.clone()), opts: opts.clone() });
+                }
+            }
+            None => variants.push(Variant { world: 0, name: b.name.clone(), build: b, opponent: opponent.clone(), opts }),
+        }
     }
     let d = McCfg::default();
     let cfg = McCfg {
@@ -802,22 +844,38 @@ fn start(st: &mut State, world: Arc<World>, v: &J) -> Result<J, String> {
         conf: 0.95,
         threads: 1,
     };
+    let keep = match v.get("keep") {
+        Some(J::Array(a)) => Some(a.iter().map(|x| x.as_str().map(String::from).ok_or("keep: a list of metric names")).collect::<Result<Vec<_>, _>>()?),
+        _ => None,
+    };
+    let full = v.get("full").and_then(|x| x.as_bool()).unwrap_or(false);
+    let independent = v.get("independent").and_then(|x| x.as_bool()).unwrap_or(false);
+    let targets = match v.get("targets") {
+        Some(J::Object(t)) => t.iter().map(|(k, x)| x.as_f64().map(|p| (k.clone(), p)).ok_or_else(|| format!("targets.{k}: a precision"))).collect::<Result<Vec<_>, _>>()?,
+        _ => vec![],
+    };
     let id = st.next_id;
     st.next_id += 1;
     let n = variants.len();
     let max_reps = cfg.max_reps;
+    let reg = Registry::new(&sc.primary, keep, full);
     st.sessions.insert(
         id,
         Session {
             world,
             scenario,
             variants,
-            values: vec![Vec::new(); n],
+            reg,
+            stores: vec![Store::default(); n],
+            merged: 0,
             pending: BTreeMap::new(),
-            checked: 0,
+            checked: vec![0; n],
             precision: vec![f64::INFINITY; n],
+            active: vec![true; n],
+            converged: vec![false; n],
+            independent,
+            targets,
             cfg,
-            converged: false,
             finished: false,
         },
     );
@@ -833,62 +891,68 @@ fn step(st: &mut State, v: &J) -> Result<J, String> {
     let s = session(st, v)?;
     let want = v.get("reps").and_then(|x| x.as_u64()).unwrap_or(8).max(1) as usize;
     if !s.finished {
-        let from = s.values[0].len();
-        let chunk = run_range(s, from, want)?;
+        let from = s.merged;
+        let only: Vec<usize> = (0..s.variants.len()).filter(|&i| s.active[i]).collect();
+        let chunk = run_range(s, from, want, Some(&only))?;
         absorb(s, from, chunk)?;
     }
     Ok(progress(s))
 }
 
-/// Replications `from..from+count` (capped at `max_reps`) for every variant.
-fn run_range(s: &Session, from: usize, count: usize) -> Result<Chunk, String> {
+/// Replications `from..from+count` (capped at `max_reps`) for every
+/// variant, or `only` those; each keeps just the metrics the session keeps.
+fn run_range(s: &Session, from: usize, count: usize, only: Option<&[usize]>) -> Result<Chunk, String> {
     let w = &*s.world;
     let sc = w.scenarios.get(&s.scenario).ok_or("scenario vanished")?;
     let to = from.saturating_add(count).min(s.cfg.max_reps);
-    let mut chunk: Chunk = vec![Vec::new(); s.variants.len()];
+    let runs = |vi: usize| only.map_or(true, |o| o.contains(&vi));
+    let mut chunk: Chunk = (0..s.variants.len()).map(|vi| runs(vi).then(Vec::new)).collect();
     for r in from..to.max(from) {
         let seed = mc::rep_seed(&s.cfg, sc, r);
         for (vi, var) in s.variants.iter().enumerate() {
-            let (vals, _) = run_rep(&RepInput { w, sc, build: &var.build, opponent: var.opponent.as_ref(), opts: &var.opts, seed, log: false });
-            chunk[vi].push(vals);
+            let Some(out) = chunk[vi].as_mut() else { continue };
+            let (mut vals, _) = run_rep(&RepInput { w, sc, build: &var.build, opponent: var.opponent.as_ref(), opts: &var.opts, seed, log: false });
+            vals.retain(|k, _| s.reg.keeps(k));
+            out.push(vals);
         }
     }
     Ok(chunk)
 }
 
-/// Store a chunk starting at replication `from`, then check convergence at
-/// every checkpoint the in-order results have reached.
+/// Store a chunk starting at replication `from`, merging in order one
+/// replication at a time and checking convergence at every checkpoint it
+/// reaches: each build's own with `independent`, else all together.
 fn absorb(s: &mut Session, from: usize, chunk: Chunk) -> Result<(), String> {
-    if chunk.len() != s.variants.len() || chunk.iter().any(|c| c.len() != chunk[0].len()) {
+    if chunk.len() != s.variants.len() {
         return Err("chunk does not match the session".into());
     }
-    if s.finished || from < s.values[0].len() {
+    let lens: Vec<usize> = chunk.iter().flatten().map(|c| c.len()).collect();
+    if lens.windows(2).any(|w| w[0] != w[1]) {
+        return Err("chunk does not match the session".into());
+    }
+    if s.finished || from < s.merged {
         return Ok(());
     }
     s.pending.insert(from, chunk);
-    while let Some(chunk) = s.pending.remove(&s.values[0].len()) {
-        for (vals, more) in s.values.iter_mut().zip(chunk) {
-            vals.extend(more);
-        }
-    }
-    let w = &*s.world;
-    let sc = w.scenarios.get(&s.scenario).ok_or("scenario vanished")?;
-    let every = s.cfg.batch.max(1);
-    let have = s.values[0].len();
-    while !s.finished {
-        let at = ((s.checked / every + 1) * every).max(s.cfg.min_reps).min(s.cfg.max_reps);
-        if at > have || at <= s.checked {
-            s.finished = at <= s.checked;
+    while let Some(chunk) = s.pending.remove(&s.merged) {
+        let len = chunk.iter().flatten().map(|c| c.len()).max().unwrap_or(0);
+        if len == 0 {
             break;
         }
-        s.checked = at;
-        s.precision = s.values.iter().map(|vals| mc::precision_of(&vals[..at], &sc.primary, s.cfg.conf)).collect();
-        if at >= s.cfg.min_reps && s.precision.iter().all(|&p| p <= s.cfg.precision) {
-            s.converged = true;
-            s.finished = true;
-            s.values.iter_mut().for_each(|vals| vals.truncate(at));
-        } else if at >= s.cfg.max_reps {
-            s.finished = true;
+        for r in 0..len {
+            if s.finished {
+                break;
+            }
+            let (stores, reg) = (&mut s.stores, &mut s.reg);
+            for (vi, store) in stores.iter_mut().enumerate() {
+                if !s.active[vi] {
+                    continue;
+                }
+                let v = chunk[vi].as_ref().and_then(|c| c.get(r)).ok_or("a chunk is missing a build that is still running")?;
+                store.push(reg, v);
+            }
+            s.merged += 1;
+            check(s)?;
         }
     }
     if s.finished {
@@ -897,11 +961,84 @@ fn absorb(s: &mut Session, from: usize, chunk: Chunk) -> Result<(), String> {
     Ok(())
 }
 
+/// Convergence at the replication just merged, if it's a checkpoint.
+fn check(s: &mut Session) -> Result<(), String> {
+    let every = s.cfg.batch.max(1);
+    let (min, max) = (s.cfg.min_reps, s.cfg.max_reps);
+    let at_of = |checked: usize| ((checked / every + 1) * every).max(min).min(max);
+    let n = s.variants.len();
+    if s.independent {
+        for vi in 0..n {
+            if !s.active[vi] || s.stores[vi].n != at_of(s.checked[vi]) {
+                continue;
+            }
+            let at = s.stores[vi].n;
+            s.checked[vi] = at;
+            let ok = precise(s, vi)?;
+            if at >= min && ok {
+                s.converged[vi] = true;
+                s.active[vi] = false;
+            } else if at >= max {
+                s.active[vi] = false;
+            }
+        }
+        s.finished = s.active.iter().all(|a| !a);
+    } else {
+        let at = at_of(s.checked[0]);
+        if s.merged != at {
+            return Ok(());
+        }
+        let mut all = true;
+        for vi in 0..n {
+            s.checked[vi] = at;
+            all &= precise(s, vi)?;
+        }
+        if at >= min && all {
+            s.converged = vec![true; n];
+            s.finished = true;
+        } else if at >= max {
+            s.finished = true;
+        }
+        if s.finished {
+            s.active = vec![false; n];
+        }
+    }
+    Ok(())
+}
+
+/// Whether build `vi` is precise enough now (recording its precision): the
+/// primary metric, and every metric under a `targets` prefix.
+fn precise(s: &mut Session, vi: usize) -> Result<bool, String> {
+    let w = &*s.world;
+    let sc = w.scenarios.get(&s.scenario).ok_or("scenario vanished")?;
+    let opts = &s.variants[vi].opts;
+    let conf = s.cfg.conf;
+    let store = &s.stores[vi];
+    let prec = |name: &str| -> f64 {
+        let kind = crate::scenario::metric_kind(w, sc, opts, name);
+        match store.full(&s.reg, name) {
+            Some(col) => mc::precision_col(col, conf, kind),
+            None => precision_of_moments(&store.moments(&s.reg, name), kind, conf),
+        }
+    };
+    let p = prec(&sc.primary);
+    s.precision[vi] = p;
+    let mut ok = p <= s.cfg.precision;
+    for (prefix, target) in &s.targets {
+        for name in s.reg.names.iter().filter(|n| n.starts_with(prefix.as_str())) {
+            ok &= prec(name) <= *target;
+        }
+    }
+    Ok(ok)
+}
+
 fn progress(s: &Session) -> J {
     let precision: Vec<J> = s.precision.iter().map(|&p| if p.is_finite() { J::from(p) } else { J::Null }).collect();
+    let active: Vec<usize> = (0..s.variants.len()).filter(|&i| s.active[i]).collect();
     json!({
-        "reps": s.values[0].len(), "max_reps": s.cfg.max_reps, "target": s.cfg.precision,
-        "precision": precision, "converged": s.converged, "finished": s.finished,
+        "reps": s.merged, "max_reps": s.cfg.max_reps, "target": s.cfg.precision,
+        "precision": precision, "converged": s.converged.iter().all(|&c| c), "finished": s.finished,
+        "active": active, "each": s.stores.iter().map(|st| st.n).collect::<Vec<_>>(),
     })
 }
 
@@ -909,8 +1046,12 @@ fn run_chunk(st: &mut State, v: &J) -> Result<J, String> {
     let s = session(st, v)?;
     let from = v.get("from").and_then(|x| x.as_u64()).ok_or("run needs from")? as usize;
     let count = v.get("count").and_then(|x| x.as_u64()).ok_or("run needs count")? as usize;
-    let chunk = run_range(s, from, count)?;
-    Ok(json!({ "from": from, "values": chunk.iter().map(|reps| encode_reps(reps)).collect::<Vec<_>>() }))
+    let only: Option<Vec<usize>> = match v.get("only") {
+        Some(J::Array(a)) => Some(a.iter().map(|x| x.as_u64().map(|i| i as usize).filter(|&i| i < s.variants.len()).ok_or("only: build indices")).collect::<Result<_, _>>()?),
+        _ => None,
+    };
+    let chunk = run_range(s, from, count, only.as_deref())?;
+    Ok(json!({ "from": from, "values": chunk.iter().map(|reps| reps.as_ref().map_or(J::Null, |r| encode_reps(r))).collect::<Vec<_>>() }))
 }
 
 fn add(st: &mut State, v: &J) -> Result<J, String> {
@@ -920,7 +1061,7 @@ fn add(st: &mut State, v: &J) -> Result<J, String> {
         return Err(format!("a worker failed: {e}"));
     }
     let from = c.get("from").and_then(|x| x.as_u64()).ok_or("chunk without from")? as usize;
-    let chunk = c.get("values").and_then(|x| x.as_array()).ok_or("chunk without values")?.iter().map(decode_reps).collect::<Result<Chunk, _>>()?;
+    let chunk = c.get("values").and_then(|x| x.as_array()).ok_or("chunk without values")?.iter().map(|x| if x.is_null() { Ok(None) } else { decode_reps(x).map(Some) }).collect::<Result<Chunk, _>>()?;
     absorb(s, from, chunk)?;
     Ok(progress(s))
 }
@@ -972,30 +1113,35 @@ fn result(st: &mut State, v: &J) -> Result<J, String> {
     let s = session(st, v)?;
     let w = &*s.world;
     let sc = w.scenarios.get(&s.scenario).ok_or("scenario vanished")?;
-    let reps = s.values[0].len();
-    if reps == 0 {
+    if s.merged == 0 {
         return Err("no replications yet".into());
     }
-    let res = McResult { reps, converged: s.converged, values: s.values.clone() };
     let columns: Vec<&str> = v.get("columns").and_then(|c| c.as_array()).map(|a| a.iter().filter_map(|x| x.as_str()).collect()).unwrap_or_default();
     let mut variants = Vec::new();
+    let mut first = vec![];
     for (vi, var) in s.variants.iter().enumerate() {
-        let sums = mc::summarise(&res.values[vi], s.cfg.conf);
+        let kind = |k: &str| crate::scenario::metric_kind(w, sc, &var.opts, k);
+        let store = &s.stores[vi];
+        let sums = store.summarise(&s.reg, s.cfg.conf, &kind);
+        if vi == 0 {
+            first = sums.iter().map(|m| m.name.clone()).collect();
+        }
         let mut out = json!({
             "build": describe(w, &var.build),
             "opponent": var.opponent.as_ref().map(|o| describe(w, o)),
+            "reps": store.n,
             "metrics": sums,
         });
         if !columns.is_empty() {
-            let cols: Map<String, J> = columns.iter().map(|m| (m.to_string(), J::from(mc::column(&res.values[vi], m)))).collect();
+            let cols: Map<String, J> = columns.iter().filter_map(|m| store.column(&s.reg, m).map(|c| (m.to_string(), J::from(c)))).collect();
             out["columns"] = J::Object(cols);
         }
         variants.push(out);
     }
     let names: Vec<String> = s.variants.iter().map(|v| v.name.clone()).collect();
     let mut metrics = vec![sc.primary.clone()];
-    for m in mc::summarise(&res.values[0], s.cfg.conf).iter().filter(|m| !m.name.contains(':') && m.name != sc.primary) {
-        metrics.push(m.name.clone());
+    for m in first.iter().filter(|m| !m.contains(':') && **m != sc.primary) {
+        metrics.push(m.clone());
     }
     let n = names.len();
     let pairs: Vec<(usize, usize)> = match v.get("pairs") {
@@ -1011,15 +1157,26 @@ fn result(st: &mut State, v: &J) -> Result<J, String> {
             })
             .collect::<Result<_, _>>()?,
     };
-    let paired = serde_json::to_value(mc::compare_pairs(&names, &res, &metrics, &pairs, s.cfg.conf)).unwrap_or(J::Null);
+    // pairs over the replications both have (all of them unless builds
+    // stopped on their own), metrics that keep every value
+    let opts0 = &s.variants[0].opts;
+    let mut paired = Vec::new();
+    for m in &metrics {
+        let kind = crate::scenario::metric_kind(w, sc, opts0, m);
+        for &(a, b) in &pairs {
+            let (Some(ca), Some(cb)) = (s.stores[a].full(&s.reg, m), s.stores[b].full(&s.reg, m)) else { continue };
+            let k = ca.len().min(cb.len());
+            paired.push(mc::pair_summary(m, &names, a, b, &ca[..k], &cb[..k], s.cfg.conf, kind));
+        }
+    }
     Ok(json!({
         "scenario": { "id": sc.id, "desc": sc.desc, "primary": sc.primary },
-        "reps": reps, "converged": s.converged, "seed": s.cfg.seed, "data_build": w.meta.data_build,
-        "variants": variants, "paired": paired,
+        "reps": s.merged, "converged": s.converged.iter().all(|&c| c), "seed": s.cfg.seed, "data_build": w.meta.data_build,
+        "variants": variants, "paired": serde_json::to_value(paired).unwrap_or(J::Null),
     }))
 }
 
-fn pair(v: &J) -> Result<J, String> {
+fn pair(st: &mut State, v: &J) -> Result<J, String> {
     let metric = v.get("metric").and_then(|x| x.as_str()).ok_or("pair needs a metric")?;
     let read = |k: &str| -> Result<Vec<f64>, String> {
         let a = v.get(k).and_then(|x| x.as_array()).ok_or_else(|| format!("pair needs {k}: a list of values"))?;
@@ -1032,11 +1189,21 @@ fn pair(v: &J) -> Result<J, String> {
         return Err("pair needs at least two replications in common".into());
     }
     let conf = v.get("conf").and_then(|x| x.as_f64()).unwrap_or(0.95);
-    let (diff, lo, hi, vr) = mc::pair_stats(metric, &a[..n], &b[..n], conf);
+    // with the test, a breakeven's range knows its grid
+    let kind = match v.get("scenario").and_then(|x| x.as_str()) {
+        Some(id) => {
+            let w = world_for(st, v)?;
+            let sc = w.scenarios.get(id).ok_or_else(|| format!("unknown scenario '{id}'"))?;
+            crate::scenario::metric_kind(&w, sc, &w.opts.iter().map(|o| o.default).collect::<Vec<_>>(), metric)
+        }
+        None => mc::default_kind(metric),
+    };
+    let p = mc::pair_stats(metric, &a[..n], &b[..n], conf, kind);
     let num = |x: f64| if x.is_finite() { J::from(x) } else { J::Null };
     Ok(json!({
-        "metric": metric, "n": n, "diff": num(diff), "lo": num(lo), "hi": num(hi),
-        "significant": lo > 0.0 || hi < 0.0, "variance_reduction": num(vr),
+        "metric": metric, "n": n, "diff": num(p.diff), "lo": num(p.lo), "hi": num(p.hi),
+        "significant": p.lo > 0.0 || p.hi < 0.0, "variance_reduction": num(p.variance_reduction),
+        "se": num(p.se), "base": num(p.base), "method": p.method,
     }))
 }
 
@@ -1054,6 +1221,27 @@ mod tests {
         assert_eq!(c["classes"].as_array().unwrap().len(), 9);
         assert!(c["presets"].as_array().unwrap().len() >= 9);
         assert!(c["scenarios"].as_array().unwrap().iter().any(|s| s["id"] == "boss"));
+    }
+
+    #[test]
+    fn one_build_duels_a_list_of_opponents() {
+        let c = call(json!({ "op": "catalog" }));
+        assert!(c["build_id"].as_str().map_or(false, |x| x.len() == 16), "the catalog carries the engine's build id");
+        let pick = |f: &str| c["presets"].as_array().unwrap().iter().find(|p| p["file"] == f).unwrap().clone();
+        let foes = json!([pick("priest/shadow.toml"), pick("warrior/arms.toml"), pick("rogue/combat.toml")]);
+        let id = call(json!({ "op": "start", "scenario": "duel", "builds": [pick("mage/frost.toml")], "opponents": foes, "max_reps": 64 }))["id"].as_u64().unwrap();
+        while !call(json!({ "op": "step", "id": id, "reps": 16 }))["finished"].as_bool().unwrap() {}
+        let r = call(json!({ "op": "result", "id": id }));
+        let vs = r["variants"].as_array().unwrap();
+        let foes_seen: Vec<&str> = vs.iter().map(|v| v["opponent"]["name"].as_str().unwrap()).collect();
+        assert_eq!(foes_seen.len(), 3, "a variant per opponent: {foes_seen:?}");
+        assert!(vs.iter().all(|v| v["build"]["name"] == vs[0]["build"]["name"]), "the build is the same in each");
+        assert_eq!(foes_seen[0], foes[0]["name"].as_str().unwrap());
+        // one build only, and a duel still needs someone to fight
+        let two = call(json!({ "op": "start", "scenario": "duel", "builds": [pick("mage/frost.toml"), pick("mage/fire.toml")], "opponents": foes }));
+        assert!(two["error"].as_str().unwrap().contains("one build"));
+        let none = call(json!({ "op": "start", "scenario": "duel", "builds": [pick("mage/frost.toml")], "opponents": [] }));
+        assert!(none["error"].as_str().unwrap().contains("needs an opponent"));
     }
 
     #[test]
@@ -1162,13 +1350,87 @@ mod tests {
             let ab = paired.iter().find(|p| p["a"] == 0 && p["b"] == 1).unwrap();
             let ba = paired.iter().find(|p| p["a"] == 1 && p["b"] == 0).unwrap();
             assert_eq!(ab["diff"].as_f64().unwrap(), -ba["diff"].as_f64().unwrap());
-            let p = call(json!({ "op": "pair", "metric": metric, "a": col(&alone_a, 0), "b": col(&alone_b, 0) }));
+            // the range mirrors exactly too
+            assert_eq!(ab["lo"].as_f64().unwrap(), -ba["hi"].as_f64().unwrap(), "{scenario}");
+            assert_eq!(ab["hi"].as_f64().unwrap(), -ba["lo"].as_f64().unwrap(), "{scenario}");
+            let p = call(json!({ "op": "pair", "scenario": scenario, "metric": metric, "a": col(&alone_a, 0), "b": col(&alone_b, 0) }));
             for k in ["diff", "lo", "hi", "significant"] {
                 assert_eq!(p[k], ab[k], "{scenario} {k}");
             }
         }
         assert!(call(json!({ "op": "pair", "metric": "dps", "a": [1.0], "b": [2.0] }))["error"].is_string());
         assert!(call(json!({ "op": "pair", "metric": "dps", "a": "x", "b": [2.0] }))["error"].is_string());
+    }
+
+    /// With `independent`, each build stops at its own checkpoint: its
+    /// result is what it gets run alone, however the fights were split
+    /// between workers (each running only the builds still going).
+    #[test]
+    fn independent_builds_stop_on_their_own() {
+        let c = call(json!({ "op": "catalog" }));
+        let pick = |f: &str| c["presets"].as_array().unwrap().iter().find(|p| p["file"] == f).unwrap().clone();
+        let (a, b) = (pick("warrior/vampire_v2.toml"), pick("mage/frost.toml"));
+        let start = |builds: J| json!({ "op": "start", "scenario": "solo_1", "builds": builds, "precision": 0.004, "max_reps": 600, "independent": true });
+        let stepped = |req: J| {
+            let id = call(req)["id"].as_u64().unwrap();
+            while !call(json!({ "op": "step", "id": id, "reps": 7 }))["finished"].as_bool().unwrap() {}
+            call(json!({ "op": "result", "id": id }))
+        };
+        let both = stepped(start(json!([a.clone(), b.clone()])));
+        let alone = stepped(start(json!([a.clone()])));
+        assert_eq!(both["variants"][0]["metrics"], alone["variants"][0]["metrics"], "a build's result ignores its neighbour");
+        assert_eq!(both["variants"][0]["reps"], alone["variants"][0]["reps"]);
+        assert_ne!(both["variants"][0]["reps"], both["variants"][1]["reps"], "they stopped at different points");
+        // split between a keeper and a worker that runs only the active builds
+        let keeper = call(start(json!([a.clone(), b.clone()])))["id"].as_u64().unwrap();
+        let worker = call(start(json!([a, b])))["id"].as_u64().unwrap();
+        let (mut from, mut active, mut i) = (0usize, json!([0, 1]), 0usize);
+        loop {
+            let n = [5usize, 2, 11, 3][i % 4];
+            i += 1;
+            let ch = call(json!({ "op": "run", "id": worker, "from": from, "count": n, "only": active }));
+            from += n;
+            let p = call(json!({ "op": "add", "id": keeper, "chunk": ch }));
+            assert!(p.get("error").is_none(), "{p}");
+            active = p["active"].clone();
+            if p["finished"].as_bool().unwrap() {
+                break;
+            }
+        }
+        assert_eq!(call(json!({ "op": "result", "id": keeper })), both);
+    }
+
+    /// Scores and rates keep ranges inside 0 to 1, even with every fight lost.
+    #[test]
+    fn bounded_ranges_stay_inside_the_scale() {
+        let c = call(json!({ "op": "catalog" }));
+        let pick = |f: &str| c["presets"].as_array().unwrap().iter().find(|p| p["file"] == f).unwrap().clone();
+        for (scenario, extra) in [("duel", json!({ "opponent": pick("priest/shadow.toml") })), ("strike_first", json!({}))] {
+            let mut req = json!({ "op": "start", "scenario": scenario, "level": 60, "builds": [pick("warrior/arms.toml")], "precision": 0.05, "max_reps": 200 });
+            for (k, x) in extra.as_object().unwrap() {
+                req[k] = x.clone();
+            }
+            let id = call(req)["id"].as_u64().unwrap();
+            while !call(json!({ "op": "step", "id": id, "reps": 50 }))["finished"].as_bool().unwrap() {}
+            let r = call(json!({ "op": "result", "id": id }));
+            for m in r["variants"][0]["metrics"].as_array().unwrap().iter().filter(|m| m["kind"] == "bounded") {
+                let (lo, hi) = (m["lo"].as_f64().unwrap(), m["hi"].as_f64().unwrap());
+                assert!((0.0..=1.0).contains(&lo) && (0.0..=1.0).contains(&hi) && lo <= hi, "{scenario} {}: {lo}..{hi}", m["name"]);
+            }
+        }
+    }
+
+    /// A rankings-style session keeps only what it asks for.
+    #[test]
+    fn keep_stores_only_what_is_asked() {
+        let c = call(json!({ "op": "catalog" }));
+        let pick = |f: &str| c["presets"].as_array().unwrap().iter().find(|p| p["file"] == f).unwrap().clone();
+        let id = call(json!({ "op": "start", "scenario": "strike_first", "level": 60, "builds": [pick("warrior/arms.toml"), pick("mage/frost.toml")], "precision": 0.1, "max_reps": 64, "keep": ["score:"], "independent": true }))["id"].as_u64().unwrap();
+        while !call(json!({ "op": "step", "id": id, "reps": 16 }))["finished"].as_bool().unwrap() {}
+        let r = call(json!({ "op": "result", "id": id, "pairs": [] }));
+        let names: Vec<String> = r["variants"][0]["metrics"].as_array().unwrap().iter().map(|m| m["name"].as_str().unwrap().to_string()).collect();
+        assert!(names.contains(&"score".to_string()) && names.iter().all(|n| n == "score" || n.starts_with("score:")), "{names:?}");
+        assert!(r["paired"].as_array().unwrap().is_empty());
     }
 
     #[test]

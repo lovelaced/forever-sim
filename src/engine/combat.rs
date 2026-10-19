@@ -37,7 +37,9 @@ impl<'w> Sim<'w> {
         let dpp = c.defense_per_point;
         let player_def = d.kind != Kind::Enemy || d.enemy.map_or(false, |e| e.player_like);
         let mut miss = if player_def { 5.0 + dd * dpp } else { CombatCfg::by_diff(&c.melee_miss, diff) };
-        if white && dual && !ranged {
+        // while Heroic Strike (or Cleave) waits for the next swing, the
+        // off-hand swings without the dual-wield penalty
+        if white && dual && !ranged && !(offhand && a.queued.is_some()) {
             miss += c.dual_wield_miss;
         }
         miss -= a.st[Stat::Hit as usize];
@@ -73,7 +75,20 @@ impl<'w> Sim<'w> {
             parry -= exp;
         }
         let block = if front && d.shield.is_some() { d.st[Stat::Block as usize] + if player_def { dd * dpp } else { 0.0 } } else { 0.0 };
+        // stunned, feared or incapacitated: no dodging, parrying or blocking
+        if d.mechs & Mechanic::HARD != 0 {
+            return (miss.max(0.0), 0.0, 0.0, 0.0);
+        }
         (miss.max(0.0), dodge.max(0.0), parry.max(0.0), block.max(0.0))
+    }
+
+    /// A glancing blow's damage, from the weapon-skill formula: on average
+    /// 95% against a mob up to a level above, 85% two levels up, 65% three.
+    pub fn glance_mult(&self, att: usize, def: usize) -> f64 {
+        let dd = self.defense_delta(att, def);
+        let lo = (1.3 - 0.05 * dd).clamp(0.01, 0.91);
+        let hi = (1.2 - 0.03 * dd).clamp(0.2, 0.99);
+        0.5 * (lo + hi.max(lo))
     }
 
     fn crit_vs(&self, att: usize, def: usize, base: f64) -> f64 {
@@ -100,9 +115,15 @@ impl<'w> Sim<'w> {
     }
 
     pub fn roll_melee(&mut self, att: usize, def: usize, hand: Hand, white: bool, crit_add: f64) -> Roll {
+        self.roll_melee_x(att, def, hand, white, crit_add, false)
+    }
+
+    /// `unavoidable`: can miss but not be dodged, parried or blocked (Overpower).
+    pub fn roll_melee_x(&mut self, att: usize, def: usize, hand: Hand, white: bool, crit_add: f64, unavoidable: bool) -> Roll {
         let ranged = hand == Hand::Ranged;
         let dual = self.actors[att].weapons[1].is_some();
         let (miss, dodge, parry, block) = self.avoid(att, def, white, ranged, dual, hand == Hand::Oh);
+        let (dodge, parry, block) = if unavoidable { (0.0, 0.0, 0.0) } else { (dodge, parry, block) };
         let crit_stat = if ranged { Stat::RangedCrit } else { Stat::MeleeCrit };
         let crit = self.crit_vs(att, def, self.actors[att].st[crit_stat as usize] + crit_add);
         let player_target = self.actors[def].kind != Kind::Enemy;
@@ -171,13 +192,57 @@ impl<'w> Sim<'w> {
         }
     }
 
-    pub fn roll_spell(&mut self, att: usize, def: usize, can_crit: bool, crit_add: f64, heal: bool) -> Roll {
+    /// A hostile spell's chance to hit, in percent (level difference and hit).
+    pub fn spell_hit_chance(&self, att: usize, def: usize) -> f64 {
         let c = &self.w.combat;
+        let diff = self.level_diff(att, def);
+        let base = if diff < 0 { (96.0 - diff as f64).min(99.0) } else { CombatCfg::by_diff(&c.spell_hit, diff) };
+        let a = &self.actors[att];
+        (base + a.st[Stat::Hit as usize] + a.st[Stat::SpellHit as usize]).min(c.spell_hit_cap)
+    }
+
+    /// Whether a hostile debuff, interrupt or taunt from a cast lands on
+    /// `h`: rolled once per cast and target (on its own stream), on the spell
+    /// table for spells and for areas around you (shouts), the ranged table
+    /// for shots and the melee table for physical moves in melee (a block
+    /// still lands it). Effects from a hit that already rolled, an aura's own
+    /// tick, or a totem or trap always land.
+    pub fn debuff_lands(&mut self, cx: &Cx<'w>, h: usize, area: bool) -> bool {
+        let a = cx.me;
+        if h == a || !self.hostile(a, h) || cx.landed || cx.ev.is_some() || cx.aura.is_some() || cx.at.is_some() {
+            return true;
+        }
+        let Some(spell) = cx.spell else { return true };
+        let key = (a, h, spell, self.t.to_bits());
+        if let Some((k, landed)) = self.aura_roll {
+            if k == key {
+                return landed;
+            }
+        }
+        let sp = &self.w.spells[spell as usize];
+        let r = self.actors[a].aura_rng.f64() * 100.0;
+        let ranged_shot = sp.range > self.w.combat.melee_reach + 2.0;
+        let landed = if sp.school != School::Physical || area {
+            let ok = r < self.spell_hit_chance(a, h);
+            if !ok {
+                self.logf(|s| format!("{} {} is resisted by {}", s.actors[a].name, sp.name, s.actors[h].name));
+                self.tracef(|s| TraceEv { key: sp.qid.clone(), ..s.tev("miss", a, Some(h), "resisted") });
+                self.actors[h].in_combat = true;
+            }
+            ok
+        } else {
+            let hand = if ranged_shot { Hand::Ranged } else { Hand::Mh };
+            let (miss, dodge, parry, _) = self.avoid(a, h, false, ranged_shot, false, false);
+            let roll = if r < miss { Roll::Miss } else if r < miss + dodge { Roll::Dodge } else if r < miss + dodge + parry { Roll::Parry } else { Roll::Hit };
+            !self.avoided(a, h, roll, hand)
+        };
+        self.aura_roll = Some((key, landed));
+        landed
+    }
+
+    pub fn roll_spell(&mut self, att: usize, def: usize, can_crit: bool, crit_add: f64, heal: bool) -> Roll {
         if !heal && self.hostile(att, def) {
-            let diff = self.level_diff(att, def);
-            let base = if diff < 0 { (96.0 - diff as f64).min(99.0) } else { CombatCfg::by_diff(&c.spell_hit, diff) };
-            let a = &self.actors[att];
-            let hit = (base + a.st[Stat::Hit as usize] + a.st[Stat::SpellHit as usize]).min(c.spell_hit_cap);
+            let hit = self.spell_hit_chance(att, def);
             if self.actors[att].rng[0].f64() * 100.0 >= hit {
                 return Roll::Miss;
             }
@@ -187,10 +252,10 @@ impl<'w> Sim<'w> {
         }
         let a = &self.actors[att];
         let mut crit = a.st[Stat::SpellCrit as usize] + crit_add;
+        // (in the original game a target's level or defense doesn't lower
+        // spell crit, unlike melee and ranged crit)
         if heal {
             crit += a.st[Stat::HealCrit as usize];
-        } else {
-            crit = self.crit_vs(att, def, crit);
         }
         if self.actors[att].rng[0].f64() * 100.0 < crit {
             Roll::Crit
@@ -315,7 +380,7 @@ impl<'w> Sim<'w> {
             dmg *= 1.0 + (self.w.combat.melee_crit_mult - 1.0) * (1.0 + x.st[Stat::CritBonusMelee as usize]);
         }
         if roll == Roll::Glance {
-            dmg *= CombatCfg::by_diff(&self.w.combat.glance_mult, self.level_diff(a, tgt));
+            dmg *= self.glance_mult(a, tgt);
         }
         if roll == Roll::Crush {
             dmg *= 1.5;
@@ -397,8 +462,15 @@ impl<'w> Sim<'w> {
             }
             ev.amount = dmg;
             ev.pct = dmg / self.actors[t].max_hp.max(1.0);
-            self.apply_damage(a, t, dmg, ev, tag);
-            if self.actors[t].alive {
+            // one that only leaves a debuff (Shadow Word: Pain) deals nothing itself
+            let hits = dmg > 0.0 || h.aura.is_none();
+            if hits {
+                self.apply_damage(a, t, dmg, ev, tag);
+            }
+            if let (Some(au), true) = (h.aura, self.actors[t].alive) {
+                self.apply_aura(t, au, a, 1, None, None, cx);
+            }
+            if self.actors[t].alive && hits {
                 let mut evd = ev;
                 evd.other = Some(a);
                 self.emit(t, EventKind::Struck, evd, 0);
@@ -409,6 +481,37 @@ impl<'w> Sim<'w> {
                     self.emit(t, EventKind::StruckCrit, evd, 0);
                 }
             }
+        }
+    }
+
+    /// A spell that lands whole or not at all: it also puts a non-damage
+    /// effect on its target (Frostbolt's chill), unless the data says.
+    fn is_binary(&self, fx: &DamageFx) -> bool {
+        fx.binary.unwrap_or_else(|| fx.on_hit.iter().any(|e| matches!(e, Effect::ApplyAura { aura, .. } if {
+            let d = &self.w.auras[*aura as usize];
+            d.debuff && d.tick.is_none()
+        })))
+    }
+
+    /// A parry speeds up the parrying unit's next main-hand swing: with more
+    /// than 60% of its swing to go it loses 40% of a swing; with 20 to 60%
+    /// left it comes at 20%.
+    fn parry_haste(&mut self, d: usize) {
+        if self.actors[d].weapons[Hand::Mh as usize].is_none() && self.actors[d].kind != Kind::Enemy {
+            return;
+        }
+        let speed = self.swing_speed(d, Hand::Mh);
+        let t = self.t;
+        let x = &mut self.actors[d];
+        let next = x.swing[Hand::Mh as usize];
+        if next >= INF || speed <= 0.0 {
+            return;
+        }
+        let left = (next - t) / speed;
+        if left > 0.6 {
+            x.swing[Hand::Mh as usize] = next - 0.4 * speed;
+        } else if left > 0.2 {
+            x.swing[Hand::Mh as usize] = t + 0.2 * speed;
         }
     }
 
@@ -435,6 +538,7 @@ impl<'w> Sim<'w> {
             Roll::Parry => {
                 self.emit(a, EventKind::AttackParried, ev, 0);
                 self.emit(tgt, EventKind::Parry, evd, 0);
+                self.parry_haste(tgt);
                 true
             }
             Roll::Block => {
@@ -518,9 +622,9 @@ impl<'w> Sim<'w> {
         }
         let roll = match fx.hit {
             HitKind::White => self.roll_melee(a, tgt, hand, true, crit_add),
-            HitKind::Special => self.roll_melee(a, tgt, hand, false, crit_add),
+            HitKind::Special => self.roll_melee_x(a, tgt, hand, false, crit_add, fx.unavoidable),
             HitKind::RangedWhite => self.roll_melee(a, tgt, Hand::Ranged, true, crit_add),
-            HitKind::RangedSpecial => self.roll_melee(a, tgt, Hand::Ranged, false, crit_add),
+            HitKind::RangedSpecial => self.roll_melee_x(a, tgt, Hand::Ranged, false, crit_add, fx.unavoidable),
             HitKind::Spell => self.roll_spell(a, tgt, fx.can_crit, crit_add, false),
             HitKind::Wand => {
                 let (miss, _, _, _) = self.avoid(a, tgt, false, true, false, false);
@@ -608,6 +712,15 @@ impl<'w> Sim<'w> {
         if !fx.fixed {
             dmg = self.mitigate(a, tgt, dmg, school, fx.periodic);
         }
+        // level-based partial resists, on average: direct spell damage that
+        // isn't all-or-nothing, against a higher-level target
+        if fx.hit == HitKind::Spell && !fx.periodic && school != School::Physical && !self.is_binary(fx) {
+            let diff = self.level_diff(a, tgt) as f64;
+            if diff > 0.0 && self.opt_named(a, "spell_resists") >= 0.5 {
+                let lvl = self.actors[a].level.max(1) as f64;
+                dmg *= 1.0 - 0.75 * (8.0 * diff / (5.0 * lvl)).min(1.0);
+            }
+        }
         if roll == Roll::Block {
             dmg = (dmg - self.actors[tgt].st[Stat::BlockValue as usize]).max(0.0);
         }
@@ -690,7 +803,7 @@ impl<'w> Sim<'w> {
             let def = &w.auras[self.actors[dst].auras[k].def as usize];
             // a ward takes only its school; Mana Shield pays in mana
             let fits = def.absorb_school.map_or(true, |s| s == ev.school);
-            let mpa = def.mana_per_absorb;
+            let mpa = def.mana_per_absorb.as_ref().map_or(0.0, |e| self.ev(e, &Cx::new(dst, None, "")));
             let mana = self.actors[dst].res[Res::Mana as usize];
             let inst = &mut self.actors[dst].auras[k];
             if inst.absorb > 0.0 && fits {
@@ -775,7 +888,8 @@ impl<'w> Sim<'w> {
         while j < self.actors[dst].auras.len() {
             if let Some(th) = self.actors[dst].auras[j].break_at {
                 let maxhp = self.actors[dst].max_hp;
-                self.actors[dst].auras[j].dmg_since += rest;
+                // damage counts before absorbs: a shielded sheep still wakes
+                self.actors[dst].auras[j].dmg_since += amount;
                 if self.actors[dst].auras[j].dmg_since > th * maxhp {
                     self.remove_aura_at(dst, j, false);
                     continue;
@@ -783,20 +897,37 @@ impl<'w> Sim<'w> {
             }
             j += 1;
         }
-        // spell pushback
-        let pr = self.actors[dst].st[Stat::PushbackResist as usize];
-        let pushback = self.w.combat.pushback;
-        let maxp = self.w.combat.max_pushbacks;
-        if let Some(c) = &self.actors[dst].cast {
-            if c.pushes < maxp && rest > 0.0 {
+        // a bandage stops at any damage
+        if rest > 0.0 {
+            if let Some(c) = &self.actors[dst].cast {
+                let sp = &self.w.spells[c.spell as usize];
+                if c.channel && sp.channel.as_ref().map_or(false, |ch| ch.breaks) {
+                    self.actors[dst].cast = None;
+                    self.logf(|s| format!("{} {} ends: damaged", s.actors[dst].name, sp.name));
+                    self.tracef(|s| TraceEv { key: sp.qid.clone(), school: sp.school.name(), ..s.tev("broken", dst, None, sp.name.as_str()) });
+                }
+            }
+        }
+        // spell pushback: the original game's or the later rules (`pushback`)
+        if rest > 0.0 && self.actors[dst].cast.is_some() {
+            let later = self.opt_named(dst, "pushback") >= 0.5;
+            let c = self.actors[dst].cast.as_ref().unwrap();
+            let k = c.pushes as usize;
+            let cb = &self.w.combat;
+            // seconds this hit pushes, if any
+            let push = if later { cb.pushback_later.get(k).copied() } else { cb.pushback.get(k).or(cb.pushback.last()).copied() };
+            if let Some(secs) = push {
+                let pr = self.actors[dst].st[Stat::PushbackResist as usize] + c.sm.pushback_resist;
                 let resisted = self.actors[dst].rng[1].f64() < pr;
                 if !resisted {
+                    let t = self.t;
                     let c = self.actors[dst].cast.as_mut().unwrap();
                     c.pushes += 1;
                     if c.channel {
-                        c.end -= pushback;
+                        c.end -= if later { cb.channel_pushback_later * c.full } else { secs };
                     } else {
-                        c.end += pushback;
+                        // never past the cast's own full length from now
+                        c.end = (c.end + secs).min(t + c.full);
                     }
                 }
             }

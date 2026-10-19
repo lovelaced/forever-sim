@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // Load the WebAssembly build exactly as web/worker.js does and run one small
 // simulation through it, so a broken build fails CI instead of the website.
-//   node tools/wasm_smoke.mjs target/wasm32-unknown-unknown/release/forever_sim.wasm
+//   node tools/wasm_smoke.mjs target/wasm32-unknown-unknown/dist/forever_sim.wasm [catalog.json]
+// With a catalog (the command line's `fsim api '{"op":"catalog"}'`), the
+// engine's own must be the same.
 import { readFileSync } from 'node:fs';
 
-const path = process.argv[2];
+const [path, catalogPath] = process.argv.slice(2);
 const bytes = readFileSync(path);
 const module = await WebAssembly.compile(bytes);
 const imports = WebAssembly.Module.imports(module);
@@ -36,6 +38,9 @@ const preset = cat.presets.find((p) => p.file === 'warrior/vampire_v2.toml') || 
 const sheet = call({ op: 'sheet', build: preset });
 if (!sheet.rows.length) fail('empty character sheet');
 if (!call({ op: 'nope' }).error) fail('bad requests should come back as errors');
+const version = call({ op: 'version' });
+if (!version.build_id || version.build_id !== cat.build_id) fail(`version ${version.build_id} does not match the catalog's ${cat.build_id}`);
+if (catalogPath && JSON.stringify(JSON.parse(readFileSync(catalogPath, 'utf8'))) !== JSON.stringify(cat)) fail(`${catalogPath} is not this engine's catalog`);
 
 const healers = cat.presets.filter((p) => p.role === 'healer').slice(0, 2);
 for (const scenario of ['boss', 'solo_2', 'pressure', 'heal_dungeon']) {
@@ -77,5 +82,25 @@ for (const scenario of ['boss', 'solo_2', 'pressure', 'heal_dungeon']) {
   if (kept.diff !== ab.diff || kept.lo !== ab.lo || kept.hi !== ab.hi) fail('pairing stored values differs from comparing in one run');
   for (const id of [one, keeper, worker]) call({ op: 'drop', id });
   console.log(`split     ${String(st.reps).padStart(4)} reps  same result as one engine`);
+}
+// Each build stopping on its own (`independent`), the workers running only
+// the builds still going: the same result as one engine.
+{
+  const req = { op: 'start', scenario: 'solo_1', builds: [preset, cat.presets[1]], precision: 0.004, max_reps: 400, independent: true, keep: ['kills_per_hour', 'deaths_per_hour'] };
+  const one = call(req).id;
+  while (!call({ op: 'step', id: one, reps: 5 }).finished);
+  const expect = JSON.stringify(call({ op: 'result', id: one, pairs: [] }));
+  const keeper = call(req).id;
+  const worker = call(req).id;
+  let st = null;
+  for (let from = 0, i = 0; !(st && st.finished); i++) {
+    const count = [4, 9, 2][i % 3];
+    const only = st ? st.active : undefined;
+    st = call({ op: 'add', id: keeper, chunk: call({ op: 'run', id: worker, from, count, ...(only ? { only } : {}) }) });
+    from += count;
+  }
+  if (JSON.stringify(call({ op: 'result', id: keeper, pairs: [] })) !== expect) fail('independent split run differs from one engine');
+  for (const id of [one, keeper, worker]) call({ op: 'drop', id });
+  console.log(`own stop  ${String(st.each).padStart(9)} reps  same result as one engine`);
 }
 console.log(`ok: ${(bytes.length / 1024).toFixed(0)} KiB, ${cat.presets.length} builds, data ${cat.data_build}, ${(performance.now() - t0).toFixed(0)} ms in all`);

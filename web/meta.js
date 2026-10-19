@@ -251,7 +251,7 @@ export const LOADING_TIPS = [
   'Precise accuracy runs the most fights. Use it when two builds look too close to call.',
   'Class rankings runs every build on the site through seven tests, and the healers through three more. It takes a few minutes.',
   'Spell numbers come from Forever’s own game data, checked one by one.',
-  'Ranges are 95% confidence intervals: run a test again and the average would almost always land inside.',
+  'A range holds the true answer about 19 times in 20. Running a test again replays the same dice, so the numbers stay put.',
   'In the boss test a tank holds the boss, and you hit it from behind.',
   'Share these builds from the top of the page: anyone who opens the link sees the same builds.',
   'Everything runs in your browser. Nothing you set up leaves your computer.',
@@ -276,6 +276,26 @@ export const SLOTS = [
 ];
 
 export const UNIT_PLURAL = { hour: 'hours', fight: 'fights', ambush: 'ambushes', duel: 'duels' };
+
+// Milliseconds one build's fight takes on one worker, by test: rounded
+// from tools/bench_budgets.json (node tools/bench.mjs <wasm> --write).
+export const TEST_MS = {
+  solo_1: 15.4, solo_2: 18.9, solo_2_hard: 17.9, solo_3: 18, boss: 2.4, pressure: 2.4, pressure_2v1: 3.7,
+  duel: 0.72, strike_first: 4.5, struck_first: 4.3, heal_dungeon: 15.3, heal_tank: 10.1, heal_raid: 50,
+};
+
+// The most fights a test may take for each build, by accuracy: a time
+// budget (one worker's milliseconds per build) over the test's cost, never
+// fewer than the accuracy's own cap. Duels are cheap and their score needs
+// many fights: 1,500, 6,000 or 24,000 (Standard then reaches about ±1.3 points).
+const BUDGET_MS = { quick: 8000, standard: 40000, precise: 160000 };
+const DUEL_CAP = { quick: 1500, standard: 6000, precise: 24000 };
+export function maxRepsFor(test, acc) {
+  const a = ACCURACY.find((x) => x.id === acc) || ACCURACY[1];
+  if (test === 'duel') return DUEL_CAP[a.id];
+  const ms = TEST_MS[test];
+  return ms ? Math.max(a.max_reps, Math.min(40000, Math.round(BUDGET_MS[a.id] / ms))) : a.max_reps;
+}
 
 export const ACCURACY = [
   { id: 'quick', title: 'Quick', short: '±3%', note: 'Within about 3%', precision: 0.03, max_reps: 400 },

@@ -2,7 +2,7 @@
 
 use crate::expr::Expr;
 use crate::model::*;
-use crate::vars::VarRef;
+use crate::vars::{Res, VarRef, Who};
 
 type Visit<'a, 'e> = &'a mut dyn FnMut(&'e Expr);
 
@@ -15,7 +15,7 @@ fn exo<'e>(e: &'e Option<Expr>, hit: Visit<'_, 'e>) {
     }
 }
 fn sel<'e>(s: &'e TargetSel, hit: Visit<'_, 'e>) {
-    if let TargetSel::Enemies(e) | TargetSel::Chain { max: e, .. } = s {
+    if let TargetSel::Enemies(e) | TargetSel::OthersNearMe(e) | TargetSel::Chain { max: e, .. } = s {
         ex(e, hit)
     }
 }
@@ -43,7 +43,7 @@ fn effects<'e>(es: &'e [Effect], hit: Visit<'_, 'e>) {
                 ex(amount, hit);
                 sel(who, hit)
             }
-            Effect::Purge { count, who } => {
+            Effect::Purge { count, who } | Effect::Cleanse { count, who, .. } => {
                 ex(count, hit);
                 sel(who, hit)
             }
@@ -198,4 +198,27 @@ pub fn modelled_talents(w: &World, class: usize) -> Vec<bool> {
         }
     });
     hit
+}
+
+/// Rotation lines that should probably be emergencies: a long cooldown
+/// (a minute or more) taken on your own health, which a typical player
+/// would otherwise get round to late.
+pub fn rotation_warnings(w: &World) -> Vec<String> {
+    let mut out = vec![];
+    for c in &w.classes {
+        for (rid, r) in &c.rotations {
+            for act in r.actions.iter().filter(|a| !a.emergency) {
+                let sp = &w.spells[act.spell as usize];
+                let long = sp.cooldown.is_const().map_or(false, |cd| cd >= 60.0);
+                let mut own_hp = false;
+                if let Some(e) = &act.cond {
+                    e.visit_vars(&mut |v| own_hp |= matches!(v, VarRef::ResPct(Who::Me, Res::Hp) | VarRef::Res(Who::Me, Res::Hp)));
+                }
+                if long && own_hp {
+                    out.push(format!("classes.{}.rotations.{rid}: `{}` reads your health on a {} sec cooldown; mark it `emergency = true` if it saves your life", c.id, act.line, sp.cooldown.is_const().unwrap_or(0.0)));
+                }
+            }
+        }
+    }
+    out
 }

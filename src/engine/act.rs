@@ -11,19 +11,54 @@ pub struct Plan {
     pub sm: SmVals,
 }
 
+/// How long an opener waits on its timing (a reaction, a stun, a lockout)
+/// before it's given up and the rotation takes over.
+const OPENER_PATIENCE: f64 = 6.0;
+/// A cooldown this close to ending is waited out by the opener rather than
+/// skipped (a stance swap's second).
+const OPENER_SHORT_CD: f64 = 2.0;
+
 impl<'w> Sim<'w> {
     /// Combine every spell modifier that applies to a spell for an actor.
     pub fn spell_mod_vals(&self, a: usize, spell: Option<SpellId>, school: Option<School>) -> SmVals {
+        let Some(spell) = spell else { return SmVals::default() };
+        let school = school.unwrap_or(self.w.spells[spell as usize].school);
+        let x = &self.actors[a];
+        let gen = x.aura_gen;
+        let hit = x.sm_cache.borrow().iter().find(|c| c.0 == spell && c.1 == school && c.2 == gen).map(|c| c.3);
+        if let Some(v) = hit {
+            if VERIFY_SM_CACHE.load(std::sync::atomic::Ordering::Relaxed) {
+                let (fresh, _) = self.spell_mod_vals_now(a, spell, school);
+                assert!(fresh.bits() == v.bits(), "cached spell modifiers differ for spell {spell}: {v:?} vs {fresh:?}");
+            }
+            return v;
+        }
+        let (v, fixed) = self.spell_mod_vals_now(a, spell, school);
+        if fixed {
+            let mut c = x.sm_cache.borrow_mut();
+            c.retain(|e| e.2 == gen);
+            if c.len() >= 24 {
+                c.remove(0);
+            }
+            c.push((spell, school, gen, v));
+        }
+        v
+    }
+
+    /// The spell modifiers worked out afresh, and whether everything that
+    /// went into them is fixed within a fight while the auras don't change.
+    fn spell_mod_vals_now(&self, a: usize, spell: SpellId, school: School) -> (SmVals, bool) {
         let mut v = SmVals::default();
-        let Some(spell) = spell else { return v };
+        let mut fixed = true;
+        let mut cond_fixed = true;
         let w = self.w;
-        let school = school.unwrap_or(w.spells[spell as usize].school);
         let x = &self.actors[a];
         let cx0 = Cx::new(a, x.target, "");
         let mut apply = |m: &SpellMod, cx: &Cx<'w>, s: &Sim<'w>| {
             if !m.applies(spell, school) {
                 return;
             }
+            fixed &= m.fixed;
             let val = s.ev(&m.value, cx);
             let (target, base_is_one) = match m.prop {
                 SpellProp::Cost => (if m.op == ModOp::Add { &mut v.cost_add } else { &mut v.cost_mul }, false),
@@ -37,6 +72,7 @@ impl<'w> Sim<'w> {
                 SpellProp::Gcd => (&mut v.gcd_add, false),
                 SpellProp::Range => (if m.op == ModOp::Add { &mut v.range_add } else { &mut v.range_mul }, false),
                 SpellProp::Radius => (if m.op == ModOp::Add { &mut v.radius_add } else { &mut v.radius_mul }, false),
+                SpellProp::PushbackResist => (&mut v.pushback_resist, false),
             };
             match (m.op, base_is_one) {
                 (ModOp::Mul, _) => *target *= val,
@@ -49,6 +85,9 @@ impl<'w> Sim<'w> {
                 continue;
             }
             if let Some(c) = &p.cond {
+                if !p.cond_fixed {
+                    cond_fixed = false;
+                }
                 if self.ev(c, &cx0) == 0.0 {
                     continue;
                 }
@@ -69,7 +108,7 @@ impl<'w> Sim<'w> {
                 apply(m, &cx, self);
             }
         }
-        v
+        (v, fixed && cond_fixed)
     }
 
     fn costs(&self, a: usize, spell: SpellId, rank: Option<usize>, sm: &SmVals, tgt: usize) -> Vec<(Res, f64)> {
@@ -211,6 +250,9 @@ impl<'w> Sim<'w> {
     /// check, and while nobody needs healing it's the one that fails), unless
     /// it reads the numbers of a rank still to be fitted.
     fn plan_on(&self, a: usize, act: &Action, target: usize, relaxed: bool, known: Option<usize>, sm: &mut Option<SmVals>) -> Option<Plan> {
+        if self.spared(a, act, target) {
+            return None;
+        }
         let early = !(act.rank == RankPick::Fit && act.cond_rank);
         if early {
             if let Some(c) = &act.cond {
@@ -220,6 +262,15 @@ impl<'w> Sim<'w> {
                 }
             }
         }
+        // a capped rank: the highest known up to it
+        let known = match (&act.rank_cap, known) {
+            (Some(e), Some(k)) => {
+                let cx = self.action_cx(a, &Plan { spell: act.spell, rank: Some(k), target, cast_time: 0.0, sm: SmVals::default() });
+                let cap = self.ev(e, &cx).floor().max(1.0) as usize - 1;
+                Some(k.min(cap))
+            }
+            _ => known,
+        };
         let sm = *sm.get_or_insert_with(|| self.spell_mod_vals(a, Some(act.spell), None));
         let mut plan = self.plan_at(a, act.spell, act.target, target, relaxed, known, sm)?;
         if act.rank == RankPick::Fit {
@@ -308,7 +359,8 @@ impl<'w> Sim<'w> {
         if hard != 0 && hard & !sp.usable_while.iter().fold(0, |m, x| m | x.bit()) != 0 {
             return None;
         }
-        if sp.school != School::Physical && (x.lockout > self.t || x.has_mech(w, Mechanic::Silence)) {
+        // an interrupt locks out the school it caught; Silence stops all spells
+        if sp.school != School::Physical && (x.lockout[sp.school as usize] > self.t || x.has_mech(w, Mechanic::Silence)) {
             return None;
         }
         if !relaxed {
@@ -409,8 +461,11 @@ impl<'w> Sim<'w> {
     /// Choose and start the first usable action in the rotation.
     pub fn act(&mut self, a: usize) -> bool {
         let x = &self.actors[a];
-        if !x.alive || x.cast.is_some() {
+        if !x.alive {
             return false;
+        }
+        if x.cast.is_some() {
+            return self.emergency_stop(a);
         }
         let Some(rot) = x.rotation else { return false };
         // a mob that hasn't noticed anyone, or is running away, does nothing
@@ -434,6 +489,10 @@ impl<'w> Sim<'w> {
         // in a group, close to pulling the tank's mob: hold the damage
         let hold = self.phase == Phase::Fight && self.holds_back(a);
         let mut slipped: Option<(usize, Plan)> = None;
+        // an emergency seen during the global cooldown: the reaction starts now
+        if busy && fight {
+            self.prime_emergencies(a, rot);
+        }
         // during the global cooldown only the off-GCD lines need a look
         let n = if busy && self.phase == Phase::Fight { rot.off_gcd.len() } else { list.len() };
         for i in 0..n {
@@ -488,7 +547,7 @@ impl<'w> Sim<'w> {
                 }
             }
             // ...and now and then presses the next ability down instead of the best
-            if fight && on_gcd && slipped.is_none() {
+            if fight && on_gcd && slipped.is_none() && !act.emergency {
                 let p = self.actors[a].react.map_or(0.0, |r| r.slip);
                 if self.slips(a, p) {
                     slipped = Some((k, plan));
@@ -505,6 +564,86 @@ impl<'w> Sim<'w> {
             self.take_line(a, k, plan);
             return true;
         }
+        false
+    }
+
+    /// A single-target harmful line held off an enemy your side holds with
+    /// crowd control while another fights (unless it's `breaks_cc`, or it
+    /// puts the hold back on).
+    fn spared(&self, a: usize, act: &Action, target: usize) -> bool {
+        let sp = &self.w.spells[act.spell as usize];
+        if act.breaks_cc || !sp.harm || sp.radius > 0.0 || target == a || self.actors[a].kind == Kind::Enemy || !matches!(act.target, SpellTarget::Enemy | SpellTarget::AnyEnemy(_) | SpellTarget::OtherEnemy(_)) {
+            return false;
+        }
+        // a pet leaves your side's held enemy alone even when it's the only one
+        let held = if self.actors[a].owner.is_some() { self.held_by(target, self.actors[a].team) } else { self.spare(a, target) };
+        if !held {
+            return false;
+        }
+        let mut mine = vec![];
+        crate::world::applied_auras(&sp.effects, &mut mine);
+        !mine.iter().any(|&x| self.w.auras[x as usize].hold)
+    }
+
+    /// Start the reaction clock of each emergency line whose condition holds
+    /// while the global cooldown keeps it from going, so it goes as soon as
+    /// both the reaction and the cooldown are over.
+    fn prime_emergencies(&mut self, a: usize, rot: &'w Rotation) {
+        let Some(r) = self.actors[a].react else { return };
+        for &k in &rot.emergency {
+            let k = k as usize;
+            let act = &rot.actions[k];
+            if self.actors[a].due.get(k).map_or(false, |&d| d < INF) {
+                continue;
+            }
+            let Some(t) = self.resolve_target(a, act.target) else { continue };
+            let holds = match (&act.cond, act.cond_rank) {
+                (Some(c), false) => {
+                    let known = self.known(a, act.spell).filter(|&r| r != usize::MAX);
+                    let cx = self.action_cx(a, &Plan { spell: act.spell, rank: known, target: t, cast_time: 0.0, sm: SmVals::default() });
+                    self.ev(c, &cx) != 0.0
+                }
+                _ => false,
+            };
+            if holds {
+                if self.actors[a].due.len() <= k {
+                    self.actors[a].due.resize(k + 1, INF);
+                }
+                let d = self.t + self.delay(a, r.base);
+                self.actors[a].due[k] = d;
+            }
+        }
+    }
+
+    /// Mid-cast, an emergency line that's ready stops the cast (it costs
+    /// nothing: costs are paid when a cast completes) and goes instead.
+    fn emergency_stop(&mut self, a: usize) -> bool {
+        let x = &self.actors[a];
+        let Some(rot) = x.rotation else { return false };
+        if self.phase != Phase::Fight || rot.emergency.is_empty() || !x.aware || matches!(x.mo.goal, Goal::Away { .. }) || self.held_back(a) {
+            return false;
+        }
+        let cast = self.actors[a].cast.take();
+        let mut order = None;
+        for &k in &rot.emergency {
+            let k = k as usize;
+            let act = &rot.actions[k];
+            let Some(plan) = self.line_plan(a, act, false, &mut order) else {
+                self.clear_due(a, k);
+                continue;
+            };
+            if !self.due_now(a, k, act, &plan) {
+                continue;
+            }
+            if let Some(c) = &cast {
+                let sp = &self.w.spells[c.spell as usize];
+                self.logf(|s| format!("{} stops casting {}", s.actors[a].name, sp.name));
+                self.tracef(|s| TraceEv { key: sp.qid.clone(), school: sp.school.name(), ..s.tev("stop", a, None, sp.name.as_str()) });
+            }
+            self.take_line(a, k, plan);
+            return true;
+        }
+        self.actors[a].cast = cast;
         false
     }
 
@@ -561,7 +700,7 @@ impl<'w> Sim<'w> {
 
     /// A player in a group (the boss test, with its tank) who is near
     /// pulling the mob off whoever it's on (assumption `threat_margin`).
-    fn holds_back(&self, a: usize) -> bool {
+    pub(crate) fn holds_back(&self, a: usize) -> bool {
         let x = &self.actors[a];
         if self.tank.is_none() || self.tank == Some(a) || x.kind != Kind::Player {
             return false;
@@ -602,7 +741,9 @@ impl<'w> Sim<'w> {
     /// were first wanted; everything else goes at once.
     fn due_now(&mut self, a: usize, k: usize, act: &Action, plan: &Plan) -> bool {
         let Some(r) = self.actors[a].react else { return true };
-        let late = if act.upkeep {
+        let late = if act.emergency {
+            r.base
+        } else if act.upkeep {
             r.lapse
         } else if r.late_cd > 0.0 {
             let sp = &self.w.spells[act.spell as usize];
@@ -686,6 +827,22 @@ impl<'w> Sim<'w> {
     pub fn opener(&mut self, a: usize) {
         let Some(rot) = self.actors[a].rotation else { return };
         self.actors[a].opening = if rot.opener.is_empty() { None } else { Some(0) };
+        self.actors[a].open_wait = None;
+    }
+
+    /// Why an opener line can't go yet when it's only a matter of time: a
+    /// reaction still to come, a stun or fear, a lockout or silence, or a
+    /// cooldown about to end (a stance swap's).
+    fn opener_waits(&self, a: usize, spell: SpellId) -> bool {
+        let w = self.w;
+        let x = &self.actors[a];
+        let sp = &w.spells[spell as usize];
+        let hard = x.mechs & Mechanic::HARD;
+        let cd = x.cd_ready(self.cd_key(spell)) - self.t;
+        (hard != 0 && hard & !sp.usable_while.iter().fold(0, |m, x| m | x.bit()) != 0)
+            || (sp.school != School::Physical && (x.lockout[sp.school as usize] > self.t || x.has_mech(w, Mechanic::Silence)))
+            || (x.react.is_some() && x.react_until > self.t + EPS)
+            || (cd > EPS && cd <= OPENER_SHORT_CD)
     }
 
     /// The next precombat line: cast it if it can go, wait for the global
@@ -723,7 +880,10 @@ impl<'w> Sim<'w> {
     }
 
     /// The next opener move, if one is due. Returns Some(true) when it cast,
-    /// Some(false) to wait (global cooldown), None when the opener is over.
+    /// Some(false) to wait (the global cooldown, walking up, or a timing
+    /// that will pass: a reaction, a stun, a lockout), None when the opener
+    /// is over or passes this moment to the rest of the rotation (holding
+    /// back threat in a group: the opener resumes once that's done).
     fn open_step(&mut self, a: usize, rot: &'w Rotation) -> Option<bool> {
         let mut k = self.actors[a].opening?;
         while k < rot.opener.len() {
@@ -732,6 +892,30 @@ impl<'w> Sim<'w> {
             if !sp.off_gcd && self.actors[a].gcd_end > self.t + EPS {
                 self.actors[a].opening = Some(k);
                 return Some(false);
+            }
+            // a line whose condition doesn't hold is passed over, not waited for
+            if let (Some(c), false, Some(t)) = (&act.cond, act.cond_rank, self.resolve_target(a, act.target)) {
+                let known = self.known(a, act.spell).filter(|&r| r != usize::MAX);
+                let cx = self.action_cx(a, &Plan { spell: act.spell, rank: known, target: t, cast_time: 0.0, sm: SmVals::default() });
+                if self.ev(c, &cx) == 0.0 {
+                    k += 1;
+                    continue;
+                }
+            }
+            // only a matter of time: wait for it, but not forever
+            if self.opener_waits(a, act.spell) {
+                let since = *self.actors[a].open_wait.get_or_insert(self.t);
+                if self.t - since < OPENER_PATIENCE {
+                    self.actors[a].opening = Some(k);
+                    return Some(false);
+                }
+                break;
+            }
+            // close to pulling the tank's mob: the rest of the rotation holds
+            // back, and the opener's damage waits with it
+            if sp.harm && act.target == SpellTarget::Enemy && self.holds_back(a) {
+                self.actors[a].opening = Some(k);
+                return None;
             }
             // too far: walk up to it first; too close (inside Charge's 8
             // yards): skip it
@@ -753,6 +937,7 @@ impl<'w> Sim<'w> {
             // a move that can't be used now (cooldown, cost, stance) is skipped
             if let Some(plan) = self.line_plan(a, act, false, &mut None) {
                 self.actors[a].opening = Some(k + 1);
+                self.actors[a].open_wait = None;
                 if self.actors[a].owner.is_none() {
                     let v = &mut self.metrics[a].opener_lines;
                     if v.len() <= k {
@@ -812,6 +997,7 @@ impl<'w> Sim<'w> {
                 rank: plan.rank,
                 target: plan.target,
                 end: self.t + plan.cast_time,
+                full: plan.cast_time,
                 pushes: 0,
                 channel: false,
                 next_tick: INF,
@@ -836,12 +1022,28 @@ impl<'w> Sim<'w> {
 
     pub fn finish_cast(&mut self, a: usize) {
         let Some(c) = self.actors[a].cast.take() else { return };
+        // finishing a cast or a channel restarts the melee swing (Auto Shot
+        // keeps its own timer)
+        for h in [Hand::Mh, Hand::Oh] {
+            if self.actors[a].weapons[h as usize].is_some() && self.actors[a].swing[h as usize] < INF {
+                let sp = self.swing_speed(a, h);
+                self.actors[a].swing[h as usize] = self.t + sp;
+            }
+        }
         if c.channel {
             return;
         }
         let target = c.target;
         // a cast on a unit that died meanwhile fizzles (heals included)
         if !self.actors[target].alive {
+            return;
+        }
+        // or that walked out of range (or inside a bow's dead zone): it fails,
+        // costing nothing
+        if target != a && !self.in_range(a, c.spell, target, &c.sm) {
+            let sp = &self.w.spells[c.spell as usize];
+            self.logf(|s| format!("{} {} fails: out of range", s.actors[a].name, sp.name));
+            self.tracef(|s| TraceEv { key: sp.qid.clone(), school: sp.school.name(), ..s.tev("fail", a, Some(target), sp.name.as_str()) });
             return;
         }
         let plan = Plan { spell: c.spell, rank: c.rank, target, cast_time: 0.0, sm: c.sm };
@@ -858,6 +1060,13 @@ impl<'w> Sim<'w> {
             return;
         }
         let sp = &self.w.spells[c.spell as usize];
+        // a channel on a unit (not an area) breaks once it's out of range
+        if c.target != a && sp.radius <= 0.0 && !self.in_range(a, c.spell, c.target, &c.sm) {
+            self.actors[a].cast = None;
+            self.logf(|s| format!("{} {} ends: out of range", s.actors[a].name, sp.name));
+            self.tracef(|s| TraceEv { key: sp.qid.clone(), school: sp.school.name(), ..s.tev("fail", a, Some(c.target), sp.name.as_str()) });
+            return;
+        }
         if let Some(ch) = &sp.channel {
             let plan = Plan { spell: c.spell, rank: c.rank, target: c.target, cast_time: 0.0, sm: c.sm };
             let cx = self.action_cx(a, &plan);
@@ -900,6 +1109,7 @@ impl<'w> Sim<'w> {
                 rank: plan.rank,
                 target: plan.target,
                 end: self.t + dur,
+                full: dur,
                 pushes: 0,
                 channel: true,
                 next_tick: self.t + iv,
@@ -914,7 +1124,9 @@ impl<'w> Sim<'w> {
         if sp.finisher {
             self.actors[a].cp = 0.0;
         }
-        let ev = Ev { other: Some(plan.target), by: Some(plan.spell), ..Ev::default() };
+        // a cast's event carries the mana it cost (`event.amount`)
+        let paid = costs.iter().filter(|c| c.0 == Res::Mana).map(|c| c.1).sum();
+        let ev = Ev { other: Some(plan.target), by: Some(plan.spell), amount: paid, ..Ev::default() };
         self.emit(a, EventKind::Cast(plan.spell), ev, 0);
         self.emit(a, EventKind::AnyCast, ev, 0);
         self.consume_on_cast(a, plan.spell, mark);
@@ -1018,7 +1230,13 @@ impl<'w> Sim<'w> {
             Effect::ApplyAura { who, aura, stacks, duration } => {
                 let n = self.ev(stacks, &cx).max(1.0) as u32;
                 let d = duration.as_ref().map(|d| self.ev(d, &cx));
+                let area = matches!(who, TargetSel::Enemies(_) | TargetSel::OthersNearMe(_));
+                let debuff = self.w.auras[*aura as usize].debuff;
                 for h in self.holders(who, &cx) {
+                    // a hostile debuff can miss, be dodged or be resisted
+                    if debuff && !self.debuff_lands(&cx, h, area) {
+                        continue;
+                    }
                     self.apply_aura(h, *aura, cx.me, n, d, cx.rank, cx);
                 }
             }
@@ -1106,9 +1324,11 @@ impl<'w> Sim<'w> {
             Effect::Interrupt { who, lockout } => {
                 let l = self.ev(lockout, &cx);
                 for h in self.holders(who, &cx) {
-                    if self.actors[h].cast.is_some() {
+                    if self.actors[h].cast.is_some() && self.debuff_lands(&cx, h, false) {
+                        // the school of the spell it caught is locked out
+                        let school = self.actors[h].cast.as_ref().map_or(School::Physical, |c| self.w.spells[c.spell as usize].school);
                         self.actors[h].cast = None;
-                        self.actors[h].lockout = self.t + l;
+                        self.actors[h].lockout[school as usize] = self.t + l;
                         if self.hostile(cx.me, h) {
                             let o = self.actors[cx.me].owner.unwrap_or(cx.me);
                             self.metrics[o].interrupts += 1.0;
@@ -1158,7 +1378,7 @@ impl<'w> Sim<'w> {
                 // a totem's taunt (Stoneclaw) draws the attacks to the totem
                 let me = cx.at.filter(|&t| self.actors[t].kind == Kind::Totem).unwrap_or(cx.me);
                 for t in self.holders(who, &cx) {
-                    if self.actors[t].kind == Kind::Enemy && self.actors[t].alive {
+                    if self.actors[t].kind == Kind::Enemy && self.actors[t].alive && self.debuff_lands(&cx, t, false) {
                         // your threat goes up to the top's, and it attacks you while it lasts
                         let top = self.actors[t].top_threat();
                         let tt = &mut self.actors[t];
@@ -1182,6 +1402,26 @@ impl<'w> Sim<'w> {
                 for h in self.holders(who, &cx) {
                     for _ in 0..n {
                         let Some(k) = self.actors[h].auras.iter().rposition(|i| self.purgeable(i.def)) else { break };
+                        self.remove_aura_at(h, k, false);
+                    }
+                }
+            }
+            Effect::Cleanse { who, types, count } => {
+                let n = self.ev(count, &cx).max(0.0) as usize;
+                for h in self.holders(who, &cx) {
+                    for _ in 0..n {
+                        let Some(k) = self.actors[h].auras.iter().rposition(|i| self.cleansable(i, *types)) else { break };
+                        let (def, src) = (&w.auras[self.actors[h].auras[k].def as usize], self.actors[h].auras[k].src);
+                        let me = cx.me;
+                        // a cure can fail on a debuff that resists it (and is used up)
+                        if let Some(e) = &def.dispel_resist {
+                            let p = self.ev(e, &Cx::new(src, Some(h), ""));
+                            if p > 0.0 && self.actors[me].rng[1].f64() < p {
+                                self.tracef(|s| s.tev("dispel_resist", me, Some(h), def.name.as_str()));
+                                continue;
+                            }
+                        }
+                        self.tracef(|s| s.tev("dispel", me, Some(h), def.name.as_str()));
                         self.remove_aura_at(h, k, false);
                     }
                 }
@@ -1265,7 +1505,13 @@ impl<'w> Sim<'w> {
     /// A buff that magic dispels take off (Purge).
     pub fn purgeable(&self, aura: AuraId) -> bool {
         let d = &self.w.auras[aura as usize];
-        !d.debuff && !d.hidden && d.dispel_type.as_deref() == Some("magic")
+        !d.debuff && !d.hidden && d.dispel == Some(DISPEL_MAGIC)
+    }
+
+    /// A debuff a cure of these types (`DISPEL_*` bits) takes off.
+    pub fn cleansable(&self, i: &AuraInst, types: u8) -> bool {
+        let d = &self.w.auras[i.def as usize];
+        d.debuff && !d.hidden && i.dispel & types != 0
     }
 
     pub fn dismiss_pets(&mut self, owner: usize) {
@@ -1290,6 +1536,10 @@ impl<'w> Sim<'w> {
         // a totem goes down on the ground (a party member's buff stays a buff)
         if def.totem.is_some() && self.actors[holder].kind != Kind::Totem && !self.totem_buffing && self.actors[src].alive {
             self.spawn_totem(src, aura, rank, cx);
+            return;
+        }
+        // a totem (or a trap) can't be stunned, feared or held
+        if def.mechanic.is_some() && def.debuff && self.actors[holder].kind == Kind::Totem {
             return;
         }
         if let Some(m) = def.mechanic {
@@ -1320,6 +1570,17 @@ impl<'w> Sim<'w> {
             Some(Mechanic::Stun) => d *= self.actors[holder].st[Stat::StunDuration as usize],
             Some(Mechanic::Fear) => d *= self.actors[holder].st[Stat::FearDuration as usize],
             _ => {}
+        }
+        // a reapplication its aura ignores costs no diminishing returns
+        if def.refresh == Refresh::Ignore {
+            let held = if def.per_source {
+                self.actors[holder].auras.iter().any(|i| i.def == aura && i.src == src)
+            } else {
+                self.actors[holder].auras.iter().any(|i| i.def == aura)
+            };
+            if held {
+                return;
+            }
         }
         // PvP diminishing returns: players (and player-like enemies) take 100%, 50%,
         // 25%, then immune from repeated crowd control of one kind within the window.
@@ -1365,6 +1626,7 @@ impl<'w> Sim<'w> {
                     let fast = def.speed.as_ref().map_or(0.0, |e| self.ev(e, &c2).max(0.0));
                     self.uid += 1;
                     let fresh = self.uid;
+                    self.actors[holder].aura_gen += 1;
                     let inst = &mut self.actors[holder].auras[k];
                     inst.slow = slow;
                     inst.fast = fast;
@@ -1373,6 +1635,7 @@ impl<'w> Sim<'w> {
                     inst.stacks = (inst.stacks + stacks).min(def.max_stacks.max(1));
                     inst.rank = rank;
                     inst.spell = rank.map(|r| r.0).or(cx.spell);
+                    inst.dispel = def.dispel.unwrap_or_else(|| inst.spell.map_or(0, |sp| w.spells[sp as usize].dispel));
                     inst.src = src;
                     if charges.is_some() {
                         inst.charges = charges;
@@ -1438,16 +1701,19 @@ impl<'w> Sim<'w> {
             seen,
             slow,
             fast,
+            dispel: def.dispel.unwrap_or_else(|| rank.map(|r| r.0).or(cx.spell).map_or(0, |sp| w.spells[sp as usize].dispel)),
         };
         let st = inst.stacks as f64;
         self.actors[holder].auras.push(inst);
+        self.actors[holder].aura_gen += 1;
         self.actors[holder].sync_mechs(w);
         let t = self.t;
         self.actors[holder].sync_aura_next(t);
         if let Some(f) = def.form {
             self.actors[holder].form = Some(f);
         }
-        if matches!(def.mechanic, Some(Mechanic::Stun) | Some(Mechanic::Fear) | Some(Mechanic::Incap) | Some(Mechanic::Freeze)) {
+        // stuns, fears and incapacitates stop a cast; roots (Frost Nova's freeze) don't
+        if matches!(def.mechanic, Some(Mechanic::Stun) | Some(Mechanic::Fear) | Some(Mechanic::Incap)) {
             self.actors[holder].cast = None;
             self.actors[holder].queued = None;
         }
@@ -1474,10 +1740,20 @@ impl<'w> Sim<'w> {
             return;
         }
         let inst = self.actors[holder].auras.remove(k);
+        self.actors[holder].aura_gen += 1;
         self.actors[holder].sync_mechs(w);
         let t = self.t;
         self.actors[holder].sync_aura_next(t);
         let def = &w.auras[inst.def as usize];
+        // crowd control that ends early: its diminishing-returns window runs
+        // from now
+        if let Some(g) = def.dr {
+            if inst.expires > t + EPS {
+                let window = w.combat.dr_window;
+                let x = &mut self.actors[holder];
+                x.dr[g as usize].0 = x.dr[g as usize].0.min(t + window);
+            }
+        }
         if self.log.is_some() {
             self.logf(|s| format!("{} loses {}", s.actors[holder].name, def.name));
             if self.actors[holder].kind != Kind::Totem {

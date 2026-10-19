@@ -37,7 +37,8 @@ melee_crit = "agi / interp(level, 1,4, 40,14, 60,20)"
 ranged_crit = "agi / interp(level, 1,4, 40,14, 60,20)"
 spell_crit = "1.8 + int / interp(level, 1,10, 40,40, 60,60)"
 dodge = "agi / interp(level, 1,4, 40,14, 60,20)"
-mana_regen = "15 + spi / 5"
+# Innervate (29166): spirit-based mana regeneration +400%
+mana_regen = "(15 + spi / 5) * (aura.innervate.up ? 5 : 1)"
 hp_regen = "spi * 0.15 + 3"
 
 # ------------------------------------------------------------------ talents
@@ -474,6 +475,12 @@ mods = [
 # Faerie Fire costs nothing in Cat Form (Oct 15 notes).
 spell_mods = [{ spells = ["faerie_fire"], prop = "cost", mul = 0 }]
 on_apply = [{ type = "chance", p = "1 - 0.2 * t.furor", then = [{ type = "resource", res = "energy", amount = 0, set = true }] }]
+[auras.abolish_poison]
+name = "Abolish Poison"
+duration = 8
+dispel = "magic"
+tick = { interval = 2, effects = [{ type = "cleanse", target = "target", types = ["poison"] }] }
+
 [auras.bear_form]
 name = "Bear Form"
 form = true
@@ -628,6 +635,13 @@ duration = 15
 charges = 2
 consume_on_cast = true
 spell_mods = [{ spells = ["starfire"], prop = "cast_time", add = "t.eclipse == 1 ? -0.17 : (t.eclipse == 2 ? -0.33 : -0.5)" }]
+[auras.innervate]
+name = "Innervate"
+dispel = "magic"
+duration = 20
+text = "Spirit-based mana regeneration +400%, and all of it continues while casting."
+# all of your regeneration while casting: what Reflection doesn't already give
+mods = [{ stat = "casting_regen", add = "1 - (t.reflection == 1 ? 0.17 : (t.reflection == 2 ? 0.33 : (t.reflection == 3 ? 0.5 : 0)))" }]
 [auras.natures_swiftness]
 name = "Nature's Swiftness"
 dispel = "magic"
@@ -689,6 +703,7 @@ ranks = [{ level = 20, id = 5215 }, { level = 40, id = 6783 }, { level = 60, id 
 effects = [{ type = "aura", aura = "prowl" }]
 [spells.mark_of_the_wild]
 name = "Mark of the Wild"
+school = "nature"
 range = 30
 icon = "spell_nature_regeneration"
 target = "self"
@@ -740,6 +755,7 @@ ranks = [
 effects = [{ type = "aura", aura = "natures_grasp" }]
 [spells.barkskin]
 name = "Barkskin"
+school = "nature"
 icon = "spell_nature_stoneclawtotem"
 cooldown = 60
 target = "self"
@@ -748,7 +764,8 @@ effects = [{ type = "aura", aura = "barkskin" }]
 [spells.faerie_fire]
 name = "Faerie Fire"
 icon = "spell_nature_faeriefire"
-school = "arcane"
+school = "nature"
+dispel = "magic"
 # Spells 770, 778, 9749, 9907: armor -175/-285/-395/-505 for 40 sec, usable
 # in caster, Cat, Bear, Dire Bear and Moonkin Form. It costs no Mana in Cat
 # and Bear Form (Oct 15 notes: "Faerie Fire costs no resources in those
@@ -970,6 +987,7 @@ effects = [{ type = "damage", school = "arcane", min = "r.lo", max = "r.hi", coe
 name = "Moonfire"
 icon = "spell_nature_starfall"
 school = "arcane"
+dispel = "magic"
 forms = ["none", "moonkin_form"]
 requires = "!target.aura.moonfire.up"
 ranks = [
@@ -988,6 +1006,7 @@ effects = [{ type = "damage", school = "arcane", min = "r.lo", max = "r.hi", coe
 [spells.insect_swarm]
 name = "Insect Swarm"
 icon = "spell_nature_insectswarm"
+dispel = "magic"
 talent = "insect_swarm"
 school = "nature"
 forms = ["none", "moonkin_form"]
@@ -998,6 +1017,7 @@ effects = [{ type = "damage", school = "nature", amount = 0, can_crit = false, o
 name = "Entangling Roots"
 icon = "spell_nature_stranglevines"
 school = "nature"
+dispel = "magic"
 cast_time = 1.5
 forms = ["none", "moonkin_form"]
 requires = "!target.rooted"
@@ -1152,10 +1172,25 @@ target = "self"
 forms = ["none"]
 ranks = [{ level = 1, id = 17116 }]
 effects = [{ type = "aura", aura = "natures_swiftness" }]
+[spells.innervate]
+name = "Innervate"
+icon = "spell_nature_lightning"
+school = "nature"
+dispel = "magic"
+range = 30
+cooldown = 360
+target = "self"
+# caster and Moonkin Form (the spell data's form mask)
+forms = ["none", "moonkin_form"]
+cost = { mana = "0.05 * base_mana" }
+ranks = [{ level = 40, id = 29166 }]
+text = "Mana regeneration +400% for 20 sec, and all of it continues while casting."
+effects = [{ type = "aura", aura = "innervate", target = "ally" }]
 
 # ------------------------------------------------------------------ crowd control and escapes
 [spells.hibernate]
 name = "Hibernate"
+dispel = "magic"
 range = 30
 icon = "spell_nature_sleep"
 school = "nature"
@@ -1166,6 +1201,43 @@ text = "Puts a beast or dragonkin to sleep for 20, 30 or 40 sec by rank. Any dam
 ranks = [{ level = 18, id = 2637, dur = 20, mana = 90 }, { level = 38, id = 18657, dur = 30, mana = 120 }, { level = 58, id = 18658, dur = 40, mana = 150 }]
 cost = { mana = "r.mana" }
 effects = [{ type = "aura", aura = "hibernate", target = "target", duration = "r.dur" }]
+[spells.remove_curse]
+name = "Remove Curse"
+range = 30
+icon = "spell_holy_removecurse"
+school = "arcane"
+target = "self"
+# caster and Moonkin Form only (the spell data's form mask)
+forms = ["none", "moonkin_form"]
+cost = { mana = "0.1 * base_mana" }
+text = "Takes 1 curse off a friendly target."
+ranks = [{ level = 24, id = 2782 }]
+effects = [{ type = "cleanse", target = "ally", types = ["curse"] }]
+
+[spells.cure_poison]
+name = "Cure Poison"
+range = 30
+icon = "spell_nature_nullifypoison"
+school = "nature"
+target = "self"
+forms = ["none", "moonkin_form"]
+cost = { mana = "0.16 * base_mana" }
+text = "Takes 1 poison off a friendly target."
+ranks = [{ level = 14, id = 8946 }]
+effects = [{ type = "cleanse", target = "ally", types = ["poison"] }]
+
+[spells.abolish_poison]
+name = "Abolish Poison"
+range = 30
+icon = "spell_nature_nullifypoison_02"
+school = "nature"
+target = "self"
+forms = ["none", "moonkin_form"]
+cost = { mana = "0.16 * base_mana" }
+text = "Takes 1 poison off a friendly target now and another every 2 sec for 8 sec."
+ranks = [{ level = 26, id = 2893 }]
+effects = [{ type = "cleanse", target = "ally", types = ["poison"] }, { type = "aura", aura = "abolish_poison", target = "ally" }]
+
 [spells.feral_charge]
 name = "Feral Charge"
 range = 25
@@ -1240,6 +1312,7 @@ effects = [{ type = "damage", school = "nature", amount = "r.tick", coef = 0.03,
 
 [auras.hibernate]
 name = "Hibernate"
+hold = true
 debuff = true
 mechanic = "incap"
 dr = "incap"
@@ -1265,33 +1338,40 @@ mods = [{ stat = "melee_haste", mul = 0.8 }]
 # cats lose under 1%, partly because the sim's Cat Form global cooldown is
 # 1.5 sec instead of the game's 1.0.
 [rotations.feral_cat]
-desc = "Cat with shift-healing: Pounce/Ravage/Rake opener, Faerie Fire, Rake, Rip on long fights, Ferocious Bite, Shred from behind or Claw, Shifting Power; leaves Cat Form to Rejuvenation/Swiftmend/Regrowth when low"
+desc = "Cat with shift-healing: Pounce/Ravage/Rake opener, Faerie Fire, Rake, Rip on fresh targets, Ferocious Bite, Shred from behind or Claw, Shifting Power on bosses, players and packs; leaves Cat Form to Rejuvenation/Swiftmend/Regrowth when low"
 precombat = ["mark_of_the_wild", "thorns", "cat_form", "prowl"]
 opener = ["pounce", "ravage"]
 actions = [
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
   { cast = "berserk", if = "feared" },
-  { cast = "barkskin", if = "hp_pct < 0.5" },
+  { cast = "barkskin", if = "hp_pct < 0.5", emergency = true },
   { cast = "natures_grasp", if = "hp_pct < 0.6 && target.is_player" },
   { cast = "caster_form", if = "form.cat_form && hp_pct < 0.4 && mana_pct > 0.3" },
   { cast = "entangling_roots", if = "!form.any && hp_pct < 0.6 && target.dist < 6 && enemies_active < 2 && !target.boss && !target.is_player && !target.rooted" },   # root it and step out of reach to heal
-  { cast = "natures_swiftness", if = "!form.any && hp_pct < 0.3" },
+  { cast = "natures_swiftness", if = "!form.any && hp_pct < 0.3", emergency = true },
   { cast = "healing_touch", if = "!form.any && aura.natures_swiftness.up" },
   { cast = "rejuvenation", if = "!form.any && hp_pct < 0.85" },
   { cast = "swiftmend", if = "!form.any && hp_pct < 0.7" },
   { cast = "regrowth", if = "!form.any && hp_pct < 0.6 && mana_pct > 0.15" },
   { cast = "healing_touch", if = "!form.any && hp_pct < 0.5 && !known.regrowth" },
-  { cast = "cat_form", if = "!form.any" },
+  # not back to Cat Form while still meaning to heal (it would cancel again)
+  { cast = "cat_form", if = "!form.any && !(hp_pct < 0.4 && mana_pct > 0.3)" },
   { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
   { cast = "dash", if = "target.fleeing && target.dist > 5" },   # catch it
-  { cast = "shifting_power", if = "energy < 30 && mana_pct > 0.35" },
+  # Shifting Power costs over half your base mana: worth it on a boss, a
+  # player or a pack, not on one ordinary mob (you'd drink for it after)
+  { cast = "shifting_power", if = "energy < 30 && mana_pct > 0.35 && (!target.trash || enemies >= 2)" },
   { cast = "berserk", if = "target.is_player || target.boss" },
   { cast = "faerie_fire", if = "!target.aura.faerie_fire.up" },
-  { cast = "rip", if = "cp >= 4 && !target.aura.rip.up && (target.boss || target.hp_pct > 0.5)" },
+  # Rip only on targets that live through it (a fresh mob), Ferocious Bite
+  # otherwise. Rip and Rake spend combo points and Energy, so they aren't
+  # upkeep: a late Rip would just be a Bite.
+  { cast = "rip", if = "cp >= 4 && !target.aura.rip.up && (target.boss || target.hp_pct > 0.7)", upkeep = false },
   { cast = "ferocious_bite", if = "cp >= 5 || (cp >= 2 && target.hp_pct < 0.2)" },
-  { cast = "rake", if = "!target.aura.rake.up && (target.boss || target.hp_pct > 0.3)" },
+  { cast = "rake", if = "!target.aura.rake.up && (target.boss || target.hp_pct > 0.3)", upkeep = false },
   { cast = "shred" },
-  { cast = "claw" },
+  # from behind, with Shredding Attacks, wait for the cheaper, harder Shred
+  { cast = "claw", if = "!behind || t.shredding_attacks == 0" },
   { cast = "wrath", if = "!known.cat_form" },
 ]
 rest = [
@@ -1303,26 +1383,26 @@ rest = [
   { cast = "cat_form", if = "!form.any && hp_pct >= 0.8" },
   { cast = "prowl" },
 ]
-eat_below = 0.45
-drink_below = 0.35
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.45"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.35"
 
 [rotations.bear]
 desc = "Bear tank: Faerie Fire, Primal Bite, Lacerate to five, Swipe on packs, Maul with spare Rage, Enrage, Frenzied Regeneration and Barkskin when low"
 precombat = ["mark_of_the_wild", "thorns", "bear_form"]
 opener = ["feral_charge"]
 actions = [
-  { cast = "bear_form", if = "!form.any" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
   { cast = "berserk", if = "feared" },
-  { cast = "frenzied_regeneration", if = "hp_pct < 0.4 && rage >= 20" },
-  { cast = "barkskin", if = "hp_pct < 0.5" },
+  { cast = "frenzied_regeneration", if = "hp_pct < 0.4 && rage >= 20", emergency = true },
+  { cast = "barkskin", if = "hp_pct < 0.5", emergency = true },
   { cast = "caster_form", if = "form.bear_form && hp_pct < 0.25 && mana_pct > 0.25 && !aura.frenzied_regeneration.up" },
-  { cast = "natures_swiftness", if = "!form.any && hp_pct < 0.4" },
+  { cast = "natures_swiftness", if = "!form.any && hp_pct < 0.4", emergency = true },
   { cast = "healing_touch", if = "!form.any && aura.natures_swiftness.up" },
   { cast = "rejuvenation", if = "!form.any && hp_pct < 0.6" },
   { cast = "swiftmend", if = "!form.any && hp_pct < 0.6" },
   { cast = "regrowth", if = "!form.any && hp_pct < 0.45 && mana_pct > 0.15" },
-  { cast = "bear_form", if = "!form.any" },
+  # not back to Bear Form while still meaning to heal (it would cancel again)
+  { cast = "bear_form", if = "!form.any && !(hp_pct < 0.25 && mana_pct > 0.25)" },
   { cast = "growl", if = "is_tank && !has_aggro" },
   { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
   { cast = "feral_charge", if = "target.casting || target.fleeing" },
@@ -1345,20 +1425,25 @@ rest = [
   { cast = "thorns", if = "!form.any" },
   { cast = "bear_form", if = "!form.any && hp_pct >= 0.7" },
 ]
-eat_below = 0.45
-drink_below = 0.3
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.45"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.3"
 
 [rotations.balance]
-desc = "Balance: Moonkin Form, Moonfire, Insect Swarm, Wrath then two Starfires (Eclipse) while mana lasts, Wrath before Eclipse or when mana is low (Starfire without Improved Wrath); leaves Moonkin to heal"
+desc = "Balance: Moonkin Form, Wrath from range to pull, Moonfire, Insect Swarm, Wrath then two Starfires (Eclipse) while mana lasts, Wrath before Eclipse or when mana is low (Starfire without Improved Wrath); Innervate on long fights, roots a player in melee reach, takes off curses and poisons against players; leaves Moonkin to heal"
 auto_melee = false
 precombat = ["mark_of_the_wild", "thorns", "moonkin_form"]
-opener = []
+# pull with Wrath from as far as it reaches (Warcraft Tavern: "pull with
+# Wrath, Moonfire, Insect Swarm"); it lands before the mob starts running
+opener = ["wrath"]
 actions = [
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
-  { cast = "barkskin", if = "hp_pct < 0.5" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
+  # Innervate is worth most from a third of your mana down; between ordinary
+  # mobs you drink instead
+  { cast = "innervate", if = "mana_pct < 0.35 && (target.boss || target.is_player)" },
+  { cast = "barkskin", if = "hp_pct < 0.5", emergency = true },
   { cast = "caster_form", if = "(form.moonkin_form && hp_pct < 0.4) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
-  { cast = "natures_swiftness", if = "!form.any && hp_pct < 0.3" },
+  { cast = "natures_swiftness", if = "!form.any && hp_pct < 0.3", emergency = true },
   { cast = "healing_touch", if = "!form.any && aura.natures_swiftness.up" },
   { cast = "rejuvenation", if = "(!form.any && hp_pct < 0.7) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "swiftmend", if = "(!form.any && hp_pct < 0.6) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
@@ -1366,6 +1451,11 @@ actions = [
   { cast = "moonkin_form", if = "!form.any && hp_pct >= 0.5" },
   { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
   { cast = "hibernate", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && (target.beast || target.dragonkin) && !target.boss && !target.incapacitated && !target.feared" },   # sleep the add
+  { cast = "entangling_roots", if = "target.is_player && target.dist < 6" },   # a player in melee reach: root them and step away
+  # against players: their curses (a warlock's) and poisons (a rogue's or a hunter's)
+  { cast = "remove_curse", if = "target.is_player && debuffs.curse > 0" },
+  { cast = "abolish_poison", if = "target.is_player && debuffs.poison > 0 && !aura.abolish_poison.up" },
+  { cast = "cure_poison", if = "target.is_player && debuffs.poison > 0 && !known.abolish_poison" },
   { cast = "entangling_roots", if = "target.fleeing" },
   { cast = "entangling_roots", if = "target.dist < 6 && enemies_active < 2 && hp_pct < 0.7 && !target.boss && !target.is_player && target.hp_pct > 0.2" },   # it reached you: root it, step out of reach, cast
   { cast = "hurricane", if = "enemies_active >= 3 && cc_near == 0" },
@@ -1394,8 +1484,8 @@ rest = [
   { cast = "thorns", if = "!form.any" },
   { cast = "moonkin_form", if = "!form.any && hp_pct >= 0.8" },
 ]
-eat_below = 0.45
-drink_below = 0.4
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.45"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.4"
 
 # Restoration solo (builds/druid/restoration.toml): the Balance rotation's
 # damage and self-healing without Moonkin Form or Eclipse. Warcraft Tavern
@@ -1403,22 +1493,31 @@ drink_below = 0.4
 # slow kill times"); without Improved Wrath, Starfire does more damage for
 # its mana than Wrath, so it is the main nuke from 20.
 [rotations.restoration]
-desc = "Restoration played solo: Thorns, Moonfire (and Insect Swarm if known), Starfire (Wrath before 20), Rejuvenation, Swiftmend and Regrowth when hurt, Nature's Swiftness with Healing Touch in an emergency"
+desc = "Restoration played solo: Thorns, Starfire from range to pull (Wrath before 20), Moonfire (and Insect Swarm if known), Starfire, Rejuvenation, Swiftmend and Regrowth when hurt, Nature's Swiftness with Healing Touch in an emergency; against players, roots them in melee reach, takes off curses and poisons and uses Innervate"
 auto_melee = false
 precombat = ["mark_of_the_wild", "thorns"]
-opener = []
+# pull with the main nuke from as far as it reaches: it lands before the mob
+# starts running
+opener = [{ cast = "starfire" }, { cast = "wrath", if = "!known.starfire" }]
 actions = [
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
-  { cast = "barkskin", if = "hp_pct < 0.5" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
+  # against players; on a boss this rotation's mana lasts the fight
+  { cast = "innervate", if = "mana_pct < 0.35 && target.is_player" },
+  { cast = "barkskin", if = "hp_pct < 0.5", emergency = true },
   { cast = "caster_form", if = "form.any" },
-  { cast = "natures_swiftness", if = "hp_pct < 0.3" },
+  { cast = "natures_swiftness", if = "hp_pct < 0.3", emergency = true },
   { cast = "healing_touch", if = "aura.natures_swiftness.up" },
   { cast = "rejuvenation", if = "(hp_pct < 0.7) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "swiftmend", if = "(hp_pct < 0.6) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "regrowth", if = "(hp_pct < 0.5) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
   { cast = "hibernate", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && (target.beast || target.dragonkin) && !target.boss && !target.incapacitated && !target.feared" },   # sleep the add
+  { cast = "entangling_roots", if = "target.is_player && target.dist < 6" },   # a player in melee reach: root them and step away
+  # against players: their curses (a warlock's) and poisons (a rogue's or a hunter's)
+  { cast = "remove_curse", if = "target.is_player && debuffs.curse > 0" },
+  { cast = "abolish_poison", if = "target.is_player && debuffs.poison > 0 && !aura.abolish_poison.up" },
+  { cast = "cure_poison", if = "target.is_player && debuffs.poison > 0 && !known.abolish_poison" },
   { cast = "entangling_roots", if = "target.fleeing" },
   { cast = "entangling_roots", if = "target.dist < 6 && enemies_active < 2 && hp_pct < 0.7 && !target.boss && !target.is_player && target.hp_pct > 0.2" },   # it reached you: root it, step out of reach, cast
   { cast = "hurricane", if = "enemies_active >= 3 && cc_near == 0" },
@@ -1435,29 +1534,40 @@ rest = [
   { cast = "mark_of_the_wild" },
   { cast = "thorns" },
 ]
-eat_below = 0.45
-drink_below = 0.4
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.45"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.4"
 
 # Healing a group (the healing tests): Rejuvenation kept on the tank, heals on
 # whoever is most hurt, sized to what they're missing; nothing while everyone
-# is topped up.
+# is topped up. Mana runs the fight: Innervate on yourself, Rejuvenation only
+# on those who've taken a real hit (Rejuvenation can't be downranked here: see
+# the note on `rank = "fit"` below), Wild Growth when most of the group is
+# hurt and Tranquility when your party is.
 [rotations.heal]
-desc = "Group healing: Rejuvenation on the tank and anyone hurt, Swiftmend and Regrowth for big gaps, Healing Touch sized to what's missing, Wild Growth and Tranquility when many are hurt"
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+desc = "Group healing: Rejuvenation on the tank and on anyone who's taken a real hit, Swiftmend and Regrowth for big gaps, Healing Touch sized to what's missing, Nature's Swiftness with Healing Touch when someone is in danger, Wild Growth and Tranquility when many are hurt, Innervate on yourself"
 healer = true
 auto_melee = false
 precombat = ["mark_of_the_wild"]
 opener = []
+# `rank = "fit"` sizes direct heals only, so Rejuvenation always goes out at
+# its highest rank.
 actions = [
-  { cast = "mana_potion", if = "opt.potions && mana_pct < 0.3" },
-  { cast = "natures_swiftness", if = "lowest.hp_pct < 0.3" },
-  { cast = "healing_touch", target = "lowest", if = "aura.natures_swiftness.up && ally.hp_pct < 0.35" },
+  { cast = "mana_potion", if = "potions && mana_pct < 0.3" },
+  { cast = "innervate", if = "mana_pct < 0.35" },
+  # only with the mana for a big Healing Touch to follow
+  { cast = "natures_swiftness", if = "lowest.hp_pct < 0.4 && mana_pct > 0.1" },
+  { cast = "healing_touch", target = "lowest", rank = "fit", if = "aura.natures_swiftness.up" },
   { cast = "swiftmend", target = "lowest", if = "ally.hp_pct < 0.5" },
-  { cast = "tranquility", if = "party.hurt_60 >= 3" },
-  { cast = "wild_growth", target = "lowest", if = "raid.hurt_85 >= 3" },
+  { cast = "tranquility", if = "party.hurt_80 >= 3" },
+  { cast = "wild_growth", target = "lowest", if = "raid.hurt_85 >= 4" },
   { cast = "regrowth", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.5 && !ally.aura.regrowth.up" },
-  { cast = "rejuvenation", target = "tank", if = "ally.hp_pct < 0.97" },
+  { cast = "remove_curse", target = "lowest", if = "ally.debuffs.curse > 0" },
+  { cast = "abolish_poison", target = "lowest", if = "ally.debuffs.poison > 0 && !ally.aura.abolish_poison.up" },
+  { cast = "cure_poison", target = "lowest", if = "ally.debuffs.poison > 0 && !known.abolish_poison" },
+  { cast = "rejuvenation", target = "tank", if = "ally.hp_pct < 0.95" },
   { cast = "healing_touch", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.6" },
-  { cast = "rejuvenation", target = "lowest", if = "ally.hp_pct < 0.85" },
+  { cast = "rejuvenation", target = "lowest", if = "ally.hp_pct < 0.7" },
   { cast = "regrowth", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.75 && !ally.aura.regrowth.up" },
 ]
 rest = []

@@ -12,7 +12,9 @@ const ROWS_KEY = 'forever-sim/rows/v1';
 const POOL_KEY = 'forever-sim/skirmish-v1';
 
 // Set once at boot.
-export const env = { engine: null, catalog: null };
+// `ready` resolves with the engine once it answers; until then `engine`
+// stands in and waits for it.
+export const env = { engine: null, catalog: null, ready: null };
 
 // Filled in by app.js so modules can ask for a redraw without importing it.
 export const bus = { render: () => {}, progress: () => {} };
@@ -169,22 +171,37 @@ export function sig(b) {
   return JSON.stringify({ ...rest, talents });
 }
 
-// Settings every test shares: results from a different setting are out of date.
-export function envKey() {
-  const opts = Object.fromEntries(Object.entries(S.opts).sort());
-  return JSON.stringify({ opts, data: env.catalog.data_build });
+// Settings every test shares, and the engine build that made a result:
+// results from a different setting or engine are out of date. How the duel
+// opponent plays only matters against a picked opponent, so it's left out
+// unless `withPlay`.
+export function envKey(withPlay = false) {
+  const opts = Object.fromEntries(Object.entries(S.opts).filter(([k]) => withPlay || k !== 'opp_play_like').sort());
+  return JSON.stringify({ opts, data: engineStamp() });
+}
+
+// Which engine made a result: its build id (a hash of its source and data).
+export const engineStamp = () => env.catalog.build_id || env.catalog.data_build;
+
+// The settings to send with a request (the opponent's play style only for
+// fights against a picked opponent).
+export function requestOpts(withPlay = false) {
+  const o = Object.fromEntries(Object.entries(S.opts).filter(([k]) => withPlay || k !== 'opp_play_like'));
+  return Object.keys(o).length ? o : null;
 }
 
 // ------------------------------------------------------------------ saving and sharing
 
-export function serial() {
+// `local`: for this browser's own save, which also keeps each build's id so
+// its saved results stay its own after a reload. Shared links leave it out.
+export function serial({ local = false } = {}) {
   const bl = Math.max(0, S.builds.indexOf(baselineBuild()));
   const ed = S.builds.findIndex((b) => b.uid === S.editing);
   return {
     v: 1,
     b: S.builds.map((b) => ({
       c: b.cls, r: b.race, l: b.level, t: b.plan || b.talents, p: b.preset || undefined, e: b.edited ? 1 : undefined,
-      g: b.gear, ro: b.rotation, n: b.customName || undefined, x: b.gender === 'f' ? 'f' : undefined,
+      g: b.gear, ro: b.rotation, n: b.customName || undefined, x: b.gender === 'f' ? 'f' : undefined, u: local ? b.uid : undefined,
     })),
     // `a` and `s` are what older versions of the page read: the build shown and the test picked.
     a: ed >= 0 ? ed : bl, s: S.open || 'solo_1', acc: S.accuracy,
@@ -193,38 +210,82 @@ export function serial() {
   };
 }
 
+// A setting's value from a link or a save, or null when it isn't one the
+// player can set (or isn't a value it can take).
+function optValue(name, v) {
+  const o = env.catalog.options.find((x) => x.name === name);
+  if (!o || o.kind === 'internal' || v == null || typeof v === 'boolean' || !isFinite(v)) return null;
+  const x = Number(v);
+  if (o.kind === 'choice') return Number.isInteger(x) && x >= 0 && x < o.choices.length ? x : null;
+  if (o.kind === 'toggle') return x === 0 || x === 1 ? x : null;
+  return x >= 0 ? x : null;
+}
+
+// Restores builds and settings from a save or a shared link. Anything it
+// can't use is left out: `S.restoreNote` says what, for the page to tell.
+// Builds keep the ids a local save gave them; the rest get theirs from
+// claimUids(), once the saved results are loaded.
 export function restore(d) {
   if (!d || d.v !== 1 || !Array.isArray(d.b) || !d.b.length) return false;
   const builds = [];
-  for (const x of d.b.slice(0, MAX_BUILDS)) {
-    const c = classOf(x.c);
-    if (!c) continue;
-    const p = x.p && presetOf(x.p);
-    const talents = Object.fromEntries(Object.entries(x.t || {}).filter(([k, v]) => c.talents.some((t) => t.id === k) && v > 0));
+  const dropped = [];
+  const ids = new Set();
+  for (const x of d.b) {
+    const c = x && classOf(x.c);
+    if (!c) { dropped.push('a build of a class this page doesn’t know'); continue; }
+    if (builds.length >= MAX_BUILDS) { dropped.push(`a ${c.name} build`); continue; }
+    const p0 = x.p && presetOf(x.p);
+    const p = p0 && p0.class === c.id ? p0 : null;
+    const talents = {};
+    for (const [k, v] of Object.entries(x.t && typeof x.t === 'object' ? x.t : {})) {
+      const t = c.talents.find((tt) => tt.id === k);
+      const n = Math.min(t ? t.ranks : 0, Math.floor(Number(v)));
+      if (t && n > 0) talents[k] = n;
+    }
+    const uid = Number.isInteger(x.u) && x.u > 0 && !ids.has(x.u) ? x.u : null;
+    if (uid) ids.add(uid);
     builds.push({
-      uid: uidSeq++, cls: c.id, race: c.races.includes(x.r) ? x.r : c.races[0],
-      level: Math.min(60, Math.max(10, Number(x.l) || 60)), talents, plan: { ...talents },
-      gear: env.catalog.gear.some((g) => g.id === x.g) ? x.g : (p ? p.gear : env.catalog.gear[0].id),
+      uid, cls: c.id, race: c.races.includes(x.r) ? x.r : c.races[0],
+      level: Math.min(60, Math.max(10, Math.round(Number(x.l)) || 60)), talents, plan: { ...talents },
+      gear: env.catalog.gear.some((g) => g.id === x.g) ? x.g : (p || presetsFor(c.id)[0])?.gear || env.catalog.gear[0].id,
       rotation: soloRotations(c).some((r) => r.id === x.ro) ? x.ro : soloRotations(c)[0].id,
       preset: p ? p.file : null, order: p && !x.e ? p.order || null : null, popts: p ? p.opts || null : null,
       edited: !!x.e, customName: typeof x.n === 'string' ? x.n.slice(0, 48) : null, seq: 0, gender: x.x === 'f' ? 'f' : 'm',
     });
   }
   if (!builds.length) return false;
+  S.restoreNote = dropped.length ? `This link had ${d.b.length} builds. Left out: ${[...new Set(dropped)].join(', ')}.` : null;
   S.builds = builds;
-  S.baseline = (builds[Math.min(Math.max(0, d.bl | 0), builds.length - 1)] || builds[0]).uid;
+  S.baselineIndex = Math.min(Math.max(0, d.bl | 0), builds.length - 1);
   S.open = M.SCENARIOS.some((s) => s.id === d.f) ? d.f : null;
   S.mode = S.open ? M.modeOf(S.open) : d.md === 'pvp' ? 'pvp' : 'pve';
   if (M.ACCURACY.some((a) => a.id === d.acc)) S.accuracy = d.acc;
   if (typeof d.o === 'string' && d.o.startsWith('preset:') && presetOf(d.o.slice(7))) S.opponent = d.o;
   if (d.op && typeof d.op === 'object') {
-    for (const [k, v] of Object.entries(d.op)) if (env.catalog.options.some((o) => o.name === k) && isFinite(v)) S.opts[k] = Number(v);
+    for (const [k, v] of Object.entries(d.op)) {
+      const x = optValue(k, v);
+      if (x != null) S.opts[k] = x;
+    }
   }
   return true;
 }
 
+// Gives builds without an id (from a shared link, or an older save) fresh
+// ids above every id the saved results mention, so no build can pick up
+// another's numbers. `seen`: more ids in use (the Duels view's).
+export function claimUids(seen = []) {
+  let max = Math.max(0, ...seen, ...S.builds.map((b) => b.uid || 0));
+  for (const row of [...Object.values(S.rows), ...Object.values(S.pool)]) {
+    for (const r of row.roles || []) max = Math.max(max, ...r.uids.filter(Number.isInteger));
+  }
+  uidSeq = Math.max(uidSeq, max + 1);
+  for (const b of S.builds) if (!b.uid) b.uid = uidSeq++;
+  if (S.baselineIndex != null || !buildOf(S.baseline)) S.baseline = (S.builds[S.baselineIndex ?? 0] || S.builds[0])?.uid ?? null;
+  delete S.baselineIndex;
+}
+
 export function saveLocal() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(serial())); } catch { /* private mode: fine */ }
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(serial({ local: true }))); } catch { /* private mode: fine */ }
 }
 
 export function loadLocal() {
@@ -232,23 +293,37 @@ export function loadLocal() {
 }
 
 // Results are kept too, so a reload shows the last scorecard. Rows refer to
-// builds by signature, so they stay valid for builds that have not changed.
+// builds by signature, so they stay valid for builds that have not changed;
+// rows from another engine build are dropped. A failed run's note isn't kept.
+const unsaved = (k, v) => (k === 'columns' || k === 'failure' ? undefined : v);
 export function saveRows() {
   try {
     // per-fight values are only needed for the next run's comparison: not kept
-    const rows = JSON.parse(JSON.stringify(S.rows, (k, v) => (k === 'columns' ? undefined : v)));
-    localStorage.setItem(ROWS_KEY, JSON.stringify({ data: env.catalog.data_build, rows }));
+    const rows = JSON.parse(JSON.stringify(S.rows, unsaved));
+    localStorage.setItem(ROWS_KEY, JSON.stringify({ data: engineStamp(), rows }));
   } catch { /* too big or private mode: fine */ }
 }
+
+// A saved row the page can read: which builds it stands for, and a result,
+// an error or duels.
+export function validRow(r) {
+  if (!r || typeof r !== 'object' || !Array.isArray(r.roles)) return false;
+  if (!r.roles.every((x) => x && typeof x.sig === 'string' && Array.isArray(x.uids))) return false;
+  if (typeof r.error === 'string') return true;
+  if (Array.isArray(r.duel)) return r.duel.every((d) => d && d.opp && Array.isArray(d.challengers));
+  return !!(r.res && Array.isArray(r.res.variants) && r.res.scenario);
+}
+
+const validRows = (rows) => Object.fromEntries(Object.entries(rows && typeof rows === 'object' ? rows : {}).filter(([, r]) => validRow(r)));
 
 export function loadRows() {
   try {
     const d = JSON.parse(localStorage.getItem(ROWS_KEY) || 'null');
-    if (d && d.data === env.catalog.data_build && d.rows) S.rows = d.rows;
+    if (d && d.data === engineStamp()) S.rows = validRows(d.rows);
   } catch { /* ignore */ }
   try {
     const d = JSON.parse(localStorage.getItem(POOL_KEY) || 'null');
-    if (d && d.data === env.catalog.data_build && d.pool) S.pool = d.pool;
+    if (d && d.data === engineStamp()) S.pool = validRows(d.pool);
   } catch { /* ignore */ }
 }
 
@@ -256,8 +331,8 @@ export function loadRows() {
 // since they're big and a full storage shouldn't cost the scorecard.
 export function savePool() {
   try {
-    const pool = JSON.parse(JSON.stringify(S.pool, (k, v) => (k === 'columns' ? undefined : v)));
-    localStorage.setItem(POOL_KEY, JSON.stringify({ data: env.catalog.data_build, pool }));
+    const pool = JSON.parse(JSON.stringify(S.pool, unsaved));
+    localStorage.setItem(POOL_KEY, JSON.stringify({ data: engineStamp(), pool }));
   } catch { /* too big or private mode: fine */ }
 }
 

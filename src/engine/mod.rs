@@ -63,6 +63,10 @@ impl Default for Ev {
     }
 }
 
+/// Tests turn this on to check every cached spell modifier against one
+/// worked out afresh (`spell_mod_vals`).
+pub static VERIFY_SM_CACHE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 /// Per-cast modifiers gathered from spell mods.
 #[derive(Clone, Copy, Debug)]
 pub struct SmVals {
@@ -82,6 +86,18 @@ pub struct SmVals {
     pub range_mul: f64,
     pub radius_add: f64,
     pub radius_mul: f64,
+    pub pushback_resist: f64,
+}
+
+impl SmVals {
+    /// Every field's bits, to compare two exactly.
+    pub fn bits(&self) -> [u64; 17] {
+        [
+            self.cost_add, self.cost_mul, self.cast_add, self.cast_mul, self.cd_add, self.cd_mul, self.dmg, self.heal, self.crit, self.crit_bonus,
+            self.threat, self.gcd_add, self.range_add, self.range_mul, self.radius_add, self.radius_mul, self.pushback_resist,
+        ]
+        .map(f64::to_bits)
+    }
 }
 
 impl Default for SmVals {
@@ -103,6 +119,7 @@ impl Default for SmVals {
             range_mul: 1.0,
             radius_add: 0.0,
             radius_mul: 1.0,
+            pushback_resist: 0.0,
         }
     }
 }
@@ -127,11 +144,13 @@ pub struct Cx<'w> {
     pub hit: u8,
     /// Where the effect comes from when it isn't you: a totem or trap.
     pub at: Option<usize>,
+    /// Already known to land (a Charge arriving): its debuffs don't roll.
+    pub landed: bool,
 }
 
 impl<'w> Cx<'w> {
     pub fn new(me: usize, tgt: Option<usize>, tag: &'w str) -> Self {
-        Cx { me, tgt, ally: None, rank: None, stacks: 1.0, ev: None, aura: None, spell: None, depth: 0, tag, sm: SmVals::default(), hit: 0, at: None }
+        Cx { me, tgt, ally: None, rank: None, stacks: 1.0, ev: None, aura: None, spell: None, depth: 0, tag, sm: SmVals::default(), hit: 0, at: None, landed: false }
     }
 }
 
@@ -253,6 +272,8 @@ pub struct AuraInst {
     /// Movement slow and speed boost it gives (worked out when it landed).
     pub slow: f64,
     pub fast: f64,
+    /// Its dispel type (a `DISPEL_*` bit, 0 for none).
+    pub dispel: u8,
 }
 
 #[derive(Clone, Debug)]
@@ -261,6 +282,8 @@ pub struct CastState {
     pub rank: Option<usize>,
     pub target: usize,
     pub end: f64,
+    /// Its full length when it began (pushback is measured against it).
+    pub full: f64,
     pub pushes: u32,
     pub channel: bool,
     pub next_tick: f64,
@@ -352,6 +375,12 @@ pub struct Actor<'w> {
     /// Its passives that change spells (indexes), so spell modifiers don't
     /// walk every talent.
     pub sm_passives: Vec<u16>,
+    /// Bumped whenever its auras change (one lands, refreshes or goes):
+    /// cached spell modifiers stay good while it doesn't move.
+    pub aura_gen: u64,
+    /// Spell modifiers worked out for a spell and school at an `aura_gen`,
+    /// when everything that went into them is fixed within a fight.
+    pub sm_cache: std::cell::RefCell<Vec<(SpellId, School, u64, SmVals)>>,
     pub cds: Vec<(u32, f64)>,
     pub gcd_end: f64,
     pub cast: Option<CastState>,
@@ -362,6 +391,12 @@ pub struct Actor<'w> {
     /// The next line of the rotation's opener, while the fight's opening
     /// moves are still being played.
     pub opening: Option<usize>,
+    /// Since when the opener has been waiting on its timing (a reaction, a
+    /// stun, a lockout), to give up after `OPENER_PATIENCE`.
+    pub open_wait: Option<f64>,
+    /// Eating and drinking between pulls: health and mana per second on top
+    /// of regeneration.
+    pub eating: Option<(f64, f64)>,
     pub target: Option<usize>,
     pub alive: bool,
     pub rotation: Option<&'w Rotation>,
@@ -375,6 +410,9 @@ pub struct Actor<'w> {
     pub last_mana_spend: f64,
     pub next_tick: f64,
     pub rng: [Rng; 3],
+    /// Draws for whether a debuff, interrupt or taunt lands, apart from the
+    /// combat rolls so adding them shifts nothing else.
+    pub aura_rng: Rng,
     /// Draws for reaction times and mistakes, apart from the combat rolls.
     pub react_rng: Rng,
     /// Fixed rolls made at spawn (whether a mob flees, for how long, whether
@@ -390,6 +428,10 @@ pub struct Actor<'w> {
     pub fled: bool,
     /// Yards it fights from (0: melee); see `Sim::find_stand`.
     pub stand_at: f64,
+    /// The range its lines share (the automatic `stand_at`), and the
+    /// closest it lets its target come (`keep_min`).
+    pub stand_auto: f64,
+    pub keep_min: f64,
     /// A better line that was only out of reach at its last decision: walk
     /// up to this range.
     pub chase: Option<f64>,
@@ -428,7 +470,14 @@ pub struct Actor<'w> {
     pub form: Option<u16>,
     pub in_combat: bool,
     pub dmg_scale: f64,
-    pub stun_sched: Vec<(f64, f64)>,
+    /// Scripted stuns: (when, how long, which aura; the generic stun when none).
+    pub stun_sched: Vec<(f64, f64, Option<AuraId>)>,
+    /// A feared unit's heading: 1 away from whoever feared it, -1 back, and
+    /// when it turns next.
+    pub fear_dir: f64,
+    pub fear_turn: f64,
+    /// Draws for where a feared unit runs, apart from the combat rolls.
+    pub fear_rng: Rng,
     /// When each of the boss's scripted attacks comes next.
     pub script_next: Vec<f64>,
     /// PvP diminishing returns per mechanic: (window ends, applications in window).
@@ -438,7 +487,8 @@ pub struct Actor<'w> {
     pub shield: Option<(f64, f64)>,
     pub timed_hp: Option<(f64, f64)>,
     pub slot: u64,
-    pub lockout: f64,
+    /// Until when each school is locked out by an interrupt (by `School`).
+    pub lockout: [f64; 7],
 }
 
 impl<'w> Actor<'w> {
@@ -536,12 +586,24 @@ pub struct Metrics<'w> {
     pub precombat_lines: Vec<f64>,
 }
 
+/// What a rotation can know of a pull before it starts: how many mobs, how
+/// many cast, and how hard they hit (1 = normal).
+#[derive(Clone, Copy, Debug)]
+pub struct PullInfo {
+    pub size: f64,
+    pub casters: f64,
+    pub danger: f64,
+}
+
 /// One thing that happened in a traced fight: the website's timeline.
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct TraceEv {
     pub t: f64,
     /// cast, hit, miss, dodge, parry, heal, gain, lose, death, pull, rest,
-    /// eat, or power (a player's mana or health share, for the graphs)
+    /// eat, dispel (a cure took `name` off `target`), dispel_resist, broken
+    /// (damage stopped a bandage), stop (an emergency line stopped your own
+    /// cast), or power (a player's mana or health
+    /// share, for the graphs)
     pub kind: &'static str,
     pub who: String,
     pub team: u8,
@@ -651,6 +713,13 @@ pub struct Sim<'w> {
     pub log: Option<Vec<String>>,
     /// Structured events, recorded whenever `log` is on.
     pub trace: Option<Vec<TraceEv>>,
+    /// The pull being fought, or between pulls the next one (leveling).
+    pub pull: PullInfo,
+    /// The last debuff roll (caster, target, spell, time) and whether it
+    /// landed: one roll per cast and target, however many debuffs it puts up.
+    pub aura_roll: Option<((usize, usize, SpellId, u64), bool)>,
+    /// What kind of test this is.
+    pub fight: FightKind,
     /// Traced fights: each player's last recorded mana (or rage or energy)
     /// and health shares, so a "power" event goes out only when one moves.
     pub power_seen: Vec<(f64, f64)>,
@@ -681,6 +750,9 @@ pub struct Sim<'w> {
     /// Where the `threat_margin` assumption sits (looked up once: it's read
     /// before every damaging line in the boss test).
     threat_margin_i: Option<u16>,
+    /// Settings looked up by name, by where the name lives (a literal):
+    /// some are read on every hit.
+    opt_ids: std::cell::RefCell<Vec<(&'static str, Option<u16>)>>,
 }
 
 struct EnvRef<'a, 'w> {
@@ -731,6 +803,9 @@ impl<'w> Sim<'w> {
             log: None,
             trace: None,
             power_seen: Vec::new(),
+            pull: PullInfo { size: 1.0, casters: 0.0, danger: 1.0 },
+            aura_roll: None,
+            fight: FightKind::default(),
             tank: None,
             live: Vec::new(),
             scratch: Vec::new(),
@@ -739,6 +814,7 @@ impl<'w> Sim<'w> {
             prep_totems: true,
             flip: false,
             threat_margin_i: w.opt_index("threat_margin"),
+            opt_ids: std::cell::RefCell::new(Vec::new()),
         }
     }
 
@@ -760,8 +836,14 @@ impl<'w> Sim<'w> {
             k => self.opt_sets[k as usize - 1][i],
         }
     }
-    pub fn opt_named(&self, a: usize, name: &str) -> f64 {
-        self.w.opt_index(name).map_or(0.0, |i| self.opt(a, i as usize))
+    pub fn opt_named(&self, a: usize, name: &'static str) -> f64 {
+        let known = self.opt_ids.borrow().iter().find(|(n, _)| std::ptr::eq(*n, name)).map(|x| x.1);
+        let i = known.unwrap_or_else(|| {
+            let i = self.w.opt_index(name);
+            self.opt_ids.borrow_mut().push((name, i));
+            i
+        });
+        i.map_or(0.0, |i| self.opt(a, i as usize))
     }
     /// Damage bonus against what `t` is (Beast Slaying, Murder, Improved
     /// Tracking): read on every hit, so it follows the target.
@@ -778,30 +860,72 @@ impl<'w> Sim<'w> {
     /// The boss test's party buffs a player (data/base/party.toml): each
     /// from a party member of the buff's class at the rank it knows at your
     /// level, unless you have that buff already.
+    /// Whether a buff given to `for_` ("all", "mana", "physical", "caster",
+    /// "melee") is one actor `u` would want. Pets fight in melee.
+    fn party_wants(&self, u: usize, for_: &str) -> bool {
+        let x = &self.actors[u];
+        let pet = matches!(x.kind, Kind::Pet(_));
+        let mana = x.max_res[Res::Mana as usize] > 0.0;
+        let melee = pet || (x.auto_melee && x.stand_at <= 0.0);
+        let physical = melee || x.auto_ranged;
+        match for_ {
+            "mana" => mana,
+            "physical" => physical,
+            "caster" => mana && !physical,
+            "melee" => melee,
+            _ => true,
+        }
+    }
+
+    /// A typical five-player group's buffs for `p` (indexes into the world's
+    /// party buffs): the tank's, then each slot's first class that isn't
+    /// yours, each bringing the first buff you'd want from each of its lists.
+    fn typical_party(&self, p: usize) -> Vec<usize> {
+        let w = self.w;
+        let x = &self.actors[p];
+        let level = x.level;
+        let side = x.race.map_or("alliance", |r| w.races[r].faction.as_str());
+        let mut members: Vec<usize> = self.tank.and_then(|t| self.actors[t].class).into_iter().collect();
+        for slot in w.party_group.get(side).into_iter().flatten() {
+            if let Some(&c) = slot.iter().find(|&&c| Some(c) != x.class) {
+                members.push(c);
+            }
+        }
+        let usable = |k: usize| {
+            let pb = &w.party[k];
+            w.spells[pb.spell as usize].rank_at(level).is_some() && self.party_wants(p, &pb.for_)
+        };
+        let mut out = vec![];
+        for c in members {
+            for list in &w.party_brings[c] {
+                if let Some(&k) = list.iter().find(|&&k| usable(k)) {
+                    out.push(k);
+                }
+            }
+        }
+        out
+    }
+
+    /// The boss test's party buffs on `p` and its pets, by the `party`
+    /// setting: none, a typical group, or every buff at once.
     pub fn party_buffs(&mut self, p: usize) {
         let w = self.w;
         let level = self.actors[p].level;
-        let x = &self.actors[p];
-        let mana = x.max_res[Res::Mana as usize] > 0.0;
-        let melee = x.auto_melee && x.stand_at <= 0.0;
-        let physical = melee || x.auto_ranged;
+        let picks: Vec<usize> = match self.opt_named(p, "party").round() as i64 {
+            m if m <= 0 => return,
+            1 => self.typical_party(p),
+            _ => (0..w.party.len()).collect(),
+        };
+        let mut who = vec![p];
+        who.extend(self.actors[p].pets.iter().copied().filter(|&u| self.actors[u].alive));
         let mut helpers: Vec<(usize, usize)> = vec![];
-        for pb in &w.party {
+        for k in picks {
+            let pb = &w.party[k];
             if pb.option.map_or(false, |i| self.opt(p, i as usize) <= 0.0) {
                 continue;
             }
-            let wanted = match pb.for_.as_str() {
-                "mana" => mana,
-                "physical" => physical,
-                "caster" => mana && !physical,
-                "melee" => melee,
-                _ => true,
-            };
             let sp = &w.spells[pb.spell as usize];
             let Some(rank) = sp.rank_at(level) else { continue };
-            if !wanted {
-                continue;
-            }
             let rank = if rank == usize::MAX { None } else { Some((pb.spell, rank)) };
             // a party member of the buff's class, at your level, out of the fight
             let Some(class) = sp.class else { continue };
@@ -817,15 +941,20 @@ impl<'w> Sim<'w> {
                     h
                 }
             };
-            for e in &sp.effects {
-                if let Effect::ApplyAura { aura, who: TargetSel::Me | TargetSel::Party | TargetSel::Ally, .. } = e {
-                    if self.actors[p].auras.iter().any(|i| i.def == *aura) {
-                        continue;
+            for &u in &who {
+                if !self.party_wants(u, &pb.for_) {
+                    continue;
+                }
+                for e in &sp.effects {
+                    if let Effect::ApplyAura { aura, who: TargetSel::Me | TargetSel::Party | TargetSel::Ally, .. } = e {
+                        if self.actors[u].auras.iter().any(|i| i.def == *aura) {
+                            continue;
+                        }
+                        let mut cx = Cx::new(src, Some(u), sp.name.as_str());
+                        cx.rank = rank;
+                        cx.spell = Some(pb.spell);
+                        self.apply_aura(u, *aura, src, 1, Some(3600.0), rank, cx);
                     }
-                    let mut cx = Cx::new(src, Some(p), sp.name.as_str());
-                    cx.rank = rank;
-                    cx.spell = Some(pb.spell);
-                    self.apply_aura(p, *aura, src, 1, Some(3600.0), rank, cx);
                 }
             }
         }
@@ -956,14 +1085,16 @@ impl<'w> Sim<'w> {
     /// Apply any scripted stuns (pressure attackers) that are due now.
     pub fn scripted_stuns(&mut self, a: usize) {
         let t = self.t;
-        let due: Vec<(f64, f64)> = self.actors[a].stun_sched.iter().copied().filter(|s| s.0 <= t + EPS).collect();
+        let due: Vec<(f64, f64, Option<AuraId>)> = self.actors[a].stun_sched.iter().copied().filter(|s| s.0 <= t + EPS).collect();
         if due.is_empty() {
             return;
         }
         self.actors[a].stun_sched.retain(|s| s.0 > t + EPS);
-        if let (Some(tg), Some(st)) = (self.actors[a].target, self.w.aura_index.get("stun").copied()) {
-            for (_, d) in due {
-                if self.actors[tg].alive {
+        let generic = self.w.aura_index.get("stun").copied();
+        if let Some(tg) = self.actors[a].target {
+            for (_, d, aura) in due {
+                // its own aura (a Kidney Shot keeps its own diminishing returns)
+                if let (true, Some(st)) = (self.actors[tg].alive, aura.or(generic)) {
                     let cx = Cx::new(a, Some(tg), "stun");
                     self.apply_aura(tg, st, a, 1, Some(d), None, cx);
                 }
@@ -1133,6 +1264,20 @@ impl<'w> Sim<'w> {
                 p.truncate(self.ev(max, cx) as usize);
                 p
             }
+            TargetSel::OthersNearMe(max) => {
+                // around you, not your target
+                let team = me.team;
+                let tgt = cx.tgt.or(me.target);
+                let r = cx.spell.map(|s| &self.w.spells[s as usize]).map_or(8.0, |sp| self.radius_with(sp, &cx.sm));
+                let mut p = Picked::new();
+                for &i in &self.live {
+                    if self.actors[i].alive && self.actors[i].team != team && Some(i) != tgt && self.dist(cx.me, i) <= r + 1e-6 {
+                        p.push(i);
+                    }
+                }
+                p.truncate(self.ev(max, cx) as usize);
+                p
+            }
             TargetSel::Chain { max, jump } => {
                 // the target, then each jump to the nearest enemy not yet hit
                 let mut p = Picked::one(cx.tgt.or(me.target).filter(|&t| self.actors[t].alive));
@@ -1295,6 +1440,12 @@ impl<'w> Sim<'w> {
             VarRef::Moving(who) => self.who(cx, *who).map_or(0.0, |a| b(self.moving(a))),
             VarRef::Fleeing(who) => self.who(cx, *who).map_or(0.0, |a| b(matches!(self.actors[a].mo.goal, Goal::Away { .. }))),
             VarRef::MagicBuffs(who) => self.who(cx, *who).map_or(0.0, |a| self.actors[a].auras.iter().filter(|i| self.purgeable(i.def)).count() as f64),
+            VarRef::EatBelow => self.actors[cx.me].rotation.map_or(0.5, |r| self.ev(&r.eat_below, cx)),
+            VarRef::Debuffs(who, m) => {
+                // a player sees a new debuff after a typical reaction
+                let lag = if self.reacting(cx.me) { self.actors[cx.me].react.map_or(0.0, |r| r.base) } else { 0.0 };
+                self.who(cx, *who).map_or(0.0, |a| self.actors[a].auras.iter().filter(|i| self.cleansable(i, *m) && i.applied + lag <= self.t + EPS).count() as f64)
+            }
             VarRef::UnitInCombat(who) => self.who(cx, *who).map_or(0.0, |a| b(self.actors[a].in_combat && self.actors[a].aware)),
             VarRef::ThreatPct => self.threat_pct(cx.me),
             VarRef::EnemiesWithin(yd) => {
@@ -1321,6 +1472,14 @@ impl<'w> Sim<'w> {
             VarRef::HasAggro => b(self.actors[cx.me].target.map_or(false, |t| self.actors[t].target == Some(cx.me))),
             VarRef::Time => self.t,
             VarRef::CombatTime => self.t - self.combat_start,
+            VarRef::PullSize => self.pull.size,
+            VarRef::PullCasters => self.pull.casters,
+            VarRef::PullDanger => self.pull.danger,
+            VarRef::FightIs(k) => b(self.fight == *k),
+            VarRef::PotionsOk => {
+                let mode = self.opt_named(cx.me, "potions").round();
+                b(mode >= 2.0 || (mode >= 1.0 && matches!(self.fight, FightKind::Boss | FightKind::Healing)))
+            }
             VarRef::AuraUp(who, id) => self.who(cx, *who).map_or(0.0, |a| {
                 let x = &self.actors[a];
                 let i = x.aura_index(*id, if *who == Who::Me { None } else { Some(cx.me) });
@@ -1360,6 +1519,15 @@ impl<'w> Sim<'w> {
                 b(x.kind == Kind::Player || x.enemy.map_or(false, |e| e.player_like))
             }),
             VarRef::Boss(who) => self.who(cx, *who).map_or(0.0, |a| b(self.actors[a].enemy.map_or(false, |e| e.boss))),
+            VarRef::Held(who) => self.who(cx, *who).map_or(0.0, |a| b(self.actors[a].auras.iter().any(|i| self.w.auras[i.def as usize].hold))),
+            VarRef::MyCc(who) => self.who(cx, *who).map_or(0.0, |a| {
+                let me = cx.me;
+                b(self.actors[a].auras.iter().any(|i| self.w.auras[i.def as usize].hold && (i.src == me || self.actors[i.src].owner == Some(me))))
+            }),
+            VarRef::Trash(who) => self.who(cx, *who).map_or(0.0, |a| {
+                let x = &self.actors[a];
+                b(x.kind == Kind::Enemy && !x.enemy.map_or(false, |e| e.boss || e.player_like))
+            }),
             VarRef::Creature(who, c) => self.who(cx, *who).map_or(0.0, |a| b(self.actors[a].creature == *c)),
             VarRef::Alive(who) => self.who(cx, *who).map_or(0.0, |a| b(self.actors[a].alive)),
             VarRef::Behind => b(self.actors[cx.me].target.map_or(self.actors[cx.me].behind, |t| self.behind(cx.me, t))),
@@ -1433,7 +1601,8 @@ impl<'w> Sim<'w> {
             VarRef::Spell(s) => b(cx.spell == Some(*s as u32) || cx.ev.map_or(false, |e| e.by == Some(*s as u32))),
             VarRef::Deficit(who) => self.who(cx, *who).map_or(0.0, |a| (self.actors[a].max_hp - self.actors[a].hp).max(0.0)),
             VarRef::Absorb(who) => self.who(cx, *who).map_or(0.0, |a| self.actors[a].auras.iter().map(|i| i.absorb).sum()),
-            VarRef::IsTank(who) => self.who(cx, *who).map_or(0.0, |a| b(a == self.tank_of(cx.me))),
+            // only in a group with a tank: alone you aren't anyone's tank
+            VarRef::IsTank(who) => self.who(cx, *who).map_or(0.0, |a| b(self.tank.is_some() && a == self.tank_of(cx.me))),
             VarRef::IsMe(who) => self.who(cx, *who).map_or(0.0, |a| b(a == cx.me)),
             VarRef::Hurt { group, pct } => {
                 let t = self.t;
@@ -1491,6 +1660,8 @@ impl<'w> Sim<'w> {
             known_cache: Default::default(),
             aura_next: INF,
             sm_passives: vec![],
+            aura_gen: 0,
+            sm_cache: std::cell::RefCell::new(Vec::new()),
             cds: vec![],
             gcd_end: 0.0,
             cast: None,
@@ -1498,6 +1669,8 @@ impl<'w> Sim<'w> {
             queued: None,
             wanding: None,
             opening: None,
+            open_wait: None,
+            eating: None,
             target: None,
             alive: true,
             rotation: None,
@@ -1509,12 +1682,15 @@ impl<'w> Sim<'w> {
             last_mana_spend: -100.0,
             next_tick: self.t + phase,
             rng: [mk(1), mk(2), mk(3)],
+            aura_rng: mk(5),
             react_rng: mk(4),
             mo: Motion::default(),
             aware: true,
             pack: 0,
             fled: false,
             stand_at: 0.0,
+            stand_auto: 0.0,
+            keep_min: 0.0,
             chase: None,
             aggro_dirty: false,
             unkillable: false,
@@ -1541,6 +1717,9 @@ impl<'w> Sim<'w> {
             in_combat: false,
             dmg_scale: 1.0,
             stun_sched: vec![],
+            fear_dir: 1.0,
+            fear_turn: 0.0,
+            fear_rng: mk(6),
             script_next: vec![],
             dr: [(0.0, 0); 9],
             passives: vec![],
@@ -1548,7 +1727,7 @@ impl<'w> Sim<'w> {
             shield: None,
             timed_hp: None,
             slot,
-            lockout: 0.0,
+            lockout: [0.0; 7],
             group: 0,
         });
         self.metrics.push(Metrics::default());
@@ -1955,14 +2134,16 @@ impl<'w> Sim<'w> {
             }
             self.actors[a].aggro_dirty = false;
         } else if let Some(t) = me.target {
-            // a player leaves a target it has put to sleep for one that's free
-            if self.actors[t].alive && self.hostile(a, t) && !(me.kind == Kind::Player && self.soft_cc(t) && self.free_enemy(a).is_some()) {
+            // a player leaves a target it has put to sleep for one that's free,
+            // and a pet one its side holds
+            let leave = (me.kind == Kind::Player && self.soft_cc(t)) || (matches!(me.kind, Kind::Player | Kind::Pet(_)) && self.held_by(t, me.team));
+            if self.actors[t].alive && self.hostile(a, t) && !(leave && self.free_enemy(a).is_some()) {
                 return;
             }
         }
         let me = &self.actors[a];
         let new = if let Some(o) = me.owner {
-            self.actors[o].target.filter(|&t| self.actors[t].alive)
+            self.actors[o].target.filter(|&t| self.actors[t].alive && !self.spare(a, t))
         } else {
             None
         };
@@ -1991,7 +2172,25 @@ impl<'w> Sim<'w> {
     /// The first enemy that isn't held by crowd control damage would break.
     fn free_enemy(&self, a: usize) -> Option<usize> {
         let team = self.actors[a].team;
-        self.live.iter().copied().find(|&i| { let x = &self.actors[i]; x.alive && x.team != team && !x.is_pet() && !self.soft_cc(i) })
+        self.live.iter().copied().find(|&i| { let x = &self.actors[i]; x.alive && x.team != team && !x.is_pet() && !self.soft_cc(i) && !self.held_by(i, team) })
+    }
+
+    /// Held by crowd control from `team`'s side (a `hold` aura: Polymorph,
+    /// Sap, Freezing Trap...).
+    pub fn held_by(&self, t: usize, team: u8) -> bool {
+        let w = self.w;
+        self.actors[t].auras.iter().any(|i| w.auras[i.def as usize].hold && self.actors[i.src].team == team)
+    }
+
+    /// An enemy `a`'s side leaves alone: one its own crowd control holds
+    /// while another enemy is in the fight.
+    pub fn spare(&self, a: usize, t: usize) -> bool {
+        let team = self.actors[a].team;
+        if !self.held_by(t, team) {
+            return false;
+        }
+        // (a totem or a trap isn't fighting)
+        self.live.iter().any(|&i| i != t && { let y = &self.actors[i]; y.alive && y.aware && y.team != team && !matches!(y.kind, Kind::Totem | Kind::Ally) && !self.held_by(i, team) })
     }
 
     /// Your threat on your target as a share of whoever it's attacking.
@@ -2146,6 +2345,17 @@ impl<'w> Sim<'w> {
         if self.is_cc(a) || !x.aware || x.stealthed || matches!(x.mo.goal, Goal::Away { .. } | Goal::Charge(_)) {
             return false;
         }
+        // no swings at an enemy your side holds while another fights, and no
+        // auto attack (or pet) at one even when it's the only one: your own
+        // Repentance, Blind or Seduction is a breather until a line breaks it
+        // (a wand only shoots when a line says so)
+        if x.kind != Kind::Enemy && (self.spare(a, t) || (!wand && self.held_by(t, x.team))) {
+            return false;
+        }
+        // in a group, close to pulling the tank's mob: white swings wait too
+        if self.holds_back(a) {
+            return false;
+        }
         // in reach: melee as far as the arm goes; bows and guns from 8 to
         // 35 yards and wands to 30, standing still
         let d = self.dist(a, t);
@@ -2295,7 +2505,7 @@ impl<'w> Sim<'w> {
                     n = n.min(r);
                 }
             }
-            for &(st, _) in &x.stun_sched {
+            for &(st, _, _) in &x.stun_sched {
                 if st >= self.t {
                     n = n.min(st);
                 }
@@ -2410,6 +2620,22 @@ impl<'w> Sim<'w> {
         self.give_back(ids);
     }
 
+    /// Health and mana per second out of combat from regeneration alone
+    /// (spirit and the like), for resting.
+    pub fn rest_regen(&self, a: usize) -> (f64, f64) {
+        let w = self.w;
+        let x = &self.actors[a];
+        let tick = w.combat.tick;
+        let cx = Cx::new(a, None, "");
+        let (mana_regen, hp_regen) = match x.class {
+            Some(c) => (self.ev(&w.classes[c].f.mana_regen, &cx), self.ev(&w.classes[c].f.hp_regen, &cx)),
+            None => (0.0, 0.0),
+        };
+        let hp = x.st[Stat::Hp5 as usize] / 5.0 + hp_regen / tick;
+        let mana = if x.has_res[Res::Mana as usize] { x.st[Stat::Mp5 as usize] / 5.0 + mana_regen / tick } else { 0.0 };
+        (hp, mana)
+    }
+
     fn regen_tick(&mut self, a: usize) {
         let w = self.w;
         let x = &self.actors[a];
@@ -2425,7 +2651,7 @@ impl<'w> Sim<'w> {
         let x = &self.actors[a];
         let five = self.t - x.last_mana_spend >= w.combat.five_second_rule;
         let mut mana = x.st[Stat::Mp5 as usize] * tick / 5.0;
-        mana += if five { mana_regen } else { mana_regen * x.st[Stat::CastingRegen as usize] };
+        mana += if five { mana_regen } else { mana_regen * x.st[Stat::CastingRegen as usize].min(1.0) };
         let hp = x.st[Stat::Hp5 as usize] * tick / 5.0
             + if x.in_combat { hp_regen * x.st[Stat::CombatHpRegen as usize] } else { hp_regen };
         let energy_on = x.has_res[Res::Energy as usize]
@@ -2454,6 +2680,13 @@ impl<'w> Sim<'w> {
         if energy_on {
             x.res[Res::Energy as usize] =
                 (x.res[Res::Energy as usize] + w.combat.energy_per_tick * x.st[Stat::EnergyRegen as usize]).min(x.max_res[Res::Energy as usize]);
+        }
+        let (hp, mana_food) = match x.eating {
+            Some((h, m)) => (hp + h * tick, m * tick),
+            None => (hp, 0.0),
+        };
+        if mana_food > 0.0 && x.has_res[Res::Mana as usize] {
+            x.res[Res::Mana as usize] = (x.res[Res::Mana as usize] + mana_food).min(x.max_res[Res::Mana as usize]);
         }
         if hp > 0.0 && x.hp < x.max_hp {
             x.hp = (x.hp + hp).min(x.max_hp);
@@ -2569,6 +2802,7 @@ impl<'w> Sim<'w> {
             self.prune_live();
             if self.phase == Phase::Fight {
                 self.check_aggro();
+                self.check_notice();
                 let ids = self.live_snapshot();
                 for &a in &ids {
                     if self.actors[a].alive {

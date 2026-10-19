@@ -20,6 +20,7 @@ pub mod model;
 pub mod rng;
 pub mod scenario;
 pub mod stats;
+pub mod store;
 pub mod validate;
 pub mod vars;
 pub mod world;

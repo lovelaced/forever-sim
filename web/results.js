@@ -31,11 +31,35 @@ const CHANGE = {
 
 export const rangeTip = () => [
   tt.title('How sure is this?'),
-  tt.line('This is a 95% confidence interval.', 'gold'),
-  tt.gap('Every fight is decided by dice rolls for hits, crits and procs. The simulator rolled them many times; if you ran the whole test again, the average would almost always land inside this range.'),
+  tt.line('The true answer lands in this range about 19 times in 20.', 'gold'),
+  tt.gap('Every fight is decided by dice rolls for hits, crits and procs. The simulator rolled them many times, and the range is how far luck alone could still move the answer. Running the test again replays the same dice, so you get the same numbers; Precise accuracy runs more fights to narrow it.'),
 ];
 
 const median = (m) => (m && m.kind === 'median' ? { ...m, mean: m.median } : m);
+
+// The smallest difference worth calling one: 0.5% of the value for amounts
+// and times, a point for scores and rates, half a point for shares.
+export function smdOf(m, base) {
+  if (m && m.smd != null) return m.smd;
+  const kind = m?.kind;
+  if (kind === 'rate') return 0.01;
+  if (kind === 'pct') return 0.005;
+  return 0.005 * Math.abs(base || 0);
+}
+
+// What a paired difference says, in one of four words:
+// clear: real (outside luck) and at least the smallest meaningful difference;
+// small: real but smaller than that; same: not real, and the whole range
+// sits inside that difference either way; unsure: anything else (too few
+// fights to tell). `strict` asks for 2.81 standard errors instead of the
+// range, for the long list of secondary numbers.
+export function judge(p, m, base, strict = false) {
+  if (!p || p.diff == null) return 'unsure';
+  const d = smdOf(m, base ?? p.base);
+  const real = strict && p.se != null ? Math.abs(p.diff) >= 2.81 * p.se : p.significant;
+  if (real) return Math.abs(p.diff) >= d ? 'clear' : 'small';
+  return p.lo != null && p.hi != null && p.lo >= -d && p.hi <= d ? 'same' : 'unsure';
+}
 export const metricOf = (res, i, name) => median(res.variants[i]?.metrics.find((m) => m.name === name));
 
 const badge = (c) => h('span.slot', { style: { '--slot': c.color }, 'aria-hidden': 'true' }, c.letter);
@@ -52,7 +76,7 @@ export function leaders(res, cols, metric, good = 'high') {
   for (const c of withVal) {
     if (c === top) continue;
     const p = pairOf(res, metric, top.cell.i, c.cell.i);
-    if (p && !p.significant) out.add(c.k);
+    if (p && judge(p, METRICS[metric], metricOf(res, top.cell.i, metric)?.mean) !== 'clear') out.add(c.k);
   }
   return out;
 }
@@ -137,7 +161,7 @@ function numbersPanel(ctx, cols, res, primary) {
           const cell = h('td', s ? fmtMetric(s.mean, m) : '–');
           if (s && c !== ctx.base && ctx.base?.cell) {
             const p = pairOf(res, k, ctx.base.cell.i, c.cell.i);
-            if (p) cell.append(delta(p, m, ctx.base));
+            if (p) cell.append(delta(p, m, ctx.base, metricOf(res, ctx.base.cell.i, k)?.mean));
           }
           return cell;
         }));
@@ -157,10 +181,12 @@ function numbersPanel(ctx, cols, res, primary) {
   return out;
 }
 
-function delta(p, m, base) {
+function delta(p, m, base, baseVal) {
+  // the long list asks more of a difference before it gets an arrow
+  const clear = judge(p, m, baseVal, true) === 'clear';
   const better = m.good ? (p.diff > 0) === (m.good === 'high') : null;
-  const cls = !p.significant || better === null ? '' : better ? 'good' : 'bad';
-  const text = p.significant ? `${p.diff > 0 ? '▲' : '▼'} ${fmtDiff(Math.abs(p.diff), m, false)}` : 'about the same';
+  const cls = !clear || better === null ? '' : better ? 'good' : 'bad';
+  const text = clear ? `${p.diff > 0 ? '▲' : '▼'} ${fmtDiff(Math.abs(p.diff), m, false)}` : 'about the same';
   return h('span.d', { class: cls }, text, h('span.sr-only', ` compared with ${base.name}`));
 }
 
@@ -168,7 +194,12 @@ function verdict(p, pm, primary, c, base, res, ctx) {
   const up = p.diff > 0;
   const better = pm.good === 'low' ? !up : up;
   const bm = metricOf(res, base.cell.i, primary).mean;
-  if (!p.significant) {
+  const j = judge(p, pm, bm);
+  if (j === 'same' || j === 'small') {
+    return h('div.verdict.tie', { style: { '--slot': c.color } },
+      h('div', who(c), ' and ', who(base), ' are about the same here.'));
+  }
+  if (j !== 'clear') {
     return h('div.verdict.tie', { style: { '--slot': c.color } },
       h('div', who(c), ' and ', who(base), ' are too close to call.'),
       ctx.acc !== 'precise' ? h('div.sub', h('button.linkish', { type: 'button', onclick: ctx.onPrecise }, 'Look closer at Precise accuracy')) : null);
@@ -183,7 +214,7 @@ function verdict(p, pm, primary, c, base, res, ctx) {
 // "Your last change to B added 4.2 damage per second" on the same fights.
 function changeLine(ch, pm, primary, c) {
   const up = ch.diff > 0;
-  if (!ch.significant) {
+  if (judge(ch, pm) !== 'clear') {
     return h('div.verdict.change.tie', { style: { '--slot': c.color } },
       h('div', 'Your last change to ', who(c), ' made no clear difference here.'));
   }

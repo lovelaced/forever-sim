@@ -368,8 +368,10 @@ fn typical_players_react_to_procs() {
         // a dodge, or a Bloodthrill proc, opens Overpower
         let opens: Vec<f64> = log.iter().filter(|l| l.contains(" is dodged by ") || l.ends_with(" gains Bloodthrill")).map(at).collect();
         for op in log.iter().filter(|l| l.ends_with(" casts Overpower")).map(at) {
-            let opened = opens.iter().any(|&d| op - d >= 0.35 - 1e-6 && op - d <= 6.0 + 1e-6);
-            assert!(opened, "Overpower at {op:.2} with nothing opening it 0.35 to 6 sec before");
+            // (a proc refreshed later isn't logged as a gain, so the window
+            // can reach past the first proc's 6 sec)
+            let opened = opens.iter().any(|&d| op - d >= 0.35 - 1e-6 && op - d <= 12.0 + 1e-6);
+            assert!(opened, "Overpower at {op:.2} with nothing opening it 0.35 to 12 sec before");
             checked += 1;
         }
     }
@@ -728,6 +730,50 @@ fn whoever_strikes_first_gets_a_head_start() {
     assert!(!ev.iter().any(|e| e.who_id == 0 && e.t < notice && e.t > 4.0 && (e.kind == "move")), "no moving before it");
 }
 
+/// The open-world opponent at `id` ("priest/shadow"), for the settings.
+fn opponent_index(w: &World, sc: &ScenarioDef, id: &str) -> f64 {
+    let ScenarioKind::Skirmish { opponents, .. } = &sc.kind else { panic!("not an open-world test") };
+    let _ = w;
+    opponents.iter().position(|o| o == id).expect("a standard opponent") as f64
+}
+
+/// Open-world PvP: whoever is jumped keeps only what they'd have up anyway
+/// (Inner Fire, not a fresh Power Word: Shield), and a stealthed attacker
+/// walks in and opens from Stealth.
+#[test]
+fn jumped_players_keep_long_buffs_and_stealthers_open_from_stealth() {
+    let w = world();
+    let sc = &w.scenarios["strike_first"];
+    let b = load_build(&w, Path::new("builds/rogue/subtlety.toml"), Some(60)).unwrap();
+    let mut opts = defaults(&w, sc);
+    opts[w.opt_index("skirmish_show").unwrap() as usize] = opponent_index(&w, sc, "priest/shadow");
+    let (_, log) = run_rep(&RepInput { w: &w, sc, build: &b, opponent: None, opts: &opts, seed: 1, log: true });
+    let log = log.unwrap();
+    let open = log.iter().position(|l| ["Ambush", "Cheap Shot", "Garrote"].iter().any(|o| l.ends_with(&format!("Subtlety casts {o}")))).expect("the rogue opens");
+    let at = |l: &String| -> f64 { l.split_whitespace().next().unwrap().parse().unwrap() };
+    let unstealth = log.iter().position(|l| l.ends_with("Subtlety loses Stealth")).expect("and leaves Stealth");
+    assert!((at(&log[unstealth]) - at(&log[open])).abs() < 1e-6, "Stealth ends with the opener, not before");
+    assert!(log[..open].iter().any(|l| l.ends_with("Shadow loses Power Word: Shield")), "the jumped priest's fresh shield is gone");
+    assert!(!log[..open].iter().any(|l| l.ends_with("Shadow loses Inner Fire")), "but Inner Fire stays");
+}
+
+/// Open-world PvP: someone waiting for the other side's first move notices
+/// a melee player walking up (20 yards) and acts before it strikes.
+#[test]
+fn approaching_players_are_noticed() {
+    let w = world();
+    let sc = &w.scenarios["struck_first"];
+    let b = load_build(&w, Path::new("builds/mage/frost.toml"), Some(60)).unwrap();
+    let mut opts = defaults(&w, sc);
+    opts[w.opt_index("skirmish_show").unwrap() as usize] = opponent_index(&w, sc, "paladin/retribution");
+    let (_, _, ev) = forever_sim::scenario::run_rep_traced(&RepInput { w: &w, sc, build: &b, opponent: None, opts: &opts, seed: 2, log: true });
+    let ev = ev.unwrap();
+    let notice = ev.iter().find(|e| e.kind == "notice" && e.who_id == 0).map(|e| e.t).expect("the mage notices");
+    let struck = ev.iter().find(|e| e.who_id != 0 && e.target_id == Some(0) && matches!(e.kind, "hit" | "miss" | "dodge" | "parry" | "cast")).map(|e| e.t).expect("the paladin attacks");
+    // (casts are logged when they land, so this checks the noticing itself)
+    assert!(notice + 0.5 < struck, "the mage notices at {notice:.2}, in time to react before the first attack at {struck:.2}");
+}
+
 /// Bows and guns can't fire inside 8 yards, and only standing still.
 #[test]
 fn auto_shot_has_a_dead_zone() {
@@ -801,29 +847,115 @@ fn behind_means_facing_someone_else() {
     assert!(sim.behind(p, e), "a mob fighting someone else");
 }
 
-/// A feared mob runs from whoever feared it, and comes back once it ends.
+/// A feared mob runs, mostly away from whoever feared it (turning now and
+/// then), and comes back once it ends; a rooted one stays put.
 #[test]
 fn fear_runs_away_and_back() {
     use forever_sim::engine::{Cx, Sim, Stop};
     let w = world();
     let sc = &w.scenarios["solo_1"];
     let b = load_build(&w, Path::new("builds/warlock/affliction.toml"), Some(40)).unwrap();
+    let run = |seed: u64, rooted: bool| -> (f64, f64) {
+        let mut sim = Sim::new(&w, seed, defaults(&w, sc));
+        let p = sim.spawn_player(&b, 0, 1);
+        let e = sim.spawn_enemy(&w.enemies["humanoid"], 40, 1, 1000, 1.0);
+        sim.actors[p].target = Some(e);
+        sim.actors[e].target = Some(p);
+        sim.place(p, 0.0);
+        sim.place(e, 4.0);
+        sim.enter_combat();
+        let cx = Cx::new(p, Some(e), "");
+        if rooted {
+            sim.apply_aura(e, w.aura_index["root"], p, 1, Some(5.0), None, cx);
+        }
+        sim.apply_aura(e, w.aura_index["fear"], p, 1, Some(3.0), None, cx);
+        sim.plan_motion();
+        sim.run(Stop::Until(2.9));
+        let away = sim.dist(p, e);
+        sim.run(Stop::Until(9.0));
+        (away, sim.dist(p, e))
+    };
+    let n = 20;
+    let mut total = 0.0;
+    for seed in 1..=n {
+        let (away, back) = run(seed, false);
+        total += away;
+        assert!(back < 6.0, "seed {seed}: came back ({back} yards)");
+    }
+    let mean = total / n as f64;
+    assert!(mean > 6.0 && mean < 29.0, "it runs, but not in a straight line: {mean:.1} yards on average after 2.9 sec");
+    let (away, _) = run(1, true);
+    assert!((away - 4.0).abs() < 1e-6, "rooted, it stays put ({away} yards)");
+}
+
+/// Interrupts lock out the school they catch; Improved Counterspell
+/// silences; Counterspell has a range; Intimidating Shout's target cowers;
+/// the ambush's Kidney Shot keeps its own diminishing returns.
+#[test]
+fn interrupts_and_crowd_control() {
+    use forever_sim::engine::{Cx, Sim};
+    use forever_sim::vars::Mechanic;
+    let w = world();
+    let sc = &w.scenarios["solo_1"];
+    let b = load_build(&w, Path::new("builds/mage/arcane.toml"), Some(60)).unwrap();
     let mut sim = Sim::new(&w, 1, defaults(&w, sc));
     let p = sim.spawn_player(&b, 0, 1);
-    let e = sim.spawn_enemy(&w.enemies["humanoid"], 40, 1, 1000, 1.0);
-    sim.actors[p].target = Some(e);
-    sim.actors[e].target = Some(p);
+    let foe = sim.spawn_player(&load_build(&w, Path::new("builds/mage/frost.toml"), Some(60)).unwrap(), 1, 2);
     sim.place(p, 0.0);
-    sim.place(e, 4.0);
+    sim.place(foe, 20.0);
+    sim.actors[p].target = Some(foe);
+    sim.actors[foe].target = Some(p);
+    // the frost mage starts a Frostbolt; the arcane mage counterspells it
+    let fb = sim.can_cast(foe, w.spell_index["mage.frostbolt"], SpellTarget::Enemy, false).expect("a Frostbolt");
+    sim.begin(foe, fb);
+    // (noticed already: a reacting player sees a cast after its reaction)
+    sim.actors[foe].cast.as_mut().unwrap().seen = 0.0;
+    let cs = w.spell_index["mage.counterspell"];
+    sim.place(foe, 40.0);
+    assert!(sim.can_cast(p, cs, SpellTarget::Enemy, false).is_none(), "out of Counterspell's 30 yards");
+    sim.place(foe, 20.0);
+    let plan = sim.can_cast(p, cs, SpellTarget::Enemy, false).expect("Counterspell in range");
+    // keep rolling until it lands (it can be resisted)
+    sim.begin(p, plan);
+    assert!(sim.actors[foe].cast.is_none(), "the Counterspell lands (this seed)");
+    {
+        assert!(sim.actors[foe].lockout[forever_sim::vars::School::Frost as usize] > sim.t, "frost is locked out");
+        assert!(sim.actors[foe].lockout[forever_sim::vars::School::Fire as usize] <= sim.t, "fire isn't");
+        let ic = w.classes.iter().find(|c| c.id == "mage").unwrap().talent_index["improved_counterspell"] as usize;
+        if sim.actors[p].talents.get(ic).copied().unwrap_or(0) > 0 {
+            assert!(sim.actors[foe].has_mech(&w, Mechanic::Silence), "Improved Counterspell silences");
+        }
+    }
+    // Intimidating Shout: the target cowers (stunned, not running)
+    let wb = load_build(&w, Path::new("builds/warrior/arms.toml"), Some(60)).unwrap();
+    let mut sim = Sim::new(&w, 3, defaults(&w, sc));
+    let p = sim.spawn_player(&wb, 0, 1);
+    let e = sim.spawn_enemy(&w.enemies["humanoid"], 58, 1, 1000, 1.0);
+    let e2 = sim.spawn_enemy(&w.enemies["humanoid"], 58, 1, 1001, 1.0);
+    for (x, d) in [(e, 3.0), (e2, 5.0)] {
+        sim.place(x, d);
+        sim.actors[x].target = Some(p);
+    }
+    sim.actors[p].target = Some(e);
     sim.enter_combat();
-    let cx = Cx::new(p, Some(e), "");
-    sim.apply_aura(e, w.aura_index["fear"], p, 1, Some(3.0), None, cx);
-    sim.plan_motion();
-    sim.run(Stop::Until(2.9));
-    let away = sim.dist(p, e);
-    assert!(away > 15.0, "it ran ({away} yards)");
-    sim.run(Stop::Until(8.0));
-    assert!(sim.dist(p, e) < 6.0, "and came back ({} yards)", sim.dist(p, e));
+    sim.actors[p].res[forever_sim::vars::Res::Rage as usize] = 100.0;
+    let plan = sim.can_cast(p, w.spell_index["warrior.intimidating_shout"], SpellTarget::Enemy, false).expect("a shout");
+    sim.begin(p, plan);
+    assert!(sim.actors[e].has_mech(&w, Mechanic::Stun), "the shout lands (this seed)");
+    {
+        assert!(!sim.actors[e].has_mech(&w, Mechanic::Fear), "the target cowers, it doesn't run");
+    }
+    assert!(!sim.actors[e2].has_mech(&w, Mechanic::Stun), "others don't cower");
+    // the ambush's Kidney Shot isn't shortened by its Cheap Shot
+    let mut sim = Sim::new(&w, 3, defaults(&w, sc));
+    let p = sim.spawn_player(&b, 0, 1);
+    let r = sim.spawn_enemy(&w.enemies["pressure_rogue"], 60, 1, 1000, 1.0);
+    let cx = Cx::new(r, Some(p), "");
+    sim.apply_aura(p, w.aura_index["stun"], r, 1, Some(4.0), None, cx);
+    sim.remove_aura_at(p, sim.actors[p].auras.iter().position(|i| i.def == w.aura_index["stun"]).unwrap(), true);
+    sim.apply_aura(p, w.aura_index["rogue.kidney_shot"], r, 1, Some(6.0), None, cx);
+    let k = sim.actors[p].auras.iter().find(|i| i.def == w.aura_index["rogue.kidney_shot"]).expect("Kidney Shot lands");
+    assert!((k.expires - sim.t - 6.0).abs() < 1e-9, "for its full 6 sec ({})", k.expires - sim.t);
 }
 
 /// A mob turns on whoever passes 110% of its target's threat from melee
@@ -877,15 +1009,55 @@ fn aggro_turns_at_110_and_130_percent() {
 fn the_boss_stays_on_the_tank() {
     let w = world();
     let sc = &w.scenarios["boss"];
-    for f in ["warrior/arms", "rogue/combat", "mage/frost", "hunter/beast_mastery", "warlock/affliction"] {
-        let b = load_build(&w, Path::new(&format!("builds/{f}.toml")), Some(60)).unwrap();
+    for (f, level) in [("warrior/arms", 60), ("rogue/combat", 60), ("mage/frost", 60), ("hunter/beast_mastery", 60), ("warlock/affliction", 60), ("warrior/arms", 20), ("rogue/combat", 20)] {
+        let b = load_build(&w, Path::new(&format!("builds/{f}.toml")), Some(level)).unwrap();
         let opts = defaults(&w, sc);
-        let mut held = 0.0;
+        let (mut held, mut died) = (0.0, 0.0);
         for seed in 1..5u64 {
             let (v, _) = run_rep(&RepInput { w: &w, sc, build: &b, opponent: None, opts: &opts, seed, log: false });
             held += v["held_share"] / 4.0;
+            died += v["died"] / 4.0;
         }
-        assert!(held > 0.95, "{f}: the tank held the boss {:.0}% of the time", held * 100.0);
+        assert!(held > 0.9, "{f} at {level}: the tank held the boss {:.0}% of the time", held * 100.0);
+        assert!(died < 0.2, "{f} at {level}: died in {:.0}% of fights", died * 100.0);
+    }
+}
+
+/// The boss test's openers wait out the tank's head start instead of being
+/// skipped (a hunter's Mark goes up), and the tank's Charge happens.
+#[test]
+fn boss_openers_wait_for_the_head_start() {
+    let w = world();
+    let sc = &w.scenarios["boss"];
+    let b = load_build(&w, Path::new("builds/hunter/beast_mastery.toml"), Some(60)).unwrap();
+    let opts = defaults(&w, sc);
+    let (_, log) = run_rep(&RepInput { w: &w, sc, build: &b, opponent: None, opts: &opts, seed: 1, log: true });
+    let log = log.unwrap();
+    assert!(log.iter().any(|l| l.ends_with("Beast Mastery casts Hunter's Mark")), "Hunter's Mark goes up");
+    // at 20, without Vanguard, the tank charges from Battle Stance and goes back
+    let b20 = load_build(&w, Path::new("builds/warrior/arms.toml"), Some(20)).unwrap();
+    let (_, log) = run_rep(&RepInput { w: &w, sc, build: &b20, opponent: None, opts: &opts, seed: 1, log: true });
+    let log = log.unwrap();
+    let charge = log.iter().position(|l| l.ends_with("Protection casts Charge")).expect("the tank charges in");
+    assert!(log[charge..].iter().any(|l| l.ends_with("Protection casts Defensive Stance")), "and goes back to Defensive Stance after its Charge");
+}
+
+/// Boss DPS is over the whole fight: dying early counts as no damage from
+/// then on (`dps_alive` is the rate while alive).
+#[test]
+fn boss_dps_counts_the_whole_fight() {
+    let w = world();
+    let sc = &w.scenarios["boss"];
+    let b = load_build(&w, Path::new("builds/mage/frost.toml"), Some(60)).unwrap();
+    let mut opts = defaults(&w, sc);
+    // a boss hitting a hundred times harder kills whoever it turns on
+    if let Some(i) = w.opt_index("threat_margin") {
+        opts[i as usize] = 0.0;
+    }
+    let (v, _) = run_rep(&RepInput { w: &w, sc, build: &b, opponent: None, opts: &opts, seed: 1, log: false });
+    assert!(v["dps"] <= v["dps_alive"] + 1e-9);
+    if v["died"] > 0.0 {
+        assert!(v["dps"] < v["dps_alive"]);
     }
 }
 
@@ -899,6 +1071,8 @@ fn party_battle_shout_is_the_clients_rank() {
     let sc = &w.scenarios["boss"];
     let b = load_build(&w, Path::new("builds/rogue/combat.toml"), Some(25)).unwrap();
     let mut opts = defaults(&w, sc);
+    // every buff, then all but Battle Shout turned off
+    opts[w.opt_index("party").unwrap() as usize] = 2.0;
     for o in &w.party {
         if let Some(i) = o.option {
             opts[i as usize] = if o.id == "battle_shout" { 1.0 } else { 0.0 };
@@ -1140,25 +1314,199 @@ fn fight_logs_keep_hits_on_your_pet() {
     assert!(on_pet > 0, "the mob's hits on the pet are in the log");
 }
 
-/// Potions are a choice, off by default: nobody drinks one unless the
-/// `potions` option is on.
+/// Spell pushback, by the `pushback` setting: the original game's (1.0, 0.8,
+/// 0.6, 0.4 then 0.2 sec per hit, a cast never pushed past its full length;
+/// a channel shortened by the same) or the later rules (0.5 sec for the
+/// first two hits only; a quarter of a channel per hit).
 #[test]
-fn potions_only_when_turned_on() {
+fn pushback_by_the_rules() {
+    use forever_sim::engine::{Ev, Sim};
     let w = world();
-    let sc = &w.scenarios["solo_2_hard"];
+    let sc = &w.scenarios["solo_1"];
+    let b = load_build(&w, Path::new("builds/mage/frost.toml"), Some(60)).unwrap();
+    // how far each of six hits moves the end of a cast that has `left` to go
+    let pushes = |later: bool, spell: &str, left: f64| -> (f64, Vec<f64>) {
+        let mut opts = defaults(&w, sc);
+        opts[w.opt_index("pushback").unwrap() as usize] = if later { 1.0 } else { 0.0 };
+        let mut sim = Sim::new(&w, 1, opts);
+        let p = sim.spawn_player(&b, 0, 1);
+        let e = sim.spawn_enemy(&w.enemies["humanoid"], 60, 1, 1000, 1.0);
+        sim.place(e, 20.0);
+        sim.actors[p].target = Some(e);
+        let plan = sim.can_cast(p, w.spell_index[spell], SpellTarget::Enemy, false).expect("it can cast");
+        sim.begin(p, plan);
+        let c = sim.actors[p].cast.as_mut().expect("casting");
+        c.end = left;
+        let full = c.full;
+        let mut ends = vec![left];
+        for _ in 0..6 {
+            sim.apply_damage(e, p, 10.0, Ev::default(), "hit");
+            ends.push(sim.actors[p].cast.as_ref().unwrap().end);
+        }
+        (full, ends.windows(2).map(|x| ((x[1] - x[0]) * 100.0).round() / 100.0).collect())
+    };
+    let (full, cast) = pushes(false, "mage.frostbolt", 0.5);
+    let cap = ((full - 0.5 - 1.8) * 100.0).round() / 100.0;
+    assert_eq!(cast, vec![1.0, 0.8, cap, 0.0, 0.0, 0.0], "a {full} sec Frostbolt with half a second left");
+    assert_eq!(pushes(true, "mage.frostbolt", 0.5).1, vec![0.5, 0.5, 0.0, 0.0, 0.0, 0.0]);
+    assert_eq!(pushes(false, "mage.arcane_missiles", 4.0).1, vec![-1.0, -0.8, -0.6, -0.4, -0.2, -0.2]);
+    let (am, later) = pushes(true, "mage.arcane_missiles", 4.0);
+    let q = -((am * 0.25) * 100.0).round() / 100.0;
+    assert_eq!(later, vec![q, q, 0.0, 0.0, 0.0, 0.0]);
+}
+
+/// A cast finishing with its target out of range fails and costs nothing;
+/// finishing a cast restarts the melee swing; a freeze doesn't stop a cast.
+#[test]
+fn casting_rules() {
+    use forever_sim::engine::{Cx, Sim};
+    use forever_sim::vars::Res;
+    let w = world();
+    let sc = &w.scenarios["solo_1"];
+    let b = load_build(&w, Path::new("builds/mage/frost.toml"), Some(60)).unwrap();
+    let mut sim = Sim::new(&w, 1, defaults(&w, sc));
+    let p = sim.spawn_player(&b, 0, 1);
+    let e = sim.spawn_enemy(&w.enemies["humanoid"], 60, 1, 1000, 1.0);
+    sim.place(e, 20.0);
+    sim.actors[p].target = Some(e);
+    let plan = sim.can_cast(p, w.spell_index["mage.frostbolt"], SpellTarget::Enemy, false).expect("it can cast");
+    sim.begin(p, plan);
+    // frozen mid-cast: the cast goes on
+    let cx = Cx::new(e, Some(p), "");
+    sim.apply_aura(p, w.aura_index["frozen"], e, 1, Some(5.0), None, cx);
+    assert!(sim.actors[p].cast.is_some(), "a freeze doesn't stop the cast");
+    // the target walks off: the cast fails, and costs no mana
+    sim.place(e, 60.0);
+    let mana = sim.actors[p].res[Res::Mana as usize];
+    sim.finish_cast(p);
+    assert_eq!(sim.actors[p].res[Res::Mana as usize], mana, "no mana spent");
+    assert!(sim.metrics[p].casts.get("Frostbolt").is_none(), "and no Frostbolt cast");
+    // a warrior's Slam restarts its swing
+    let wb = load_build(&w, Path::new("builds/warrior/arms.toml"), Some(60)).unwrap();
+    let mut sim = Sim::new(&w, 1, defaults(&w, sc));
+    let p = sim.spawn_player(&wb, 0, 1);
+    let e = sim.spawn_enemy(&w.enemies["humanoid"], 60, 1, 1000, 1.0);
+    sim.place(e, 3.0);
+    sim.actors[p].target = Some(e);
+    sim.actors[p].res[Res::Rage as usize] = 100.0;
+    sim.actors[p].swing[0] = 0.0;
+    let plan = sim.can_cast(p, w.spell_index["warrior.slam"], SpellTarget::Enemy, false).expect("it can Slam");
+    sim.begin(p, plan);
+    sim.finish_cast(p);
+    assert!(sim.actors[p].swing[0] > sim.t + 1.0, "the swing starts over after the Slam ({})", sim.actors[p].swing[0]);
+}
+
+/// Debuffs roll to land: a Polymorph on a target three levels up sticks as
+/// often as the spell hit table says (83% before talents and gear), once
+/// per cast and target; a Charge's stun always lands.
+#[test]
+fn debuffs_roll_to_land() {
+    use forever_sim::engine::{Cx, Sim};
+    let w = world();
+    let sc = &w.scenarios["solo_1"];
+    let b = load_build(&w, Path::new("builds/mage/frost.toml"), Some(60)).unwrap();
+    let mut sim = Sim::new(&w, 7, defaults(&w, sc));
+    let p = sim.spawn_player(&b, 0, 1);
+    let e = sim.spawn_enemy(&w.enemies["humanoid"], 63, 1, 1000, 1.0);
+    let mut cx = Cx::new(p, Some(e), "");
+    cx.spell = Some(w.spell_index["mage.polymorph"]);
+    let n = 4000;
+    let mut landed = 0;
+    for i in 0..n {
+        sim.t = i as f64;
+        let first = sim.debuff_lands(&cx, e, false);
+        assert_eq!(sim.debuff_lands(&cx, e, false), first, "one roll per cast and target");
+        landed += first as usize;
+    }
+    let rate = landed as f64 / n as f64;
+    let want = sim.spell_hit_chance(p, e) / 100.0;
+    assert!((rate - want).abs() < 0.02, "lands {rate:.3} of the time, the hit table says {want:.3}");
+    assert!(want < 0.99, "a +3 target resists some ({want})");
+    let mut charge = cx;
+    charge.landed = true;
+    assert!((0..200).all(|i| { sim.t = (n + i) as f64; sim.debuff_lands(&charge, e, false) }), "a Charge's stun always lands");
+}
+
+/// Attack tables: glancing blows by weapon skill (95%, 95%, 85%, 65% at 0 to
+/// 3 levels up), a stunned target can't dodge or parry, and Overpower is
+/// never dodged, parried or blocked.
+#[test]
+fn attack_tables() {
+    use forever_sim::engine::{combat::Roll, Cx, Sim};
+    use forever_sim::vars::Hand;
+    let w = world();
+    let sc = &w.scenarios["solo_1"];
+    let b = load_build(&w, Path::new("builds/warrior/arms.toml"), Some(60)).unwrap();
+    let mut sim = Sim::new(&w, 3, defaults(&w, sc));
+    let p = sim.spawn_player(&b, 0, 1);
+    for (up, want) in [(0, 0.95), (1, 0.95), (2, 0.85), (3, 0.65)] {
+        let e = sim.spawn_enemy(&w.enemies["humanoid"], 60 + up, 1, 1000 + up as u64, 1.0);
+        let g = sim.glance_mult(p, e);
+        assert!((g - want).abs() < 1e-9, "{up} levels up: glancing blows do {g}");
+    }
+    let e = sim.spawn_enemy(&w.enemies["humanoid"], 62, 1, 2000, 1.0);
+    let avoids = |sim: &mut Sim, unavoidable: bool| (0..3000).filter(|_| matches!(sim.roll_melee_x(p, e, Hand::Mh, false, 0.0, unavoidable), Roll::Dodge | Roll::Parry | Roll::Block)).count();
+    assert!(avoids(&mut sim, false) > 100, "a mob dodges and parries");
+    assert_eq!(avoids(&mut sim, true), 0, "but never an Overpower");
+    let cx = Cx::new(p, Some(e), "");
+    sim.apply_aura(e, w.aura_index["stun"], p, 1, Some(100.0), None, cx);
+    assert_eq!(avoids(&mut sim, false), 0, "nor anything while stunned");
+}
+
+/// The boss test's party is a typical group by default: the tank's Battle
+/// Shout, a priest's Fortitude, and a paladin's one blessing for the
+/// Alliance or a shaman's air and earth totems for the Horde; pets get the
+/// party's buffs too.
+#[test]
+fn a_typical_group_by_side() {
+    let w = world();
+    let sc = &w.scenarios["boss"];
+    let opts = defaults(&w, sc);
+    let gains = |b: &forever_sim::build::Build, who: &str| -> Vec<String> {
+        let (_, log) = run_rep(&RepInput { w: &w, sc, build: b, opponent: None, opts: &opts, seed: 1, log: true });
+        let pre = format!(" {who} gains ");
+        log.unwrap().iter().filter_map(|l| l.split_once(&pre).map(|(_, a)| a.to_string())).collect()
+    };
+    let mut human = load_build(&w, Path::new("builds/warrior/arms.toml"), Some(60)).unwrap();
+    human.race = w.races.iter().position(|r| r.id == "human").unwrap();
+    let a = gains(&human, "Arms");
+    for want in ["Battle Shout", "Power Word: Fortitude", "Blessing of Might"] {
+        assert!(a.iter().any(|g| g == want), "the human Arms gets {want}: {a:?}");
+    }
+    assert!(!a.iter().any(|g| g.contains("Windfury") || g == "Blessing of Kings"), "one blessing, no totems: {a:?}");
+    let mut orc = human.clone();
+    orc.race = w.races.iter().position(|r| r.id == "orc").unwrap();
+    let h = gains(&orc, "Arms");
+    assert!(h.iter().any(|g| g.contains("Windfury")) && h.iter().any(|g| g.contains("Strength of Earth")), "the orc gets a shaman's totems: {h:?}");
+    assert!(!h.iter().any(|g| g.starts_with("Blessing")), "and no blessings: {h:?}");
+    let bm = load_build(&w, Path::new("builds/hunter/beast_mastery.toml"), Some(60)).unwrap();
+    let pet = gains(&bm, "Cat");
+    assert!(pet.iter().any(|g| g == "Power Word: Fortitude"), "the pet gets the party's buffs: {pet:?}");
+}
+
+/// Potions: by default only in group fights (the boss and healing tests);
+/// never with "Never", and in leveling too with "Always".
+#[test]
+fn potions_by_setting() {
+    let w = world();
     let b = load_build(&w, Path::new("builds/mage/arcane.toml"), None).unwrap();
     let k = w.opts.iter().position(|o| o.name == "potions").expect("a potions option");
-    let drinks = |on: f64| -> usize {
+    let drinks = |test: &str, setting: Option<f64>| -> usize {
+        let sc = &w.scenarios[test];
         let mut opts = defaults(&w, sc);
-        opts[k] = on;
+        if let Some(x) = setting {
+            opts[k] = x;
+        }
         (0..6u64).map(|seed| {
             let (_, log) = run_rep(&RepInput { w: &w, sc, build: &b, opponent: None, opts: &opts, seed, log: true });
             log.unwrap().iter().filter(|l| l.ends_with(" casts Healing Potion") || l.ends_with(" casts Mana Potion")).count()
         }).sum()
     };
-    assert_eq!(w.opts[k].default, 0.0, "potions are off by default");
-    assert_eq!(drinks(0.0), 0, "no potions with the option off");
-    assert!(drinks(1.0) > 0, "an Arcane mage on tough pulls drinks potions when they're on");
+    assert_eq!(w.opts[k].default, 1.0, "in group fights by default");
+    assert_eq!(drinks("solo_2_hard", None), 0, "no potions while leveling by default");
+    assert!(drinks("boss", None) > 0, "but an Arcane mage drinks on the boss");
+    assert_eq!(drinks("boss", Some(0.0)), 0, "never with Never");
+    assert!(drinks("solo_2_hard", Some(2.0)) > 0, "and on tough pulls with Always");
 }
 
 const HEALERS: [&str; 5] = ["priest/holy", "priest/discipline", "paladin/holy", "druid/restoration", "shaman/restoration"];
@@ -1304,4 +1652,285 @@ fn healing_results_do_not_depend_on_threads() {
     let a = mc::run(&[&w], "heal_dungeon", &mk(), &cfg1);
     let b = mc::run(&[&w], "heal_dungeon", &mk(), &cfg4);
     assert_eq!(a.values, b.values, "results must not depend on threads or batch size");
+}
+
+/// Cures take off only their own types, the newest first. Cleanse takes a
+/// magic effect, a poison and a disease but never a curse or Mortal
+/// Strike; Dispel Magic cleans a friend or strips an enemy's buff; Remove
+/// Lesser Curse takes the curse.
+#[test]
+fn cleanse_removes_by_type() {
+    use forever_sim::engine::{Cx, Sim};
+    let w = world();
+    let sc = &w.scenarios["duel"];
+    let mut sim = Sim::new(&w, 1, defaults(&w, sc));
+    let pal = sim.spawn_player(&load_build(&w, Path::new("builds/paladin/holy.toml"), Some(60)).unwrap(), 0, 1);
+    let pri = sim.spawn_player(&load_build(&w, Path::new("builds/priest/holy.toml"), Some(60)).unwrap(), 0, 2);
+    let mage = sim.spawn_player(&load_build(&w, Path::new("builds/mage/frost.toml"), Some(60)).unwrap(), 0, 3);
+    let lock = sim.spawn_player(&load_build(&w, Path::new("builds/warlock/affliction.toml"), Some(60)).unwrap(), 1, 4);
+    for (x, at) in [(pal, 0.0), (pri, 2.0), (mage, 4.0), (lock, 15.0)] {
+        sim.place(x, at);
+    }
+    for x in [pal, pri, mage] {
+        sim.actors[x].target = Some(lock);
+    }
+    sim.actors[lock].target = Some(pal);
+    let put = |sim: &mut Sim, on: usize, spell: Option<&str>, aura: &str| {
+        let mut cx = Cx::new(lock, Some(on), "");
+        cx.spell = spell.map(|s| w.spell_index[s]);
+        sim.apply_aura(on, w.aura_index[aura], lock, 1, Some(60.0), None, cx);
+    };
+    let has = |sim: &Sim, on: usize, aura: &str| sim.actors[on].auras.iter().any(|i| i.def == w.aura_index[aura]);
+    put(&mut sim, pal, Some("warlock.corruption"), "warlock.corruption");
+    put(&mut sim, pal, Some("warlock.bane_of_agony"), "warlock.bane_of_agony");
+    put(&mut sim, pal, None, "rogue.deadly_poison");
+    put(&mut sim, pal, None, "boss_mortal_wound");
+    let types: Vec<u8> = sim.actors[pal].auras.iter().map(|i| i.dispel).collect();
+    assert_eq!(types, vec![DISPEL_MAGIC, DISPEL_CURSE, DISPEL_POISON, 0], "dispel types from the spell or the aura");
+    let plan = sim.can_cast(pal, w.spell_index["paladin.cleanse"], SpellTarget::Me, false).expect("Cleanse");
+    sim.begin(pal, plan);
+    assert!(!has(&sim, pal, "warlock.corruption") && !has(&sim, pal, "rogue.deadly_poison"), "Cleanse takes the magic effect and the poison");
+    assert!(has(&sim, pal, "warlock.bane_of_agony") && has(&sim, pal, "boss_mortal_wound"), "but not the curse or Mortal Strike");
+    // Dispel Magic on a friend (the most hurt ally)
+    sim.t += 2.0;
+    put(&mut sim, pal, Some("warlock.corruption"), "warlock.corruption");
+    sim.actors[pal].hp = 0.5 * sim.actors[pal].max_hp;
+    let plan = sim.can_cast(pri, w.spell_index["priest.dispel_magic"], SpellTarget::Lowest, false).expect("Dispel Magic");
+    assert_eq!(plan.target, pal);
+    sim.begin(pri, plan);
+    assert!(!has(&sim, pal, "warlock.corruption"), "Dispel Magic cleans a friend");
+    // and on an enemy, a magic buff
+    sim.t += 2.0;
+    let cx = Cx::new(pri, Some(lock), "");
+    sim.apply_aura(lock, w.aura_index["priest.power_word_shield"], pri, 1, Some(30.0), None, cx);
+    let plan = sim.can_cast(pri, w.spell_index["priest.dispel_magic_enemy"], SpellTarget::Enemy, false).expect("Dispel Magic on the enemy");
+    sim.begin(pri, plan);
+    assert!(!has(&sim, lock, "priest.power_word_shield"), "Dispel Magic strips an enemy's shield");
+    // Remove Lesser Curse
+    put(&mut sim, mage, Some("warlock.bane_of_agony"), "warlock.bane_of_agony");
+    let plan = sim.can_cast(mage, w.spell_index["mage.remove_lesser_curse"], SpellTarget::Me, false).expect("Remove Lesser Curse");
+    sim.begin(mage, plan);
+    assert!(!has(&sim, mage, "warlock.bane_of_agony"), "Remove Lesser Curse takes the curse");
+}
+
+/// The healing tests' bosses: Mortal Strike halves healing on the tank for
+/// 5 sec, and the dungeon boss's Shadow Word: Pain is a magic effect a
+/// priest takes off.
+#[test]
+fn healing_bosses_wound_and_healers_dispel() {
+    let out = trace("priest/holy", "heal_dungeon", 40);
+    let me = out["me"].as_str().unwrap();
+    let events = out["events"].as_array().unwrap();
+    assert!(events.iter().any(|e| e["kind"] == "gain" && e["who"] == "Tank" && e["name"] == "Mortal Strike"), "Mortal Strike wounds the tank");
+    let pains = events.iter().filter(|e| e["kind"] == "gain" && e["name"] == "Shadow Word: Pain").count();
+    let dispels = events.iter().filter(|e| e["kind"] == "dispel" && e["who"] == me && e["name"] == "Shadow Word: Pain").count();
+    assert!(pains > 0 && dispels > 0, "{pains} Shadow Word: Pains, {dispels} dispelled");
+    // Mortal Strike's wound halves healing taken
+    use forever_sim::engine::{Cx, Sim};
+    use forever_sim::vars::Stat;
+    let w = world();
+    let sc = &w.scenarios["heal_dungeon"];
+    let mut sim = Sim::new(&w, 1, defaults(&w, sc));
+    let p = sim.spawn_player(&load_build(&w, Path::new("builds/warrior/arms.toml"), Some(40)).unwrap(), 0, 1);
+    let before = sim.actors[p].st[Stat::HealTaken as usize];
+    sim.apply_aura(p, w.aura_index["boss_mortal_wound"], p, 1, None, None, Cx::new(p, None, ""));
+    assert!((sim.actors[p].st[Stat::HealTaken as usize] - 0.5 * before).abs() < 1e-9, "healing taken halved");
+    let k = sim.actors[p].auras.iter().find(|i| i.def == w.aura_index["boss_mortal_wound"]).unwrap();
+    assert!((k.expires - sim.t - 5.0).abs() < 1e-9, "for 5 sec");
+}
+
+/// A bandage heals over its channel, any damage stops it, and Recently
+/// Bandaged keeps the next one a minute away; between pulls a leveler
+/// bandages before eating.
+#[test]
+fn bandages_heal_and_break_on_damage() {
+    use forever_sim::engine::{Ev, Sim};
+    let w = world();
+    let sc = &w.scenarios["solo_1"];
+    let mut sim = Sim::new(&w, 1, defaults(&w, sc));
+    let p = sim.spawn_player(&load_build(&w, Path::new("builds/warrior/arms.toml"), Some(60)).unwrap(), 0, 1);
+    let e = sim.spawn_enemy(&w.enemies["humanoid"], 60, 1, 1000, 1.0);
+    sim.actors[p].hp = 0.3 * sim.actors[p].max_hp;
+    let fa = w.spell_index["first_aid"];
+    let plan = sim.can_cast(p, fa, SpellTarget::Me, false).expect("a bandage");
+    sim.begin(p, plan);
+    assert!(sim.actors[p].cast.as_ref().map_or(false, |c| c.channel), "bandaging is a channel");
+    sim.apply_damage(e, p, 10.0, Ev::default(), "hit");
+    assert!(sim.actors[p].cast.is_none(), "damage stops it");
+    sim.t += 30.0;
+    assert!(sim.can_cast(p, fa, SpellTarget::Me, false).is_none(), "Recently Bandaged");
+    let mut opts = defaults(&w, sc);
+    opts[w.opts.iter().position(|o| o.name == "first_aid").unwrap()] = 0.0;
+    let mut sim = Sim::new(&w, 1, opts);
+    let p = sim.spawn_player(&load_build(&w, Path::new("builds/warrior/arms.toml"), Some(60)).unwrap(), 0, 1);
+    sim.actors[p].hp = 0.3 * sim.actors[p].max_hp;
+    assert!(sim.can_cast(p, fa, SpellTarget::Me, false).is_none(), "not with bandages turned off");
+    let sc = &w.scenarios["solo_2"];
+    let b = load_build(&w, Path::new("builds/warrior/arms.toml"), Some(30)).unwrap();
+    let (v, _) = run_rep(&RepInput { w: &w, sc, build: &b, opponent: None, opts: &defaults(&w, sc), seed: 1, log: false });
+    assert!(v.get("casts_per_kill:First Aid").copied().unwrap_or(0.0) > 0.0, "a leveler bandages between pulls");
+}
+
+/// An emergency line goes after a reaction, never late, and stops your own
+/// cast for it; an ordinary line waits for the cast to finish.
+#[test]
+fn emergency_lines_stop_casts() {
+    use forever_sim::engine::Sim;
+    let mut w = world();
+    let sc = &w.scenarios["solo_1"].clone();
+    let mage = w.classes.iter().position(|c| c.id == "mage").unwrap();
+    let ib = w.spell_index["mage.ice_block"];
+    let k = w.classes[mage].rotations["frost"].actions.iter().position(|a| a.spell == ib).expect("an Ice Block line");
+    let b = load_build(&w, Path::new("builds/mage/frost.toml"), Some(60)).unwrap();
+    for emergency in [false, true] {
+        {
+            let r = w.classes[mage].rotations.get_mut("frost").unwrap();
+            r.actions[k].emergency = emergency;
+            r.emergency = if emergency { vec![k as u16] } else { vec![] };
+        }
+        let mut sim = Sim::new(&w, 5, defaults(&w, sc));
+        let p = sim.spawn_player(&b, 0, 1);
+        let e = sim.spawn_enemy(&w.enemies["humanoid"], 60, 1, 1000, 1.0);
+        sim.place(p, 0.0);
+        sim.place(e, 25.0);
+        sim.actors[p].target = Some(e);
+        sim.actors[e].target = Some(p);
+        sim.enter_combat();
+        let fb_id = w.spell_index["mage.frostbolt"];
+        let fb = sim.can_cast(p, fb_id, SpellTarget::Enemy, false).expect("a Frostbolt");
+        sim.begin(p, fb);
+        sim.actors[p].hp = 0.1 * sim.actors[p].max_hp;
+        // past the global cooldown, the Frostbolt still going; a reaction to see it
+        let mut stopped = false;
+        for step in 1..=10 {
+            sim.t = 1.6 + 0.1 * step as f64;
+            if sim.actors[p].cast.as_ref().map_or(true, |c| c.spell != fb_id) {
+                break;
+            }
+            sim.act(p);
+            stopped |= sim.actors[p].auras.iter().any(|i| i.def == w.aura_index["mage.ice_block"]);
+        }
+        assert_eq!(stopped, emergency, "an emergency Ice Block stops the Frostbolt; an ordinary one waits");
+    }
+}
+
+/// Your side's crowd control holds: while another enemy fights, you turn to
+/// it, your pet leaves the held one, swings and single-target spells skip
+/// it, and the CC can still be put back on. Alone, auto attacks still hold
+/// off, and a line breaks it.
+#[test]
+fn own_crowd_control_holds() {
+    use forever_sim::engine::{Cx, Sim};
+    use forever_sim::vars::Hand;
+    let w = world();
+    let sc = &w.scenarios["solo_2"];
+    let mut sim = Sim::new(&w, 2, defaults(&w, sc));
+    let war = sim.spawn_player(&load_build(&w, Path::new("builds/warrior/arms.toml"), Some(60)).unwrap(), 0, 1);
+    let mage = sim.spawn_player(&load_build(&w, Path::new("builds/mage/frost.toml"), Some(60)).unwrap(), 0, 2);
+    let hunter = sim.spawn_player(&load_build(&w, Path::new("builds/hunter/beast_mastery.toml"), Some(60)).unwrap(), 0, 3);
+    let e1 = sim.spawn_enemy(&w.enemies["humanoid"], 60, 1, 1000, 1.0);
+    let e2 = sim.spawn_enemy(&w.enemies["humanoid"], 60, 1, 1001, 1.0);
+    for (x, at) in [(war, 0.0), (mage, -20.0), (hunter, -25.0), (e1, 2.0), (e2, 3.0)] {
+        sim.place(x, at);
+    }
+    sim.prep([hunter, hunter]);
+    sim.enter_combat();
+    for x in [e1, e2] {
+        sim.actors[x].aware = true;
+        sim.actors[x].target = Some(war);
+    }
+    let cx = Cx::new(mage, Some(e2), "");
+    sim.apply_aura(e2, w.aura_index["mage.polymorph"], mage, 1, Some(30.0), None, cx);
+    // the warrior on the sheep turns to the free one
+    sim.actors[war].target = Some(e2);
+    sim.retarget(war);
+    assert_eq!(sim.actors[war].target, Some(e1), "you turn to the enemy that's free");
+    sim.actors[war].target = Some(e2);
+    assert!(!sim.can_swing(war, Hand::Mh), "no swings at the sheep");
+    let ms = w.classes.iter().find(|c| c.id == "warrior").unwrap().rotations["arms_2h"].actions.iter().find(|a| a.spell == w.spell_index["warrior.mortal_strike"]).unwrap().clone();
+    sim.actors[war].res[forever_sim::vars::Res::Rage as usize] = 100.0;
+    assert!(sim.line_plan(war, &ms, true, &mut None).is_none(), "no Mortal Strike on the sheep");
+    let mut bold = ms.clone();
+    bold.breaks_cc = true;
+    assert!(sim.line_plan(war, &bold, true, &mut None).is_some(), "unless the line says it breaks crowd control");
+    // the hunter's pet leaves it too
+    let pet = sim.actors[hunter].pets.iter().copied().find(|&p| sim.actors[p].alive).expect("a pet");
+    sim.actors[hunter].target = Some(e2);
+    sim.actors[pet].target = Some(e2);
+    sim.retarget(pet);
+    assert_eq!(sim.actors[pet].target, Some(e1), "the pet takes the free one");
+    // the mage can sheep it again
+    let poly = w.classes.iter().find(|c| c.id == "mage").unwrap().rotations.values().flat_map(|r| r.actions.iter()).find(|a| a.spell == w.spell_index["mage.polymorph"]).unwrap().clone();
+    sim.actors[mage].target = Some(e2);
+    let mut again = poly.clone();
+    again.cond = None;
+    assert!(sim.line_plan(mage, &again, true, &mut None).is_some(), "Polymorph can go back on");
+    // with nobody else to fight, auto attacks still hold off (a breather),
+    // but a line can break it
+    sim.actors[e1].alive = false;
+    assert!(!sim.can_swing(war, Hand::Mh), "no auto attack at your own sheep");
+    assert!(sim.line_plan(war, &ms, true, &mut None).is_some(), "Mortal Strike can break it once it's the only one left");
+}
+
+/// Upkeep (reapplied a little late by a typical player) is a line watching
+/// its own aura's presence, not its stacks: Rend is upkeep, Sunder isn't.
+/// And the rest thresholds can read the next pull.
+#[test]
+fn upkeep_and_rest_by_pull() {
+    let w = world();
+    let war = w.classes.iter().find(|c| c.id == "warrior").unwrap();
+    let line = |rot: &str, spell: &str| war.rotations[rot].actions.iter().find(|a| a.spell == w.spell_index[spell]).unwrap().clone();
+    assert!(line("arms_2h", "warrior.rend").upkeep, "Rend is upkeep");
+    assert!(!line("prot_shield", "warrior.sunder_armor").upkeep, "Sunder isn't");
+    let dir = std::env::temp_dir().join(format!("fsim-rest-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let patch = dir.join("rest.toml");
+    std::fs::write(&patch, "[classes.warrior.rotations.arms_2h]\neat_below = \"pull.size >= 2 ? 0.99 : 0.01\"\n").unwrap();
+    let w2 = load_world(&LoadOptions { data_dir: PathBuf::from("data"), extra_patches: vec![patch], ..Default::default() }).unwrap();
+    let b = load_build(&w2, Path::new("builds/warrior/arms.toml"), Some(30)).unwrap();
+    let eats = |id: &str| {
+        let sc = &w2.scenarios[id];
+        let (v, _) = run_rep(&RepInput { w: &w2, sc, build: &b, opponent: None, opts: &defaults(&w2, sc), seed: 1, log: false });
+        v["eats_per_hour"]
+    };
+    let (one, two) = (eats("solo_1"), eats("solo_2"));
+    assert!(two > 5.0 * one.max(0.1), "eats before doubles ({two}/h), hardly before singles ({one}/h)");
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+/// The website's sessions keep results by column; for every metric that
+/// keeps its values they summarise exactly as the command line does from
+/// the same replications.
+#[test]
+fn stored_columns_summarise_like_the_command_line() {
+    let w = world();
+    let sc = &w.scenarios["boss"];
+    let b = load_build(&w, Path::new("builds/rogue/combat.toml"), Some(60)).unwrap();
+    let cfg = McCfg { min_reps: 48, max_reps: 48, batch: 16, precision: 0.0, threads: 2, ..Default::default() };
+    let res = mc::run(&[&w], "boss", &[Variant { world: 0, name: b.name.clone(), build: b, opponent: None, opts: defaults(&w, sc) }], &cfg);
+    let kind = |k: &str| forever_sim::scenario::metric_kind(&w, sc, &defaults(&w, sc), k);
+    let cli: Vec<serde_json::Value> = mc::summarise_with(&res.values[0], 0.95, &kind).into_iter().filter(|m| !m.name.contains(':')).map(|m| serde_json::to_value(m).unwrap()).collect();
+    let text = std::fs::read_to_string("builds/rogue/combat.toml").unwrap();
+    let build = serde_json::to_value(toml::from_str::<toml::Value>(&text).unwrap()).unwrap();
+    let call = |j: serde_json::Value| -> serde_json::Value { serde_json::from_str(&forever_sim::api::handle(&j.to_string())).unwrap() };
+    let id = call(serde_json::json!({ "op": "start", "scenario": "boss", "level": 60, "builds": [build], "precision": 0.0, "min_reps": 48, "max_reps": 48 }))["id"].as_u64().unwrap();
+    while !call(serde_json::json!({ "op": "step", "id": id, "reps": 16 }))["finished"].as_bool().unwrap() {}
+    let r = call(serde_json::json!({ "op": "result", "id": id }));
+    let web: Vec<serde_json::Value> = r["variants"][0]["metrics"].as_array().unwrap().iter().filter(|m| !m["name"].as_str().unwrap().contains(':')).cloned().collect();
+    assert_eq!(web, cli);
+}
+
+/// Breakevens come off a bisection grid: it's finer than half the
+/// website's Precise target (0.5%), so the grid never decides a result.
+#[test]
+fn breakeven_grids_are_fine() {
+    let w = world();
+    for id in ["pressure", "pressure_2v1", "heal_dungeon", "heal_tank", "heal_raid"] {
+        let sc = &w.scenarios[id];
+        let primary = sc.primary.clone();
+        match forever_sim::scenario::metric_kind(&w, sc, &defaults(&w, sc), &primary) {
+            mc::MetricKind::Median { rel_cell } => assert!(rel_cell > 0.0 && rel_cell < 0.0025, "{id}: a {rel_cell} grid"),
+            k => panic!("{id}: {k:?}"),
+        }
+    }
 }

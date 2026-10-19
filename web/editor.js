@@ -6,7 +6,7 @@ import { h, art, ability, withTip, tt, flash, fmtNum, heroImg } from './ui.js';
 import { prepareClass, renderTrees, learnBlock, unlearnBlock, budgetFor, spent } from './talents.js';
 import {
   S, env, bus, classOf, raceOf, presetOf, presetsFor, keepRace, presetTags, isExperimental, baseName, classColor, editingBuild, names, nameOf, slotOf, autoName,
-  apiBuild, buildFromPreset, emptyBuild, sig, buildDiff, diffText, saveLocal, soloRotations, healRotationOf, healsGroups,
+  apiBuild, buildFromPreset, emptyBuild, sig, buildDiff, diffText, saveLocal, soloRotations, healRotationOf, healsGroups, requestOpts,
 } from './state.js';
 
 export async function refreshSheet(b) {
@@ -14,7 +14,7 @@ export async function refreshSheet(b) {
   const name = names()[S.builds.indexOf(b)] || 'Build';
   let res;
   try {
-    res = await env.engine.call({ op: 'sheet', build: apiBuild(b, name), opts: S.opts });
+    res = await env.engine.call({ op: 'sheet', build: apiBuild(b, name), opts: requestOpts() || undefined });
   } catch (e) {
     res = { error: e.message };
   }

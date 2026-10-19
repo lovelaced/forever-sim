@@ -8,7 +8,7 @@
 // the shared settings (`env`) are unchanged; the engine is deterministic, so
 // that variant is exactly what a new run would give.
 import * as M from './meta.js';
-import { S, env, bus, sig, envKey, apiBuild, nameOf, presetOf, primaryOf, accuracyOf, accuracyRank, buildOf, saveRows, savePool, takesTest } from './state.js';
+import { S, env, bus, sig, envKey, requestOpts, apiBuild, nameOf, presetOf, primaryOf, accuracyOf, accuracyRank, buildOf, saveRows, savePool, takesTest } from './state.js';
 
 // Tests in the scorecard's tab (PvE or PvP), in display order. Head to head
 // needs two builds, or an opponent picked for a single build; the healing
@@ -40,33 +40,45 @@ export function opponentApi(level) {
   return { ...rest, level };
 }
 
+// How precise each class's score must be when fighting every standard
+// build, by accuracy (absolute, like the score's).
+const POOL_TARGET = { quick: 0.08, standard: 0.05, precise: 0.03 };
+
 // Every request one test needs, fixed at the moment Simulate is pressed.
 // `pool`: an open-world PvP test against every standard build.
-function planTest(test, acc, pool = false) {
+export function planTest(test, acc, pool = false) {
   const a = accuracyOf(acc);
-  const base = { op: 'start', scenario: test, precision: a.precision, max_reps: a.max_reps, min_reps: 32 };
-  if (pool) base.opponents = 'standard';
-  if (Object.keys(S.opts).length) base.opts = { ...S.opts };
   const roles = rolesOf(S.builds.filter((b) => takesTest(b, test)));
+  // how the opponent plays only applies against a picked opponent
+  const one = test === 'duel' && roles.length < 2;
+  const base = { op: 'start', scenario: test, precision: a.precision, max_reps: M.maxRepsFor(test, acc), min_reps: 32 };
+  // against every standard build, each class's own score gets a range worth reading
+  if (pool) {
+    base.opponents = 'standard';
+    base.targets = { 'score:': POOL_TARGET[acc] || 0.05 };
+  }
+  const opts = requestOpts(one);
+  if (opts) base.opts = opts;
   const api = (r) => apiBuild(r.build, nameOf(r.build));
   if (test !== 'duel') {
     return { test, acc, env: envKey(), roles: roles.map(plain), sessions: [{ req: { ...base, builds: roles.map(api) } }] };
   }
-  // Head to head, each pair once: duels start on the same tick and whoever
-  // reacts first strikes first, so who challenges whom doesn't matter. A
-  // single build fights the opponent picked in the duel's detail instead.
-  const sides = roles.map((r) => ({ role: plain(r), api: api(r) }));
-  let key = envKey();
-  if (roles.length < 2) {
-    const opp = opponentApi(roles[0].build.level);
-    sides.push({ role: { sig: S.opponent, uids: [] }, api: opp });
-    key = `${key}|${S.opponent}`;
+  // A single build duels the opponent picked in the duel's detail: your
+  // build is the build, the pick the opponent.
+  if (one) {
+    const opp = { sig: S.opponent, uids: [] };
+    const req = { ...base, builds: [api(roles[0])], opponent: opponentApi(roles[0].build.level) };
+    return { test, acc, env: `${envKey(true)}|${S.opponent}`, one: true, roles: roles.map(plain), sessions: [{ opp, challengers: [plain(roles[0])], req }] };
   }
+  // Your builds head to head, each pair once: duels start on the same tick
+  // and whoever reacts first strikes first, so who challenges whom doesn't
+  // matter.
+  const sides = roles.map((r) => ({ role: plain(r), api: api(r) }));
   const sessions = sides.slice(0, -1).map((opp, k) => {
     const others = sides.slice(k + 1);
     return { opp: opp.role, challengers: others.map((x) => x.role), req: { ...base, builds: others.map((x) => x.api), opponent: opp.api } };
   });
-  return { test, acc, env: key, one: roles.length < 2, roles: roles.map(plain), sessions };
+  return { test, acc, env: envKey(), one: false, roles: roles.map(plain), sessions };
 }
 
 // A row needs no new run when every build is already in it, with the same
@@ -88,7 +100,7 @@ export function poolOf(test) {
   return want.every((r) => p.roles.some((x) => x.sig === r.sig)) ? p : null;
 }
 
-const estimate = (st, est) => {
+export const estimate = (st, est) => {
   const worst = Math.max(0, ...st.precision.filter((x) => x != null));
   if (st.reps >= 32 && worst > 0) return Math.min(st.max_reps, Math.max(st.reps, st.reps * (worst / st.target) ** 2));
   return Math.max(est, st.reps);
@@ -101,7 +113,7 @@ export async function simulateAll({ only = null, acc = S.accuracy, pool = false 
   if (S.run && !S.run.finished) return;
   const order = only ? [only] : [S.open, ...M.RUN_ORDER, ...scorecardTests()].filter((t, i, a) => t && a.indexOf(t) === i && scorecardTests().includes(t));
   const jobs = order.filter((t) => only || !upToDate(t, acc)).map((t) => planTest(t, acc, pool));
-  const run = { jobs: jobs.map((j) => j.test), i: 0, frac: 0, test: null, acc, cancelled: false, finished: false, stopped: false, t0: performance.now(), ms: 0, full: !only, pool, mode: S.mode };
+  const run = { jobs: jobs.map((j) => j.test), i: 0, frac: 0, test: null, acc, cancelled: false, finished: false, stopped: false, failed: 0, t0: performance.now(), ms: 0, full: !only, pool, mode: S.mode };
   S.run = run;
   if (!jobs.length) {
     run.finished = true;
@@ -131,19 +143,23 @@ export async function simulateAll({ only = null, acc = S.accuracy, pool = false 
         if (!res) break;
         results.push(res);
       }
+      if (run.cancelled) break;
+      if (pool) {
+        S.pool[job.test] = { acc: job.acc, env: job.env, roles: job.roles, res: results[0], ms: performance.now() - t0 };
+        savePool();
+      } else {
+        await commit(job, results, performance.now() - t0);
+      }
     } catch (e) {
-      S.rows[job.test] = { acc: job.acc, env: job.env, roles: job.roles, error: e.message || String(e) };
-      run.i++;
-      bus.render();
-      continue;
+      // a failed run keeps the last good results, with the error under them
+      run.failed++;
+      const msg = e.message || String(e);
+      const old = pool ? null : S.rows[job.test];
+      if (old && !old.error) old.failure = msg;
+      else if (!pool) S.rows[job.test] = { acc: job.acc, env: job.env, roles: job.roles, error: msg };
+      else bus.flash?.(`The run against every build failed: ${msg}`);
     }
     if (run.cancelled) break;
-    if (pool) {
-      S.pool[job.test] = { acc: job.acc, env: job.env, roles: job.roles, res: results[0], ms: performance.now() - t0 };
-      savePool();
-    } else {
-      await commit(job, results, performance.now() - t0);
-    }
     run.i++;
     run.frac = run.i / jobs.length;
     bus.render();
@@ -165,6 +181,7 @@ export function cancelRun() {
 // Store a finished test, and pair each build's per-fight results with the
 // ones from its previous version on the same fights: "what your change did".
 async function commit(job, results, ms) {
+  delete S.rows[job.test]?.failure;
   const primary = primaryOf(job.test);
   if (job.test === 'duel') {
     S.rows.duel = {
@@ -207,7 +224,7 @@ export function cellOf(row, b) {
 }
 
 function rowEnv(row) {
-  return row.one ? `${envKey()}|${S.opponent}` : envKey();
+  return row.one ? `${envKey(true)}|${S.opponent}` : envKey();
 }
 
 // Paired comparison of variant b against variant a for `metric`.

@@ -252,7 +252,12 @@ icon = "inv_scroll_07"
 tree = "Holy"
 points = 20
 ranks = 2
-text = "Mana back (5% of base cost per point, 10% at 2/2) when a heal follows a different heal (not simulated)."
+text = "10% of a heal's mana back when it follows a different heal (5% a point)."
+# which heal came last: litany_last's stacks hold a number per heal
+procs = [
+  { on = "cast", if = "(spell.lesser_heal + 2 * spell.heal + 3 * spell.greater_heal + 4 * spell.flash_heal + 5 * spell.renew + 6 * spell.prayer_of_healing + 7 * spell.penance_heal + 8 * spell.prayer_of_mending) > 0 && aura.litany_last.up && aura.litany_last.stacks != (spell.lesser_heal + 2 * spell.heal + 3 * spell.greater_heal + 4 * spell.flash_heal + 5 * spell.renew + 6 * spell.prayer_of_healing + 7 * spell.penance_heal + 8 * spell.prayer_of_mending)", effects = [{ type = "resource", res = "mana", amount = "event.amount * 0.05 * rank" }] },
+  { on = "cast", if = "(spell.lesser_heal + 2 * spell.heal + 3 * spell.greater_heal + 4 * spell.flash_heal + 5 * spell.renew + 6 * spell.prayer_of_healing + 7 * spell.penance_heal + 8 * spell.prayer_of_mending) > 0", effects = [{ type = "aura", aura = "litany_last", stacks = "(spell.lesser_heal + 2 * spell.heal + 3 * spell.greater_heal + 4 * spell.flash_heal + 5 * spell.renew + 6 * spell.prayer_of_healing + 7 * spell.penance_heal + 8 * spell.prayer_of_mending)" }] },
+]
 [talents.spirit_of_redemption]
 icon = "inv_enchant_essenceeternallarge"
 tree = "Holy"
@@ -362,7 +367,7 @@ icon = "spell_shadow_unsummonbuilding"
 tree = "Shadow Magic"
 points = 15
 ranks = 1
-text = "Heal for 20% of your Shadow damage for 30 sec. 1 min cooldown."
+text = "You and your party heal for 20% of your Shadow damage for 30 sec. 1 min cooldown."
 [talents.shadow_weaving]
 icon = "spell_shadow_blackplague"
 tree = "Shadow Magic"
@@ -424,11 +429,23 @@ procs = [{ on = "struck", if = "!event.spell", effects = [{ type = "consume" }] 
 name = "Power Word: Fortitude"
 dispel = "magic"
 mods = [{ stat = "sta", add = "r.sta" }]
+[auras.litany_last]
+name = "Litany of Light: last heal"
+hidden = true
+max_stacks = 8
+refresh = "replace"
 [auras.weakened_soul]
 name = "Weakened Soul"
 debuff = true
+dispel = "none"
 per_source = false
 duration = "15 - t.renewed_hope"
+[auras.abolish_disease]
+name = "Abolish Disease"
+duration = 20
+dispel = "magic"
+tick = { interval = 5, effects = [{ type = "cleanse", target = "target", types = ["disease"] }] }
+
 [auras.power_word_shield]
 name = "Power Word: Shield"
 dispel = "magic"
@@ -457,26 +474,35 @@ tick = { interval = 2, effects = [
   { type = "damage", school = "holy", periodic = true, tag = "Holy Fire (burn)", amount = "r.dot", coef = 0.05 },
   { type = "chance", p = "0.05 * t.searing_light", then = [{ type = "aura", aura = "holy_purpose", target = "self" }] },
 ] }
+# the game's modifiers (spell 14751) reach every priest spell with a cost,
+# Prayer of Healing, the cures and Dispel Magic included
 [auras.inner_focus]
 name = "Inner Focus"
 dispel = "magic"
 consume_on_cast = true
 spell_mods = [
-  { spells = ["smite", "holy_fire", "mind_blast", "mind_flay", "shadow_word_pain", "devouring_plague", "shadow_word_death", "penance", "penance_heal", "holy_nova", "lesser_heal", "heal", "greater_heal", "flash_heal", "binding_heal", "renew", "power_word_shield", "prayer_of_mending", "shadowguard", "inner_fire", "fortitude", "psychic_scream", "shadowform", "vampiric_embrace", "power_infusion", "contingency_plan"], prop = "cost", mul = 0 },
-  { spells = ["smite", "holy_fire", "mind_blast", "mind_flay", "penance", "penance_heal", "holy_nova", "lesser_heal", "heal", "greater_heal", "flash_heal", "binding_heal", "desperate_prayer", "prayer_of_mending", "shadowguard"], prop = "crit", add = 25 },
+  { spells = ["smite", "holy_fire", "mind_blast", "mind_flay", "shadow_word_pain", "devouring_plague", "shadow_word_death", "penance", "penance_heal", "holy_nova", "lesser_heal", "heal", "greater_heal", "flash_heal", "binding_heal", "renew", "power_word_shield", "prayer_of_mending", "prayer_of_healing", "shadowguard", "inner_fire", "fortitude", "psychic_scream", "shadowform", "vampiric_embrace", "power_infusion", "contingency_plan", "dispel_magic", "dispel_magic_enemy", "cure_disease", "abolish_disease", "mana_burn", "shackle_undead", "fade", "silence"], prop = "cost", mul = 0 },
+  { spells = ["smite", "holy_fire", "mind_blast", "mind_flay", "penance", "penance_heal", "holy_nova", "lesser_heal", "heal", "greater_heal", "flash_heal", "binding_heal", "desperate_prayer", "prayer_of_mending", "prayer_of_healing", "shadowguard"], prop = "crit", add = 25 },
 ]
+# Power Infusion, Divine Aegis, Blessed Recovery, Spirit Tap, Focused
+# Casting, Holy Purpose and Contingency Plan's shield and heal are magic
+# in the game's tables (10060, 431624, 27813, 15271, 27828, 1284536,
+# 1277456 and on): an enemy's Dispel Magic or Purge takes them off.
 [auras.power_infusion]
 name = "Power Infusion"
+dispel = "magic"
 duration = 15
 mods = [{ stat = "spell_dmg_done", mul = 1.2 }, { stat = "heal_done", mul = 1.2 }]
 [auras.divine_aegis]
 name = "Divine Aegis"
+dispel = "magic"
 duration = 12
 max_stacks = 1000000
 refresh = "replace"
 absorb = "stacks"
 [auras.blessed_recovery]
 name = "Blessed Recovery"
+dispel = "magic"
 duration = 6
 max_stacks = 1000000
 refresh = "replace"
@@ -488,15 +514,19 @@ refresh = "replace"
 mods = [{ stat = "armor_mult", mul = "1 + interp(t.inspiration, 0,0, 1,0.08, 2,0.17, 3,0.25)" }]
 [auras.spirit_tap]
 name = "Spirit Tap"
+dispel = "magic"
 duration = 15
 mods = [{ stat = "spi_pct", add = 1.0 }, { stat = "casting_regen", add = 0.5 }]
+# the game's heal (spell 15290) reaches the priest's party within 30 yards:
+# alone that's you, in a group the tank and the rest too
 [auras.vampiric_embrace]
 name = "Vampiric Embrace"
 duration = 30
-procs = [{ on = "spell_landed", if = "!event.physical && !(spell.smite || spell.holy_fire || spell.penance || spell.holy_nova)", effects = [{ type = "heal", target = "self", amount = "event.amount * 0.2", tag = "Vampiric Embrace" }] }]
+procs = [{ on = "spell_landed", if = "!event.physical && !(spell.smite || spell.holy_fire || spell.penance || spell.holy_nova)", effects = [{ type = "heal", target = "party", amount = "event.amount * 0.2", tag = "Vampiric Embrace" }] }]
 [auras.shadow_weaving]
 name = "Shadow Weaving"
 debuff = true
+dispel = "magic"
 per_source = false
 duration = 15
 max_stacks = 5
@@ -507,6 +537,7 @@ form = true
 mods = [{ stat = "shadow_dmg_done", mul = 1.1 }, { stat = "phys_dmg_taken", mul = 0.85 }]
 spell_mods = [{ school = "shadow", prop = "cost", mul = 0.5 }, { spells = ["mind_blast", "mind_flay", "shadow_word_pain", "devouring_plague", "shadowguard"], prop = "crit_bonus", add = 1.0 }]
 [auras.shadowguard]
+jumped = "drop"   # a charge shield: gone when you're jumped in the open world
 name = "Shadowguard"
 dispel = "magic"
 duration = 600
@@ -530,25 +561,30 @@ duration = 30
 procs = [{ on = "struck", if = "hp_pct < 0.35", effects = [{ type = "aura", aura = "contingency_shield" }, { type = "aura", aura = "contingency_heal" }, { type = "remove_self" }] }]
 [auras.contingency_shield]
 name = "Contingency Plan (shield)"
+dispel = "magic"
 duration = 15
 absorb = "r.shield"
 [auras.focused_casting]
 name = "Focused Casting"
+dispel = "magic"
 duration = 6
 mods = [{ stat = "pushback_resist", add = 1.0 }]
 [auras.holy_purpose]
 name = "Holy Purpose"
+dispel = "magic"
 duration = 10
 consume_on_cast = true
 spell_mods = [{ spells = ["holy_nova"], prop = "cost", mul = 0 }]
 [auras.contingency_heal]
 name = "Contingency Plan (heal)"
+dispel = "magic"
 duration = 15
 tick = { interval = 3, effects = [{ type = "heal", target = "self", amount = "r.hot", coef = 0.2, periodic = true, tag = "Contingency Plan" }] }
 
 # ------------------------------------------------------------------ spells
 [spells.inner_fire]
 name = "Inner Fire"
+school = "holy"
 icon = "spell_holy_innerfire"
 target = "self"
 requires = "!aura.inner_fire.up || aura.inner_fire.remains < 60"
@@ -557,6 +593,7 @@ text = "Lasts 10 min or 20 melee and ranged hits taken."
 effects = [{ type = "aura", aura = "inner_fire" }]
 [spells.fortitude]
 name = "Power Word: Fortitude"
+school = "holy"
 range = 30
 icon = "spell_holy_wordfortitude"
 target = "self"
@@ -597,6 +634,7 @@ effects = [{ type = "damage", school = "holy", min = "r.lo", max = "r.hi", coef 
 name = "Holy Fire"
 icon = "spell_holy_searinglight"
 school = "holy"
+dispel = "magic"
 cast_time = 3.5
 ranks = [
   { level = 20, id = 14914, lo = 51, lo_per_level = 1.152, hi = 65, hi_per_level = 1.448, dot = 4, mana = 85, max_level = 24, coef = 0.75 },
@@ -634,6 +672,7 @@ effects = [{ type = "damage", school = "shadow", min = "r.lo", max = "r.hi", coe
 name = "Shadow Word: Pain"
 icon = "spell_shadow_shadowwordpain"
 school = "shadow"
+dispel = "magic"
 requires = "!target.aura.shadow_word_pain.up"
 ranks = [
   { level = 4, id = 589, tick = 5, mana = 25 },
@@ -652,6 +691,7 @@ effects = [{ type = "damage", school = "shadow", amount = 0, can_crit = false, o
 name = "Devouring Plague"
 icon = "spell_shadow_devouringplague"
 school = "shadow"
+dispel = "disease"
 cooldown = 60
 requires = "!target.aura.devouring_plague.up"
 ranks = [
@@ -756,6 +796,7 @@ effects = [
 
 [spells.power_word_shield]
 name = "Power Word: Shield"
+school = "holy"
 range = 40
 icon = "spell_holy_powerwordshield"
 cooldown = 4
@@ -937,6 +978,7 @@ effects = [{ type = "heal", target = "self", min = "r.lo", max = "r.hi", coef = 
 
 [spells.dark_sacrifice]
 name = "Dark Sacrifice"
+school = "shadow"
 icon = "spell_holy_powerinfusion_shadow"
 cooldown = 600
 target = "self"
@@ -953,6 +995,7 @@ effects = [{ type = "aura", aura = "dark_sacrifice" }]
 
 [spells.contingency_plan]
 name = "Contingency Plan"
+school = "holy"
 range = 30
 icon = "ability_priest_soulwarding"
 cooldown = 600
@@ -979,6 +1022,7 @@ ranks = [{ level = 1, id = 14751 }]
 effects = [{ type = "aura", aura = "inner_focus" }]
 [spells.power_infusion]
 name = "Power Infusion"
+school = "holy"
 range = 30
 icon = "spell_holy_powerinfusion"
 talent = "power_infusion"
@@ -1000,6 +1044,7 @@ target = "self"
 effects = [{ type = "aura", aura = "vampiric_embrace" }]
 [spells.shadowform]
 name = "Shadowform"
+school = "shadow"
 icon = "spell_shadow_shadowform"
 talent = "shadowform"
 target = "self"
@@ -1019,8 +1064,54 @@ ranks = [{ level = 14, id = 8122, targets = 2, mana = 100 }, { level = 28, id = 
 effects = [{ type = "aura", aura = "fear", target = "enemies", max_targets = "r.targets", duration = 8 }]
 
 # ------------------------------------------------------------------ crowd control and escapes
+[spells.dispel_magic]
+name = "Dispel Magic"
+range = 30
+icon = "spell_holy_dispelmagic"
+school = "holy"
+target = "self"
+cost = { mana = "0.18 * base_mana" }
+text = "Takes 1 magic effect (2 from rank 2) off a friendly target."
+ranks = [{ level = 18, id = 527, n = 1 }, { level = 36, id = 988, n = 2 }]
+effects = [{ type = "cleanse", target = "ally", types = ["magic"], count = "r.n" }]
+
+[spells.dispel_magic_enemy]
+name = "Dispel Magic"
+range = 30
+icon = "spell_holy_dispelmagic"
+school = "holy"
+target = "enemy"
+cost = { mana = "0.18 * base_mana" }
+requires = "target.magic_buffs > 0"
+text = "On an enemy: takes 1 magic buff (2 from rank 2) off, the newest first."
+ranks = [{ level = 18, id = 527, n = 1 }, { level = 36, id = 988, n = 2 }]
+effects = [{ type = "purge", target = "target", count = "r.n" }]
+
+[spells.cure_disease]
+name = "Cure Disease"
+range = 30
+icon = "spell_holy_nullifydisease"
+school = "holy"
+target = "self"
+cost = { mana = "0.15 * base_mana" }
+text = "Takes 1 disease off a friendly target."
+ranks = [{ level = 14, id = 528 }]
+effects = [{ type = "cleanse", target = "ally", types = ["disease"] }]
+
+[spells.abolish_disease]
+name = "Abolish Disease"
+range = 30
+icon = "spell_nature_nullifydisease"
+school = "holy"
+target = "self"
+cost = { mana = "0.15 * base_mana" }
+text = "Takes 1 disease off a friendly target now and another every 5 sec for 20 sec."
+ranks = [{ level = 32, id = 552 }]
+effects = [{ type = "cleanse", target = "ally", types = ["disease"] }, { type = "aura", aura = "abolish_disease", target = "ally" }]
+
 [spells.shackle_undead]
 name = "Shackle Undead"
+dispel = "magic"
 range = 30
 icon = "spell_nature_slow"
 school = "holy"
@@ -1068,6 +1159,7 @@ effects = [
 ]
 [spells.silence]
 name = "Silence"
+dispel = "magic"
 range = 20
 icon = "spell_shadow_impphaseshift"
 school = "shadow"
@@ -1080,6 +1172,7 @@ effects = [{ type = "aura", aura = "silence", target = "target", duration = 5 },
 
 [auras.shackle_undead]
 name = "Shackle Undead"
+hold = true
 debuff = true
 mechanic = "incap"
 dr = "incap"
@@ -1093,19 +1186,21 @@ dispel = "magic"
 # those lines. Before Shadowform a leveling priest heals itself with Flash
 # Heal when a fight goes badly (Shadowform forbids it).
 [rotations.shadow]
-desc = "Shadow: Shadowform, Shield, Vampiric Embrace, Pain and Plague, Mind Blast, Shadow Word: Death, Mind Flay; Flash Heal when low before Shadowform"
+desc = "Shadow: Shadowform, Shield, Vampiric Embrace, Pain, Mind Blast, Shadow Word: Death and Mind Flay (the wand until you learn it); Plague for bosses, players and packs; Flash Heal when low before Shadowform"
 auto_melee = false
-precombat = ["inner_fire", "fortitude", "shadowguard", "shadowform", "power_word_shield"]
+precombat = ["inner_fire", "fortitude", "shadowguard", "shadowform", { cast = "power_word_shield", if = "!aura.power_word_shield.up" }]
 opener = []
 actions = [
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
-  { cast = "desperate_prayer", if = "hp_pct < 0.35" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
+  { cast = "desperate_prayer", if = "hp_pct < 0.35", emergency = true },
   { cast = "contingency_plan", if = "hp_pct < 0.6" },
-  { cast = "power_word_shield", if = "(!target.boss && (in_combat || hp_pct < 0.9)) && !(!target.is_player && enemies < 2 && target.hp < 0.5 * hp && hp_pct > 0.4)" },
+  { cast = "power_word_shield", if = "!aura.power_word_shield.up && !target.boss && (in_combat || hp_pct < 0.9) && !(!target.is_player && enemies < 2 && target.hp < 0.5 * hp && hp_pct > 0.4)", upkeep = false },   # not over a shield that still holds; the moment Weakened Soul ends
   { cast = "psychic_scream", if = "hp_pct < 0.4" },
   { cast = "flash_heal", if = "(hp_pct < 0.35) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "vampiric_embrace" },
+  { cast = "dispel_magic", target = "self", if = "target.is_player && hp_pct < 0.7 && mana_pct > 0.5 && (aura.warlock.corruption.up + aura.warlock.immolate.up + aura.warlock.siphon_life.up + aura.shadow_word_pain.up + aura.holy_fire.up + aura.druid.moonfire.up + aura.druid.insect_swarm.up + aura.shaman.flame_shock.up) >= 2" },   # PvP: two DoTs off yourself once they hurt (not slows: you cast from where you stand)
+  { cast = "dispel_magic_enemy", if = "target.is_player && (target.aura.power_word_shield.up || target.aura.mage.ice_barrier.up || target.aura.mage.mana_shield.up || target.aura.warlock.shadow_ward.up || target.aura.renew.up || target.aura.druid.rejuvenation.up || target.aura.druid.regrowth.up)" },   # PvP: strip their shield or heal over time
   { cast = "fade", if = "!has_aggro && threat.pct > 0.75" },   # in a group: drop threat before pulling the tank's mob
   { cast = "silence", if = "target.casting" },
   { cast = "shackle_undead", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && target.undead && !target.boss && !target.incapacitated" },   # hold the undead add
@@ -1113,15 +1208,15 @@ actions = [
   { cast = "berserking" },
   { cast = "elunes_light" },
   { cast = "eureka" },
-  { cast = "power_infusion" },
+  { cast = "power_infusion", if = "!target.trash || enemies >= 2" },   # bosses, players and packs, not one ordinary mob
   { cast = "shadow_word_pain", if = "target.hp_pct > 0.2 || target.boss" },
   { cast = "shadow_word_pain", target = "other_enemy", pick = "undotted", if = "enemies >= 2 && target.hp_pct > 0.4 && !target.feared && !target.incapacitated" },   # spread it
-  { cast = "devouring_plague", if = "target.hp_pct > 0.3 || target.boss" },
+  { cast = "devouring_plague", if = "!target.trash || (enemies >= 2 && target.hp_pct > 0.3)" },   # too dear for one ordinary mob
   { cast = "inner_focus", if = "cd.mind_blast.ready && gcd_remains <= 0" },
   { cast = "mind_blast" },
   { cast = "shadow_word_death", if = "target.hp_pct < 0.2 || hp_pct > 0.6" },
   { cast = "mana_burn", if = "target.is_player && target.mana_pct > 0.5 && hp_pct > 0.6" },
-  { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (mana_pct < 0.4 || (target.hp_pct < 0.35 && !known.mind_flay))" },   # leveling: Mind Blast and Pain, then wand to finish until Mind Flay; after that only to save mana
+  { cast = "shoot", if = "gcd_remains <= 0 && !target.boss && !target.is_player && (mana_pct < 0.4 || !known.mind_flay)" },   # leveling: Pain and Mind Blast, then the wand until Mind Flay; after that only to save mana
   { cast = "mind_flay" },
   { cast = "smite", if = "!known.mind_flay" },
   { cast = "shoot", if = "gcd_remains <= 0" },   # out of mana: the wand is free
@@ -1134,26 +1229,29 @@ rest = [
   { cast = "fortitude" },
   { cast = "shadowform" },
 ]
-eat_below = 0.5
-drink_below = 0.35
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.35"
 
 # Racials as in the shadow rotation; other races skip those lines.
 [rotations.smite]
-desc = "Discipline/Holy damage: Shield, Holy Fire, Pain and Plague, Penance, Mind Blast, Smite; Renew and Flash Heal when hurt"
+desc = "Discipline and Holy damage: Psychic Scream once a player or two mobs reach you, then Shield, Holy Fire, Pain, Penance, Mind Blast and Smite; Renew and Flash Heal when hurt; Plague and Power Infusion for bosses, players and packs"
 auto_melee = false
-precombat = ["inner_fire", "fortitude", "shadowguard", "power_word_shield"]
+precombat = ["inner_fire", "fortitude", "shadowguard", { cast = "power_word_shield", if = "!aura.power_word_shield.up" }]
 opener = []
 actions = [
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
-  { cast = "desperate_prayer", if = "hp_pct < 0.35" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
+  { cast = "desperate_prayer", if = "hp_pct < 0.35", emergency = true },
   { cast = "contingency_plan", if = "hp_pct < 0.6" },
-  { cast = "power_word_shield", if = "(!target.boss && (in_combat || hp_pct < 0.9)) && !(!target.is_player && enemies < 2 && target.hp < 0.5 * hp && hp_pct > 0.4)" },
+  { cast = "psychic_scream", if = "(target.is_player && target.dist < 8) || enemies_within_8 >= 2" },   # a player in melee or two mobs on you: fear first
+  { cast = "power_word_shield", if = "!aura.power_word_shield.up && !target.boss && (in_combat || hp_pct < 0.9) && !(!target.is_player && enemies < 2 && target.hp < 0.5 * hp && hp_pct > 0.4)", upkeep = false },   # not over a shield that still holds; the moment Weakened Soul ends
   { cast = "penance_heal", if = "(hp_pct < 0.45) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "flash_heal", if = "(hp_pct < 0.4) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "renew", if = "hp_pct < 0.7" },
   { cast = "prayer_of_mending", if = "(!target.boss) && !(!target.is_player && enemies < 2 && target.hp < 0.5 * hp && hp_pct > 0.4)" },
   { cast = "psychic_scream", if = "hp_pct < 0.4" },
+  { cast = "dispel_magic", target = "self", if = "target.is_player && hp_pct < 0.7 && mana_pct > 0.5 && (aura.warlock.corruption.up + aura.warlock.immolate.up + aura.warlock.siphon_life.up + aura.shadow_word_pain.up + aura.holy_fire.up + aura.druid.moonfire.up + aura.druid.insect_swarm.up + aura.shaman.flame_shock.up) >= 2" },   # PvP: two DoTs off yourself once they hurt (not slows: you cast from where you stand)
+  { cast = "dispel_magic_enemy", if = "target.is_player && (target.aura.power_word_shield.up || target.aura.mage.ice_barrier.up || target.aura.mage.mana_shield.up || target.aura.warlock.shadow_ward.up || target.aura.renew.up || target.aura.druid.rejuvenation.up || target.aura.druid.regrowth.up)" },   # PvP: strip their shield or heal over time
   { cast = "fade", if = "!has_aggro && threat.pct > 0.75" },   # in a group: drop threat before pulling the tank's mob
   { cast = "silence", if = "target.casting" },
   { cast = "shackle_undead", target = "other_enemy", pick = "nearest", if = "enemies_active >= 2 && target.undead && !target.boss && !target.incapacitated" },   # hold the undead add
@@ -1161,10 +1259,10 @@ actions = [
   { cast = "berserking" },
   { cast = "elunes_light" },
   { cast = "eureka" },
-  { cast = "power_infusion" },
+  { cast = "power_infusion", if = "!target.trash || enemies >= 2" },   # bosses, players and packs, not one ordinary mob
   { cast = "holy_fire", if = "!target.aura.holy_fire.up && target.hp_pct > 0.3" },
   { cast = "shadow_word_pain", if = "target.hp_pct > 0.3 || target.boss" },
-  { cast = "devouring_plague", if = "target.hp_pct > 0.4 || target.boss" },
+  { cast = "devouring_plague", if = "!target.trash || (enemies >= 2 && target.hp_pct > 0.4)" },   # too dear for one ordinary mob
   { cast = "inner_focus", if = "gcd_remains <= 0" },
   { cast = "penance" },
   { cast = "mind_blast" },
@@ -1182,34 +1280,45 @@ rest = [
   { cast = "inner_fire" },
   { cast = "fortitude" },
 ]
-eat_below = 0.4
-drink_below = 0.35
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.4"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.35"
 
 # Healing a group (the healing tests): heals go on the tank or whoever is most
 # hurt, sized to what they're missing (`rank = "fit"` picks the smallest rank
 # that covers it). Nothing is cast while everyone is topped up, so the
 # five-second rule gives back full mana regeneration.
 [rotations.heal]
-desc = "Group healing: a shield, Renew and Prayer of Mending on the tank; Flash Heal for emergencies, Greater Heal and Heal sized to what's missing, Prayer of Healing when three in your group are hurt"
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+desc = "Group healing: a shield, Penance, Renew and Prayer of Mending on the tank; Flash Heal for emergencies, Greater Heal and Heal sized to what's missing, Prayer of Healing when three in your group are hurt, and Inner Focus saved for a big heal"
 healer = true
 auto_melee = false
 precombat = ["inner_fire", "fortitude"]
 opener = []
 actions = [
-  { cast = "mana_potion", if = "opt.potions && mana_pct < 0.3" },
-  { cast = "desperate_prayer", if = "hp_pct < 0.35" },
+  { cast = "mana_potion", if = "potions && mana_pct < 0.3" },
+  { cast = "desperate_prayer", if = "hp_pct < 0.35", emergency = true },
   { cast = "power_word_shield", target = "lowest", if = "ally.hp_pct < 0.4" },
   { cast = "penance_heal", target = "lowest", if = "ally.hp_pct < 0.5" },
   { cast = "flash_heal", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.4" },
-  { cast = "prayer_of_healing", if = "party.hurt_75 >= 3" },
+  # Prayer of Healing once three are missing about what it heals: some 15%
+  # with the early ranks, a quarter of a health bar with the top ones at 60.
+  # Inner Focus waits for it or a Greater Heal (above half health, so the
+  # emergency lines above don't take it).
+  { cast = "inner_focus", if = "(level < 60 ? party.hurt_85 : party.hurt_75) >= 3 && lowest.hp_pct >= 0.5 && known.prayer_of_healing" },
+  { cast = "prayer_of_healing", if = "(level < 60 ? party.hurt_85 : party.hurt_75) >= 3" },
+  { cast = "inner_focus", if = "lowest.hp_pct < 0.6 && lowest.hp_pct >= 0.5" },
+  { cast = "power_infusion", if = "lowest.hp_pct < 0.7" },
+  { cast = "greater_heal", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.6" },
+  { cast = "heal", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.6 && !known.greater_heal" },   # the big heal before 40
+  { cast = "dispel_magic", target = "lowest", if = "ally.debuffs.magic > 0 && mana_pct > 0.5" },   # a magic DoT off the group while mana allows
+  { cast = "abolish_disease", target = "lowest", if = "ally.debuffs.disease > 0 && !ally.aura.abolish_disease.up" },
+  { cast = "cure_disease", target = "lowest", if = "ally.debuffs.disease > 0 && !known.abolish_disease" },
   { cast = "power_word_shield", target = "tank", if = "ally.hp_pct < 0.9" },
+  { cast = "penance_heal", target = "tank", if = "ally.hp_pct < 0.8" },
   { cast = "prayer_of_mending", target = "tank" },
   { cast = "renew", target = "tank", if = "ally.hp_pct < 0.9" },
-  { cast = "inner_focus", if = "lowest.hp_pct < 0.6" },
-  { cast = "power_infusion", if = "lowest.hp_pct < 0.6" },
-  { cast = "greater_heal", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.65" },
   { cast = "heal", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.8" },
   { cast = "lesser_heal", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.8 && !known.heal" },
-  { cast = "renew", target = "lowest", if = "ally.hp_pct < 0.9" },
+  { cast = "renew", target = "lowest", if = "ally.hp_pct < 0.8" },   # only on someone who needs it: the top rank overheals a light scratch
 ]
 rest = []

@@ -1,7 +1,10 @@
-# Your party in the boss test: what the other four bring. Each buff lands
-# from a party member of its class at the rank they'd know at your level,
-# after your own buffs (yours win where they're the same buff; different
-# buffs stack). Each one is an assumption you can turn off (party_<name>).
+# Your party in the boss test: what the other four bring. The `party`
+# setting picks a typical five-player group (the default), no one's buffs,
+# or every buff below at once (a raid's worth). Each buff lands from a
+# party member of its class at the rank they'd know at your level, after
+# your own buffs (yours win where they're the same buff; different buffs
+# stack), on you and on your pets. Each one can also be turned off on its
+# own (party_<name>).
 # `for`: who it goes to — "all", "mana" (anyone with mana), "physical" (a
 # melee or hunter rotation: attack power and agility), "caster" (mana and
 # not physical), "melee" (a melee rotation: Windfury).
@@ -49,3 +52,22 @@ for = "physical"
 [party.windfury]
 spell = "shaman.windfury_totem"
 for = "melee"
+
+# A typical group: besides you, the Protection warrior tank and three more,
+# each slot taken by the first class listed that isn't yours, from your
+# side's list.
+[party_group]
+alliance = [["priest", "druid"], ["mage", "warlock"], ["paladin", "rogue"]]
+horde = [["priest", "druid"], ["mage", "warlock"], ["shaman", "rogue"]]
+
+# What each class in that group brings: from each list, the first buff you'd
+# want (a paladin gives one blessing; a shaman puts down one air and one
+# earth totem).
+[party_brings]
+warrior = [["battle_shout"]]
+priest = [["fortitude"]]
+druid = [["mark_of_the_wild"]]
+mage = [["arcane_intellect"]]
+paladin = [["blessing_of_might", "blessing_of_wisdom", "blessing_of_kings"]]
+hunter = [["trueshot_aura"]]
+shaman = [["windfury", "grace_of_air"], ["strength_of_earth"]]

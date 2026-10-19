@@ -1,5 +1,11 @@
 # Shared auras and spells any class can reference by plain name.
 
+# Between-pulls lines every class rotation ends with: a bandage first when
+# you'd eat anyway, so the food has less to do. Not for a caster low on
+# mana: drinking keeps them sitting anyway, and the food goes in meanwhile.
+[common]
+rest = [{ cast = "first_aid", if = "hp_pct < eat_below && (base_mana == 0 || mana_pct > 0.8)" }]
+
 [common.auras.stun]
 name = "Stunned"
 mechanic = "stun"
@@ -12,6 +18,16 @@ mechanic = "fear"
 debuff = true
 per_source = false
 break_on_damage = 0.15   # fraction of max health taken before it breaks
+speed = 0.25             # the game's fear spells make the target run 25% faster
+
+# A horror effect (Death Coil): the target runs in horror, without fear's
+# speed and outside its diminishing returns.
+[common.auras.horror]
+name = "Horrified"
+mechanic = "fear"
+debuff = true
+per_source = false
+dr = "none"
 
 [common.auras.incap]
 name = "Incapacitated"
@@ -44,6 +60,33 @@ name = "Disarmed"
 mechanic = "disarm"
 debuff = true
 per_source = false
+
+[common.auras.recently_bandaged]
+name = "Recently Bandaged"
+icon = "inv_misc_bandage_08"
+debuff = true
+dispel = "none"
+duration = 60
+
+# The healing-test bosses' debuffs. An NPC's Mortal Strike (spell 13737)
+# halves healing for 5 sec; the dungeon boss's Shadow Word: Pain is magic,
+# so a cure takes it off.
+[common.auras.boss_mortal_wound]
+name = "Mortal Strike"
+icon = "ability_warrior_savageblow"
+debuff = true
+dispel = "none"
+per_source = false
+duration = 5
+mods = [{ stat = "heal_taken", mul = 0.5 }]
+
+[common.auras.boss_shadow_word_pain]
+name = "Shadow Word: Pain"
+icon = "spell_shadow_shadowwordpain"
+debuff = true
+dispel = "magic"
+duration = 18
+tick = { interval = 3, effects = [{ type = "damage", school = "shadow", periodic = true, tag = "Shadow Word: Pain", amount = "0.10 * 3 * interp(level, 10,43, 15,56, 20,65, 25,99, 30,129, 35,168, 40,216, 45,259, 50,324, 55,423, 60,648)" }] }
 
 [common.auras.healthstone_cd]
 name = "Healthstone used"
@@ -93,6 +136,30 @@ cast_time = "interp(level, 1,2, 60,3.5)"
 cost = { mana = "5 * level" }
 text = "A caster mob's bolt."
 effects = [{ type = "damage", school = "fire", hit = "spell", amount = "1.1 * ((mh.min + mh.max) / 2 / mh.speed + ap / 14) * interp(level, 1,2, 60,3.5)", tag = "Fireball" }]
+
+# A bandage by level, assuming First Aid kept up with the cloth you loot:
+# Linen at 1 up to Heavy Runecloth at 54. It heals over its channel, which
+# any damage breaks, and leaves Recently Bandaged for a minute.
+[common.spells.first_aid]
+name = "First Aid"
+icon = "spell_holy_sealofsacrifice"
+target = "self"
+requires = "opt.first_aid && !aura.recently_bandaged.up"
+text = "A bandage: heals over 6 to 8 sec while you stand still; any damage stops it. Linen (66) at level 1 up to Heavy Runecloth (2000) at 54."
+ranks = [
+  { level = 1, total = 66, dur = 6 },
+  { level = 8, total = 114, dur = 7 },
+  { level = 14, total = 161, dur = 7 },
+  { level = 18, total = 301, dur = 8 },
+  { level = 24, total = 400, dur = 8 },
+  { level = 30, total = 640, dur = 8 },
+  { level = 36, total = 800, dur = 8 },
+  { level = 42, total = 1104, dur = 8 },
+  { level = 48, total = 1360, dur = 8 },
+  { level = 54, total = 2000, dur = 8 },
+]
+channel = { duration = "r.dur", interval = 1, breaks_on_damage = true, effects = [{ type = "heal", target = "self", amount = "r.total / r.dur", periodic = true, tag = "First Aid" }] }
+effects = [{ type = "aura", aura = "recently_bandaged", target = "self" }]
 
 [common.spells.healing_potion]
 name = "Healing Potion"

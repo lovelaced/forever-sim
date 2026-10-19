@@ -20,7 +20,7 @@ effect = "Internal half of Holy Shock: the game has one spell (1311606 ...) that
 effect = "Cast as a damage follow-up while Holy Shock is cooling down. The game marks a target for 30 sec so your next Holy Shock on it starts no cooldown and adds this damage. Waits for rotation work."
 
 [paladin.lights_vigil_heal]
-effect = "Internal healing half of Light's Vigil, linked to the castable spell's id. Heals the paladin only; the game heals the party within 40 yd. Waits for party members."
+effect = "Internal healing half of Light's Vigil, linked to the castable spell's id. Heals the whole party (the game's 40 yd reach isn't checked: a party stands together)."
 
 [paladin.retribution_aura]
 effect = "Damage per hit (5 to 20) matches the spell table, the tooltip and Blizzard's beta notes. The 6% spell power ratio is from the beta notes (Oct 8); the table has none."
@@ -92,8 +92,7 @@ requires = "The game's tree links Holy Shock to Divine Precision on the same row
 "value.1" = "Not used: the trait lists 2/4/6/8/10% on effect index 1, which Redoubt's spell (20127) doesn't have. The tooltip's chance is the spell's own proc chance ($h, 10% at every rank), which the sim uses. Effect 0 (+4% block per rank) is modelled and matches."
 
 [paladin.talent_guardians_favor]
-"value.0" = "Not modelled: Blessing of Protection cooldown 1/2 min shorter. The sim has no Blessing of Protection."
-"value.1" = "Not modelled: Blessing of Freedom lasts 3/6 sec longer. The sim has no Blessing of Freedom."
+"value.1" = "Modelled in Blessing of Freedom's duration (10 + 3 sec per rank), which the audit can't read from the talent."
 
 [paladin.talent_one_handed_weapon_specialization]
 "value.0" = "Modelled: +3/7/10% Physical damage with a one-handed weapon (spell 20196 has school mask 1), as `two_hand ? 1 : 1 + 0.03/0.07/0.1`, which the audit can't evaluate because it reads the weapon."

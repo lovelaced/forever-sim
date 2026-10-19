@@ -452,6 +452,7 @@ group = "imbue_mh"
 # Weapons raises the extra attacks' attack power by 13/27/40%
 procs = [{ on = "melee_landed", if = "event.mh && !event.extra", chance = "opt.windfury_chance", icd = 1.5, effects = [{ type = "extra_attack", hand = "mh", count = 2, ap_bonus = "r.ap * (1 + (t.elemental_weapons == 1 ? 0.13 : t.elemental_weapons == 2 ? 0.27 : t.elemental_weapons == 3 ? 0.4 : 0))" }] }]
 [auras.lightning_shield]
+jumped = "drop"   # a charge shield: gone when you're jumped in the open world
 name = "Lightning Shield"
 dispel = "magic"
 group = "elemental_shield"
@@ -460,6 +461,7 @@ charges = 3
 # one orb every 3.5 sec at most (the shield's proc cooldown in the spell data)
 procs = [{ on = "struck_melee", icd = 3.5, effects = [{ type = "cast", spell = "lightning_shield_orb", target = "target" }, { type = "consume" }] }]
 [auras.water_shield]
+jumped = "drop"   # a charge shield: gone when you're jumped in the open world
 name = "Water Shield"
 dispel = "magic"
 group = "elemental_shield"
@@ -526,6 +528,7 @@ tick = { interval = 3, effects = [{ type = "aura", aura = "earthbind", target = 
 [auras.earthbind]
 name = "Earthbind"
 debuff = true
+dispel = "magic"
 per_source = false
 mechanic = "slow"
 duration = 5
@@ -571,6 +574,19 @@ group = "water_totem"
 duration = 300
 totem = { element = "water", radius = 30, reach = "owner" }
 tick = { interval = 2, effects = [{ type = "resource", res = "mana", amount = "r.regen * (1 + 0.05 * t.restorative_totems)" }] }
+[auras.poison_cleansing_totem]
+name = "Poison Cleansing Totem"
+group = "water_totem"
+duration = 300
+totem = { element = "water", radius = 30, reach = "owner" }
+tick = { interval = 5, effects = [{ type = "cleanse", target = "party", types = ["poison"] }] }
+[auras.disease_cleansing_totem]
+name = "Disease Cleansing Totem"
+group = "water_totem"
+duration = 300
+totem = { element = "water", radius = 30, reach = "owner" }
+tick = { interval = 5, effects = [{ type = "cleanse", target = "party", types = ["disease"] }] }
+
 [auras.healing_stream_totem]
 name = "Healing Stream Totem"
 group = "water_totem"
@@ -650,6 +666,7 @@ tick = { interval = 3, effects = [{ type = "heal", target = "target", amount = "
 # attack buff), which grow with your level up to the rank's top level.
 [spells.rockbiter_weapon]
 name = "Rockbiter Weapon"
+school = "nature"
 icon = "spell_nature_rockbiter"
 target = "self"
 requires = "!aura.rockbiter_weapon.up"
@@ -666,6 +683,7 @@ ranks = [
 effects = [{ type = "aura", aura = "rockbiter_weapon" }]
 [spells.flametongue_weapon]
 name = "Flametongue Weapon"
+school = "fire"
 icon = "spell_fire_flametounge"
 target = "self"
 requires = "!aura.flametongue_weapon.up"
@@ -681,6 +699,7 @@ ranks = [
 effects = [{ type = "aura", aura = "flametongue_weapon" }]
 [spells.windfury_weapon]
 name = "Windfury Weapon"
+school = "nature"
 icon = "spell_nature_cyclone"
 target = "self"
 requires = "!aura.windfury_weapon.up"
@@ -727,6 +746,7 @@ ranks = [
 effects = [{ type = "damage", school = "nature", hit = "auto", no_proc = true, tag = "Lightning Shield", min = "r.lo", max = "r.hi", coef = "r.coef" }]
 [spells.water_shield]
 name = "Water Shield"
+school = "nature"
 icon = "ability_shaman_watershield"
 talent = "water_shield"
 target = "self"
@@ -818,6 +838,7 @@ ranks = [
 effects = [{ type = "aura", aura = "flametongue_totem" }]
 [spells.strength_of_earth_totem]
 name = "Strength of Earth Totem"
+school = "nature"
 icon = "spell_nature_earthbindtotem"
 target = "self"
 gcd = 1
@@ -832,6 +853,7 @@ ranks = [
 effects = [{ type = "aura", aura = "strength_of_earth_totem" }]
 [spells.stoneskin_totem]
 name = "Stoneskin Totem"
+school = "nature"
 icon = "spell_nature_stoneskintotem"
 target = "self"
 gcd = 1
@@ -848,6 +870,7 @@ ranks = [
 effects = [{ type = "aura", aura = "stoneskin_totem" }]
 [spells.earthbind_totem]
 name = "Earthbind Totem"
+school = "nature"
 icon = "spell_nature_strengthofearthtotem02"
 target = "self"
 gcd = 1
@@ -857,6 +880,7 @@ ranks = [{ level = 6, id = 2484 }]
 effects = [{ type = "aura", aura = "earthbind_totem" }]
 [spells.stoneclaw_totem]
 name = "Stoneclaw Totem"
+school = "nature"
 icon = "spell_nature_stoneclawtotem"
 target = "self"
 gcd = 1
@@ -872,6 +896,7 @@ ranks = [
 effects = [{ type = "aura", aura = "stoneclaw_totem" }]
 [spells.tremor_totem]
 name = "Tremor Totem"
+school = "nature"
 icon = "spell_nature_tremortotem"
 target = "self"
 gcd = 1
@@ -879,6 +904,7 @@ ranks = [{ level = 18, id = 8143, mana = 60 }]
 effects = [{ type = "aura", aura = "tremor_totem" }]
 [spells.grace_of_air_totem]
 name = "Grace of Air Totem"
+school = "nature"
 icon = "spell_nature_invisibilitytotem"
 target = "self"
 gcd = 1
@@ -892,6 +918,7 @@ ranks = [
 effects = [{ type = "aura", aura = "grace_of_air_totem" }]
 [spells.windfury_totem]
 name = "Windfury Totem"
+school = "nature"
 icon = "spell_nature_windfury"
 target = "self"
 gcd = 1
@@ -905,6 +932,7 @@ ranks = [
 effects = [{ type = "aura", aura = "windfury_totem" }]
 [spells.grounding_totem]
 name = "Grounding Totem"
+school = "nature"
 icon = "spell_nature_groundingtotem"
 target = "self"
 gcd = 1
@@ -914,6 +942,7 @@ ranks = [{ level = 30, id = 8177 }]
 effects = [{ type = "aura", aura = "grounding_totem" }]
 [spells.mana_spring_totem]
 name = "Mana Spring Totem"
+school = "frost"
 icon = "spell_nature_manaregentotem"
 target = "self"
 gcd = 1
@@ -929,6 +958,7 @@ text = "Restores the rank's mana every 2 sec."
 effects = [{ type = "aura", aura = "mana_spring_totem" }]
 [spells.healing_stream_totem]
 name = "Healing Stream Totem"
+school = "frost"
 icon = "inv_spear_04"
 target = "self"
 gcd = 1
@@ -944,6 +974,7 @@ ranks = [
 effects = [{ type = "aura", aura = "healing_stream_totem" }]
 [spells.mana_tide_totem]
 name = "Mana Tide Totem"
+school = "frost"
 icon = "spell_frost_summonwaterelemental"
 talent = "mana_tide_totem"
 cooldown = 300
@@ -1073,6 +1104,7 @@ ranks = [
 effects = [{ type = "damage", school = "nature", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "interrupt", lockout = 2 }] }]
 [spells.flame_shock]
 name = "Flame Shock"
+dispel = "magic"
 range = 20
 icon = "spell_fire_flameshock"
 school = "fire"
@@ -1090,6 +1122,7 @@ ranks = [
 effects = [{ type = "damage", school = "fire", min = "r.lo", max = "r.hi", coef = "r.coef", on_hit = [{ type = "aura", aura = "flame_shock", target = "target" }] }]
 [spells.frost_shock]
 name = "Frost Shock"
+dispel = "magic"
 range = 20
 icon = "spell_frost_frostshock"
 school = "frost"
@@ -1107,7 +1140,7 @@ effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef
 name = "Stormstrike"
 icon = "ability_shaman_stormstrike"
 talent = "stormstrike"
-school = "nature"
+school = "physical"
 cooldown = 8
 ranks = [{ level = 1, id = 17364, mana = 125 }]
 # normalized weapon damage (the spell's effect type), then the empowerment,
@@ -1207,6 +1240,52 @@ requires = "target.magic_buffs > 0"
 text = "Takes 1 magic buff off the target (2 from rank 2), the newest first."
 ranks = [{ level = 12, id = 370, n = 1 }, { level = 32, id = 8012, n = 2 }]
 effects = [{ type = "purge", target = "target", count = "r.n" }]
+[spells.cure_poison]
+name = "Cure Poison"
+range = 30
+icon = "spell_nature_nullifypoison"
+school = "nature"
+target = "self"
+cost = { mana = "0.09 * base_mana" }
+text = "Takes 1 poison off a friendly target."
+ranks = [{ level = 16, id = 526 }]
+effects = [{ type = "cleanse", target = "ally", types = ["poison"] }]
+
+[spells.cure_disease]
+name = "Cure Disease"
+range = 30
+icon = "spell_nature_removedisease"
+school = "nature"
+target = "self"
+cost = { mana = "0.09 * base_mana" }
+text = "Takes 1 disease off a friendly target."
+ranks = [{ level = 22, id = 2870 }]
+effects = [{ type = "cleanse", target = "ally", types = ["disease"] }]
+
+[spells.poison_cleansing_totem]
+name = "Poison Cleansing Totem"
+school = "nature"
+icon = "spell_nature_poisoncleansingtotem"
+target = "self"
+gcd = 1
+cost = { mana = "0.1 * base_mana" }
+requires = "!totem.water.active || !totem.water.in_range"
+text = "A water totem that takes 1 poison off your group every 5 sec for 5 min."
+ranks = [{ level = 22, id = 8166 }]
+effects = [{ type = "aura", aura = "poison_cleansing_totem" }]
+
+[spells.disease_cleansing_totem]
+name = "Disease Cleansing Totem"
+school = "nature"
+icon = "spell_nature_diseasecleansingtotem"
+target = "self"
+gcd = 1
+cost = { mana = "0.1 * base_mana" }
+requires = "!totem.water.active || !totem.water.in_range"
+text = "A water totem that takes 1 disease off your group every 5 sec for 5 min."
+ranks = [{ level = 38, id = 8170 }]
+effects = [{ type = "aura", aura = "disease_cleansing_totem" }]
+
 [spells.ghost_wolf]
 name = "Ghost Wolf"
 icon = "spell_nature_spiritwolf"
@@ -1233,23 +1312,31 @@ effects = []
 name = "Ghost Wolf"
 form = true
 speed = 0.4
+# casting a spell or swinging a weapon brings you back out of it
+procs = [
+  { on = "cast", if = "!spell.ghost_wolf", effects = [{ type = "remove_self" }] },
+  { on = "melee_swing", effects = [{ type = "remove_self" }] },
+]
 
 # ------------------------------------------------------------------ rotations
 [rotations.enhancement]
-desc = "Enhancement two-hander: Windfury Weapon, Stormstrike, shocks, instant Lightning Bolt at five Maelstrom stacks, totems; Lesser Healing Wave when hurt"
-precombat = ["lightning_shield", "windfury_weapon", { cast = "rockbiter_weapon", if = "!known.windfury_weapon" }, "strength_of_earth_totem", "grace_of_air_totem"]
+desc = "Enhancement two-hander: Windfury Weapon, Stormstrike, shocks, instant Lightning Bolt at five Maelstrom stacks, buff totems for a boss, a player or a pack; Lesser Healing Wave when hurt, Ghost Wolf to reach a player attacking from range"
+# buff totems for a boss, a player or two or more mobs, not for every single pull
+precombat = ["lightning_shield", "windfury_weapon", { cast = "rockbiter_weapon", if = "!known.windfury_weapon" }, { cast = "strength_of_earth_totem", if = "fight.boss || fight.pvp" }, { cast = "grace_of_air_totem", if = "fight.boss || fight.pvp" }]
 opener = []
 actions = [
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "natures_swiftness", if = "hp_pct < 0.3" },
-  { cast = "healing_wave", if = "hp_pct < 0.3 && aura.natures_swiftness.up" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "natures_swiftness", if = "hp_pct < 0.3", emergency = true },
+  { cast = "healing_wave", if = "aura.natures_swiftness.up" },   # the instant cast goes on Healing Wave
   { cast = "lightning_bolt", if = "aura.maelstrom_weapon.stacks >= 5 && hp_pct >= 0.4" },
   { cast = "lesser_healing_wave", if = "hp_pct < 0.4" },
   { cast = "healing_wave", if = "hp_pct < 0.4 && !known.lesser_healing_wave" },
   { cast = "earth_shock", if = "target.casting" },   # cut a cast short
+  { cast = "earth_shock", target = "other_enemy", if = "target.casting" },   # the add's too
   { cast = "purge", if = "target.is_player && target.magic_buffs > 0" },   # strip a player's shield or buff
   { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
   { cast = "frost_shock", if = "target.fleeing && !target.slowed" },   # stop a runner
+  { cast = "ghost_wolf", if = "target.is_player && target.dist > 15 && (target.casting || hp_pct < 0.95) && !rooted && !frozen" },   # close in on a player casting or shooting at you from range
   { cast = "blood_fury" },
   { cast = "berserking" },
   { cast = "rage_of_the_farseer" },
@@ -1257,10 +1344,10 @@ actions = [
   { cast = "flame_shock", if = "!target.aura.flame_shock.up && target.hp_pct > 0.4" },
   { cast = "earth_shock" },
   { cast = "searing_totem", if = "(target.hp_pct > 0.4 || target.boss) && target.dist < 8" },   # in melee, so Fire Nova reaches
-  { cast = "fire_nova", if = "enemies >= 2" },
+  { cast = "fire_nova", if = "enemies_within_8 >= 2" },   # two or more around you and your totem
   { cast = "lightning_shield" },
-  { cast = "strength_of_earth_totem", if = "target.boss || (target.hp_pct > 0.5 && mana_pct > 0.4)" },   # not when mana runs low
-  { cast = "grace_of_air_totem", if = "target.boss || (target.hp_pct > 0.5 && mana_pct > 0.4)" },   # not when mana runs low
+  { cast = "strength_of_earth_totem", if = "target.boss || ((target.is_player || enemies >= 2) && target.hp_pct > 0.5 && mana_pct > 0.4)" },   # not when mana runs low
+  { cast = "grace_of_air_totem", if = "target.boss || ((target.is_player || enemies >= 2) && target.hp_pct > 0.5 && mana_pct > 0.4)" },   # not when mana runs low
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
@@ -1270,8 +1357,8 @@ rest = [
   { cast = "windfury_weapon" },
   { cast = "rockbiter_weapon", if = "!known.windfury_weapon" },
 ]
-eat_below = 0.5
-drink_below = 0.35
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.35"
 
 [rotations.elemental]
 desc = "Elemental: Flame Shock, Lava Burst, Earth Shock, Chain Lightning, Lightning Bolt, Searing Totem; heals when hurt"
@@ -1279,13 +1366,14 @@ auto_melee = false
 precombat = ["lightning_shield", "flametongue_weapon", { cast = "rockbiter_weapon", if = "!known.flametongue_weapon" }, "mana_spring_totem"]
 opener = []
 actions = [
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
-  { cast = "natures_swiftness", if = "hp_pct < 0.3" },
-  { cast = "healing_wave", if = "hp_pct < 0.3 && aura.natures_swiftness.up" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.25 && (target.boss || target.is_player))" },
+  { cast = "natures_swiftness", if = "hp_pct < 0.3", emergency = true },
+  { cast = "healing_wave", if = "aura.natures_swiftness.up" },   # the instant cast goes on Healing Wave
   { cast = "lesser_healing_wave", if = "hp_pct < 0.35" },
   { cast = "healing_wave", if = "hp_pct < 0.35 && !known.lesser_healing_wave" },
   { cast = "earth_shock", if = "target.casting" },   # cut a cast short
+  { cast = "earth_shock", target = "other_enemy", if = "target.casting" },   # the add's too
   { cast = "purge", if = "target.is_player && target.magic_buffs > 0" },   # strip a player's shield or buff
   { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
   { cast = "frost_shock", if = "target.fleeing && !target.slowed" },   # stop a runner
@@ -1296,7 +1384,7 @@ actions = [
   { cast = "earth_shock", if = "target.hp_pct < 0.35 || !known.flame_shock" },
   { cast = "chain_lightning" },
   { cast = "searing_totem", if = "target.hp_pct > 0.4 || target.boss" },
-  { cast = "fire_nova", if = "enemies >= 2" },
+  { cast = "fire_nova", if = "enemies_within_8 >= 2" },   # two or more around you and your totem
   { cast = "lightning_bolt" },
 ]
 rest = [
@@ -1305,22 +1393,24 @@ rest = [
   { cast = "healing_wave", if = "hp_pct < 0.6 && mana_pct > 0.5" },
   { cast = "lightning_shield" },
 ]
-eat_below = 0.5
-drink_below = 0.4
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.4"
 
 [rotations.stormwarden]
 desc = "Stormwarden: one-hander and shield, Water Shield (Lightning Shield before it), Flametongue, Stormstrike, shocks, Maelstrom Lightning Bolts or heals"
-precombat = ["water_shield", "lightning_shield", "flametongue_weapon", { cast = "rockbiter_weapon", if = "!known.flametongue_weapon" }, "strength_of_earth_totem"]
+# Strength of Earth for a boss, a player or two or more mobs, not for every single pull
+precombat = ["water_shield", "lightning_shield", "flametongue_weapon", { cast = "rockbiter_weapon", if = "!known.flametongue_weapon" }, { cast = "strength_of_earth_totem", if = "fight.boss || fight.pvp" }]
 opener = []
 actions = [
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "natures_swiftness", if = "hp_pct < 0.3" },
-  { cast = "healing_wave", if = "hp_pct < 0.3 && aura.natures_swiftness.up" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "natures_swiftness", if = "hp_pct < 0.3", emergency = true },
+  { cast = "healing_wave", if = "aura.natures_swiftness.up" },   # the instant cast goes on Healing Wave
   { cast = "riptide", if = "hp_pct < 0.6" },
   { cast = "lesser_healing_wave", if = "hp_pct < 0.4" },
   { cast = "healing_wave", if = "hp_pct < 0.4 && !known.lesser_healing_wave" },
   { cast = "lightning_bolt", if = "aura.maelstrom_weapon.stacks >= 5" },
   { cast = "earth_shock", if = "target.casting" },   # cut a cast short
+  { cast = "earth_shock", target = "other_enemy", if = "target.casting" },   # the add's too
   { cast = "purge", if = "target.is_player && target.magic_buffs > 0" },   # strip a player's shield or buff
   { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
   { cast = "frost_shock", if = "target.fleeing && !target.slowed" },   # stop a runner
@@ -1331,10 +1421,10 @@ actions = [
   { cast = "flame_shock", if = "!target.aura.flame_shock.up && target.hp_pct > 0.4" },
   { cast = "earth_shock" },
   { cast = "searing_totem", if = "(target.hp_pct > 0.4 || target.boss) && target.dist < 8" },   # in melee, so Fire Nova reaches
-  { cast = "fire_nova", if = "enemies >= 2" },
+  { cast = "fire_nova", if = "enemies_within_8 >= 2" },   # two or more around you and your totem
   { cast = "water_shield" },
   { cast = "lightning_shield" },
-  { cast = "strength_of_earth_totem", if = "target.boss || (target.hp_pct > 0.5 && mana_pct > 0.4)" },   # not when mana runs low
+  { cast = "strength_of_earth_totem", if = "target.boss || ((target.is_player || enemies >= 2) && target.hp_pct > 0.5 && mana_pct > 0.4)" },   # not when mana runs low
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
@@ -1344,8 +1434,8 @@ rest = [
   { cast = "lightning_shield" },
   { cast = "flametongue_weapon" },
 ]
-eat_below = 0.45
-drink_below = 0.35
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.45"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.35"
 
 [rotations.restoration]
 # A leveling Restoration shaman on its own (the healing test comes later): a
@@ -1355,13 +1445,14 @@ drink_below = 0.35
 # Searing Totem and melee. Water Shield from level 20 (Lightning Shield before
 # it), Riptide and Healing Waves to stay up, Mana Tide Totem when mana runs low.
 desc = "Restoration leveling: one-hander and shield, Water Shield (Lightning Shield before it), Rockbiter Weapon, a Lightning Bolt pull, Flame Shock, Earth Shock, Searing Totem and melee; Riptide and heals when hurt"
-precombat = ["water_shield", "lightning_shield", "rockbiter_weapon", "strength_of_earth_totem", "mana_spring_totem", { cast = "healing_stream_totem", if = "!known.mana_spring_totem" }]
+# Strength of Earth for a boss, a player or two or more mobs, not for every single pull
+precombat = ["water_shield", "lightning_shield", "rockbiter_weapon", { cast = "strength_of_earth_totem", if = "fight.boss || fight.pvp" }, "mana_spring_totem", { cast = "healing_stream_totem", if = "!known.mana_spring_totem" }]
 opener = []
 actions = [
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "natures_swiftness", if = "hp_pct < 0.35" },
-  { cast = "healing_wave", if = "hp_pct < 0.35 && aura.natures_swiftness.up" },
-  { cast = "stoneform", if = "hp_pct < 0.5" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "natures_swiftness", if = "hp_pct < 0.35", emergency = true },
+  { cast = "healing_wave", if = "aura.natures_swiftness.up" },   # the instant cast goes on Healing Wave
+  { cast = "stoneform", if = "hp_pct < 0.5", emergency = true },
   { cast = "riptide", if = "hp_pct < 0.65" },
   { cast = "lesser_healing_wave", if = "(hp_pct < 0.45) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
   { cast = "healing_wave", if = "(hp_pct < 0.45 && !known.lesser_healing_wave) && !(!target.is_player && target.hp_pct < 0.25 && hp_pct > (enemies < 2 ? 0.2 : 0.35))" },
@@ -1369,6 +1460,7 @@ actions = [
   # the pull: one Lightning Bolt at a fresh target (not at an enemy player who has opened on you)
   { cast = "lightning_bolt", if = "target.hp_pct >= 0.99 && !target.is_player" },
   { cast = "earth_shock", if = "target.casting" },   # cut a cast short
+  { cast = "earth_shock", target = "other_enemy", if = "target.casting" },   # the add's too
   { cast = "purge", if = "target.is_player && target.magic_buffs > 0" },   # strip a player's shield or buff
   { cast = "war_stomp", if = "enemies_within_8 >= 2 && hp_pct < 0.4" },   # panic (Tauren)
   { cast = "frost_shock", if = "target.fleeing && !target.slowed" },   # stop a runner
@@ -1378,10 +1470,10 @@ actions = [
   # no Convection or Shamanistic Focus: Earth Shock only with mana to spare
   { cast = "earth_shock", if = "mana_pct > 0.5" },
   { cast = "searing_totem", if = "(target.hp_pct > 0.4 || target.boss) && target.dist < 8" },   # in melee, so Fire Nova reaches
-  { cast = "fire_nova", if = "enemies >= 2" },
+  { cast = "fire_nova", if = "enemies_within_8 >= 2" },   # two or more around you and your totem
   { cast = "water_shield" },
   { cast = "lightning_shield" },
-  { cast = "strength_of_earth_totem", if = "target.boss || (target.hp_pct > 0.5 && mana_pct > 0.4)" },   # not when mana runs low
+  { cast = "strength_of_earth_totem", if = "target.boss || ((target.is_player || enemies >= 2) && target.hp_pct > 0.5 && mana_pct > 0.4)" },   # not when mana runs low
   { cast = "mana_spring_totem", if = "target.boss || target.hp_pct > 0.5" },
 ]
 rest = [
@@ -1392,25 +1484,30 @@ rest = [
   { cast = "lightning_shield" },
   { cast = "rockbiter_weapon" },
 ]
-eat_below = 0.4
-drink_below = 0.35
+# before two mobs or a hard one: rest up further, less so once Riptide (and
+# Mana Tide) let it heal itself through the fight
+eat_below = "pull.size >= 2 || pull.danger > 1 ? (known.riptide ? 0.6 : 0.85) : 0.4"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? (known.riptide ? 0.5 : 0.7) : 0.35"
 
 # Healing a group (the healing tests): Water Shield and Mana Spring up, heals
 # on whoever is most hurt, sized to what they're missing; nothing while
 # everyone is topped up.
 [rotations.heal]
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
 desc = "Group healing: Riptide on whoever is most hurt, Chain Heal when two or more are hurt, Lesser Healing Wave for emergencies, Healing Wave sized to what's missing, Mana Tide Totem when mana runs low"
 healer = true
 auto_melee = false
 precombat = ["water_shield", "lightning_shield", "mana_spring_totem", { cast = "healing_stream_totem", if = "!known.mana_spring_totem" }]
 opener = []
 actions = [
-  { cast = "mana_potion", if = "opt.potions && mana_pct < 0.3" },
+  { cast = "mana_potion", if = "potions && mana_pct < 0.3" },
   { cast = "mana_tide_totem", if = "mana_pct < 0.4" },
   { cast = "natures_swiftness", if = "lowest.hp_pct < 0.3" },
-  { cast = "healing_wave", target = "lowest", if = "aura.natures_swiftness.up && ally.hp_pct < 0.35" },
+  { cast = "healing_wave", target = "lowest", if = "aura.natures_swiftness.up" },   # the instant cast goes on Healing Wave
   { cast = "riptide", target = "lowest", if = "ally.hp_pct < 0.8" },
   { cast = "lesser_healing_wave", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.4" },
+  { cast = "cure_poison", target = "lowest", if = "ally.debuffs.poison > 0" },
+  { cast = "cure_disease", target = "lowest", if = "ally.debuffs.disease > 0" },
   { cast = "chain_heal", target = "lowest", rank = "fit", if = "raid.hurt_75 >= 2" },
   { cast = "healing_wave", target = "lowest", rank = "fit", if = "ally.hp_pct < 0.7" },
   { cast = "water_shield" },

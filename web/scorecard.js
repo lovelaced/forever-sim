@@ -5,7 +5,7 @@ import * as M from './meta.js';
 import { h, fmtMetric, fmtDiff, fmtNum, heroImg } from './ui.js';
 import { S, env, bus, sig, nameOf, slotOf, baselineBuild, raceOf, scenarioMeta, primaryOf, accuracyOf, presetOf, presetsFor, baseName, buildDiff, diffText, saveLocal, sitsOut } from './state.js';
 import { scorecardTests, cellOf, pairOf, duelWin, changesFor, simulateAll, poolOf } from './runner.js';
-import { renderDetail, leaders, metricOf } from './results.js';
+import { renderDetail, leaders, metricOf, judge } from './results.js';
 
 const pctOf = (diff, base) => (Math.abs(base) > 1e-9 ? (100 * diff) / Math.abs(base) : null);
 
@@ -111,7 +111,7 @@ function changeStrip(cols) {
     if (!list.length) continue;
     const from = list.find((x) => x.from)?.from;
     const what = diffText(buildDiff(from, c.b), 4);
-    const clear = list.filter((x) => x.significant);
+    const clear = list.filter((x) => judge(x, M.METRICS[primaryOf(x.test)]) === 'clear');
     const items = clear.map((x) => {
       const m = M.METRICS[primaryOf(x.test)] || {};
       const up = x.diff > 0;
@@ -192,7 +192,7 @@ function plaque(test, row, c, cols, best) {
     if (p && bs) {
       const up = p.diff > 0;
       const better = m.good === 'low' ? !up : up;
-      el.append(p.significant
+      el.append(judge(p, m, bs.mean) === 'clear'
         ? h('span.d', { class: better ? 'good' : 'bad' }, `${up ? '▲' : '▼'} ${fmtRel(p.diff, bs.mean, m)}`,
           h('span.sr-only', ` ${up ? 'more' : 'less'} than ${base.name}`))
         : h('span.d', 'about the same', h('span.sr-only', ` as ${base.name}`)));
@@ -278,9 +278,14 @@ export function renderScorecard(root, { onRender }) {
 
   // notices
   const notes = [];
-  const staleBuilds = S.builds.filter((b) => listed.some((t) => { const c = cellOf(S.rows[t], b); return S.rows[t] && !S.rows[t].error && !sitsOut(b, t) && (!c || !c.current); }));
-  if (anyRow && staleBuilds.length && !running) {
-    notes.push(h('div.notice', `${joinAnd(staleBuilds.map((b) => nameOf(b)))} changed since the last run. Simulate to update the faded numbers.`));
+  // faded numbers: a build that changed, or the same build under other settings
+  const staleCell = (b, t) => { const c = cellOf(S.rows[t], b); return S.rows[t] && !S.rows[t].error && !sitsOut(b, t) && (!c || !c.current) ? c || {} : null; };
+  const staleBuilds = S.builds.filter((b) => listed.some((t) => { const c = staleCell(b, t); return c && c.sig !== sig(b); }));
+  const settingsStale = S.builds.some((b) => listed.some((t) => staleCell(b, t)?.sig === sig(b)));
+  if (anyRow && !running && staleBuilds.length) {
+    notes.push(h('div.notice', `${joinAnd(staleBuilds.map((b) => nameOf(b)))} changed since the last run${settingsStale ? ', and so did your settings' : ''}. Simulate to update the faded numbers.`));
+  } else if (anyRow && !running && settingsStale) {
+    notes.push(h('div.notice', 'Your settings changed since the last run. Simulate to update the faded numbers.'));
   }
   if (levels > 1) notes.push(h('div.notice', 'Your builds are at different levels, so they fight different mobs.'));
   if (run?.finished && run.stopped) notes.push(h('div.notice', `Stopped after ${run.i} of ${run.jobs.length} tests. Press Simulate to run the rest.`));
@@ -312,6 +317,7 @@ export function renderScorecard(root, { onRender }) {
     } else {
       const best = test === 'duel' ? new Set() : leaders(row.res, cols.filter((c) => c.cell), row.res.scenario.primary, (M.METRICS[row.res.scenario.primary] || {}).good);
       for (const c of cols) vals.append(plaque(test, row, c, cols, best));
+      if (row.failure) vals.append(h('p.error-cell', { title: row.failure }, 'The latest run failed, so these are the last good results.'));
     }
     li.append(h('div.trial-head', trialHead(test, open), vals));
     if (isRunning) li.append(h('span.sr-only', ' (running)'));
@@ -354,6 +360,7 @@ function detailFor(test, row, cols) {
     onPrecise: () => simulateAll({ only: test, acc: 'precise' }),
     opponentPicker, opponentSig: S.opponent, opponentName: oppPreset ? baseName(oppPreset.name) : 'the opponent',
   });
+  if (row.failure) detail.prepend(h('div.warn', `The latest run of this test failed, so these are the last good results. Details: ${row.failure}`));
   const summaryTab = !S.detailTab || S.detailTab === 'summary';
   return isSkirmish(test) && summaryTab ? h('div.skirmish-detail', breakdown(test, row, cols), detail) : detail;
 }
@@ -387,10 +394,15 @@ function breakdown(test, row, cols) {
     }
     return metricOf(row.res, c.cell.i, name);
   };
+  const pc = (x) => `${(100 * Math.max(0, Math.min(1, x))).toFixed(1)}%`;
   const bars = (name) => h('div.foe-vals', live.map((c) => {
     const m = scoreOf(c, name);
+    // the likely range as a faint band over the bar
+    const range = m && m.lo != null && m.hi != null && m.hi > m.lo
+      ? h('s.foe-range', { style: { left: pc(m.lo), width: pc(m.hi - m.lo) }, title: `Likely between ${fmtMetric(m.lo, pm)} and ${fmtMetric(m.hi, pm)}` })
+      : null;
     return h('div.foe-val', { style: { '--slot': c.color } }, live.length > 1 ? badge(c) : null,
-      h('span.foe-bar', h('i', { style: { width: `${Math.round(100 * Math.max(0, Math.min(1, m?.mean ?? 0)))}%` } })),
+      h('span.foe-bar', h('i', { style: { width: pc(m?.mean ?? 0) } }), range),
       h('b', m ? fmtMetric(m.mean, pm) : '—'));
   }));
   const classes = [...new Set(sc.opponents.map((id) => id.split('/')[0]))];

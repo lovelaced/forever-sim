@@ -64,6 +64,41 @@ pub fn unfit(sc: &ScenarioDef, w: &World, b: &Build) -> Option<String> {
     None
 }
 
+/// How a test's metric is summarised: a score or a rate is bounded, with
+/// as many fights a replication as the test fights (9 opponents in the open
+/// world, or every standard build with `skirmish_pool`; one for a class's
+/// own score); a breakeven is a median on its bisection's grid; the rest
+/// are means.
+pub fn metric_kind(w: &World, sc: &ScenarioDef, opts: &[f64], k: &str) -> crate::mc::MetricKind {
+    use crate::mc::MetricKind;
+    match crate::mc::default_kind(k) {
+        MetricKind::Median { .. } => {
+            let rel_cell = match &sc.kind {
+                ScenarioKind::Pressure { lo, hi, steps, .. } => ((hi / lo).ln() / 2f64.powi(*steps as i32)).exp() - 1.0,
+                ScenarioKind::Healing(h) => ((h.hi / h.lo).ln() / 2f64.powi(h.steps as i32)).exp() - 1.0,
+                _ => 0.0,
+            };
+            MetricKind::Median { rel_cell }
+        }
+        MetricKind::Bounded { .. } => {
+            let per_rep = match &sc.kind {
+                ScenarioKind::Skirmish { opponents, .. } => {
+                    let pool = w.opt_index("skirmish_pool").map_or(false, |i| opts.get(i as usize).map_or(false, |&x| x >= 0.5));
+                    let ids = if pool { standard_presets() } else { opponents.clone() };
+                    match k.strip_prefix("score:") {
+                        Some(id) if id.contains('/') => 1.0,
+                        Some(class) => ids.iter().filter(|x| x.split('/').next() == Some(class)).count().max(1) as f64,
+                        None => ids.len().max(1) as f64,
+                    }
+                }
+                _ => 1.0,
+            };
+            MetricKind::Bounded { per_rep }
+        }
+        MetricKind::Mean => MetricKind::Mean,
+    }
+}
+
 /// The highest scale a test still passes, by bisection on a log scale
 /// between `lo` and `hi` (the same seed every probe). Returns the breakeven
 /// and the highest probe that passed.
@@ -122,29 +157,52 @@ fn rest(sim: &mut Sim, p: usize, travel: f64) -> (f64, f64, f64) {
     // buff up for the next pull, then eat and drink back what that cost
     sim.prep([p, p]);
     let rot = sim.actors[p].rotation;
-    let (eat_below, drink_below) = rot.map_or((0.5, 0.4), |r| (r.eat_below, r.drink_below));
+    // thresholds can depend on the next pull (`pull.size`)
+    let cx = crate::engine::Cx::new(p, None, "");
+    let (eat_below, drink_below) = rot.map_or((0.5, 0.4), |r| (sim.ev(&r.eat_below, &cx), sim.ev(&r.drink_below, &cx)));
     let x = &sim.actors[p];
-    let (food, drink, dur) = w.rest.at(x.level);
+    // a bandage goes on only when you'd eat, and food still brings you back
+    // to full after it
+    let bandaged = w.aura_index.get("recently_bandaged").map_or(false, |&b| x.auras.iter().any(|i| i.def == b && i.applied >= start));
+    // a mage drinks its own conjured water
+    let conjured = x.class.map_or(false, |c| w.classes[c].id == "mage");
+    let (food, drink, dur) = w.rest.at(x.level, conjured);
     let hp_def = x.max_hp - x.hp;
     let mana_max = x.max_res[Res::Mana as usize];
     let mana_def = mana_max - x.res[Res::Mana as usize];
-    let need_eat = x.hp < eat_below * x.max_hp;
+    let need_eat = x.hp < eat_below * x.max_hp || (bandaged && x.hp < x.max_hp);
     let need_drink = mana_max > 0.0 && x.res[Res::Mana as usize] < drink_below * mana_max;
     let (mut eats, mut drinks) = (0.0, 0.0);
     if need_eat || need_drink {
-        let t_eat = if need_eat { dur * hp_def / food } else { 0.0 };
-        let t_drink = if need_drink { dur * mana_def / drink } else { 0.0 };
+        // food and drink go in over their time, on top of regeneration
+        let (hp_regen, mana_regen) = sim.rest_regen(p);
+        let (food_rate, drink_rate) = (food / dur, drink / dur);
+        let t_eat = if need_eat { hp_def / (food_rate + hp_regen) } else { 0.0 };
+        let t_drink = if need_drink { mana_def / (drink_rate + mana_regen) } else { 0.0 };
         let t = t_eat.max(t_drink);
         if need_eat {
-            eats = (hp_def / food).ceil();
+            eats = (t_eat / dur).ceil();
         }
         if need_drink {
-            drinks = (mana_def / drink).ceil();
+            drinks = (t_drink / dur).ceil();
         }
-        let what = match (need_eat, need_drink) { (true, true) => "eat and drink", (true, false) => "eat", _ => "drink" };
+        // sitting down for one, you take the other too while it lasts
+        let also_eat = !need_eat && hp_def > 0.0;
+        let also_drink = !need_drink && mana_max > 0.0 && mana_def > 0.0;
+        if also_eat {
+            eats = (t.min(hp_def / (food_rate + hp_regen)) / dur).ceil();
+        }
+        if also_drink {
+            drinks = (t.min(mana_def / (drink_rate + mana_regen)) / dur).ceil();
+        }
+        let (eat, drink) = (need_eat || also_eat, need_drink || also_drink);
+        let what = match (eat, drink) { (true, true) => "eat and drink", (true, false) => "eat", _ => "drink" };
         sim.tracef(|s| TraceEv { amount: t, ..s.tev("eat", p, None, what) });
+        sim.actors[p].eating = Some((if eat { food_rate } else { 0.0 }, if drink { drink_rate } else { 0.0 }));
         sim.run(Stop::Until(sim.t + t));
         let x = &mut sim.actors[p];
+        x.eating = None;
+        // what the last tick's rounding left
         if need_eat {
             x.hp = x.max_hp;
         }
@@ -152,15 +210,66 @@ fn rest(sim: &mut Sim, p: usize, travel: f64) -> (f64, f64, f64) {
             x.res[Res::Mana as usize] = mana_max;
         }
     }
-    // pets recover while the owner rests
-    let pets = sim.actors[p].pets.clone();
-    for pt in pets {
+    // pets mend as fast as their owner does on its own (without food), for
+    // the whole break
+    let (hp_regen, _) = sim.rest_regen(p);
+    let share = hp_regen / sim.actors[p].max_hp.max(1.0) * (sim.t - start);
+    for pt in sim.actors[p].pets.clone() {
         let x = &mut sim.actors[pt];
-        x.hp = x.max_hp;
-        x.res[Res::Mana as usize] = x.max_res[Res::Mana as usize];
+        if x.alive {
+            x.hp = (x.hp + share * x.max_hp).min(x.max_hp);
+            x.res[Res::Mana as usize] = (x.res[Res::Mana as usize] + share * x.max_res[Res::Mana as usize]).min(x.max_res[Res::Mana as usize]);
+        }
     }
     sim.phase = Phase::Fight;
     (sim.t - start, eats, drinks)
+}
+
+/// One pull's world draws: where the pack stands, what it is, which of it
+/// casts, and whether the next fight comes to your totems. They're made
+/// whether they're needed or not, so every build meets the same pulls, and
+/// drawing a pull ahead (to rest for it) moves nothing.
+struct PullDraw<'a> {
+    far: f64,
+    spreads: Vec<f64>,
+    kind: &'a str,
+    /// The enemy template of each mob in the pack.
+    templates: Vec<&'a str>,
+    carry_roll: f64,
+}
+
+fn draw_pull<'a>(sim: &Sim, i: u64, pull: u32, mix: Option<&'a Mix>, enemy: &'a str) -> PullDraw<'a> {
+    // the pack stands unaware 30 to 35 yards off, spread over up to 8; it's
+    // one kind of creature, and some of it may cast
+    let mut env = sim.env(ENV_PULL, i);
+    let far = env.range(30.0, 35.0);
+    let spreads: Vec<f64> = (0..pull).map(|_| env.range(0.0, 8.0)).collect();
+    let kind_roll = env.f64();
+    let caster_rolls: Vec<f64> = (0..pull).map(|_| env.f64()).collect();
+    // whether the fight after this one comes to where your totems stand
+    let carry_roll = env.f64();
+    let kind: &str = match mix {
+        Some(m) => {
+            let mut acc = 0.0;
+            m.kinds.iter().find(|k| {
+                acc += k.1;
+                kind_roll < acc
+            }).unwrap_or(m.kinds.last().unwrap()).0.as_str()
+        }
+        None => enemy,
+    };
+    let templates = caster_rolls.iter().map(|&r| match mix.and_then(|m| m.casters.as_ref()) {
+        Some((of, share, as_)) if of == kind && r < *share => as_.as_str(),
+        _ => kind,
+    }).collect();
+    PullDraw { far, spreads, kind, templates, carry_roll }
+}
+
+impl PullDraw<'_> {
+    fn info(&self, dmg_scale: f64) -> crate::engine::PullInfo {
+        let casters = self.templates.iter().filter(|&&t| t != self.kind).count() as f64;
+        crate::engine::PullInfo { size: self.templates.len() as f64, casters, danger: dmg_scale }
+    }
 }
 
 fn leveling(inp: &RepInput, pull: u32, minutes: f64, enemy: &str, travel: f64, mix: Option<&str>, dmg_scale: f64) -> RepOut {
@@ -169,6 +278,8 @@ fn leveling(inp: &RepInput, pull: u32, minutes: f64, enemy: &str, travel: f64, m
     // per kind of mob: kills, time fighting, deaths
     let mut by_kind: BTreeMap<&str, (f64, f64, f64)> = BTreeMap::new();
     let mut sim = new_sim(inp);
+    sim.fight = FightKind::Leveling;
+    sim.pull = draw_pull(&sim, 0, pull, mix, enemy).info(dmg_scale);
     let p = sim.spawn_player(inp.build, 0, 1);
     sim.actors[p].behind = inp.sc.behind;
     sim.prep_totems = false;
@@ -180,34 +291,11 @@ fn leveling(inp: &RepInput, pull: u32, minutes: f64, enemy: &str, travel: f64, m
     let mut approach_t = 0.0;
     let mut escapes = 0.0;
     while sim.t < session {
-        // the pack stands unaware 30 to 35 yards off, spread over up to 8; it's
-        // one kind of creature, and some of it may cast (the same for every
-        // build: world draws, all made whether they're needed or not)
-        let mut env = sim.env(ENV_PULL, i);
-        let far = env.range(30.0, 35.0);
-        let spreads: Vec<f64> = (0..pull).map(|_| env.range(0.0, 8.0)).collect();
-        let kind_roll = env.f64();
-        let caster_rolls: Vec<f64> = (0..pull).map(|_| env.f64()).collect();
-        // whether the fight after this one comes to where your totems stand
-        let carry_roll = env.f64();
-        let kind: &str = match mix {
-            Some(m) => {
-                let mut acc = 0.0;
-                m.kinds.iter().find(|k| {
-                    acc += k.1;
-                    kind_roll < acc
-                }).unwrap_or(m.kinds.last().unwrap()).0.as_str()
-            }
-            None => enemy,
-        };
+        let PullDraw { far, spreads, kind, templates, carry_roll } = draw_pull(&sim, i, pull, mix, enemy);
         sim.spawned.clear();
         let mut ids = vec![];
         for j in 0..pull as u64 {
-            let tmpl = match mix.and_then(|m| m.casters.as_ref()) {
-                Some((of, share, as_)) if of == kind && caster_rolls[j as usize] < *share => as_.as_str(),
-                _ => kind,
-            };
-            let e = &w.enemies[tmpl];
+            let e = &w.enemies[templates[j as usize]];
             let lvl = (inp.build.level as i32 + e.level_offset).max(1) as u32;
             let id = sim.spawn_enemy(e, lvl, 1, 1000 + i * 16 + j, dmg_scale);
             let spread = spreads[j as usize];
@@ -282,6 +370,7 @@ fn leveling(inp: &RepInput, pull: u32, minutes: f64, enemy: &str, travel: f64, m
                 x.hp = back * x.max_hp;
                 x.res[Res::Mana as usize] = back * x.max_res[Res::Mana as usize];
                 x.auras.clear();
+                x.aura_gen += 1;
                 x.mechs = 0;
                 x.stealthed = false;
                 x.aura_next = f64::INFINITY;
@@ -298,6 +387,8 @@ fn leveling(inp: &RepInput, pull: u32, minutes: f64, enemy: &str, travel: f64, m
             Outcome::Timeout => stuck += 1.0,
             _ => {}
         }
+        // rest for what comes next
+        sim.pull = draw_pull(&sim, i + 1, pull, mix, enemy).info(dmg_scale);
         let (rt, ea, dr) = rest(&mut sim, p, travel);
         rest_t += rt;
         eats += ea;
@@ -379,6 +470,7 @@ fn boss(inp: &RepInput, duration: f64, enemy: &str, by_time: bool, tank_build: O
     let w = inp.w;
     let e = &w.enemies[enemy];
     let mut sim = new_sim(inp);
+    sim.fight = FightKind::Boss;
     let p = sim.spawn_player(inp.build, 0, 1);
     sim.actors[p].behind = inp.sc.behind;
     sim.main = Some(p);
@@ -405,9 +497,10 @@ fn boss(inp: &RepInput, duration: f64, enemy: &str, by_time: bool, tank_build: O
     sim.place(b, 0.0);
     sim.actors[p].target = Some(b);
     if let Some(t) = tank {
+        // the tank pulls from range: its opener (Charge) brings its first rage
         sim.actors[t].target = Some(b);
         sim.actors[b].target = Some(t);
-        stand_off(&mut sim, t, b);
+        sim.place(t, -TANK_PULL_YARDS);
         sim.aggro_watch = Some((b, t, 0.0, 0));
     }
     stand_off(&mut sim, p, b);
@@ -449,15 +542,22 @@ fn boss(inp: &RepInput, duration: f64, enemy: &str, by_time: bool, tank_build: O
         put(&mut v, "held_share", held / el);
         put(&mut v, "pulled_aggro", pulls as f64);
     }
-    put(&mut v, "dps", m.dmg / el);
-    put(&mut v, "hps", m.heal / el);
+    // over the whole fight: dying early counts as no damage from then on
+    // (`dps_alive` is the rate while alive)
+    let whole = duration.max(el);
+    put(&mut v, "dps", m.dmg / whole);
+    put(&mut v, "dps_alive", m.dmg / el);
+    put(&mut v, "hps", m.heal / whole);
     put(&mut v, "crit_rate", m.crits / m.hits.max(1.0));
     put(&mut v, "died", if sim.actors[p].alive { 0.0 } else { 1.0 });
-    breakdown(&mut v, "dps:", &m.dmg_by, el);
+    breakdown(&mut v, "dps:", &m.dmg_by, whole);
     breakdown(&mut v, "casts_per_min:", &m.casts, el / 60.0);
     line_counts(&mut v, &sim, p, el, 1.0, None);
     (v, sim.log.take(), sim.trace.take())
 }
+
+/// How far from the boss the tank starts, so its Charge opens the fight.
+const TANK_PULL_YARDS: f64 = 20.0;
 
 /// The duel opponent's assumptions: the run's settings without your build's
 /// own overrides, plus the opponent's, and played the way "Your duel
@@ -483,6 +583,7 @@ fn opponent_opts(inp: &RepInput, opp: &Build) -> Vec<f64> {
 
 fn duel(inp: &RepInput, max_time: f64) -> RepOut {
     let mut sim = new_sim(inp);
+    sim.fight = FightKind::Pvp;
     let a = sim.spawn_player(inp.build, 0, 1);
     let opp = inp.opponent.expect("duel needs an opponent (--vs)");
     let b = sim.spawn_player(opp, 1, 2);
@@ -498,13 +599,8 @@ fn duel(inp: &RepInput, max_time: f64) -> RepOut {
     let mut env = sim.env(ENV_DUEL, 0);
     let gap = env.range(5.0, 10.0);
     sim.flip = env.f64() < 0.5;
-    sim.place(a, 0.0);
-    sim.place(b, gap);
-    for (o, x) in [(a, 0.0), (b, gap)] {
-        for pt in sim.actors[o].pets.clone() {
-            sim.place(pt, x);
-        }
-    }
+    place_party(&mut sim, a, 0.0);
+    place_party(&mut sim, b, gap);
     // both turn hostile on this tick; each moves, and swings, once it has
     // reacted (its own draw), so who strikes first is reaction time
     sim.enter_combat();
@@ -577,6 +673,7 @@ fn standard_presets() -> Vec<String> {
 fn skirmish_fight<'w>(inp: &RepInput<'w>, opp: &Build, k: usize, you_first: bool, max_time: f64, log: bool) -> ([f64; 8], Option<Vec<String>>, Option<Vec<TraceEv>>) {
     let seed = crate::rng::derive_seed(inp.seed, &[0x534b_4952, k as u64]);
     let mut sim = Sim::new(inp.w, seed, inp.opts.to_vec());
+    sim.fight = FightKind::Pvp;
     if log {
         sim.log = Some(vec![]);
         sim.trace = Some(vec![]);
@@ -584,12 +681,14 @@ fn skirmish_fight<'w>(inp: &RepInput<'w>, opp: &Build, k: usize, you_first: bool
     let a = sim.spawn_player(inp.build, 0, 1);
     let b = sim.spawn_player(opp, 1, 2);
     sim.give_opts(b, opponent_opts(inp, opp));
+    let defender = if you_first { b } else { a };
+    // totems go down when the fight starts, where you stand then
+    sim.prep_totems = false;
     sim.prep([a, b]);
-    // you've seen each other: nobody starts in Stealth
+    // the side that's jumped has only what it keeps up anyway; the attacker
+    // comes as it chose to (from Stealth, if it has it)
+    jumped(&mut sim, defender);
     for x in [a, b] {
-        while let Some(j) = sim.actors[x].auras.iter().position(|i| inp.w.auras[i.def as usize].stealth) {
-            sim.remove_aura_at(x, j, false);
-        }
         sim.top_up(x);
     }
     sim.actors[a].target = Some(b);
@@ -597,14 +696,8 @@ fn skirmish_fight<'w>(inp: &RepInput<'w>, opp: &Build, k: usize, you_first: bool
     let mut env = sim.env(ENV_SKIRMISH, k as u64);
     let gap = env.range(30.0, 40.0);
     sim.flip = env.f64() < 0.5;
-    sim.place(a, 0.0);
-    sim.place(b, gap);
-    for (o, x) in [(a, 0.0), (b, gap)] {
-        for pt in sim.actors[o].pets.clone() {
-            sim.place(pt, x);
-        }
-    }
-    let defender = if you_first { b } else { a };
+    place_party(&mut sim, a, 0.0);
+    place_party(&mut sim, b, gap);
     sim.actors[defender].waits = true;
     sim.enter_combat();
     let start = sim.t;
@@ -621,6 +714,46 @@ fn skirmish_fight<'w>(inp: &RepInput<'w>, opp: &Build, k: usize, you_first: bool
     let score = b01(win) + 0.5 * b01(draw || timeout);
     let dmg = sim.metrics[a].dmg;
     ([score, b01(win), b01(loss), b01(draw), b01(timeout), el, dmg, sim.spins as f64], sim.log.take(), sim.trace.take())
+}
+
+/// How long a buff must have left for someone jumped in the open world to
+/// still have it up.
+const JUMPED_KEEP_SECS: f64 = 300.0;
+
+/// Someone jumped in the open world hasn't just buffed for this fight: they
+/// keep stances, forms, aspects and buffs with five minutes or more left
+/// (Inner Fire, armors), but no fresh absorbs, charge shields (marked
+/// `jumped = "drop"`), seals, shouts or Stealth, and their cooldowns are
+/// ready (none of that was cast).
+fn jumped(sim: &mut Sim, d: usize) {
+    let w = sim.w;
+    let mut who = sim.actors[d].pets.clone();
+    who.push(d);
+    for u in who {
+        loop {
+            let t = sim.t;
+            let x = &sim.actors[u];
+            let drop = x.auras.iter().position(|i| {
+                let def = &w.auras[i.def as usize];
+                // its own debuffs (Weakened Soul, Forbearance) go with the buffs that made them
+                (!def.debuff && (def.stealth || def.jumped_drop || i.absorb > 0.0 || i.expires - t < JUMPED_KEEP_SECS)) || (def.debuff && i.src == u)
+            });
+            let Some(j) = drop else { break };
+            sim.remove_aura_at(u, j, false);
+        }
+        sim.actors[u].cds.clear();
+        sim.refresh_stats(u);
+    }
+}
+
+/// Puts someone at `x` with their pets and totems.
+fn place_party(sim: &mut Sim, o: usize, x: f64) {
+    sim.place(o, x);
+    let mut with = sim.actors[o].pets.clone();
+    with.extend(sim.actors[o].totems.iter().flatten().copied());
+    for u in with {
+        sim.place(u, x);
+    }
 }
 
 /// Open-world PvP: one fight against each opponent (one build of each class,
@@ -675,6 +808,7 @@ fn pressure_fight(inp: &RepInput, attacker: &str, n: u32, scale: f64, max_time: 
     let w = inp.w;
     let e = &w.enemies[attacker];
     let mut sim = Sim::new(w, inp.seed, inp.opts.to_vec());
+    sim.fight = FightKind::Pvp;
     if log {
         sim.log = Some(vec![]);
         sim.trace = Some(vec![]);
@@ -685,7 +819,7 @@ fn pressure_fight(inp: &RepInput, attacker: &str, n: u32, scale: f64, max_time: 
     let mut ids = vec![];
     for j in 0..n as u64 {
         let id = sim.spawn_enemy(e, inp.build.level, 1, 500 + j, scale);
-        sim.actors[id].stun_sched = e.stuns.iter().map(|(s, d)| (sim.t + s, *d)).collect();
+        sim.actors[id].stun_sched = e.stuns.iter().map(|&(s, d, a)| (sim.t + s, d, a)).collect();
         sim.actors[id].target = Some(p);
         // an ambush: already in melee
         sim.place(id, 3.0);
@@ -693,11 +827,11 @@ fn pressure_fight(inp: &RepInput, attacker: &str, n: u32, scale: f64, max_time: 
     }
     sim.actors[p].target = Some(ids[0]);
     sim.enter_combat();
-    // The attacker opens: its opening stun lands before you can act.
+    // The attacker opens: its opening stun lands before you can act. You've
+    // been jumped, so there's no opener of yours to play.
     for &id in &ids {
         sim.scripted_stuns(id);
     }
-    sim.opener(p);
     let start = sim.t;
     let out = sim.run(Stop::Fight { until: start + max_time });
     let kills = ids.iter().filter(|&&k| !sim.actors[k].alive).count();
@@ -743,6 +877,7 @@ fn pressure(inp: &RepInput, attacker: &str, n: u32, lo: f64, hi: f64, steps: u32
 fn heal_fight(inp: &RepInput, h: &HealingDef, scale: f64, log: bool) -> (bool, Values, Option<Vec<String>>, Option<Vec<TraceEv>>) {
     let w = inp.w;
     let mut sim = Sim::new(w, inp.seed, inp.opts.to_vec());
+    sim.fight = FightKind::Healing;
     if log {
         sim.log = Some(vec![]);
         sim.trace = Some(vec![]);

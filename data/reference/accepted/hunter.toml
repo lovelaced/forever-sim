@@ -42,11 +42,11 @@ talent = "Node 110859, the Lightning Reflexes on the Survival tree. The sim's li
 "value.1" = "Ranged attack power +20% of Intellect a rank: the sim adds 0.2 * rank * int, which depends on Intellect, so the check can't evaluate it."
 
 [hunter.talent_entrapment]
-"value.0" = "Root from traps (1 sec a rank): traps are not simulated."
+"value.0" = "Modelled: the fire and frost traps root what they catch for 1 sec a rank (the `entrapment` aura), which the audit can't read from the talent. The spell lists no chance, so the sim roots every time."
 
 [hunter.talent_clever_traps]
-"value.0" = "Trap duration and damage +15% a rank: traps are not simulated."
-"value.1" = "Trap duration and damage +15% a rank: traps are not simulated."
+"value.0" = "Modelled in each trap's duration and damage (x 1 + 0.15 a rank), which the audit can't read from the talent."
+"value.1" = "Modelled in each trap's duration and damage (x 1 + 0.15 a rank), which the audit can't read from the talent."
 
 [hunter.talent_survival_tactics]
 "value.0" = "Trap and Feign Death hit chance +5% a rank: traps aren't in the sim yet, and Feign Death's resist roll (the level-based spell hit table) takes no talent bonus yet."

@@ -34,14 +34,17 @@ jobs:
       - name: Build the command-line tool and the WebAssembly engine
         run: |
           cargo build --release
-          cargo build --release --lib --target wasm32-unknown-unknown
+          cargo build --profile dist --lib --target wasm32-unknown-unknown
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Check the WebAssembly engine answers requests
-        run: node tools/wasm_smoke.mjs target/wasm32-unknown-unknown/release/forever_sim.wasm
+        run: node tools/wasm_smoke.mjs target/wasm32-unknown-unknown/dist/forever_sim.wasm
+
+      - name: Test the website
+        run: npm test
 
       # Game icons named in the data (talents, classes, races) and in
       # web/meta.js: taken from the game's interface textures on GitHub
@@ -56,12 +59,10 @@ jobs:
           npm install --no-save --prefix .icons @iconify-json/game-icons@1
           node tools/build_icons.mjs .icons/node_modules/@iconify-json/game-icons/icons.json catalog.json
 
+      # code, engine and catalog in a folder named by their content, so
+      # browsers keep them until the next version (sizes in the log)
       - name: Assemble the site
-        run: |
-          mkdir -p _site
-          cp -r web/. _site/
-          cp target/wasm32-unknown-unknown/release/forever_sim.wasm _site/fsim.wasm
-          ls -la _site
+        run: node tools/assemble_site.mjs target/wasm32-unknown-unknown/dist/forever_sim.wasm _site
 
       - uses: actions/configure-pages@v5
 

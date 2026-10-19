@@ -53,7 +53,7 @@ damage_taken = "Improved Kidney Shot raises only the rogue's damage on the stunn
 "value.1" = "Not modelled: Expose Armor at 5 combo points refunds 1/2 of them. The sim has no Expose Armor."
 
 [rogue.talent_vile_poisons]
-"value.2" = "Not modelled: poisons are 8-40% harder to dispel. Nothing in the sim dispels poisons. Effects 0 and 1 (+4-20% poison damage) are modelled and match."
+"value.2" = "Modelled: a cure fails 8-40% of the time on Deadly Poison (`dispel_resist = 0.08 * t.vile_poisons`), which the audit can't evaluate on the talent. Effects 0 and 1 (+4-20% poison damage) are modelled and match."
 
 [rogue.talent_improved_poisons]
 "value.0" = "Modelled: +2/4/6/8/10% chance to apply poisons, inside each poison's proc chance (`0.2` or `0.3` + `0.02 * t.improved_poisons`, plus 0.1 with Venom), which the audit can't evaluate because it also reads the Venom aura."

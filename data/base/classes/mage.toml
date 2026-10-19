@@ -51,7 +51,8 @@ icon = "spell_nature_starfall"
 tree = "Arcane"
 points = 0
 ranks = 5
-text = "20% per rank chance that damage does not push back Arcane Missiles, 14% per rank for Arcane Blast (pushback resistance for single spells is not simulated)."
+text = "20% per rank chance that damage does not push back Arcane Missiles, 14% per rank for Arcane Blast."
+spell_mods = [{ spells = ["arcane_missiles"], prop = "pushback_resist", add = "0.2 * rank" }, { spells = ["arcane_blast"], prop = "pushback_resist", add = "0.14 * rank" }]
 [talents.arcane_subtlety]
 icon = "spell_holy_dispelmagic"
 tree = "Arcane"
@@ -106,13 +107,13 @@ icon = "spell_shadow_detectlesserinvisibility"
 tree = "Arcane"
 points = 15
 ranks = 2
-text = "Mana Shield and Mage Armor (neither is simulated yet)."
+text = "Mana Shield takes 33% less mana per point it absorbs. Mage Armor's resistances +50% (resistances aren't simulated)."
 [talents.improved_counterspell]
 icon = "spell_frost_iceshock"
 tree = "Arcane"
 points = 15
 ranks = 2
-text = "Counterspell also silences for 2/4 sec (the sim's Counterspell lockout already blocks every school, so this adds nothing yet)."
+text = "Counterspell also silences the target for 2/4 sec."
 [talents.arcane_meditation]
 icon = "spell_shadow_siphonmana"
 tree = "Arcane"
@@ -443,6 +444,7 @@ procs = [{ on = "struck_melee", effects = [{ type = "aura", aura = "chilled", ta
 [auras.chilled]
 name = "Chilled"
 debuff = true
+dispel = "magic"
 per_source = false
 mechanic = "slow"
 duration = "5 * (1 + 0.11 * t.permafrost)"
@@ -538,6 +540,7 @@ tick = { interval = 2, effects = [{ type = "damage", school = "fire", periodic =
 [auras.fire_vulnerability]
 name = "Fire Vulnerability"
 debuff = true
+dispel = "magic"
 per_source = false
 duration = 30
 max_stacks = 5
@@ -579,6 +582,7 @@ spell_mods = [
 [auras.winters_chill]
 name = "Winter's Chill"
 debuff = true
+dispel = "magic"
 per_source = false
 refresh = "replace"
 duration = 15
@@ -586,6 +590,7 @@ max_stacks = 5
 text = "Ice Lance and Frostbolt crit +2% per stack; up to 1 stack per Winter's Chill rank."
 [auras.polymorph]
 name = "Polymorph"
+hold = true
 debuff = true
 mechanic = "incap"
 break_on_damage = true
@@ -601,8 +606,9 @@ name = "Mana Shield"
 dispel = "magic"
 duration = 60
 absorb = "r.absorb"
-# the spell data's amplitude: 2 mana a point of damage
-mana_per_absorb = 2
+# the spell data's amplitude: 2 mana a point of damage, 17 or 33% less with
+# Arcane Shielding
+mana_per_absorb = "2 * (1 - interp(t.arcane_shielding, 0,0, 1,0.17, 2,0.33))"
 [auras.fire_ward]
 name = "Fire Ward"
 dispel = "magic"
@@ -625,6 +631,7 @@ mods = [{ stat = "dmg_taken", mul = 0 }, { stat = "immune_stun", add = 1 }, { st
 [auras.blizzard_chill]
 name = "Blizzard"
 debuff = true
+dispel = "magic"
 per_source = false
 mechanic = "slow"
 duration = 1.5
@@ -643,6 +650,7 @@ mods = [{ stat = "casting_regen", add = 1 }]
 # ------------------------------------------------------------------ spells
 [spells.frost_armor]
 name = "Frost Armor"
+school = "frost"
 icon = "spell_frost_frostarmor02"
 target = "self"
 requires = "!known.ice_armor && (!aura.frost_armor.up || aura.frost_armor.remains < 1)"
@@ -656,6 +664,7 @@ effects = [{ type = "aura", aura = "frost_armor" }]
 
 [spells.ice_armor]
 name = "Ice Armor"
+school = "frost"
 icon = "spell_frost_frostarmor02"
 target = "self"
 requires = "!aura.ice_armor.up || aura.ice_armor.remains < 1"
@@ -669,6 +678,7 @@ effects = [{ type = "aura", aura = "ice_armor" }]
 
 [spells.arcane_intellect]
 name = "Arcane Intellect"
+school = "arcane"
 range = 30
 icon = "spell_holy_magicalsentry"
 target = "self"
@@ -712,6 +722,7 @@ tick = { interval = 2, effects = [{ type = "damage", school = "fire", periodic =
 name = "Frostbolt"
 icon = "spell_frost_frostbolt02"
 school = "frost"
+dispel = "magic"
 ranks = [
   { level = 4, id = 116, lo = 18, lo_per_level = 0.189, hi = 20, hi_per_level = 0.211, mana = 25, cast = 1.5, max_level = 8, coef = 0.407 , chill = 5 },
   { level = 8, id = 205, lo = 27, lo_per_level = 0.282, hi = 31, hi_per_level = 0.318, mana = 35, cast = 1.8, max_level = 12, coef = 0.489 , chill = 6 },
@@ -730,6 +741,7 @@ effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef
 
 [spells.frostfire_bolt]
 name = "Frostfire Bolt"
+dispel = "magic"
 range = 35
 icon = "ability_mage_frostfirebolt"
 school = "fire"
@@ -857,6 +869,7 @@ effects = [{ type = "damage", school = "arcane", min = "r.lo", max = "r.hi", coe
 
 [spells.frost_nova]
 name = "Frost Nova"
+dispel = "magic"
 radius = 10
 icon = "spell_frost_frostnova"
 school = "frost"
@@ -872,6 +885,7 @@ effects = [{ type = "damage", school = "frost", min = "r.lo", max = "r.hi", coef
 
 [spells.cone_of_cold]
 name = "Cone of Cold"
+dispel = "magic"
 radius = 10
 icon = "spell_frost_glacier"
 school = "frost"
@@ -937,6 +951,7 @@ effects = [{ type = "aura", aura = "ice_barrier" }]
 
 [spells.evocation]
 name = "Evocation"
+school = "arcane"
 icon = "spell_nature_purge"
 level = 20
 cooldown = 480
@@ -955,6 +970,7 @@ effects = [{ type = "aura", aura = "presence_of_mind" }]
 
 [spells.arcane_power]
 name = "Arcane Power"
+school = "arcane"
 icon = "spell_nature_lightning"
 talent = "arcane_power"
 off_gcd = true
@@ -964,6 +980,7 @@ effects = [{ type = "aura", aura = "arcane_power" }]
 
 [spells.combustion]
 name = "Combustion"
+school = "fire"
 icon = "spell_fire_sealoffire"
 talent = "combustion"
 level = 40
@@ -1010,6 +1027,7 @@ tick = { interval = 2, effects = [{ type = "damage", school = "fire", periodic =
 
 [spells.polymorph]
 name = "Polymorph"
+dispel = "magic"
 range = 30
 icon = "spell_nature_polymorph"
 school = "arcane"
@@ -1132,9 +1150,24 @@ off_gcd = true
 cooldown = 30
 cost = { mana = 100 }
 requires = "target.casting"
-effects = [{ type = "interrupt", lockout = 10 }]
+target = "enemy"
+effects = [
+  { type = "interrupt", lockout = 10 },
+  { type = "if", cond = "t.improved_counterspell > 0", then = [{ type = "aura", aura = "silence", target = "target", duration = "2 * t.improved_counterspell" }] },
+]
 
 # ------------------------------------------------------------------ rotations
+[spells.remove_lesser_curse]
+name = "Remove Lesser Curse"
+range = 30
+icon = "spell_nature_removecurse"
+school = "arcane"
+target = "self"
+cost = { mana = "0.1 * base_mana" }
+text = "Takes 1 curse off a friendly target."
+ranks = [{ level = 18, id = 475 }]
+effects = [{ type = "cleanse", target = "ally", types = ["curse"] }]
+
 [rotations.frost]
 desc = "Frost: Ice Barrier, Frost Nova into Ice Lance/Frostbolt shatter, Frostbolt filler, Evocation when dry"
 auto_melee = false
@@ -1143,12 +1176,12 @@ opener = []
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
-  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss", emergency = true },   # escape
   { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
   { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
   { cast = "cold_snap", if = "cd.ice_barrier.remains > 10 && cd.frost_nova.remains > 10 && (target.is_player || enemies_active >= 2)" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -1169,14 +1202,15 @@ actions = [
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
+  { cast = "evocation", if = "mana_pct < 0.4 && pull.size < 2 && pull.danger <= 1" },   # instead of a long drink; kept for the fight before a hard pull
   { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
   { cast = "ice_armor" },
   { cast = "frost_armor" },
   { cast = "arcane_intellect" },
 ]
-eat_below = 0.5
-drink_below = 0.45
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.45"
 
 [rotations.fire]
 desc = "Fire: Scorch to five stacks on long fights, Fireball, Fire Blast, Pyroblast with three Heating Up stacks, Combustion"
@@ -1186,12 +1220,12 @@ opener = []
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
-  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss", emergency = true },   # escape
   { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
   { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
   { cast = "mana_shield", if = "!aura.mana_shield.up && !aura.ice_barrier.up && enemies_within_5 >= 1 && hp_pct < 0.5 && mana_pct > 0.3" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -1212,14 +1246,15 @@ actions = [
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
+  { cast = "evocation", if = "mana_pct < 0.4 && pull.size < 2 && pull.danger <= 1" },   # instead of a long drink; kept for the fight before a hard pull
   { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
   { cast = "ice_armor" },
   { cast = "frost_armor" },
   { cast = "arcane_intellect" },
 ]
-eat_below = 0.5
-drink_below = 0.45
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.45"
 
 [rotations.arcane]
 desc = "Arcane: Arcane Blast to three stacks, then Arcane Missiles (free with Missile Barrage)"
@@ -1228,12 +1263,12 @@ precombat = ["ice_armor", "frost_armor", "arcane_intellect"]
 opener = []
 actions = [
   { cast = "counterspell" },
-  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss", emergency = true },   # escape
   { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
   { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
   { cast = "mana_shield", if = "!aura.mana_shield.up && !aura.ice_barrier.up && enemies_within_5 >= 1 && hp_pct < 0.5 && mana_pct > 0.3" },
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -1252,13 +1287,14 @@ actions = [
 ]
 rest = [
   { cast = "cannibalize", if = "hp_pct < 0.75 || mana_pct < 0.75" },
+  { cast = "evocation", if = "mana_pct < 0.4 && pull.size < 2 && pull.danger <= 1" },   # instead of a long drink; kept for the fight before a hard pull
   { cast = "rapid_regeneration", if = "hp_pct < 0.7" },
   { cast = "ice_armor" },
   { cast = "frost_armor" },
   { cast = "arcane_intellect" },
 ]
-eat_below = 0.5
-drink_below = 0.45
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.45"
 
 [rotations.battlemage]
 desc = "Battlemage: sword in melee plus instants (Frost Nova, Ice Lance on frozen, Fire Blast, Arcane Explosion, Cone of Cold), Ice Barrier"
@@ -1268,11 +1304,11 @@ opener = []
 actions = [
   { cast = "counterspell" },
   { cast = "ice_barrier", if = "!aura.ice_barrier.up" },
-  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss" },   # escape
+  { cast = "ice_block", if = "hp_pct < 0.15 && !target.boss", emergency = true },   # escape
   { cast = "blink", if = "(stunned || rooted) && !aura.ice_block.up && (target.is_player || hp_pct < 0.5)" },   # out of a stun or root
   { cast = "fire_ward", if = "target.casting && !target.is_player && !aura.fire_ward.up" },   # caster mobs throw fire
-  { cast = "healing_potion", if = "opt.potions && (hp_pct < 0.2)" },
-  { cast = "mana_potion", if = "opt.potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
+  { cast = "healing_potion", if = "potions && (hp_pct < 0.2)", emergency = true },
+  { cast = "mana_potion", if = "potions && (mana_pct < 0.3 && (target.boss || target.is_player))" },
   { cast = "evocation", if = "mana_pct < 0.12" },
   { cast = "blood_fury" },
   { cast = "berserking" },
@@ -1291,5 +1327,5 @@ rest = [
   { cast = "frost_armor" },
   { cast = "arcane_intellect" },
 ]
-eat_below = 0.5
-drink_below = 0.45
+eat_below = "pull.size >= 2 || pull.danger > 1 ? 0.85 : 0.5"
+drink_below = "pull.size >= 2 || pull.danger > 1 ? 0.7 : 0.45"

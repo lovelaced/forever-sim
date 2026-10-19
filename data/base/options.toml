@@ -117,6 +117,17 @@ source = "choice"
 
 # Your party in the boss test (data/base/party.toml): one toggle per buff.
 
+[options.party]
+default = 1
+kind = "choice"
+choices = ["No buffs", "A typical group", "Full raid buffs"]
+group = "party"
+label = "Who you're grouped with"
+help = "In the boss test: no one's buffs, a typical five-player group (a Protection warrior tank, a priest or druid, a mage or warlock, and a paladin or shaman by your side's classes, each bringing one buff, one blessing per paladin), or every buff in the game at once, as in a raid."
+desc = "0 = no party buffs, 1 = a typical group, 2 = every buff at once"
+source = "estimate"
+cite = "A dungeon group has four others; which classes come along varies"
+
 [options.party_battle_shout]
 default = 1
 kind = "toggle"
@@ -254,6 +265,55 @@ help = "Entangling Roots and other roots break once the rooted target has taken 
 desc = "Damage that breaks a root, as a share of the target's health"
 source = "estimate"
 cite = "The original game's roots could break on damage; Forever's Improved Entangling Roots talks of the damage a root takes before breaking. A quarter of its health, like Frost Nova's freeze here"
+
+[options.pushback]
+default = 0
+kind = "choice"
+choices = ["Original game", "Later, gentler rules"]
+label = "Spell pushback"
+help = "How much a hit slows a spell you're casting. The original game pushes a cast back 1, 0.8, 0.6, 0.4 and then 0.2 seconds per hit, never past its full length, and shortens a channel by the same. The later rules (from Wrath of the Lich King) add half a second for each of the first two hits only and take a quarter off a channel per hit. Forever hasn't said which it uses."
+desc = "0 = the original game's pushback, 1 = the later, gentler rules"
+source = "classic"
+cite = "vmangos (a 1.12 server) for the original; patch 3.0.2's notes for the later rules"
+
+[options.first_aid]
+default = 1
+kind = "toggle"
+group = "world"
+label = "Bandage between pulls"
+help = "When you'd eat anyway, you put on a bandage first: it heals over 6 to 8 sec and saves some time eating. Casters low on mana skip it, since they sit to drink anyway. Assumes you kept First Aid up with the cloth you find, from Linen at level 1 to Heavy Runecloth at 54. Any damage stops a bandage, and you can use one a minute."
+desc = "1 = a bandage before eating, when the rotation would eat"
+source = "classic"
+cite = "First Aid bandages: Linen 66 health over 6 sec up to Heavy Runecloth 2000 over 8 sec; Recently Bandaged lasts 60 sec"
+
+[options.spell_resists]
+default = 1
+kind = "toggle"
+label = "Higher-level targets resist some spell damage"
+help = "In the original game a target above your level shrugs off part of your direct spell damage: about 4% two levels up and 6% three levels up, on average. Spells that also slow or hold their target land whole or miss instead."
+desc = "1 = level-based partial resists on direct spell damage"
+source = "classic"
+cite = "8 resistance per level above you, 0.75 x resistance / (5 x your level) on average"
+
+[options.skirmish_notice]
+default = 20
+kind = "num"
+unit = "yd"
+label = "How close a player gets before you notice them"
+help = "In the open-world PvP tests, the side that's about to be jumped sees the other one coming once it's this close, and starts to react. Until then it waits for the first move."
+desc = "Distance at which a waiting player notices an approaching enemy player (yards)"
+source = "estimate"
+cite = "About a mob's aggro radius; players watch their surroundings, but not every second"
+
+[options.stealth_detect]
+default = 0
+kind = "num"
+unit = "yd"
+label = "How close a stealthed player gets before you notice them"
+help = "A rogue or druid in Stealth is seen only this close (0 means not until it strikes). The game's own detection depends on levels and talents; this is a simple stand-in."
+desc = "Distance at which a waiting player notices a stealthed enemy (yards)"
+source = "estimate"
+cite = "Stealth in the original game is seen only from a few yards, and only by chance"
 
 # Internal switches the website sets for the open-world PvP tests (not
 # shown under Settings).
@@ -850,7 +910,7 @@ label = "Ice Lance: spell power coefficient"
 help = "Forever’s Ice Lance ranks list no spell power coefficient, so by default Ice Lance does not grow with spell power. The Burning Crusade gave it 0.143. To check on the beta, cast Ice Lance with and without spell power gear."
 desc = "Share of spell power added to Ice Lance (before its 4x against frozen targets)"
 source = "game"
-cite = "Ice Lance spells 1312002, 400640 and 1240044 to 1240047 (build 70338) have no coefficient; Frostbolt and Frostfire Bolt in the same data have 0.814"
+cite = "Ice Lance spells 1312002, 400640 and 1240044 to 1240047 (builds 70338 and 70425) have no coefficient; Frostbolt and Frostfire Bolt in the same data have 0.814"
 applies = ["mage"]
 
 [options.rage_decay]
@@ -894,10 +954,11 @@ cite = "vmangos gives magic attacks, wands included, the spell crit bonus; no te
 applies = ["priest", "mage", "warlock"]
 
 [options.potions]
-default = 0
-kind = "toggle"
+default = 1
+kind = "choice"
+choices = ["Never", "In group fights", "Always"]
 label = "Drink health and mana potions"
-help = "Classic potions for your level, two minutes apart: a health potion when low, a mana potion on bosses and players."
-desc = "1 = rotations drink health and mana potions"
+help = "Classic potions for your level, two minutes apart: a health potion when low, a mana potion on bosses and players. In group fights means the boss and healing tests, where a group expects them; leveling and PvP use them only with Always."
+desc = "0 = never, 1 = in the boss and healing tests, 2 = in every fight"
 source = "choice"
-cite = "Potions cost gold, so they're off unless you turn them on"
+cite = "Potions cost gold, so they're kept for group fights unless you choose otherwise"
